@@ -2,7 +2,7 @@ import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateProductDto, CreateProductVariantDto } from '@/modules/products/dto/create-product.dto';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsArray, ValidateNested, IsString, Min, IsEnum, IsBoolean } from 'class-validator';
+import { IsOptional, IsUUID, IsArray, ValidateNested, IsString, Min, Max, ArrayMaxSize, IsEnum, IsBoolean } from 'class-validator';
 import { ProductStatus } from '@/modules/enums';
 
 export class UpdateProductVariantDto extends PartialType(CreateProductVariantDto) {
@@ -21,6 +21,7 @@ export class UpdateProductVariantDto extends PartialType(CreateProductVariantDto
   @IsOptional()
   @Type(() => Number)
   @Min(0)
+  @Max(3, { message: 'Mỗi biến thể chỉ được phép tải lên tối đa 3 ảnh mới' })
   imageCount?: number;
 }
 
@@ -67,6 +68,7 @@ export class UpdateProductDto extends PartialType(
     return value;
   })
   @IsArray({ message: 'Danh sách biến thể phải là một mảng' })
+  @ArrayMaxSize(30, { message: 'Sản phẩm chỉ được phép có tối đa 30 biến thể' })
   @ValidateNested({ each: true })
   @Type(() => UpdateProductVariantDto)
   variants?: UpdateProductVariantDto[];

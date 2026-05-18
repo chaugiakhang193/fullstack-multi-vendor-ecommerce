@@ -7,6 +7,7 @@ import { CategoriesService } from '@/modules/products/categories.service';
 
 // Controllers
 import { ProductsController } from '@/modules/products/products.controller';
+import { SellerProductsController } from '@/modules/products/seller-products.controller';
 import { CategoriesController } from '@/modules/products/categories.controller';
 
 // Entities
@@ -24,7 +25,11 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     CloudinaryModule,
     ShopsModule,
   ],
-  controllers: [ProductsController, CategoriesController],
+  controllers: [
+    ProductsController,
+    SellerProductsController,
+    CategoriesController,
+  ],
   providers: [ProductsService, CategoriesService],
   exports: [CategoriesService],
 })

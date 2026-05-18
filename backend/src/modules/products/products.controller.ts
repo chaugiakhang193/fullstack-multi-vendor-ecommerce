@@ -1,125 +1,51 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseInterceptors,
-  UploadedFile,
-  UploadedFiles,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Param, Res, ParseUUIDPipe } from '@nestjs/common';
 import * as express from 'express';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-  ApiBody,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
-import {
-  FileInterceptor,
-  FileFieldsInterceptor,
-} from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 // Services
 import { ProductsService } from '@/modules/products/products.service';
 
 // DTOs
-import { CreateProductDto } from '@/modules/products/dto/create-product.dto';
-import { UpdateProductDto } from '@/modules/products/dto/update-product.dto';
+import { ProductResponseDto } from '@/modules/products/dto/product-response.dto';
 
-// Guards & Decorators
-import { Roles } from '@/decorator/roles.decorator';
-import { User } from '@/decorator/user.decorator';
-import { Public } from '@/decorator/customize';
-
-// Enums & Interfaces
-import { UserRole } from '@/modules/enums';
-import type { IUser } from '@/interface/user.interface';
+// Decorators
+import { Public, ResponseMessage } from '@/decorator/customize';
+import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 
 @ApiTags('products')
-@ApiBearerAuth('access-token')
-@Roles(UserRole.SELLER)
+@Public()
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Post()
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'general_gallery', maxCount: 5 },
-      { name: 'variant_images', maxCount: 30 },
-    ]),
-  )
-  @ApiOperation({ summary: 'Seller tạo sản phẩm mới' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        description: { type: 'string' },
-        price: { type: 'number' },
-        sku: { type: 'string' },
-        weight: { type: 'number', description: 'Trọng lượng (gram)' },
-        length: { type: 'number', description: 'Chiều dài (cm)' },
-        width: { type: 'number', description: 'Chiều rộng (cm)' },
-        height: { type: 'number', description: 'Chiều cao (cm)' },
-        category_id: { type: 'string' },
-        has_variants: { type: 'boolean' },
-        stock_quantity: { type: 'number' },
-        variants: {
-          type: 'string',
-          description: 'JSON string of variants array',
-        },
-        thumbnail: {
-          type: 'string',
-          format: 'binary',
-        },
-        general_gallery: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-        },
-        variant_images: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-        },
-      },
-    },
-  })
-  create(
-    @Body() createProductDto: CreateProductDto,
-    @UploadedFiles()
-    files: {
-      thumbnail?: Express.Multer.File[];
-      general_gallery?: Express.Multer.File[];
-      variant_images?: Express.Multer.File[];
-    },
-    @User() user: IUser,
-  ) {
-    return this.productsService.create(createProductDto, files, user);
-  }
-
-  @Get('my-shop')
-  @ApiOperation({ summary: 'Seller lấy danh sách sản phẩm của chính mình' })
-  findAllByShop(@User() user: IUser) {
-    // TODO: Implement pagination
-    return this.productsService.findAllByShop(user.sub);
-  }
-
   @Get()
-  @Public()
+  @ResponseMessage('Lấy danh sách sản phẩm thành công')
+  @ApiOperation({ summary: 'Khách hàng lấy danh sách sản phẩm (Public)' })
+  @ApiGenericResponse(ProductResponseDto, 'Lấy danh sách sản phẩm thành công', {
+    isArray: true,
+  })
   findAll() {
     // TODO: Implement pagination
     return this.productsService.findAll();
   }
 
+  @Get('shop/:shopId')
+  @ResponseMessage('Lấy danh sách sản phẩm của gian hàng thành công')
+  @ApiOperation({ summary: 'Khách hàng lấy danh sách sản phẩm của một gian hàng (Public)' })
+  @ApiGenericResponse(ProductResponseDto, 'Lấy danh sách sản phẩm của gian hàng thành công', {
+    isArray: true,
+  })
+  @ApiResponse({ status: 400, description: 'ID gian hàng không đúng định dạng UUID' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy gian hàng hoặc gian hàng bị khóa' })
+  getPublicCatalogByShop(@Param('shopId', ParseUUIDPipe) shopId: string) {
+    return this.productsService.getPublicCatalogByShop(shopId);
+  }
+
   @Get(':id')
-  @Public()
+  @ResponseMessage('Lấy chi tiết sản phẩm thành công')
+  @ApiOperation({ summary: 'Khách hàng lấy chi tiết sản phẩm (Public)' })
+  @ApiGenericResponse(ProductResponseDto, 'Lấy chi tiết sản phẩm thành công')
+  @ApiResponse({ status: 404, description: 'Không tìm thấy sản phẩm' })
   async findOne(
     @Param('id') idWithSlug: string,
     @Res({ passthrough: true }) res: express.Response,
@@ -135,78 +61,5 @@ export class ProductsController {
     }
 
     return product;
-  }
-
-  @Patch(':id')
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'general_gallery', maxCount: 5 },
-      { name: 'variant_images', maxCount: 30 },
-    ]),
-  )
-  @ApiOperation({ summary: 'Seller cập nhật sản phẩm' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        description: { type: 'string' },
-        price: { type: 'number' },
-        sku: { type: 'string' },
-        weight: { type: 'number' },
-        length: { type: 'number' },
-        width: { type: 'number' },
-        height: { type: 'number' },
-        category_id: { type: 'string' },
-        has_variants: { type: 'boolean' },
-        stock_quantity: { type: 'number' },
-        status: {
-          type: 'string',
-          enum: ['active', 'deleted'],
-          description: 'Trạng thái hoạt động của sản phẩm',
-        },
-        is_hidden: {
-          type: 'boolean',
-          description: 'Ẩn/hiện sản phẩm với khách hàng',
-        },
-        variants: {
-          type: 'string',
-          description: 'JSON string of variants array',
-        },
-        thumbnail: {
-          type: 'string',
-          format: 'binary',
-        },
-        general_gallery: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-        },
-        variant_images: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-        },
-      },
-    },
-  })
-  update(
-    @Param('id') id: string,
-    @Body() updateProductDto: UpdateProductDto,
-    @UploadedFiles()
-    files: {
-      thumbnail?: Express.Multer.File[];
-      general_gallery?: Express.Multer.File[];
-      variant_images?: Express.Multer.File[];
-    },
-    @User() user: IUser,
-  ) {
-    return this.productsService.update(id, updateProductDto, files, user);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Seller xóa sản phẩm (Soft delete)' })
-  remove(@Param('id') id: string, @User() user: IUser) {
-    return this.productsService.remove(id, user);
   }
 }

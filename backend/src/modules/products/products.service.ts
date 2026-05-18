@@ -23,7 +23,7 @@ import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { ShopsService } from '@/modules/shops/shops.service';
 
 // Enums & Interfaces
-import { AccountStatus, AssetType, ProductStatus } from '@/modules/enums';
+import { AccountStatus, AssetType, ProductStatus, CloudinaryFolder } from '@/modules/enums';
 import { IUser } from '@/interface/user.interface';
 
 @Injectable()
@@ -132,7 +132,7 @@ export class ProductsService {
       // Upload Thumbnail
       const thumbnailResult = await this.cloudinaryService.uploadFile(
         files.thumbnail[0],
-        'products/thumbnails',
+        CloudinaryFolder.PRODUCT_THUMBNAILS,
         user.sub,
         AssetType.PRODUCT_IMAGE,
         shop.id,
@@ -143,23 +143,13 @@ export class ProductsService {
       });
 
       // Upload General Gallery
-      let galleryUrls: string[] = [];
-      if (files.general_gallery && files.general_gallery.length > 0) {
-        const galleryUploadPromises = files.general_gallery.map((file) =>
-          this.cloudinaryService.uploadFile(
-            file,
-            'products/gallery',
-            user.sub,
-            AssetType.PRODUCT_IMAGE,
-            shop.id,
-          ),
-        );
-        const galleryResults = await Promise.all(galleryUploadPromises);
-        galleryResults.forEach((result) =>
-          uploadedAssets.push({ id: result.id, public_id: result.public_id }),
-        );
-        galleryUrls = galleryResults.map((result) => result.url);
-      }
+      const galleryUrls = await this.uploadMultipleAssets(
+        files.general_gallery,
+        CloudinaryFolder.PRODUCT_GALLERY,
+        user.sub,
+        shop.id,
+        uploadedAssets,
+      );
 
       // Tạo Product
       const product = queryRunner.manager.create(Product, {
@@ -195,20 +185,13 @@ export class ProductsService {
           imageOffset += variantDto.imageCount;
 
           // Upload ảnh của biến thể
-          const variantUploadPromises = variantFiles.map((file) =>
-            this.cloudinaryService.uploadFile(
-              file,
-              'products/variants',
-              user.sub,
-              AssetType.PRODUCT_IMAGE,
-              shop.id,
-            ),
+          const variantUrls = await this.uploadMultipleAssets(
+            variantFiles,
+            CloudinaryFolder.PRODUCT_VARIANTS,
+            user.sub,
+            shop.id,
+            uploadedAssets,
           );
-          const variantResults = await Promise.all(variantUploadPromises);
-          variantResults.forEach((result) =>
-            uploadedAssets.push({ id: result.id, public_id: result.public_id }),
-          );
-          const variantUrls = variantResults.map((result) => result.url);
 
           const variant = queryRunner.manager.create(ProductVariant, {
             name: variantDto.name,
@@ -314,16 +297,38 @@ export class ProductsService {
     };
   }
 
-  async findAllByShop(userId: string) {
-    const shop = await this.shopsService.findOneByUserId(userId);
+  // Hàm helper nội bộ hỗ trợ truy vấn sản phẩm của Shop
+  private async loadShopProducts(shopId: string, filterHidden: boolean) {
+    const whereCondition: any = {
+      shop: { id: shopId },
+      status: ProductStatus.ACTIVE,
+    };
+
+    if (filterHidden) {
+      whereCondition.is_hidden = false;
+    }
+
     return this.productsRepository.find({
-      where: {
-        shop: { id: shop.id },
-        status: ProductStatus.ACTIVE, // Seller chỉ xem các sản phẩm đang hoạt động (không hiện DELETED)
-      },
+      where: whereCondition,
       relations: ['category', 'variants'],
       order: { created_at: 'DESC' },
     });
+  }
+
+  // Xem danh sách hàng hóa trong một shop dành cho seller (Inventory)
+  // Seller vẫn xem được hàng hóa bị is_hidden=true
+  async getSellerInventory(userId: string) {
+    const shop = await this.shopsService.findOneByUserId(userId);
+    return this.loadShopProducts(shop.id, false); // Không lọc ẩn
+  }
+
+  // Khách hàng xem danh mục hàng hóa của Shop (Catalog)
+  async getPublicCatalogByShop(shopId: string) {
+    // Kiểm tra shop có tồn tại và đang hoạt động (ACTIVE) hay không
+    const shop = await this.shopsService.findOneByShopId(shopId, true);
+
+    // Chỉ lấy sản phẩm ACTIVE và KHÔNG BỊ ẨN (is_hidden = false)
+    return this.loadShopProducts(shop.id, true); // Có lọc ẩn
   }
 
   async update(
@@ -380,7 +385,7 @@ export class ProductsService {
 
         const uploadResult = await this.cloudinaryService.uploadFile(
           files.thumbnail[0],
-          'products/thumbnails',
+          CloudinaryFolder.PRODUCT_THUMBNAILS,
           user.sub,
           AssetType.PRODUCT_IMAGE,
           shop.id,
@@ -420,23 +425,13 @@ export class ProductsService {
         }
 
         // Xử lý ảnh mới
-        let newUploadedUrls: string[] = [];
-        if (files.general_gallery && files.general_gallery.length > 0) {
-          const galleryUploadPromises = files.general_gallery.map((file) =>
-            this.cloudinaryService.uploadFile(
-              file,
-              'products/gallery',
-              user.sub,
-              AssetType.PRODUCT_IMAGE,
-              shop.id,
-            ),
-          );
-          const galleryResults = await Promise.all(galleryUploadPromises);
-          galleryResults.forEach((result) =>
-            uploadedAssets.push({ id: result.id, public_id: result.public_id }),
-          );
-          newUploadedUrls = galleryResults.map((result) => result.url);
-        }
+        const newUploadedUrls = await this.uploadMultipleAssets(
+          files.general_gallery,
+          CloudinaryFolder.PRODUCT_GALLERY,
+          user.sub,
+          shop.id,
+          uploadedAssets,
+        );
 
         // Kiểm tra giới hạn 5 ảnh
         if (existingImages.length + newUploadedUrls.length > 5) {
@@ -585,23 +580,13 @@ export class ProductsService {
             );
             imageOffset += variantDto.imageCount;
 
-            const variantUploadPromises = variantFiles.map((file) =>
-              this.cloudinaryService.uploadFile(
-                file,
-                'products/variants',
-                user.sub,
-                AssetType.PRODUCT_IMAGE,
-                shop.id,
-              ),
+            newUploadedUrls = await this.uploadMultipleAssets(
+              variantFiles,
+              CloudinaryFolder.PRODUCT_VARIANTS,
+              user.sub,
+              shop.id,
+              uploadedAssets,
             );
-            const variantResults = await Promise.all(variantUploadPromises);
-            variantResults.forEach((result) =>
-              uploadedAssets.push({
-                id: result.id,
-                public_id: result.public_id,
-              }),
-            );
-            newUploadedUrls = variantResults.map((result) => result.url);
           }
 
           if (variantDto.id) {
@@ -842,10 +827,44 @@ export class ProductsService {
   }
 
   private extractId(idOrSlugWithId: string): string {
-    if (idOrSlugWithId.includes('-i.')) {
-      const parts = idOrSlugWithId.split('-i.');
-      return parts[parts.length - 1]; // Lấy phần ID ở cuối
+    const match = idOrSlugWithId.match(
+      /-i\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/,
+    );
+    if (match) {
+      return match[1];
     }
     return idOrSlugWithId; // Trả về nguyên bản nếu là ID thuần túy
+  }
+
+  /**
+   * Helper method: Upload nhiều file lên Cloudinary và tự động tracking để rollback
+   */
+  private async uploadMultipleAssets(
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+    userSub: string,
+    shopId: string,
+    uploadedAssetsTracker: { id: string; public_id: string }[],
+  ): Promise<string[]> {
+    if (!files || files.length === 0) return [];
+
+    const uploadPromises = files.map((file) =>
+      this.cloudinaryService.uploadFile(
+        file,
+        folder,
+        userSub,
+        AssetType.PRODUCT_IMAGE,
+        shopId,
+      ),
+    );
+
+    const results = await Promise.all(uploadPromises);
+
+    // Lưu lại thông tin asset để rollback nếu transaction lỗi
+    results.forEach((result) =>
+      uploadedAssetsTracker.push({ id: result.id, public_id: result.public_id }),
+    );
+
+    return results.map((result) => result.url);
   }
 }
