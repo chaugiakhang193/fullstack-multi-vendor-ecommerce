@@ -60,3 +60,13 @@ export enum ProductStatus {
   ACTIVE = 'active',
   DELETED = 'deleted',
 }
+
+export enum CloudinaryFolder {
+  SHOP_LOGOS = 'shop/logos',
+  SHOP_BANNERS = 'shop/banners',
+  SHOP_GALLERIES = 'shop/galleries',
+  PRODUCT_THUMBNAILS = 'products/thumbnails',
+  PRODUCT_GALLERY = 'products/gallery',
+  PRODUCT_VARIANTS = 'products/variants',
+  USER_AVATARS = 'user_avatars',
+}

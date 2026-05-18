@@ -22,7 +22,7 @@ import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { UsersService } from '@/modules/users/users.service';
 
 // Enums
-import { AccountStatus, AssetType } from '@/modules/enums';
+import { AccountStatus, AssetType, CloudinaryFolder } from '@/modules/enums';
 
 @Injectable()
 export class ShopsService {
@@ -128,7 +128,7 @@ export class ShopsService {
       // Upload logo
       const logoResult = await this.cloudinaryService.uploadFile(
         files.logo[0],
-        'shop_logos',
+        CloudinaryFolder.SHOP_LOGOS,
         userId,
         AssetType.SHOP_LOGO,
       );
@@ -140,7 +140,7 @@ export class ShopsService {
       // Upload banner
       const bannerResult = await this.cloudinaryService.uploadFile(
         files.banner[0],
-        'shop_banners',
+        CloudinaryFolder.SHOP_BANNERS,
         userId,
         AssetType.SHOP_BANNER,
       );
@@ -179,7 +179,7 @@ export class ShopsService {
         const uploadPromises = files.gallery.map(async (file) => {
           const galleryResult = await this.cloudinaryService.uploadFile(
             file,
-            'shop_galleries',
+            CloudinaryFolder.SHOP_GALLERIES,
             userId,
             AssetType.SHOP_GALLERY,
             savedShop.id,
@@ -336,7 +336,7 @@ export class ShopsService {
     try {
       newAssetResult = await this.cloudinaryService.uploadFile(
         file,
-        'shop_logos',
+        CloudinaryFolder.SHOP_LOGOS,
         userId,
         AssetType.SHOP_LOGO,
         shop.id,
@@ -375,7 +375,7 @@ export class ShopsService {
     try {
       newAssetResult = await this.cloudinaryService.uploadFile(
         file,
-        'shop_banners',
+        CloudinaryFolder.SHOP_BANNERS,
         userId,
         AssetType.SHOP_BANNER,
         shop.id,
@@ -432,7 +432,7 @@ export class ShopsService {
       const uploadPromises = files.map(async (file) => {
         const galleryResult = await this.cloudinaryService.uploadFile(
           file,
-          'shop_galleries',
+          CloudinaryFolder.SHOP_GALLERIES,
           userId,
           AssetType.SHOP_GALLERY,
           shop.id,
