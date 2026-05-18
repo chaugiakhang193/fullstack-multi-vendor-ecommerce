@@ -43,13 +43,20 @@ async function bootstrap() {
       'access-token', // tên security scheme — dùng trong @ApiBearerAuth('access-token')
     )
     .addTag('Auth', 'Đăng ký, đăng nhập, xác thực tài khoản')
-    .addTag('Users', 'Quản lý người dùng')
-    .addTag('Products', 'Quản lý sản phẩm')
-    .addTag('Orders', 'Quản lý đơn hàng')
-    .addTag('Carts', 'Giỏ hàng')
-    .addTag('Shops', 'Quản lý cửa hàng')
-    .addTag('Payments', 'Thanh toán')
-    .addTag('Promotions', 'Khuyến mãi')
+    .addTag('users', 'Quản lý thông tin tài khoản người dùng')
+    .addTag(
+      'products',
+      'Khách hàng xem danh sách và chi tiết sản phẩm (Public)',
+    )
+    .addTag('seller-products', 'Seller quản lý kho hàng và đăng sản phẩm')
+    .addTag('categories', 'Khách hàng xem danh mục sản phẩm (Public)')
+    .addTag('shops', 'Khách hàng xem thông tin gian hàng (Public)')
+    .addTag('seller-shops', 'Seller đăng ký và thiết lập gian hàng')
+    .addTag('admin-shops', 'Admin phê duyệt gian hàng và quản trị hệ thống')
+    .addTag('orders', 'Quản lý đơn hàng mua sắm')
+    .addTag('carts', 'Quản lý giỏ hàng của khách hàng')
+    .addTag('payments', 'Thao tác thanh toán')
+    .addTag('promotions', 'Quản lý chương trình khuyến mãi')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
