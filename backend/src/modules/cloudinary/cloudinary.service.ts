@@ -21,6 +21,7 @@ export class CloudinaryService {
     ownerId?: string,
     type?: AssetType,
     shopId?: string,
+    uploadedAssetsTracker?: { id: string; public_id: string }[],
   ): Promise<MediaAsset | any> {
     const result: any = await new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
@@ -45,7 +46,14 @@ export class CloudinaryService {
         owner: { id: ownerId } as any,
         shop: shopId ? ({ id: shopId } as any) : null,
       });
-      return await this.mediaAssetRepository.save(newAsset);
+      const savedAsset = await this.mediaAssetRepository.save(newAsset);
+      if (uploadedAssetsTracker && savedAsset.id && savedAsset.public_id) {
+        uploadedAssetsTracker.push({
+          id: savedAsset.id,
+          public_id: savedAsset.public_id,
+        });
+      }
+      return savedAsset;
     }
     // Trả về kết quả upload thô nếu không có ownerId và type, để linh hoạt sử dụng cho các mục đích khác nhau mà không nhất thiết phải lưu vào DB.
     return result;
@@ -53,16 +61,32 @@ export class CloudinaryService {
 
   //upload nhiều file lên Cloudinary, lưu thông tin file vào DB nếu có ownerId và type, trả về kết quả upload
   async uploadMultipleFiles(
-    files: Express.Multer.File[],
+    files: Express.Multer.File[] | undefined,
     folder: string,
     ownerId?: string,
     type?: AssetType,
     shopId?: string,
+    uploadedAssetsTracker?: { id: string; public_id: string }[],
   ): Promise<(MediaAsset | any)[]> {
+    if (!files || files.length === 0) return [];
+
     const uploadPromises = files.map((file) =>
       this.uploadFile(file, folder, ownerId, type, shopId),
     );
-    return Promise.all(uploadPromises);
+    const results = await Promise.all(uploadPromises);
+
+    if (uploadedAssetsTracker && results.length > 0) {
+      results.forEach((result) => {
+        if (result && result.id && result.public_id) {
+          uploadedAssetsTracker.push({
+            id: result.id,
+            public_id: result.public_id,
+          });
+        }
+      });
+    }
+
+    return results;
   }
 
   // Xóa file trên Cloudinary bằng public_id, trả về kết quả xóa

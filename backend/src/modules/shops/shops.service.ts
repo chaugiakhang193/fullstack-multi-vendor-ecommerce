@@ -1,9 +1,11 @@
 import 'multer';
 import {
+  Inject,
   BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -20,6 +22,7 @@ import { User } from '@/modules/users/entities/user.entity';
 // Services
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { UsersService } from '@/modules/users/users.service';
+import { CategoriesService } from '@/modules/products/categories.service';
 
 // Enums
 import { AccountStatus, AssetType, CloudinaryFolder } from '@/modules/enums';
@@ -29,10 +32,8 @@ export class ShopsService {
   constructor(
     @InjectRepository(Shop)
     private readonly shopsRepository: Repository<Shop>,
-    @InjectRepository(Category)
-    private readonly categoriesRepository: Repository<Category>,
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
+    @Inject(forwardRef(() => CategoriesService))
+    private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly userService: UsersService,
     @InjectDataSource() private dataSource: DataSource,
@@ -47,9 +48,7 @@ export class ShopsService {
       gallery?: Express.Multer.File[];
     },
   ) {
-    const sellCreateShop = await this.usersRepository.findOne({
-      where: { id: userId },
-    });
+    const sellCreateShop = await this.userService.findById(userId);
     if (!sellCreateShop) {
       throw new NotFoundException('Người dùng không tồn tại');
     }
@@ -84,25 +83,7 @@ export class ShopsService {
     }
 
     if (parsedCategoryIds && parsedCategoryIds.length > 0) {
-      categories = await this.categoriesRepository.find({
-        where: { id: In(parsedCategoryIds) },
-        relations: ['parent'],
-      });
-
-      if (categories.length === 0) {
-        throw new BadRequestException('Danh mục không hợp lệ');
-      }
-
-      const nonRootCategories = categories.filter((c) => c.parent !== null);
-      if (nonRootCategories.length > 0) {
-        throw new BadRequestException(
-          'Chỉ được phép chọn danh mục gốc (không có danh mục cha)',
-        );
-      }
-
-      if (categories.length !== parsedCategoryIds.length) {
-        throw new BadRequestException('Một hoặc nhiều danh mục không tồn tại');
-      }
+      categories = await this.categoriesService.validateRootCategories(parsedCategoryIds);
     }
 
     // Kiểm tra logo và banner
@@ -301,28 +282,7 @@ export class ShopsService {
       }
 
       if (parsedCategoryIds && parsedCategoryIds.length > 0) {
-        const categories = await this.categoriesRepository.find({
-          where: { id: In(parsedCategoryIds) },
-          relations: ['parent'],
-        });
-
-        if (categories.length === 0) {
-          throw new BadRequestException('Danh mục không hợp lệ');
-        }
-
-        const nonRootCategories = categories.filter((c) => c.parent !== null);
-        if (nonRootCategories.length > 0) {
-          throw new BadRequestException(
-            'Chỉ được phép chọn danh mục gốc (không có danh mục cha)',
-          );
-        }
-
-        if (categories.length !== parsedCategoryIds.length) {
-          throw new BadRequestException(
-            'Một hoặc nhiều danh mục không tồn tại',
-          );
-        }
-        shop.categories = categories;
+        shop.categories = await this.categoriesService.validateRootCategories(parsedCategoryIds);
       }
     }
 

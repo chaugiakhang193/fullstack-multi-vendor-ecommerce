@@ -53,6 +53,9 @@ export enum AssetType {
   SHOP_BANNER = 'shop_banner',
   SHOP_GALLERY = 'shop_gallery',
   PRODUCT_IMAGE = 'product_image',
+  PRODUCT_THUMBNAIL = 'product_thumbnail',
+  PRODUCT_GALLERY = 'product_gallery',
+  PRODUCT_VARIANT_IMAGE = 'product_variant_image',
   USER_AVATAR = 'user_avatar',
 }
 

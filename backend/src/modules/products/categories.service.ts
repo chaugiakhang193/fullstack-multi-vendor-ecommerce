@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Category } from '@/modules/products/entities/category.entity';
 import { CreateCategoryDto } from '@/modules/products/dto/create-category.dto';
 import { UpdateCategoryDto } from '@/modules/products/dto/update-category.dto';
@@ -124,6 +124,73 @@ export class CategoriesService {
   async removeById(id: string) {
     const category = await this.findOneById(id);
     return await this.categoriesRepository.remove(category);
+  }
+
+  async validateLeafCategory(id: string): Promise<Category> {
+    const category = await this.categoriesRepository.findOne({
+      where: { id: id },
+      relations: ['parent', 'children'],
+    });
+
+    if (!category) {
+      throw new NotFoundException('Danh mục không tồn tại');
+    }
+
+    // Phải là danh mục con (phải có cha)
+    if (!category.parent) {
+      throw new BadRequestException(
+        'Vui lòng chọn danh mục con cụ thể thay vì danh mục gốc.',
+      );
+    }
+
+    // Phải là cấp cuối cùng (không được phép có con)
+    if (category.children && category.children.length > 0) {
+      throw new BadRequestException(
+        'Danh mục được chọn chưa phải là cấp cuối cùng. Vui lòng kiểm tra lại.',
+      );
+    }
+
+    return category;
+  }
+
+  async validateRootCategory(id: string): Promise<Category> {
+    const category = await this.categoriesRepository.findOne({
+      where: { id: id },
+      relations: ['parent'],
+    });
+
+    if (!category) {
+      throw new NotFoundException('Danh mục không tồn tại');
+    }
+
+    // Danh mục gốc thì bắt buộc không được có cha
+    if (category.parent !== null) {
+      throw new BadRequestException('Danh mục được chọn phải là danh mục gốc.');
+    }
+
+    return category;
+  }
+
+  async validateRootCategories(ids: string[]): Promise<Category[]> {
+    if (!ids || ids.length === 0) return [];
+
+    const categories = await this.categoriesRepository.find({
+      where: { id: In(ids) },
+      relations: ['parent'],
+    });
+
+    if (categories.length !== ids.length) {
+      throw new BadRequestException('Một hoặc nhiều danh mục không tồn tại');
+    }
+
+    const nonRootCategories = categories.filter((c) => c.parent !== null);
+    if (nonRootCategories.length > 0) {
+      throw new BadRequestException(
+        'Chỉ được phép chọn danh mục gốc (không có danh mục cha)',
+      );
+    }
+
+    return categories;
   }
 
   // Tạo slug tự động dựa trên name category, sử dụng slutify,

@@ -1,6 +1,8 @@
 import {
-  BadRequestException,
+  Inject,
   Injectable,
+  forwardRef,
+  BadRequestException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -21,9 +23,15 @@ import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
 // Services
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { ShopsService } from '@/modules/shops/shops.service';
+import { CategoriesService } from '@/modules/products/categories.service';
 
 // Enums & Interfaces
-import { AccountStatus, AssetType, ProductStatus, CloudinaryFolder } from '@/modules/enums';
+import {
+  AccountStatus,
+  AssetType,
+  ProductStatus,
+  CloudinaryFolder,
+} from '@/modules/enums';
 import { IUser } from '@/interface/user.interface';
 
 @Injectable()
@@ -33,9 +41,9 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
     @InjectRepository(ProductVariant)
     private readonly variantsRepository: Repository<ProductVariant>,
-    @InjectRepository(Category)
-    private readonly categoriesRepository: Repository<Category>,
+    private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
+    @Inject(forwardRef(() => ShopsService))
     private readonly shopsService: ShopsService,
     private readonly dataSource: DataSource,
   ) {}
@@ -64,37 +72,18 @@ export class ProductsService {
       );
     }
 
-    // Kiểm tra Category
-    const category = await this.categoriesRepository.findOne({
-      where: { id: createProductDto.category_id },
-      relations: ['parent', 'children'],
-    });
-    if (!category) {
-      throw new NotFoundException('Danh mục không tồn tại');
-    }
-
-    // Chỉ được phép chọn danh mục cấp cuối (leaf category)
-    if (!category.parent) {
-      throw new BadRequestException(
-        'Vui lòng chọn danh mục con cụ thể thay vì danh mục gốc.',
-      );
-    }
-
-    if (category.children && category.children.length > 0) {
-      throw new BadRequestException(
-        'Danh mục được chọn chưa phải là cấp cuối cùng. Vui lòng kiểm tra lại.',
-      );
-    }
+    // Kiểm tra và lấy danh mục con cấp cuối cùng
+    const category = await this.categoriesService.validateLeafCategory(
+      createProductDto.category_id,
+    );
 
     // Kiểm tra tính hợp lệ của ảnh
     if (!files.thumbnail?.[0]) {
-      throw new BadRequestException(
-        'Ảnh đại diện (thumbnail) là thông tin bắt buộc.',
-      );
+      throw new BadRequestException('Ảnh đại diện (thumbnail) là bắt buộc');
     }
     if (!files.general_gallery || files.general_gallery.length === 0) {
       throw new BadRequestException(
-        'Yêu cầu tối thiểu 1 hình ảnh trong bộ sưu tập mô tả chung.',
+        'Yêu cầu tối thiểu 1 ảnh trong bộ sưu tập chung',
       );
     }
 
@@ -104,7 +93,7 @@ export class ProductsService {
         createProductDto.variants.length === 0
       ) {
         throw new BadRequestException(
-          'Sản phẩm được thiết lập có biến thể nhưng thiếu thông tin chi tiết về các biến thể.',
+          'Thiếu thông tin chi tiết của các biến thể sản phẩm',
         );
       }
 
@@ -116,7 +105,7 @@ export class ProductsService {
 
       if (totalExpectedImages !== actualImages) {
         throw new BadRequestException(
-          `Số lượng hình ảnh biến thể không khớp giữa khai báo (${totalExpectedImages}) và thực tế (${actualImages}).`,
+          `Số lượng ảnh biến thể không khớp (Khai báo: ${totalExpectedImages}, Thực tế: ${actualImages})`,
         );
       }
     }
@@ -134,22 +123,21 @@ export class ProductsService {
         files.thumbnail[0],
         CloudinaryFolder.PRODUCT_THUMBNAILS,
         user.sub,
-        AssetType.PRODUCT_IMAGE,
-        shop.id,
-      );
-      uploadedAssets.push({
-        id: thumbnailResult.id,
-        public_id: thumbnailResult.public_id,
-      });
-
-      // Upload General Gallery
-      const galleryUrls = await this.uploadMultipleAssets(
-        files.general_gallery,
-        CloudinaryFolder.PRODUCT_GALLERY,
-        user.sub,
+        AssetType.PRODUCT_THUMBNAIL,
         shop.id,
         uploadedAssets,
       );
+
+      // Upload General Gallery
+      const galleryAssets = await this.cloudinaryService.uploadMultipleFiles(
+        files.general_gallery,
+        CloudinaryFolder.PRODUCT_GALLERY,
+        user.sub,
+        AssetType.PRODUCT_GALLERY,
+        shop.id,
+        uploadedAssets,
+      );
+      const galleryUrls = galleryAssets.map((asset) => asset.url);
 
       // Tạo Product
       const product = queryRunner.manager.create(Product, {
@@ -185,13 +173,16 @@ export class ProductsService {
           imageOffset += variantDto.imageCount;
 
           // Upload ảnh của biến thể
-          const variantUrls = await this.uploadMultipleAssets(
-            variantFiles,
-            CloudinaryFolder.PRODUCT_VARIANTS,
-            user.sub,
-            shop.id,
-            uploadedAssets,
-          );
+          const variantAssets =
+            await this.cloudinaryService.uploadMultipleFiles(
+              variantFiles,
+              CloudinaryFolder.PRODUCT_VARIANTS,
+              user.sub,
+              AssetType.PRODUCT_VARIANT_IMAGE,
+              shop.id,
+              uploadedAssets,
+            );
+          const variantUrls = variantAssets.map((asset) => asset.url);
 
           const variant = queryRunner.manager.create(ProductVariant, {
             name: variantDto.name,
@@ -352,6 +343,7 @@ export class ProductsService {
       throw new NotFoundException('Không tìm thấy sản phẩm');
     }
 
+    // Kiểm tra shop của user yêu cầu cập nhật sản phẩm còn đang ở trạng thái ACTIVE không
     const shop = await this.shopsService.findOneByUserId(user.sub);
     if (shop.status !== AccountStatus.ACTIVE) {
       throw new BadRequestException(
@@ -387,14 +379,11 @@ export class ProductsService {
           files.thumbnail[0],
           CloudinaryFolder.PRODUCT_THUMBNAILS,
           user.sub,
-          AssetType.PRODUCT_IMAGE,
+          AssetType.PRODUCT_THUMBNAIL,
           shop.id,
+          uploadedAssets,
         );
         product.thumbnail_url = uploadResult.url;
-        uploadedAssets.push({
-          id: uploadResult.id,
-          public_id: uploadResult.public_id,
-        });
 
         if (oldThumbnailAsset) {
           oldPublicIdsToDelete.push(oldThumbnailAsset.public_id);
@@ -425,13 +414,16 @@ export class ProductsService {
         }
 
         // Xử lý ảnh mới
-        const newUploadedUrls = await this.uploadMultipleAssets(
-          files.general_gallery,
-          CloudinaryFolder.PRODUCT_GALLERY,
-          user.sub,
-          shop.id,
-          uploadedAssets,
-        );
+        const newUploadedAssets =
+          await this.cloudinaryService.uploadMultipleFiles(
+            files.general_gallery,
+            CloudinaryFolder.PRODUCT_GALLERY,
+            user.sub,
+            AssetType.PRODUCT_GALLERY,
+            shop.id,
+            uploadedAssets,
+          );
+        const newUploadedUrls = newUploadedAssets.map((asset) => asset.url);
 
         // Kiểm tra giới hạn 5 ảnh
         if (existingImages.length + newUploadedUrls.length > 5) {
@@ -514,22 +506,9 @@ export class ProductsService {
         product.stock_quantity = updateProductDto.stock_quantity;
       }
       if (updateProductDto.category_id) {
-        const category = await this.categoriesRepository.findOne({
-          where: { id: updateProductDto.category_id },
-          relations: ['parent', 'children'],
-        });
-        if (!category) throw new NotFoundException('Danh mục không tồn tại');
-
-        if (!category.parent)
-          throw new BadRequestException(
-            'Vui lòng chọn danh mục con cụ thể thay vì danh mục gốc.',
-          );
-        if (category.children?.length > 0)
-          throw new BadRequestException(
-            'Danh mục được chọn chưa phải là cấp cuối cùng. Vui lòng kiểm tra lại.',
-          );
-
-        product.category = category;
+        product.category = await this.categoriesService.validateLeafCategory(
+          updateProductDto.category_id,
+        );
       }
 
       // Xử lý Biến thể (Variants) - Chỉ thực hiện nếu sản phẩm có trạng thái có biến thể
@@ -580,13 +559,16 @@ export class ProductsService {
             );
             imageOffset += variantDto.imageCount;
 
-            newUploadedUrls = await this.uploadMultipleAssets(
-              variantFiles,
-              CloudinaryFolder.PRODUCT_VARIANTS,
-              user.sub,
-              shop.id,
-              uploadedAssets,
-            );
+            const variantAssets =
+              await this.cloudinaryService.uploadMultipleFiles(
+                variantFiles,
+                CloudinaryFolder.PRODUCT_VARIANTS,
+                user.sub,
+                AssetType.PRODUCT_VARIANT_IMAGE,
+                shop.id,
+                uploadedAssets,
+              );
+            newUploadedUrls = variantAssets.map((asset) => asset.url);
           }
 
           if (variantDto.id) {
@@ -765,7 +747,7 @@ export class ProductsService {
     const publicIdsToDelete: string[] = [];
 
     try {
-      // 1. Tìm và gom public_id của tất cả ảnh (thumbnail + gallery + variant)
+      // Tìm và gom public_id của tất cả ảnh (thumbnail + gallery + variant)
       if (
         productData.aggregated_gallery &&
         productData.aggregated_gallery.length > 0
@@ -781,14 +763,14 @@ export class ProductsService {
         }
       }
 
-      // 2. Xóa cứng toàn bộ biến thể
+      // Xóa cứng toàn bộ biến thể
       if (productData.variants && productData.variants.length > 0) {
         for (const variant of productData.variants) {
           await queryRunner.manager.delete(ProductVariant, { id: variant.id });
         }
       }
 
-      // 3. Xóa mềm sản phẩm và làm sạch dữ liệu cũ
+      // Xóa mềm sản phẩm và làm sạch dữ liệu cũ
       await queryRunner.manager.update(Product, realId, {
         status: ProductStatus.DELETED,
         has_variants: false,
@@ -799,7 +781,7 @@ export class ProductsService {
 
       await queryRunner.commitTransaction();
 
-      // 4. Xóa ảnh trên Cloudinary (chạy ngầm)
+      // Xóa ảnh trên Cloudinary (chạy ngầm)
       if (publicIdsToDelete.length > 0) {
         Promise.allSettled(
           publicIdsToDelete.map((publicId) =>
@@ -834,37 +816,5 @@ export class ProductsService {
       return match[1];
     }
     return idOrSlugWithId; // Trả về nguyên bản nếu là ID thuần túy
-  }
-
-  /**
-   * Helper method: Upload nhiều file lên Cloudinary và tự động tracking để rollback
-   */
-  private async uploadMultipleAssets(
-    files: Express.Multer.File[] | undefined,
-    folder: string,
-    userSub: string,
-    shopId: string,
-    uploadedAssetsTracker: { id: string; public_id: string }[],
-  ): Promise<string[]> {
-    if (!files || files.length === 0) return [];
-
-    const uploadPromises = files.map((file) =>
-      this.cloudinaryService.uploadFile(
-        file,
-        folder,
-        userSub,
-        AssetType.PRODUCT_IMAGE,
-        shopId,
-      ),
-    );
-
-    const results = await Promise.all(uploadPromises);
-
-    // Lưu lại thông tin asset để rollback nếu transaction lỗi
-    results.forEach((result) =>
-      uploadedAssetsTracker.push({ id: result.id, public_id: result.public_id }),
-    );
-
-    return results.map((result) => result.url);
   }
 }
