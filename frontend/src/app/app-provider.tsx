@@ -2,13 +2,24 @@
 
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useRouter, usePathname } from "next/navigation";
+import { toast } from "sonner";
+import { tabId } from "@/lib/utils";
 
 export default function AppProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const silentRefresh = useAuthStore((state) => state.silentRefresh);
+  const { silentRefresh, logout } = useAuthStore();
+  const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  // Cập nhật pathname hiện tại vào ref để tránh re-subscribe BroadcastChannel mỗi khi chuyển route
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   // Dùng useRef để ngăn chặn React 18 Strict Mode gọi API 2 lần lúc dev
   const isMounted = useRef(false);
@@ -21,6 +32,40 @@ export default function AppProvider({
       silentRefresh();
     }
   }, [silentRefresh]);
+
+  // Đồng bộ hóa trạng thái đăng nhập/đăng xuất giữa các tab
+  useEffect(() => {
+    const channel = new BroadcastChannel("auth-channel");
+
+    channel.onmessage = async (event) => {
+      const currentPath = pathnameRef.current;
+      const data = event.data;
+
+      // Bỏ qua nếu tin nhắn gửi từ chính tab này hoặc dữ liệu không hợp lệ
+      if (!data || data.senderTabId === tabId) return;
+
+      if (data.type === "login_success") {
+        // Gọi silentRefresh để lấy accessToken mới cập nhật vào Zustand
+        const isSuccess = await silentRefresh();
+        if (isSuccess) {
+          toast.info("Đã đăng nhập thành công từ tab khác!");
+          if (currentPath === "/login" || currentPath === "/register") {
+            router.push("/");
+          }
+        }
+      } else if (data.type === "logout_success") {
+        logout();
+        toast.info("Đã đăng xuất tài khoản từ tab khác!");
+        if (currentPath.startsWith("/admin") || currentPath.startsWith("/seller")) {
+          router.push("/login");
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, [silentRefresh, logout, router]);
 
   // Trả về nguyên vẹn giao diện gốc
   return <>{children}</>;

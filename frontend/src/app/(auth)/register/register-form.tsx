@@ -49,18 +49,6 @@ export function RegisterForm({
     }
   }, [accessToken, router]);
 
-  //Tạo broadcast channel thông báo cho các tab khác biết và redirect người dùng
-  useEffect(() => {
-    const channel = new BroadcastChannel("auth-channel");
-
-    channel.onmessage = (event) => {
-      if (event.data === "login_success") {
-        toast.info("Tài khoản đã được đăng nhập ở tab khác!");
-        router.push("/");
-      }
-    };
-    return () => channel.close();
-  }, [router]);
   //Khởi tạo Form
   const form = useForm<RegisterBodyType>({
     resolver: zodResolver(RegisterBody),

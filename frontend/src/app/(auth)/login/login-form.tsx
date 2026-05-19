@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import authApiRequest from "@/apiRequests/auth";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
+import { tabId } from "@/lib/utils";
 
 //Components
 import {
@@ -40,8 +41,6 @@ export function LoginForm({
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  //Tạo một BroadcastChannel với useRef
-  const channelRef = useRef<BroadcastChannel | null>(null);
   //Nếu đã login từ trước thì lấy accesstoken ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
 
@@ -51,21 +50,6 @@ export function LoginForm({
       router.push("/");
     }
   }, [accessToken, router]);
-
-  //Tạo broadcast channel thông báo cho các tab khác biết và redirect người dùng
-  //Dùng channelRef để tab thực hiện đăng nhập không báo "Đã đăng nhập tab khác"
-  useEffect(() => {
-    channelRef.current = new BroadcastChannel("auth-channel");
-    channelRef.current.onmessage = (event) => {
-      if (event.data === "login_success") {
-        toast.info("Đã đăng nhập thành công ở một tab khác!");
-        router.push("/");
-      }
-    };
-    return () => {
-      channelRef.current?.close();
-    };
-  }, [router]);
 
   //Form được khởi tạo
   const form = useForm<LoginBodyType>({
@@ -91,7 +75,9 @@ export function LoginForm({
       });
 
       //Khi đăng nhập xong tạo một message để báo cho các tab khác
-      channelRef.current?.postMessage("login_success");
+      const channel = new BroadcastChannel("auth-channel");
+      channel.postMessage({ type: "login_success", senderTabId: tabId });
+      channel.close();
 
       router.push("/");
     } catch (error) {

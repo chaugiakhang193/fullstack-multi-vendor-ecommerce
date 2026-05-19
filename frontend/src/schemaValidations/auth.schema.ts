@@ -1,5 +1,5 @@
 import z from "zod";
-import { UserRole, AccountStatus } from "@/lib/enum";
+import { UserRole, AccountStatus } from "@/constants/enum";
 
 // Định nghĩa User
 export const UserSchema = z.object({
