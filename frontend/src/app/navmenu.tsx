@@ -17,6 +17,7 @@ import { LogOut } from "lucide-react";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth";
+import { tabId } from "@/lib/utils";
 
 export function Navbar() {
   const [isClient, setIsClient] = useState(false);
@@ -33,6 +34,12 @@ export function Navbar() {
     } finally {
       // Xóa state ở Frontend (Zustand)
       logout();
+
+      // Đồng bộ đăng xuất sang các tab khác
+      const channel = new BroadcastChannel("auth-channel");
+      channel.postMessage({ type: "logout_success", senderTabId: tabId });
+      channel.close();
+
       toast.success("Đăng xuất thành công");
       router.push("/login");
       router.refresh();

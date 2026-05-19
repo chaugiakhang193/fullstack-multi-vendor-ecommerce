@@ -105,9 +105,16 @@ const request = async <Response>(
         .then(async (refreshRes) => {
           if (!refreshRes.ok) throw new Error("Refresh failed");
           const refreshData = await refreshRes.json();
-          // Update Token mới vào Zustand
-          useAuthStore.getState().setAccessToken(refreshData.access_token);
-          return refreshData.access_token;
+          const accessToken = refreshData.data?.access_token;
+          const user = refreshData.data?.user;
+
+          if (accessToken && user) {
+            // Cập nhật cả User mới nhất và Token mới để tự động đồng bộ Cookie phụ
+            useAuthStore.getState().setAuth(user, accessToken);
+          } else {
+            throw new Error("Invalid refresh response data");
+          }
+          return accessToken;
         })
         .finally(() => {
           isRefreshing = false;

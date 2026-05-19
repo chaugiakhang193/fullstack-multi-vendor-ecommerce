@@ -1,4 +1,4 @@
-import { UserRole, AccountStatus } from "@/lib/enum";
+import { UserRole, AccountStatus } from "@/constants/enum";
 
 export interface User {
   id: string;

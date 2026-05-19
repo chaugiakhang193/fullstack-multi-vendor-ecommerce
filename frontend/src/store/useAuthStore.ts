@@ -3,6 +3,20 @@ import { persist } from "zustand/middleware";
 import { AccountType } from "@/schemaValidations/auth.schema";
 import authApiRequest from "@/apiRequests/auth";
 
+const setAuthCookies = (role: string, status: string) => {
+  if (typeof window !== "undefined") {
+    document.cookie = `user_role=${role}; path=/; max-age=604800; SameSite=Lax`;
+    document.cookie = `user_status=${status}; path=/; max-age=604800; SameSite=Lax`;
+  }
+};
+
+const clearAuthCookies = () => {
+  if (typeof window !== "undefined") {
+    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "user_status=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
+};
+
 interface AuthState {
   user: AccountType | null;
   accessToken: string | null;
@@ -22,8 +36,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       // Gọi khi Login thành công
-      setAuth: (user, token) =>
-        set({ user, accessToken: token, isAuthenticated: true }),
+      setAuth: (user, token) => {
+        set({ user, accessToken: token, isAuthenticated: true });
+        setAuthCookies(user.role, user.status);
+      },
 
       // Gọi ngầm khi Refresh Token thành công
       setAccessToken: (token) => set({ accessToken: token }),
@@ -43,17 +59,21 @@ export const useAuthStore = create<AuthState>()(
             user: user,
             isAuthenticated: true,
           });
+          setAuthCookies(user.role, user.status);
 
           return true; // Báo hiệu refresh thành công
         } catch (error) {
           set({ user: null, accessToken: null, isAuthenticated: false });
+          clearAuthCookies();
           return false; // Báo hiệu refresh thất bại
         }
       },
 
       // Gọi khi Đăng xuất hoặc bị văng ra
-      logout: () =>
-        set({ user: null, accessToken: null, isAuthenticated: false }),
+      logout: () => {
+        set({ user: null, accessToken: null, isAuthenticated: false });
+        clearAuthCookies();
+      },
     }),
     {
       name: "auth-storage", // Tên key sẽ lưu dưới LocalStorage
