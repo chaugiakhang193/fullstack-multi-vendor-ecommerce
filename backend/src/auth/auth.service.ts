@@ -80,7 +80,11 @@ export class AuthService {
     }
 
     //kiểm tra xem tài khoản đã kích hoạt từ trước chưa
-    if (user.status === AccountStatus.ACTIVE) {
+    if (
+      user.status === AccountStatus.ACTIVE ||
+      (user.role === UserRole.SELLER &&
+        user.status === AccountStatus.PENDING_APPROVAL)
+    ) {
       throw new BadRequestException(
         'Tài khoản này đã được kích hoạt từ trước.',
       );
@@ -126,7 +130,11 @@ export class AuthService {
       const user = verificationToken.user;
 
       // Tránh trường hợp bấm double-click hoặc verify lại
-      if (user.status === 'active') {
+      if (
+        user.status === AccountStatus.ACTIVE ||
+        (user.role === UserRole.SELLER &&
+          user.status === AccountStatus.PENDING_APPROVAL)
+      ) {
         throw new BadRequestException(
           'Tài khoản này đã được kích hoạt từ trước.',
         );

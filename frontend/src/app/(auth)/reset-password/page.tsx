@@ -1,5 +1,3 @@
-"use client";
-
 import { ResetPasswordForm } from "@/app/(auth)/reset-password/reset-password-form";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
