@@ -83,7 +83,8 @@ export class ShopsService {
     }
 
     if (parsedCategoryIds && parsedCategoryIds.length > 0) {
-      categories = await this.categoriesService.validateRootCategories(parsedCategoryIds);
+      categories =
+        await this.categoriesService.validateRootCategories(parsedCategoryIds);
     }
 
     // Kiểm tra logo và banner
@@ -282,7 +283,10 @@ export class ShopsService {
       }
 
       if (parsedCategoryIds && parsedCategoryIds.length > 0) {
-        shop.categories = await this.categoriesService.validateRootCategories(parsedCategoryIds);
+        shop.categories =
+          await this.categoriesService.validateRootCategories(
+            parsedCategoryIds,
+          );
       }
     }
 
@@ -550,7 +554,7 @@ export class ShopsService {
   async getPendingShops() {
     return this.shopsRepository.find({
       where: { status: AccountStatus.PENDING_APPROVAL },
-      relations: ['seller', 'categories'],
+      relations: ['seller', 'categories', 'gallery'],
     });
   }
 }

@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 //API fetch heplers
@@ -41,15 +41,28 @@ export function LoginForm({
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  //Nếu đã login từ trước thì lấy accesstoken ra và redirect người dùng
-  const accessToken = useAuthStore((state) => state.accessToken);
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+
+  //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
+  const { accessToken, user } = useAuthStore();
+
+  const getRedirectUrl = React.useCallback(
+    (currentUser: typeof user) => {
+      if (redirect) return redirect;
+      if (currentUser?.role === "admin") return "/admin";
+      if (currentUser?.role === "seller") return "/seller";
+      return "/";
+    },
+    [redirect],
+  );
 
   //Nếu có accessToken trong RAM qua Zustand thì redirect
   useEffect(() => {
-    if (accessToken) {
-      router.push("/");
+    if (accessToken && user) {
+      router.push(getRedirectUrl(user));
     }
-  }, [accessToken, router]);
+  }, [accessToken, user, router, getRedirectUrl]);
 
   //Form được khởi tạo
   const form = useForm<LoginBodyType>({
@@ -79,7 +92,7 @@ export function LoginForm({
       channel.postMessage({ type: "login_success", senderTabId: tabId });
       channel.close();
 
-      router.push("/");
+      router.push(getRedirectUrl(UserInfo));
     } catch (error) {
       const httpError = error as { payload?: { message?: string } };
 

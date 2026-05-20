@@ -19,6 +19,8 @@ const authApiRequest = {
   login: (body: LoginBodyType) => http.post<LoginResType>("/auth/login", body),
   register: (body: Omit<RegisterBodyType, "confirmPassword">) =>
     http.post<RegisterResType>("/auth/register", body),
+  registerSeller: (body: Omit<RegisterBodyType, "confirmPassword">) =>
+    http.post<RegisterResType>("/auth/seller/register", body),
   refreshToken: () => {
     return http.post<any>("/auth/refresh", {});
   },

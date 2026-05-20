@@ -145,7 +145,8 @@ const request = async <Response>(
         typeof window !== "undefined" &&
         window.location.pathname !== "/login"
       ) {
-        window.location.href = "/login";
+        const redirectPath = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?redirect=${redirectPath}`;
       }
       throw new HttpError({
         status: 401,
