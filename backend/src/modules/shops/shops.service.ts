@@ -143,6 +143,11 @@ export class ShopsService {
       const savedShop = await this.shopsRepository.save(newShop);
       savedShopId = savedShop.id;
 
+      // Cập nhật trạng thái User (Seller) sang PENDING_APPROVAL
+      await this.dataSource.manager.update(User, userId, {
+        status: AccountStatus.PENDING_APPROVAL,
+      });
+
       // Gán asset shop_id cho logo và banner
       await this.cloudinaryService.updateAssetShopId(
         logoResult.id,
@@ -540,11 +545,9 @@ export class ShopsService {
         const updatedShop = await transactionalEntityManager.save(shop);
 
         //cập nhật trạng thái User (Seller) sang PENDING_APPROVAL
-        if (shop.seller) {
-          await transactionalEntityManager.update(User, shop.seller.id, {
-            status: AccountStatus.PENDING_APPROVAL,
-          });
-        }
+        await transactionalEntityManager.update(User, userId, {
+          status: AccountStatus.PENDING_APPROVAL,
+        });
 
         return updatedShop;
       },

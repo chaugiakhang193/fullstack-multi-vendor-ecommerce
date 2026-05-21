@@ -765,7 +765,7 @@ export interface components {
              * @example active
              * @enum {string}
              */
-            status?: "pending_verification" | "pending_approval" | "active" | "suspended" | "banned" | "rejected";
+            status?: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
             /**
              * @description Họ và tên đầy đủ
              * @example Nguyễn Văn A
@@ -823,7 +823,7 @@ export interface components {
              * @example active
              * @enum {string}
              */
-            status: "pending_verification" | "pending_approval" | "active" | "suspended" | "banned" | "rejected";
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
             /**
              * @description Họ và tên đầy đủ
              * @example Nguyễn Văn A
@@ -983,7 +983,7 @@ export interface components {
              * @example active
              * @enum {string}
              */
-            status: "pending_verification" | "pending_approval" | "active" | "suspended" | "banned" | "rejected";
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
             /** @description Các danh mục kinh doanh */
             categories: components["schemas"]["CategoryResponseDto"][];
             /** @description Bộ sưu tập ảnh của shop */
@@ -1355,17 +1355,93 @@ export interface components {
             variant_images?: string[];
         };
         UpdateProductVariantDto: {
+            /**
+             * @description Tên biến thể (màu sắc, kích cỡ...)
+             * @example Màu Đỏ, Size L
+             */
+            name?: string;
+            /**
+             * @description Giá cộng thêm so với giá gốc
+             * @example 10000
+             */
+            additional_price?: number;
+            /**
+             * @description Mã SKU của biến thể
+             * @example SKU-RED-L
+             */
+            sku?: string;
+            /**
+             * @description Số lượng tồn kho của biến thể này
+             * @example 50
+             */
+            stock_quantity?: number;
+            /**
+             * @description Số lượng ảnh mới sẽ upload
+             * @default 0
+             * @example 1
+             */
+            imageCount: number;
             /** @description ID của biến thể (nếu là cập nhật) */
             id?: string;
             /** @description Danh sách URL ảnh cũ giữ lại */
             existingImages?: string[];
-            /**
-             * @description Số lượng ảnh mới sẽ upload
-             * @default 0
-             */
-            imageCount: number;
         };
         UpdateProductSwaggerDto: {
+            /**
+             * @description Tên sản phẩm
+             * @example Áo thun Nam
+             */
+            name?: string;
+            /**
+             * @description Mô tả sản phẩm
+             * @example Áo thun cotton 100% cao cấp
+             */
+            description?: string;
+            /**
+             * @description Giá sản phẩm
+             * @example 150000
+             */
+            price?: number;
+            /**
+             * @description Mã SKU sản phẩm
+             * @example SKU-001
+             */
+            sku?: string;
+            /**
+             * @description Trọng lượng (gram)
+             * @example 500
+             */
+            weight?: number;
+            /**
+             * @description Chiều dài (cm)
+             * @example 10
+             */
+            length?: number;
+            /**
+             * @description Chiều rộng (cm)
+             * @example 10
+             */
+            width?: number;
+            /**
+             * @description Chiều cao (cm)
+             * @example 10
+             */
+            height?: number;
+            /**
+             * @description ID danh mục
+             * @example uuid-category
+             */
+            category_id?: string;
+            /**
+             * @description Số lượng tồn kho (Dùng cho sản phẩm không có biến thể)
+             * @example 100
+             */
+            stock_quantity?: number;
+            /**
+             * @description Sản phẩm có biến thể hay không?
+             * @example false
+             */
+            has_variants?: boolean;
             /**
              * @description Trạng thái hoạt động của sản phẩm
              * @enum {string}

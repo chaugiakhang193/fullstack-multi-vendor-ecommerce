@@ -119,7 +119,11 @@ async function seed() {
         banner_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
         status: AccountStatus.ACTIVE,
         pickup_address: '123 Đường Láng, Láng Thượng, Đống Đa, Hà Nội',
-        bank_account_info: 'Techcombank - 190345678910 - NGUYEN VAN A',
+        bank_account_info: JSON.stringify({
+          bank_name: 'Techcombank',
+          bank_account_number: '190345678910',
+          bank_account_name: 'NGUYEN VAN A',
+        }),
       });
       await shopRepository.save(devShop);
     } else {

@@ -40,14 +40,21 @@ export function RegisterForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  //Nếu đã login từ trước thì lấy accesstoken ra và redirect người dùng
+  //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
   //Nếu có accessToken trong RAM qua Zustand thì redirect
   useEffect(() => {
     if (accessToken) {
-      router.push("/");
+      const redirectUrl =
+        user?.role === "seller"
+          ? "/seller"
+          : user?.role === "admin"
+            ? "/admin"
+            : "/";
+      router.push(redirectUrl);
     }
-  }, [accessToken, router]);
+  }, [accessToken, user, router]);
 
   //Khởi tạo Form
   const form = useForm<RegisterBodyType>({

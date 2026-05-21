@@ -2,25 +2,30 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AccountType } from "@/schemaValidations/auth.schema";
 import authApiRequest from "@/apiRequests/auth";
+import Cookies from "js-cookie";
 
+// Cấu hình cookie đồng bộ, an toàn cho cả Client và Middleware Server
 const setAuthCookies = (role: string, status: string) => {
-  if (typeof window !== "undefined") {
-    document.cookie = `user_role=${role}; path=/; max-age=604800; SameSite=Lax`;
-    document.cookie = `user_status=${status}; path=/; max-age=604800; SameSite=Lax`;
-  }
+  const cookieOptions: Cookies.CookieAttributes = {
+    path: "/",
+    expires: 30, // Đồng bộ với REFRESH_TOKEN_EXPIRATION=30d trong backend
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production", // Chỉ bật secure trên production
+  };
+  Cookies.set("user_role", role, cookieOptions);
+  Cookies.set("user_status", status, cookieOptions);
 };
 
 const clearAuthCookies = () => {
-  if (typeof window !== "undefined") {
-    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "user_status=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-  }
+  Cookies.remove("user_role", { path: "/" });
+  Cookies.remove("user_status", { path: "/" });
 };
 
 interface AuthState {
   user: AccountType | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  isRefreshing: boolean; // 🆕 Cờ kiểm soát chống gửi trùng lặp request refresh
 
   setAuth: (user: AccountType, token: string) => void;
   setAccessToken: (token: string) => void;
@@ -28,12 +33,16 @@ interface AuthState {
   logout: () => void;
 }
 
+// 🆕 Biến global nằm ngoài store để giữ trạng thái Promise của request refresh đang chạy ngầm
+let refreshPromise: Promise<boolean> | null = null;
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      isRefreshing: false, // Mặc định ban đầu không refresh
 
       // Gọi khi Login thành công
       setAuth: (user, token) => {
@@ -41,43 +50,61 @@ export const useAuthStore = create<AuthState>()(
         setAuthCookies(user.role, user.status);
       },
 
-      // Gọi ngầm khi Refresh Token thành công
+      // Gọi ngầm khi các Interceptor tự update token
       setAccessToken: (token) => set({ accessToken: token }),
 
-      // Gokhi gọi khi app khởi động hoặc khi vừa refresh trang web để thử lấy access token mới bằng refresh token
+      // Cơ chế Đăng nhập âm thầm - Đạt chuẩn Chống Đạn (Bulletproof)
       silentRefresh: async () => {
-        try {
-          // Gọi API lên Backend. Trình duyệt tự mang theo Refresh Token trong Cookie.
-          const res = await authApiRequest.refreshToken();
+        // Nếu đang có một tiến trình refresh đang chạy, trả về luôn cái Promise đó để dùng chung kết quả
+        if (refreshPromise) return refreshPromise;
 
-          // Trích xuất dữ liệu từ Response (Tùy thuộc vào thiết kế JSON của Backend NestJS)
-          const newAccessToken = res.data.access_token;
-          const user = res.data.user; // Backend trả về thông tin user không có password cùng với access token mới
-          // Cập nhật lại Zustand (RAM) và LocalStorage (Thông qua persist)
-          set({
-            accessToken: newAccessToken,
-            user: user,
-            isAuthenticated: true,
-          });
-          setAuthCookies(user.role, user.status);
+        set({ isRefreshing: true });
 
-          return true; // Báo hiệu refresh thành công
-        } catch (error) {
-          set({ user: null, accessToken: null, isAuthenticated: false });
-          clearAuthCookies();
-          return false; // Báo hiệu refresh thất bại
-        }
+        refreshPromise = (async () => {
+          try {
+            const res = await authApiRequest.refreshToken();
+            const newAccessToken = res.data.access_token;
+            const user = res.data.user;
+
+            set({
+              accessToken: newAccessToken,
+              user: user,
+              isAuthenticated: true,
+            });
+            setAuthCookies(user.role, user.status);
+            return true;
+          } catch (error: any) {
+            // Phân biệt loại lỗi
+            const status = error?.status;
+            
+            // Khi refresh thất bại (Cookie hết hạn / Session bị xóa ở DB), dọn dẹp sạch sẽ
+            set({ user: null, accessToken: null, isAuthenticated: false });
+            clearAuthCookies();
+            
+            // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
+            if (status === 401 && typeof window !== "undefined") {
+              sessionStorage.setItem("auth_security_warning", "true");
+            }
+            
+            return false;
+          } finally {
+            // Giải phóng Promise global và hạ cờ hiệu
+            refreshPromise = null;
+            set({ isRefreshing: false });
+          }
+        })();
+
+        return refreshPromise;
       },
 
-      // Gọi khi Đăng xuất hoặc bị văng ra
+      // Gọi khi Đăng xuất
       logout: () => {
         set({ user: null, accessToken: null, isAuthenticated: false });
         clearAuthCookies();
       },
     }),
     {
-      name: "auth-storage", // Tên key sẽ lưu dưới LocalStorage
-      // BẢO MẬT: Chỉ lưu 'user' và 'isAuthenticated'. KHÔNG LƯU accessToken!
+      name: "auth-storage",
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
