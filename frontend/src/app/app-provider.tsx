@@ -11,7 +11,7 @@ export default function AppProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { silentRefresh, logout } = useAuthStore();
+  const { silentRefresh, logout, user } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
@@ -27,6 +27,20 @@ export default function AppProvider({
   useEffect(() => {
     if (!isMounted.current) {
       isMounted.current = true;
+
+      // Kiểm tra cảnh báo bảo mật từ session trước
+      if (typeof window !== "undefined") {
+        const hasSecurityWarning = sessionStorage.getItem(
+          "auth_security_warning",
+        );
+        if (hasSecurityWarning === "true") {
+          toast.error(
+            "⚠️ Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại để bảo mật tài khoản.",
+            { duration: 5000 },
+          );
+          sessionStorage.removeItem("auth_security_warning");
+        }
+      }
 
       // Ngay khi ứng dụng vừa load (F5), âm thầm gọi API xin lại Access Token
       silentRefresh();
@@ -50,13 +64,22 @@ export default function AppProvider({
         if (isSuccess) {
           toast.info("Đã đăng nhập thành công từ tab khác!");
           if (currentPath === "/login" || currentPath === "/register") {
-            router.push("/");
+            const redirectUrl =
+              user?.role === "seller"
+                ? "/seller"
+                : user?.role === "admin"
+                  ? "/admin"
+                  : "/";
+            router.push(redirectUrl);
           }
         }
       } else if (data.type === "logout_success") {
         logout();
         toast.info("Đã đăng xuất tài khoản từ tab khác!");
-        if (currentPath.startsWith("/admin") || currentPath.startsWith("/seller")) {
+        if (
+          currentPath.startsWith("/admin") ||
+          currentPath.startsWith("/seller")
+        ) {
           router.push("/login");
         }
       }

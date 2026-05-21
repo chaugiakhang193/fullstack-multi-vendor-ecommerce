@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth";
+import sellerApiRequest from "@/apiRequests/seller";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +46,69 @@ export default function SellerLayout({
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isCheckingShop, setIsCheckingShop] = useState(true);
+  const [hasRedirected, setHasRedirected] = useState(false); // Flag để ngăn check lại sau redirect
+
+  // Check shop status và redirect logic
+  useEffect(() => {
+    const checkShopStatus = async () => {
+      console.log("[Layout Debug] checkShopStatus:", {
+        pathname,
+        userStatus: user?.status,
+      });
+
+      // Bỏ qua check nếu đang ở trang settings, setup hoặc rejected
+      if (
+        pathname === "/seller/settings" ||
+        pathname === "/seller/setup" ||
+        pathname === "/seller/rejected"
+      ) {
+        setIsCheckingShop(false);
+        return;
+      }
+
+      // Bỏ qua nếu đã redirect rồi
+      if (hasRedirected) {
+        setIsCheckingShop(false);
+        return;
+      }
+
+      // Check shop status cho tất cả seller (bao gồm cả /seller/pending)
+      if (user) {
+        try {
+          const res = await sellerApiRequest.getMyShop();
+          const shop = res.data;
+
+          // 🔴 Nếu user pending_approval VÀ đã có shop → redirect /seller/pending
+          if (user.status === "pending_approval" && shop && pathname !== "/seller/pending") {
+            setHasRedirected(true);
+            router.push("/seller/pending");
+            return;
+          }
+
+          // User active + shop active → OK, không redirect
+        } catch (error: any) {
+          // 🔴 Nếu 404 (không có shop) → redirect /seller/setup NGAY
+          if (error?.status === 404) {
+            // Nếu đang ở /seller/pending mà không có shop → redirect setup với toast
+            if (pathname === "/seller/pending") {
+              toast.info("Vui lòng tạo cửa hàng trước khi tiếp tục");
+            }
+            setHasRedirected(true);
+            router.push("/seller/setup");
+            return;
+          }
+          console.error("Error checking shop status:", error);
+        }
+      }
+
+      setIsCheckingShop(false);
+    };
+
+    if (isMounted && user) {
+      checkShopStatus();
+    }
+  }, [pathname, user, router, isMounted, hasRedirected]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -130,7 +194,23 @@ export default function SellerLayout({
 
   if (!isMounted) return null;
 
-  if (pathname === "/seller/pending") {
+  // Show loading state while checking shop status
+  if (isCheckingShop) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+          <p className="text-sm text-muted-foreground">Đang kiểm tra trạng thái...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    pathname === "/seller/pending" ||
+    pathname === "/seller/setup" ||
+    pathname === "/seller/rejected"
+  ) {
     return <>{children}</>;
   }
 

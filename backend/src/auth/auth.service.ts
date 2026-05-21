@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
 //DTO
@@ -83,7 +84,7 @@ export class AuthService {
     if (
       user.status === AccountStatus.ACTIVE ||
       (user.role === UserRole.SELLER &&
-        user.status === AccountStatus.PENDING_APPROVAL)
+        (user.status === AccountStatus.PENDING_APPROVAL || user.status === AccountStatus.NEW_SELLER))
     ) {
       throw new BadRequestException(
         'Tài khoản này đã được kích hoạt từ trước.',
@@ -133,16 +134,16 @@ export class AuthService {
       if (
         user.status === AccountStatus.ACTIVE ||
         (user.role === UserRole.SELLER &&
-          user.status === AccountStatus.PENDING_APPROVAL)
+          (user.status === AccountStatus.PENDING_APPROVAL || user.status === AccountStatus.NEW_SELLER))
       ) {
         throw new BadRequestException(
           'Tài khoản này đã được kích hoạt từ trước.',
         );
       }
 
-      // nhật trạng thái User thành 'active' đối với Customer, hoặc 'pending_approval' đối với Seller
+      // nhật trạng thái User thành 'active' đối với Customer, hoặc 'new_seller' đối với Seller
       if (user.role === UserRole.SELLER) {
-        user.status = AccountStatus.PENDING_APPROVAL;
+        user.status = AccountStatus.NEW_SELLER;
       } else {
         user.status = AccountStatus.ACTIVE;
       }
@@ -357,37 +358,52 @@ export class AuthService {
 
   // [POST] auth/refresh
   async handleRefreshToken(userPayload: any, originalRefreshToken: string) {
-    //  Tìm Session trực tiếp dựa vào payload, sub là user id
+    // Tìm Session trực tiếp dựa vào payload, sub là user id
     const session = await this.sessionRepository.findOne({
       where: { id: userPayload.sessionId, user: { id: userPayload.sub } },
       relations: ['user'],
     });
 
+    // Session không tồn tại → 403 (Bình thường - có thể đã logout hoặc hết hạn)
     if (!session) {
-      throw new UnauthorizedException(
-        'Phiên đăng nhập không tồn tại hoặc đã bị đăng xuất!',
+      throw new ForbiddenException(
+        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
       );
     }
 
-    //check Token xem có hợp lệ không
+    // Kiểm tra session đã hết hạn chưa
+    if (session.expires_at && new Date() > session.expires_at) {
+      // Xóa session hết hạn khỏi DB để dọn dẹp
+      await this.sessionRepository.remove(session);
+      throw new ForbiddenException(
+        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+      );
+    }
+
+    // Check Token xem có hợp lệ không
     const isTokenMatch = await compareHashedDataHelper(
       originalRefreshToken,
       session.refresh_token,
     );
+    
+    // Token không khớp → 401 (Nguy hiểm - có thể bị đánh cắp)
     if (!isTokenMatch) {
       throw new UnauthorizedException(
-        'Refresh Token không hợp lệ (Bị đánh cắp hoặc đã xoay vòng)!',
+        'Refresh Token không hợp lệ. Phiên đăng nhập có thể đã bị xâm phạm!',
       );
     }
 
     // Tìm kiếm thông tin mới nhất về người dùng thông qua session.user.id
     // để đảm bảo user chưa bị xóa hoặc cập nhật role/status
     const user = await this.usersService.findById(session.user.id);
+    
+    // User không tồn tại → 401
     if (!user) {
       throw new UnauthorizedException(
         'Tài khoản người dùng không còn tồn tại!',
       );
     }
+    
     const newPayload = {
       username: user.username,
       id: user.id,

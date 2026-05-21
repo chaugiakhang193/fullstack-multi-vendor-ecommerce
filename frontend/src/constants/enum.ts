@@ -7,9 +7,11 @@ export enum UserRole {
 export enum AccountStatus {
   PENDING_VERIFICATION = "pending_verification",
   PENDING_APPROVAL = "pending_approval",
+  NEW_SELLER = "new_seller",
   ACTIVE = "active",
   SUSPENDED = "suspended",
   BANNED = "banned",
+  REJECTED = "rejected",
 }
 
 export enum OrderStatus {

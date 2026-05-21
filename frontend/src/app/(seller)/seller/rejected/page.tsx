@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, LogOut, ArrowLeft, Store, RefreshCw } from "lucide-react";
+import { XCircle, LogOut, ArrowRight, Store, RefreshCw, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-export default function SellerPendingPage() {
+export default function SellerRejectedPage() {
   const router = useRouter();
   const { user, logout, setAuth } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -55,25 +55,25 @@ export default function SellerPendingPage() {
   const handleCheckStatus = async () => {
     try {
       setIsRefreshing(true);
-      // Gọi API refresh token hoặc lấy thông tin user mới nhất
+      // Gọi API refresh token để lấy thông tin trạng thái mới nhất
       const res = await authApiRequest.refreshToken();
       if (res.data) {
         setAuth(res.data.user, res.data.access_token);
         
-        // Kiểm tra xem status đã chuyển thành active hay bị từ chối chưa
+        // Kiểm tra xem status đã chuyển thành active chưa hoặc pending_approval
         if (res.data.user.status === "active") {
           toast.success("Cửa hàng của bạn đã được phê duyệt!");
           router.push("/seller");
           router.refresh();
           return;
-        } else if (res.data.user.status === "rejected") {
-          toast.error("Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.");
-          router.push("/seller/rejected");
+        } else if (res.data.user.status === "pending_approval") {
+          toast.success("Cửa hàng của bạn đang chờ phê duyệt.");
+          router.push("/seller/pending");
           router.refresh();
           return;
         }
       }
-      toast.info("Tài khoản vẫn đang trong quá trình phê duyệt.");
+      toast.info("Yêu cầu đăng ký vẫn bị từ chối.");
     } catch (error) {
       console.error("Lỗi kiểm tra trạng thái:", error);
       toast.error("Không thể kết nối đến máy chủ.");
@@ -86,54 +86,52 @@ export default function SellerPendingPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg shadow-xl border bg-card/60 backdrop-blur-md">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 animate-pulse">
-            <Clock className="h-8 w-8" />
+          <div className="mx-auto h-16 w-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4">
+            <XCircle className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl font-bold">Cửa hàng đang chờ duyệt</CardTitle>
+          <CardTitle className="text-2xl font-bold">Yêu cầu bị từ chối</CardTitle>
           <CardDescription className="text-sm mt-1">
-            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đang được kiểm duyệt.
+            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đã bị từ chối phê duyệt.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-2">
-          <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 flex gap-3">
-            <Store className="h-5 w-5 shrink-0 mt-0.5" />
+          <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
+            <Mail className="h-5 w-5 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Thời gian duyệt dự kiến: 1 - 2 ngày làm việc</p>
+              <p className="font-semibold">Vui lòng kiểm tra hộp thư email</p>
               <p className="mt-1 text-xs opacity-90">
-                Hệ thống đang kiểm tra thông tin cửa hàng của bạn. Chúng tôi sẽ gửi email thông báo ngay sau khi admin phê duyệt hoặc từ chối.
+                Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn. Hãy kiểm tra hòm thư chính và thư rác.
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2.5">
             <Button
+              onClick={() => router.push("/seller/setup")}
+              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold"
+            >
+              <span>Chỉnh sửa & gửi lại yêu cầu</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            <Button
               onClick={handleCheckStatus}
-              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
               disabled={isRefreshing}
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => router.push("/")}
-                className="flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Trang chủ</span>
-              </Button>
-
-              <Button
-                variant="destructive"
-                onClick={() => setIsLogoutConfirmOpen(true)}
-                className="flex items-center justify-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Đăng xuất</span>
-              </Button>
-            </div>
+            <Button
+              variant="destructive"
+              onClick={() => setIsLogoutConfirmOpen(true)}
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Đăng xuất</span>
+            </Button>
           </div>
         </CardContent>
       </Card>

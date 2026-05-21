@@ -40,14 +40,15 @@ export function RegisterSellerForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  //Nếu đã login từ trước thì lấy accesstoken ra và redirect người dùng
+  //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
   //Nếu có accessToken trong RAM qua Zustand thì redirect
   useEffect(() => {
     if (accessToken) {
-      router.push("/");
+      router.push(user?.role === "seller" ? "/seller" : "/");
     }
-  }, [accessToken, router]);
+  }, [accessToken, user, router]);
 
   //Khởi tạo Form
   const form = useForm<RegisterBodyType>({
@@ -67,7 +68,8 @@ export function RegisterSellerForm({
       const { confirmPassword, ...dataToSend } = data;
       const res = await authApiRequest.registerSeller(dataToSend);
       toast.success("Tuyệt vời!", {
-        description: res.message || "Bạn đã gửi yêu cầu đăng ký người bán thành công.",
+        description:
+          res.message || "Bạn đã gửi yêu cầu đăng ký người bán thành công.",
       });
       router.push("/verify-email");
     } catch (error) {
@@ -93,7 +95,10 @@ export function RegisterSellerForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="register-seller-form" onSubmit={form.handleSubmit(onSubmit)}>
+          <form
+            id="register-seller-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <FieldGroup>
               {/* 1. Field: Username */}
               <Controller
