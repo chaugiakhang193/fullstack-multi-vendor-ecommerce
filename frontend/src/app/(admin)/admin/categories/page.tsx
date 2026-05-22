@@ -49,7 +49,9 @@ export default function AdminCategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Collapsible tree state
-  const [collapsedRoots, setCollapsedRoots] = useState<Record<string, boolean>>({});
+  const [collapsedRoots, setCollapsedRoots] = useState<Record<string, boolean>>(
+    {},
+  );
 
   // Dialog control states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -57,8 +59,10 @@ export default function AdminCategoriesPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   // Selected categories for edit/delete
-  const [selectedCategory, setSelectedCategory] = useState<CategoryResponseType | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<CategoryResponseType | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryResponseType | null>(null);
+  const [categoryToDelete, setCategoryToDelete] =
+    useState<CategoryResponseType | null>(null);
 
   // Zod forms
   const {
@@ -71,7 +75,7 @@ export default function AdminCategoriesPage() {
     defaultValues: {
       name: "",
       parentId: "", // Đặt chuỗi rỗng tương ứng giá trị mặc định của thẻ select
-      display_order: 0,
+      display_order: "" as any,
     },
   });
 
@@ -85,7 +89,7 @@ export default function AdminCategoriesPage() {
     defaultValues: {
       name: "",
       parentId: "",
-      display_order: 0,
+      display_order: "" as any,
     },
   });
 
@@ -96,7 +100,10 @@ export default function AdminCategoriesPage() {
       const res = await categoriesApiRequest.getAll();
       setCategories(res.data || []);
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể tải danh sách danh mục.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Không thể tải danh sách danh mục.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsLoading(false);
@@ -119,7 +126,11 @@ export default function AdminCategoriesPage() {
   const rootCategories = useMemo(() => {
     return categories
       .filter((c) => !c.parent)
-      .sort((a, b) => a.display_order - b.display_order);
+      .sort((a, b) => {
+        const orderA = a.display_order ?? 0;
+        const orderB = b.display_order ?? 0;
+        return orderA - orderB;
+      });
   }, [categories]);
 
   // Collapsible toggle helper
@@ -138,7 +149,11 @@ export default function AdminCategoriesPage() {
       return rootCategories.map((root) => {
         const children = categories
           .filter((c) => c.parent?.id === root.id)
-          .sort((a, b) => a.display_order - b.display_order);
+          .sort((a, b) => {
+            const orderA = a.display_order ?? 0;
+            const orderB = b.display_order ?? 0;
+            return orderA - orderB;
+          });
         return { root, children, forceOpen: false };
       });
     }
@@ -154,9 +169,13 @@ export default function AdminCategoriesPage() {
           .filter(
             (c) =>
               c.name.toLowerCase().includes(query) ||
-              c.slug.toLowerCase().includes(query)
+              c.slug.toLowerCase().includes(query),
           )
-          .sort((a, b) => a.display_order - b.display_order);
+          .sort((a, b) => {
+            const orderA = a.display_order ?? 0;
+            const orderB = b.display_order ?? 0;
+            return orderA - orderB;
+          });
 
         if (rootMatches || children.length > 0) {
           return { root, children, forceOpen: true };
@@ -180,7 +199,8 @@ export default function AdminCategoriesPage() {
       setIsCreateOpen(false);
       fetchCategories();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể thêm danh mục.";
+      const msg =
+        error?.payload?.message || error?.message || "Không thể thêm danh mục.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     }
   };
@@ -200,7 +220,10 @@ export default function AdminCategoriesPage() {
       setSelectedCategory(null);
       fetchCategories();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể cập nhật danh mục.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Không thể cập nhật danh mục.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     }
   };
@@ -215,7 +238,8 @@ export default function AdminCategoriesPage() {
       setCategoryToDelete(null);
       fetchCategories();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể xóa danh mục.";
+      const msg =
+        error?.payload?.message || error?.message || "Không thể xóa danh mục.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     }
   };
@@ -226,14 +250,16 @@ export default function AdminCategoriesPage() {
     resetEdit({
       name: category.name,
       parentId: category.parent?.id || "",
-      display_order: category.display_order,
+      display_order: category.display_order ?? ("" as any),
     });
     setIsEditOpen(true);
   };
 
   // Open Delete Dialog with safety check
   const handleOpenDelete = (category: CategoryResponseType) => {
-    const childCategories = categories.filter((c) => c.parent?.id === category.id);
+    const childCategories = categories.filter(
+      (c) => c.parent?.id === category.id,
+    );
     setCategoryToDelete({
       ...category,
       children: childCategories,
@@ -256,7 +282,8 @@ export default function AdminCategoriesPage() {
             Quản lý Danh mục
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Thiết lập cấu trúc cây danh mục sản phẩm (Hỗ trợ tối đa 2 cấp danh mục: Gốc và Con).
+            Thiết lập cấu trúc cây danh mục sản phẩm (Hỗ trợ tối đa 2 cấp danh
+            mục: Gốc và Con).
           </p>
         </div>
         <Button
@@ -274,40 +301,58 @@ export default function AdminCategoriesPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/20 p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Tổng số danh mục</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Tổng số danh mục
+            </span>
             <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
               <Layers className="h-5 w-5 text-violet-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">{stats.total}</span>
-            <p className="text-xs text-muted-foreground mt-1">Bao gồm cả danh mục gốc và con</p>
+            <span className="text-2xl font-bold tracking-tight">
+              {stats.total}
+            </span>
+            <p className="text-xs text-muted-foreground mt-1">
+              Bao gồm cả danh mục gốc và con
+            </p>
           </div>
         </div>
 
         <div className="rounded-xl border bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Danh mục gốc (Level 1)</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Danh mục gốc (Level 1)
+            </span>
             <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
               <Folder className="h-5 w-5 text-blue-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">{stats.roots}</span>
-            <p className="text-xs text-muted-foreground mt-1">Danh mục cấp cao nhất</p>
+            <span className="text-2xl font-bold tracking-tight">
+              {stats.roots}
+            </span>
+            <p className="text-xs text-muted-foreground mt-1">
+              Danh mục cấp cao nhất
+            </p>
           </div>
         </div>
 
         <div className="rounded-xl border bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Danh mục con (Level 2)</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Danh mục con (Level 2)
+            </span>
             <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
               <Tag className="h-5 w-5 text-pink-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">{stats.children}</span>
-            <p className="text-xs text-muted-foreground mt-1">Danh mục phụ thuộc cấp 2</p>
+            <span className="text-2xl font-bold tracking-tight">
+              {stats.children}
+            </span>
+            <p className="text-xs text-muted-foreground mt-1">
+              Danh mục phụ thuộc cấp 2
+            </p>
           </div>
         </div>
       </div>
@@ -339,7 +384,9 @@ export default function AdminCategoriesPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-              <p className="text-sm text-muted-foreground">Đang tải danh sách danh mục...</p>
+              <p className="text-sm text-muted-foreground">
+                Đang tải danh sách danh mục...
+              </p>
             </div>
           ) : filteredAndGrouped.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
@@ -481,11 +528,15 @@ export default function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>Thêm danh mục mới</DialogTitle>
             <DialogDescription>
-              Tạo danh mục mới trong hệ thống. Hệ thống chỉ hỗ trợ cấu trúc phân cấp tối đa 2 cấp.
+              Tạo danh mục mới trong hệ thống. Hệ thống chỉ hỗ trợ cấu trúc phân
+              cấp tối đa 2 cấp.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitCreate(onCreateSubmit)} className="space-y-4 py-2">
+          <form
+            onSubmit={handleSubmitCreate(onCreateSubmit)}
+            className="space-y-4 py-2"
+          >
             <Field>
               <FieldLabel htmlFor="create-name">Tên danh mục *</FieldLabel>
               <Input
@@ -500,7 +551,9 @@ export default function AdminCategoriesPage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="create-parent">Danh mục cha (Cấp 1)</FieldLabel>
+              <FieldLabel htmlFor="create-parent">
+                Danh mục cha (Cấp 1)
+              </FieldLabel>
               <select
                 id="create-parent"
                 {...registerCreate("parentId")}
@@ -514,7 +567,8 @@ export default function AdminCategoriesPage() {
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Lưu ý: Để trống nếu muốn làm danh mục gốc. Không thể chọn danh mục con làm cha.
+                Lưu ý: Để trống nếu muốn làm danh mục gốc. Không thể chọn danh
+                mục con làm cha.
               </p>
             </Field>
 
@@ -527,12 +581,20 @@ export default function AdminCategoriesPage() {
                 aria-invalid={!!createErrors.display_order}
               />
               {createErrors.display_order && (
-                <FieldError>{createErrors.display_order.message?.toString()}</FieldError>
+                <FieldError>
+                  {createErrors.display_order.message?.toString()}
+                </FieldError>
               )}
             </Field>
 
             <DialogFooter className="mt-6">
-              <DialogClose render={<Button variant="outline" type="button" disabled={isCreating}>Hủy</Button>} />
+              <DialogClose
+                render={
+                  <Button variant="outline" type="button" disabled={isCreating}>
+                    Hủy
+                  </Button>
+                }
+              />
               <Button
                 type="submit"
                 disabled={isCreating}
@@ -540,7 +602,8 @@ export default function AdminCategoriesPage() {
               >
                 {isCreating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang lưu...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang
+                    lưu...
                   </>
                 ) : (
                   "Tạo mới"
@@ -557,11 +620,15 @@ export default function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>Cập nhật danh mục</DialogTitle>
             <DialogDescription>
-              Thay đổi thông tin của danh mục. Thay đổi này sẽ cập nhật trên toàn hệ thống sản phẩm.
+              Thay đổi thông tin của danh mục. Thay đổi này sẽ cập nhật trên
+              toàn hệ thống sản phẩm.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitEdit(onEditSubmit)} className="space-y-4 py-2">
+          <form
+            onSubmit={handleSubmitEdit(onEditSubmit)}
+            className="space-y-4 py-2"
+          >
             <Field>
               <FieldLabel htmlFor="edit-name">Tên danh mục *</FieldLabel>
               <Input
@@ -576,7 +643,9 @@ export default function AdminCategoriesPage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="edit-parent">Danh mục cha (Cấp 1)</FieldLabel>
+              <FieldLabel htmlFor="edit-parent">
+                Danh mục cha (Cấp 1)
+              </FieldLabel>
               <select
                 id="edit-parent"
                 {...registerEdit("parentId")}
@@ -594,11 +663,13 @@ export default function AdminCategoriesPage() {
               </select>
               {isSelectedCategoryHasChildren ? (
                 <p className="text-[11px] text-rose-500 font-medium mt-1">
-                  ⚠️ Không thể thay đổi cấp độ vì danh mục này đang chứa danh mục con khác.
+                  ⚠️ Không thể thay đổi cấp độ vì danh mục này đang chứa danh
+                  mục con khác.
                 </p>
               ) : (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Lưu ý: Chỉ danh mục nào không có danh mục con mới được phép thay đổi cấp độ cha.
+                  Lưu ý: Chỉ danh mục nào không có danh mục con mới được phép
+                  thay đổi cấp độ cha.
                 </p>
               )}
             </Field>
@@ -612,12 +683,20 @@ export default function AdminCategoriesPage() {
                 aria-invalid={!!editErrors.display_order}
               />
               {editErrors.display_order && (
-                <FieldError>{editErrors.display_order.message?.toString()}</FieldError>
+                <FieldError>
+                  {editErrors.display_order.message?.toString()}
+                </FieldError>
               )}
             </Field>
 
             <DialogFooter className="mt-6">
-              <DialogClose render={<Button variant="outline" type="button" disabled={isEditing}>Hủy</Button>} />
+              <DialogClose
+                render={
+                  <Button variant="outline" type="button" disabled={isEditing}>
+                    Hủy
+                  </Button>
+                }
+              />
               <Button
                 type="submit"
                 disabled={isEditing}
@@ -625,7 +704,8 @@ export default function AdminCategoriesPage() {
               >
                 {isEditing ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang lưu...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang
+                    lưu...
                   </>
                 ) : (
                   "Cập nhật"
@@ -644,7 +724,8 @@ export default function AdminCategoriesPage() {
               <AlertTriangle className="h-5 w-5" /> Xác nhận xóa danh mục
             </DialogTitle>
             <DialogDescription>
-              Hành động này không thể hoàn tác. Danh mục bị xóa sẽ ảnh hưởng tới liên kết sản phẩm.
+              Hành động này không thể hoàn tác. Danh mục bị xóa sẽ ảnh hưởng tới
+              liên kết sản phẩm.
             </DialogDescription>
           </DialogHeader>
 
@@ -658,8 +739,12 @@ export default function AdminCategoriesPage() {
                       ⚠️ KHÔNG THỂ XÓA DANH MỤC NÀY
                     </p>
                     <p>
-                      Danh mục gốc <strong>"{categoryToDelete.name}"</strong> đang chứa{" "}
-                      <strong>{(categoryToDelete as any).children.length}</strong> danh mục con:
+                      Danh mục gốc <strong>"{categoryToDelete.name}"</strong>{" "}
+                      đang chứa{" "}
+                      <strong>
+                        {(categoryToDelete as any).children.length}
+                      </strong>{" "}
+                      danh mục con:
                     </p>
                     <ul className="list-disc pl-5 font-semibold">
                       {(categoryToDelete as any).children.map((child: any) => (
@@ -667,15 +752,18 @@ export default function AdminCategoriesPage() {
                       ))}
                     </ul>
                     <p className="text-xs mt-2 italic text-rose-600 dark:text-rose-400">
-                      Vui lòng xóa các danh mục con trước hoặc thay đổi danh mục cha của chúng sang
-                      danh mục gốc khác trước khi xóa danh mục này.
+                      Vui lòng xóa các danh mục con trước hoặc thay đổi danh mục
+                      cha của chúng sang danh mục gốc khác trước khi xóa danh
+                      mục này.
                     </p>
                   </div>
                 ) : (
                   <p className="text-sm">
                     Bạn có chắc chắn muốn xóa danh mục{" "}
-                    <strong className="text-rose-600">"{categoryToDelete.name}"</strong> (Slug:{" "}
-                    <code>{categoryToDelete.slug}</code>)?
+                    <strong className="text-rose-600">
+                      "{categoryToDelete.name}"
+                    </strong>{" "}
+                    (Slug: <code>{categoryToDelete.slug}</code>)?
                   </p>
                 )}
               </>
@@ -683,11 +771,18 @@ export default function AdminCategoriesPage() {
           </div>
 
           <DialogFooter className="mt-4">
-            <DialogClose render={<Button variant="outline" type="button">Hủy</Button>} />
+            <DialogClose
+              render={
+                <Button variant="outline" type="button">
+                  Hủy
+                </Button>
+              }
+            />
             <Button
               onClick={onDeleteSubmit}
               disabled={
-                !categoryToDelete || ((categoryToDelete as any).children?.length > 0)
+                !categoryToDelete ||
+                (categoryToDelete as any).children?.length > 0
               }
               className="bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >

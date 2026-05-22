@@ -1,8 +1,24 @@
 import z from "zod";
 import type { components } from "@/lib/api/api-schema";
 
-type CreateCategoryDto = components["schemas"]["CreateCategoryDto"];
-type UpdateCategoryDto = components["schemas"]["UpdateCategoryDto"];
+type OriginalCreateCategoryDto = components["schemas"]["CreateCategoryDto"];
+type OriginalUpdateCategoryDto = components["schemas"]["UpdateCategoryDto"];
+
+type CreateCategoryDto = Omit<
+  OriginalCreateCategoryDto,
+  "parentId" | "display_order"
+> & {
+  parentId?: string | null;
+  display_order?: number | null;
+};
+
+type UpdateCategoryDto = Omit<
+  OriginalUpdateCategoryDto,
+  "parentId" | "display_order"
+> & {
+  parentId?: string | null;
+  display_order?: number | null;
+};
 
 export const CreateCategoryBody = z
   .object({
@@ -15,12 +31,12 @@ export const CreateCategoryBody = z
       .uuid("ID danh mục cha không đúng định dạng.")
       .or(z.literal("")) // Chấp nhận chuỗi rỗng từ select HTML
       .nullable()
-      .optional() as any,
-    display_order: z
-      .number({ invalid_type_error: "Vui lòng nhập một số hợp lệ." }) // Tránh lỗi undefined khi xóa trống input
-      .int("Thứ tự hiển thị phải là số nguyên.")
-      .min(0, "Thứ tự hiển thị không được nhỏ hơn 0.")
-      .default(0),
+      .optional(),
+    display_order: z.preprocess((val) => {
+      if (val === "" || val === undefined || val === null) return null;
+      const num = Number(val);
+      return Number.isNaN(num) ? null : num;
+    }, z.number().int("Thứ tự hiển thị phải là số nguyên.").min(0, "Thứ tự hiển thị không được nhỏ hơn 0.").nullable().optional()),
   })
   .strict() satisfies z.ZodType<CreateCategoryDto, any, any>;
 
@@ -36,14 +52,14 @@ export const UpdateCategoryBody = z
       .uuid("ID danh mục cha không đúng định dạng.")
       .or(z.literal("")) // Chấp nhận chuỗi rỗng từ select HTML
       .nullable()
-      .optional() as any,
-    display_order: z
-      .number({ invalid_type_error: "Vui lòng nhập một số hợp lệ." })
-      .int("Thứ tự hiển thị phải là số nguyên.")
-      .min(0, "Thứ tự hiển thị không được nhỏ hơn 0.")
       .optional(),
+    display_order: z.preprocess((val) => {
+      if (val === "" || val === undefined || val === null) return null;
+      const num = Number(val);
+      return Number.isNaN(num) ? null : num;
+    }, z.number().int("Thứ tự hiển thị phải là số nguyên.").min(0, "Thứ tự hiển thị không được nhỏ hơn 0.").nullable().optional()),
   })
-  .strict() satisfies z.ZodType<Partial<UpdateCategoryDto>>;
+  .strict() satisfies z.ZodType<Partial<UpdateCategoryDto>, any, any>;
 
 export const CategoryResponse = z.object({
   id: z.string(),

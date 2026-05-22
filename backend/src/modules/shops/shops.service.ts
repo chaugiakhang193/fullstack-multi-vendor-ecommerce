@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -23,12 +24,14 @@ import { User } from '@/modules/users/entities/user.entity';
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { UsersService } from '@/modules/users/users.service';
 import { CategoriesService } from '@/modules/products/categories.service';
+import { MailService } from '@/modules/mail/mail.service';
 
 // Enums
 import { AccountStatus, AssetType, CloudinaryFolder } from '@/modules/enums';
 
 @Injectable()
 export class ShopsService {
+  private readonly logger = new Logger(ShopsService.name);
   constructor(
     @InjectRepository(Shop)
     private readonly shopsRepository: Repository<Shop>,
@@ -37,6 +40,7 @@ export class ShopsService {
     private readonly cloudinaryService: CloudinaryService,
     private readonly userService: UsersService,
     @InjectDataSource() private dataSource: DataSource,
+    private readonly mailService: MailService,
   ) {}
 
   async setupInitialShop(
@@ -506,14 +510,14 @@ export class ShopsService {
     const shop = await this.findOneByShopId(id);
 
     // Mở Transaction
-    return await this.dataSource.transaction(async (manager) => {
+    const updatedShop = await this.dataSource.transaction(async (manager) => {
       // Cập nhật trạng thái Shop
       shop.status = AccountStatus.REJECTED;
 
       // Nếu trong Entity Shop bạn có làm thêm cột reject_reason thì gán luôn ở đây:
       // shop.reject_reason = reason;
 
-      const updatedShop = await manager.save(Shop, shop);
+      const savedShop = await manager.save(Shop, shop);
 
       // Cập nhật trạng thái User
       if (shop.seller) {
@@ -522,10 +526,19 @@ export class ShopsService {
         });
       }
 
-      // TODO: Gửi email cho seller báo lý do (reason) để họ biết đường sửa
-
-      return updatedShop;
+      return savedShop;
     });
+
+    // Gửi email cho seller báo lý do (reason) để họ biết đường sửa
+    if (shop.seller) {
+      await this.mailService
+        .sendShopRejectionEmail(shop.seller, shop.name, reason)
+        .catch((err) => {
+          this.logger.error('Lỗi khi gửi email reject shop:', err);
+        });
+    }
+
+    return updatedShop;
   }
 
   async reApplyShop(userId: string) {
