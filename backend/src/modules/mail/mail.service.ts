@@ -45,4 +45,24 @@ export class MailService {
       throw new BadRequestException(error);
     }
   }
+
+  async sendShopRejectionEmail(user: any, shopName: string, reason: string) {
+    try {
+      const FRONTEND_URL = this.configService.get<string>('FRONTEND_URL');
+      const loginLink = `${FRONTEND_URL}/login`;
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: 'Đơn đăng ký cửa hàng bị từ chối - Giang Kha Shop',
+        template: 'reject-shop',
+        context: {
+          name: user.username,
+          shopName: shopName,
+          reason: reason,
+          loginLink: loginLink,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
 }

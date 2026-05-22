@@ -13,6 +13,8 @@ import slugify from 'slugify';
 // DTOs
 import { CreateProductDto } from '@/modules/products/dto/create-product.dto';
 import { UpdateProductDto } from '@/modules/products/dto/update-product.dto';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 
 // Entities
 import { Product } from '@/modules/products/entities/product.entity';
@@ -239,15 +241,47 @@ export class ProductsService {
     }
   }
 
-  findAll() {
-    return this.productsRepository.find({
+  async findAll(
+    query: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<Product>> {
+    const { page = 1, limit = 10, sort, order = 'DESC' } = query;
+    const skip = (page - 1) * limit;
+
+    const orderCondition: any = {};
+    if (sort) {
+      const allowedSortFields = ['price', 'created_at', 'name'];
+      if (allowedSortFields.includes(sort)) {
+        orderCondition[sort] = order;
+      } else {
+        orderCondition['created_at'] = 'DESC';
+      }
+    } else {
+      orderCondition['created_at'] = 'DESC';
+    }
+
+    const [items, totalItems] = await this.productsRepository.findAndCount({
       where: {
         status: ProductStatus.ACTIVE,
-        is_hidden: false, // Chỉ hiện sản phẩm không bị ẩn
+        is_hidden: false,
         shop: { status: AccountStatus.ACTIVE },
       },
       relations: ['shop', 'category', 'variants'],
+      order: orderCondition,
+      take: limit,
+      skip: skip,
     });
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+      },
+    };
   }
 
   async findOne(id: string, isPublic?: boolean) {
