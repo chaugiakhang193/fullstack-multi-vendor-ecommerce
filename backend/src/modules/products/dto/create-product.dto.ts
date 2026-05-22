@@ -34,7 +34,10 @@ export class CreateProductVariantDto {
   @IsString({ message: 'Mã SKU phải là chuỗi ký tự' })
   sku?: string;
 
-  @ApiProperty({ example: 50, description: 'Số lượng tồn kho của biến thể này' })
+  @ApiProperty({
+    example: 50,
+    description: 'Số lượng tồn kho của biến thể này',
+  })
   @IsNotEmpty({ message: 'Số lượng tồn kho không được để trống' })
   @Transform(({ value }) => (value ? Number(value) : value))
   @IsNumber({}, { message: 'Số lượng tồn kho phải là một số' })

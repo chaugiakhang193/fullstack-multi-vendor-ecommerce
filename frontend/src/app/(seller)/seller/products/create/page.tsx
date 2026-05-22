@@ -153,7 +153,9 @@ export default function CreateProductPage() {
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
   // State biến thể
-  const [variants, setVariants] = useState<VariantFormItem[]>([createEmptyVariant()]);
+  const [variants, setVariants] = useState<VariantFormItem[]>([
+    createEmptyVariant(),
+  ]);
 
   // State submit
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,7 +179,9 @@ export default function CreateProductPage() {
     return () => {
       if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
       galleryPreviews.forEach((url) => URL.revokeObjectURL(url));
-      variants.forEach((v) => v.imagePreviews.forEach((url) => URL.revokeObjectURL(url)));
+      variants.forEach((v) =>
+        v.imagePreviews.forEach((url) => URL.revokeObjectURL(url)),
+      );
     };
   }, []);
 
@@ -207,31 +211,33 @@ export default function CreateProductPage() {
   };
 
   // Dropzone thumbnail
-  const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: false,
-    onDrop: (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (!file) return;
-      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
-      setThumbnailFile(file);
-      setThumbnailPreview(URL.createObjectURL(file));
-    },
-  });
+  const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: false,
+      onDrop: (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+        setThumbnailFile(file);
+        setThumbnailPreview(URL.createObjectURL(file));
+      },
+    });
 
   // Dropzone gallery (tối đa 5 ảnh)
   const remainingGallerySlots = 5 - galleryFiles.length;
-  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: true,
-    disabled: remainingGallerySlots <= 0,
-    onDrop: (acceptedFiles) => {
-      const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
-      const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
-      setGalleryFiles((prev) => [...prev, ...filesToAdd]);
-      setGalleryPreviews((prev) => [...prev, ...newPreviews]);
-    },
-  });
+  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: true,
+      disabled: remainingGallerySlots <= 0,
+      onDrop: (acceptedFiles) => {
+        const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
+        const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
+        setGalleryFiles((prev) => [...prev, ...filesToAdd]);
+        setGalleryPreviews((prev) => [...prev, ...newPreviews]);
+      },
+    });
 
   const handleRemoveGallery = (index: number) => {
     URL.revokeObjectURL(galleryPreviews[index]);
@@ -253,10 +259,10 @@ export default function CreateProductPage() {
   const handleVariantChange = (
     index: number,
     field: keyof Omit<VariantFormItem, "images" | "imagePreviews">,
-    value: string | number
+    value: string | number,
   ) => {
     setVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     );
   };
 
@@ -270,12 +276,15 @@ export default function CreateProductPage() {
               images: [...v.images, ...files],
               imagePreviews: [...v.imagePreviews, ...newPreviews],
             }
-          : v
-      )
+          : v,
+      ),
     );
   };
 
-  const handleRemoveVariantImage = (variantIndex: number, imageIndex: number) => {
+  const handleRemoveVariantImage = (
+    variantIndex: number,
+    imageIndex: number,
+  ) => {
     setVariants((prev) =>
       prev.map((v, i) => {
         if (i !== variantIndex) return v;
@@ -285,7 +294,7 @@ export default function CreateProductPage() {
           images: v.images.filter((_, idx) => idx !== imageIndex),
           imagePreviews: v.imagePreviews.filter((_, idx) => idx !== imageIndex),
         };
-      })
+      }),
     );
   };
 
@@ -293,11 +302,14 @@ export default function CreateProductPage() {
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!name.trim()) newErrors.name = "Tên sản phẩm không được để trống.";
-    if (!price || parseFloat(price) < 0) newErrors.price = "Giá sản phẩm không hợp lệ.";
-    if (!weight || parseFloat(weight) < 1) newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
+    if (!price || parseFloat(price) < 0)
+      newErrors.price = "Giá sản phẩm không hợp lệ.";
+    if (!weight || parseFloat(weight) < 1)
+      newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
     if (!categoryId) newErrors.category_id = "Vui lòng chọn danh mục.";
     if (!thumbnailFile) newErrors.thumbnail = "Vui lòng chọn ảnh đại diện.";
-    if (galleryFiles.length === 0) newErrors.general_gallery = "Vui lòng chọn ít nhất 1 ảnh bộ sưu tập.";
+    if (galleryFiles.length === 0)
+      newErrors.general_gallery = "Vui lòng chọn ít nhất 1 ảnh bộ sưu tập.";
 
     if (!hasVariants) {
       if (!stockQuantity || parseInt(stockQuantity) < 0) {
@@ -310,7 +322,8 @@ export default function CreateProductPage() {
         for (let i = 0; i < variants.length; i++) {
           const variant = variants[i];
           if (!variant.name.trim()) {
-            newErrors[`variant_${i}_name`] = "Tên biến thể không được để trống.";
+            newErrors[`variant_${i}_name`] =
+              "Tên biến thể không được để trống.";
           }
           if (variant.stock_quantity < 0) {
             newErrors[`variant_${i}_stock`] = "Tồn kho không được âm.";
@@ -340,7 +353,8 @@ export default function CreateProductPage() {
 
       // Append các trường cơ bản
       formData.append("name", name.trim());
-      if (description.trim()) formData.append("description", description.trim());
+      if (description.trim())
+        formData.append("description", description.trim());
       formData.append("price", price);
       if (sku.trim()) formData.append("sku", sku.trim());
       formData.append("weight", weight);
@@ -387,7 +401,10 @@ export default function CreateProductPage() {
       toast.success("Tạo sản phẩm thành công!");
       router.push("/seller/products");
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Đã xảy ra lỗi khi tạo sản phẩm.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Đã xảy ra lỗi khi tạo sản phẩm.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsSubmitting(false);
@@ -418,7 +435,9 @@ export default function CreateProductPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Thông tin cơ bản */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Thông tin cơ bản</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Thông tin cơ bản
+          </h3>
 
           <Field>
             <FieldLabel htmlFor="product-name">Tên sản phẩm *</FieldLabel>
@@ -433,7 +452,9 @@ export default function CreateProductPage() {
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="product-description">Mô tả sản phẩm</FieldLabel>
+            <FieldLabel htmlFor="product-description">
+              Mô tả sản phẩm
+            </FieldLabel>
             <Textarea
               id="product-description"
               placeholder="Mô tả chi tiết về sản phẩm..."
@@ -472,7 +493,9 @@ export default function CreateProductPage() {
 
         {/* Danh mục */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Danh mục</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Danh mục
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <Field>
               <FieldLabel>Danh mục cha</FieldLabel>
@@ -483,7 +506,9 @@ export default function CreateProductPage() {
               >
                 <option value="">-- Chọn danh mục cha --</option>
                 {rootCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -498,20 +523,28 @@ export default function CreateProductPage() {
               >
                 <option value="">-- Chọn danh mục con --</option>
                 {childCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
-              {errors.category_id && <FieldError>{errors.category_id}</FieldError>}
+              {errors.category_id && (
+                <FieldError>{errors.category_id}</FieldError>
+              )}
             </Field>
           </div>
         </div>
 
         {/* Logistics */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Thông số đóng gói</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Thông số đóng gói
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field>
-              <FieldLabel htmlFor="product-weight">Trọng lượng (g) *</FieldLabel>
+              <FieldLabel htmlFor="product-weight">
+                Trọng lượng (g) *
+              </FieldLabel>
               <Input
                 id="product-weight"
                 type="number"
@@ -525,22 +558,45 @@ export default function CreateProductPage() {
             </Field>
             <Field>
               <FieldLabel htmlFor="product-length">Dài (cm)</FieldLabel>
-              <Input id="product-length" type="number" min={0} placeholder="30" value={length} onChange={(e) => setLength(e.target.value)} />
+              <Input
+                id="product-length"
+                type="number"
+                min={0}
+                placeholder="30"
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="product-width">Rộng (cm)</FieldLabel>
-              <Input id="product-width" type="number" min={0} placeholder="20" value={width} onChange={(e) => setWidth(e.target.value)} />
+              <Input
+                id="product-width"
+                type="number"
+                min={0}
+                placeholder="20"
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="product-height">Cao (cm)</FieldLabel>
-              <Input id="product-height" type="number" min={0} placeholder="10" value={height} onChange={(e) => setHeight(e.target.value)} />
+              <Input
+                id="product-height"
+                type="number"
+                min={0}
+                placeholder="10"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+              />
             </Field>
           </div>
         </div>
 
         {/* Upload ảnh */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Hình ảnh sản phẩm</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Hình ảnh sản phẩm
+          </h3>
 
           {/* Thumbnail */}
           <div className="space-y-2">
@@ -552,15 +608,23 @@ export default function CreateProductPage() {
               <input {...getThumbInputProps()} />
               {thumbnailPreview ? (
                 <>
-                  <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover" />
+                  <img
+                    src={thumbnailPreview}
+                    alt="Thumbnail"
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                    <span className="text-white text-xs font-bold">Thay đổi</span>
+                    <span className="text-white text-xs font-bold">
+                      Thay đổi
+                    </span>
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground">
                   <ImageIcon className="h-8 w-8 text-zinc-400" />
-                  <span className="text-xs font-semibold text-center px-2">Kéo thả hoặc click</span>
+                  <span className="text-xs font-semibold text-center px-2">
+                    Kéo thả hoặc click
+                  </span>
                 </div>
               )}
             </div>
@@ -569,11 +633,20 @@ export default function CreateProductPage() {
 
           {/* Gallery */}
           <div className="space-y-2">
-            <p className="text-sm font-semibold">Ảnh bộ sưu tập * (tối đa 5 ảnh)</p>
+            <p className="text-sm font-semibold">
+              Ảnh bộ sưu tập * (tối đa 5 ảnh)
+            </p>
             <div className="flex flex-wrap gap-3">
               {galleryPreviews.map((previewUrl, idx) => (
-                <div key={idx} className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900">
-                  <img src={previewUrl} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                <div
+                  key={idx}
+                  className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900"
+                >
+                  <img
+                    src={previewUrl}
+                    alt={`Gallery ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveGallery(idx)}
@@ -590,21 +663,29 @@ export default function CreateProductPage() {
                 >
                   <input {...getGalleryInputProps()} />
                   <Plus className="h-6 w-6 text-zinc-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">Thêm ({remainingGallerySlots})</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">
+                    Thêm ({remainingGallerySlots})
+                  </span>
                 </div>
               )}
             </div>
-            {errors.general_gallery && <FieldError>{errors.general_gallery}</FieldError>}
+            {errors.general_gallery && (
+              <FieldError>{errors.general_gallery}</FieldError>
+            )}
           </div>
         </div>
 
         {/* Tồn kho & Biến thể */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b pb-3">
-            <h3 className="font-semibold text-lg leading-none">Tồn kho & Biến thể</h3>
+            <h3 className="font-semibold text-lg leading-none">
+              Tồn kho & Biến thể
+            </h3>
             {/* Toggle has_variants */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <span className="text-xs font-semibold text-muted-foreground">Sản phẩm có nhiều phiên bản</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Sản phẩm có nhiều phiên bản
+              </span>
               <div
                 onClick={() => handleToggleVariants(!hasVariants)}
                 className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${hasVariants ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
@@ -619,7 +700,9 @@ export default function CreateProductPage() {
           {/* Tồn kho gốc (khi không có biến thể) */}
           {!hasVariants && (
             <Field>
-              <FieldLabel htmlFor="stock-quantity">Số lượng tồn kho *</FieldLabel>
+              <FieldLabel htmlFor="stock-quantity">
+                Số lượng tồn kho *
+              </FieldLabel>
               <Input
                 id="stock-quantity"
                 type="number"
@@ -630,7 +713,9 @@ export default function CreateProductPage() {
                 aria-invalid={!!errors.stock_quantity}
                 className="max-w-[200px]"
               />
-              {errors.stock_quantity && <FieldError>{errors.stock_quantity}</FieldError>}
+              {errors.stock_quantity && (
+                <FieldError>{errors.stock_quantity}</FieldError>
+              )}
             </Field>
           )}
 
@@ -639,7 +724,10 @@ export default function CreateProductPage() {
             <div className="space-y-4">
               {errors.variants && <FieldError>{errors.variants}</FieldError>}
               {variants.map((variant, idx) => (
-                <div key={idx} className="rounded-lg border bg-muted/20 p-4 space-y-3 relative">
+                <div
+                  key={idx}
+                  className="rounded-lg border bg-muted/20 p-4 space-y-3 relative"
+                >
                   {/* Nút xóa biến thể */}
                   {variants.length > 1 && (
                     <button
@@ -656,44 +744,74 @@ export default function CreateProductPage() {
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="md:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Tên biến thể *</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Tên biến thể *
+                      </label>
                       <Input
                         placeholder="Ví dụ: Đỏ, Size L"
                         value={variant.name}
-                        onChange={(e) => handleVariantChange(idx, "name", e.target.value)}
+                        onChange={(e) =>
+                          handleVariantChange(idx, "name", e.target.value)
+                        }
                         aria-invalid={!!errors[`variant_${idx}_name`]}
                       />
-                      {errors[`variant_${idx}_name`] && <FieldError>{errors[`variant_${idx}_name`]}</FieldError>}
+                      {errors[`variant_${idx}_name`] && (
+                        <FieldError>{errors[`variant_${idx}_name`]}</FieldError>
+                      )}
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">SKU biến thể</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        SKU biến thể
+                      </label>
                       <Input
                         placeholder="SKU-RED-L"
                         value={variant.sku}
-                        onChange={(e) => handleVariantChange(idx, "sku", e.target.value)}
+                        onChange={(e) =>
+                          handleVariantChange(idx, "sku", e.target.value)
+                        }
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Giá thêm (VNĐ)</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Giá thêm (VNĐ)
+                      </label>
                       <Input
                         type="number"
                         min={0}
                         placeholder="0"
                         value={variant.additional_price}
-                        onChange={(e) => handleVariantChange(idx, "additional_price", parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            idx,
+                            "additional_price",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Tồn kho *</label>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Tồn kho *
+                      </label>
                       <Input
                         type="number"
                         min={0}
                         placeholder="50"
                         value={variant.stock_quantity}
-                        onChange={(e) => handleVariantChange(idx, "stock_quantity", parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            idx,
+                            "stock_quantity",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         aria-invalid={!!errors[`variant_${idx}_stock`]}
                       />
-                      {errors[`variant_${idx}_stock`] && <FieldError>{errors[`variant_${idx}_stock`]}</FieldError>}
+                      {errors[`variant_${idx}_stock`] && (
+                        <FieldError>
+                          {errors[`variant_${idx}_stock`]}
+                        </FieldError>
+                      )}
                     </div>
                   </div>
                   <VariantImageDropzone
@@ -703,7 +821,9 @@ export default function CreateProductPage() {
                     onAddImages={handleAddVariantImages}
                     onRemoveImage={handleRemoveVariantImage}
                   />
-                  {errors[`variant_${idx}_images`] && <FieldError>{errors[`variant_${idx}_images`]}</FieldError>}
+                  {errors[`variant_${idx}_images`] && (
+                    <FieldError>{errors[`variant_${idx}_images`]}</FieldError>
+                  )}
                 </div>
               ))}
 
@@ -734,7 +854,8 @@ export default function CreateProductPage() {
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng sản phẩm...
+                <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng sản
+                phẩm...
               </>
             ) : (
               <>

@@ -21,7 +21,8 @@ export default function AdminProductsPage() {
         </div>
         <h3 className="font-semibold text-lg">Giám sát sản phẩm toàn sàn</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          Giao diện tìm kiếm, khóa/mở khóa sản phẩm vi phạm chính sách đang được phát triển.
+          Giao diện tìm kiếm, khóa/mở khóa sản phẩm vi phạm chính sách đang được
+          phát triển.
         </p>
       </div>
     </div>

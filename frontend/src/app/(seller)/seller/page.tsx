@@ -41,10 +41,34 @@ export default function SellerDashboardPage() {
   ];
 
   const recentOrders = [
-    { id: "DH-1002", customer: "Nguyễn Văn A", status: "Chờ xác nhận", date: "Hôm nay, 14:22", amount: "450,000 ₫" },
-    { id: "DH-1001", customer: "Trần Thị B", status: "Đang giao", date: "Hôm nay, 11:05", amount: "1,200,000 ₫" },
-    { id: "DH-0999", customer: "Lê Văn C", status: "Đã giao", date: "Hôm qua, 18:30", amount: "320,000 ₫" },
-    { id: "DH-0998", customer: "Phạm Văn D", status: "Đã hủy", date: "Hôm qua, 09:15", amount: "890,000 ₫" },
+    {
+      id: "DH-1002",
+      customer: "Nguyễn Văn A",
+      status: "Chờ xác nhận",
+      date: "Hôm nay, 14:22",
+      amount: "450,000 ₫",
+    },
+    {
+      id: "DH-1001",
+      customer: "Trần Thị B",
+      status: "Đang giao",
+      date: "Hôm nay, 11:05",
+      amount: "1,200,000 ₫",
+    },
+    {
+      id: "DH-0999",
+      customer: "Lê Văn C",
+      status: "Đã giao",
+      date: "Hôm qua, 18:30",
+      amount: "320,000 ₫",
+    },
+    {
+      id: "DH-0998",
+      customer: "Phạm Văn D",
+      status: "Đã hủy",
+      date: "Hôm qua, 09:15",
+      amount: "890,000 ₫",
+    },
   ];
 
   return (
@@ -92,9 +116,13 @@ export default function SellerDashboardPage() {
         <div className="col-span-4 rounded-xl border bg-card text-card-foreground shadow-sm p-4">
           <div className="flex items-center justify-between pb-4 border-b">
             <div>
-              <h3 className="font-semibold text-lg leading-none">Đơn hàng mới nhất</h3>
+              <h3 className="font-semibold text-lg leading-none">
+                Đơn hàng mới nhất
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Bạn có {recentOrders.filter(o => o.status === "Chờ xác nhận").length} đơn hàng cần xử lý.
+                Bạn có{" "}
+                {recentOrders.filter((o) => o.status === "Chờ xác nhận").length}{" "}
+                đơn hàng cần xử lý.
               </p>
             </div>
             <button className="flex items-center text-xs font-semibold text-violet-600 hover:text-violet-700 transition">
@@ -103,14 +131,21 @@ export default function SellerDashboardPage() {
           </div>
           <div className="mt-4 divide-y">
             {recentOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between py-3 hover:bg-muted/50 rounded-lg px-2 transition-colors">
+              <div
+                key={order.id}
+                className="flex items-center justify-between py-3 hover:bg-muted/50 rounded-lg px-2 transition-colors"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="p-2 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400">
                     <Activity className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{order.id} - {order.customer}</p>
-                    <p className="text-xs text-muted-foreground">{order.date}</p>
+                    <p className="text-sm font-semibold">
+                      {order.id} - {order.customer}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {order.date}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -120,10 +155,10 @@ export default function SellerDashboardPage() {
                       order.status === "Đã giao"
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                         : order.status === "Đang giao"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                        : order.status === "Chờ xác nhận"
-                        ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                        : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                          : order.status === "Chờ xác nhận"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                            : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                     }`}
                   >
                     {order.status}
@@ -137,7 +172,9 @@ export default function SellerDashboardPage() {
         {/* Shop Performance Summary Card */}
         <div className="col-span-3 rounded-xl border bg-card text-card-foreground shadow-sm p-4 flex flex-col justify-between">
           <div>
-            <h3 className="font-semibold text-lg leading-none">Hiệu suất Cửa hàng</h3>
+            <h3 className="font-semibold text-lg leading-none">
+              Hiệu suất Cửa hàng
+            </h3>
             <p className="text-xs text-muted-foreground mt-1">
               Phân tích hiệu suất bán hàng tổng thể.
             </p>
@@ -148,7 +185,10 @@ export default function SellerDashboardPage() {
                   <span className="text-violet-600">92%</span>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-violet-500 rounded-full" style={{ width: "92%" }} />
+                  <div
+                    className="h-full bg-violet-500 rounded-full"
+                    style={{ width: "92%" }}
+                  />
                 </div>
               </div>
               <div>
@@ -157,7 +197,10 @@ export default function SellerDashboardPage() {
                   <span className="text-amber-500">4.8 / 5.0</span>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full" style={{ width: "96%" }} />
+                  <div
+                    className="h-full bg-amber-500 rounded-full"
+                    style={{ width: "96%" }}
+                  />
                 </div>
               </div>
               <div>
@@ -166,7 +209,10 @@ export default function SellerDashboardPage() {
                   <span className="text-emerald-600">Nhanh (1.2 ngày)</span>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: "85%" }} />
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{ width: "85%" }}
+                  />
                 </div>
               </div>
             </div>

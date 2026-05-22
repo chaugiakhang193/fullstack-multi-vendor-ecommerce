@@ -28,7 +28,10 @@ import { ProductsService } from '@/modules/products/products.service';
 import { CreateProductDto } from '@/modules/products/dto/create-product.dto';
 import { UpdateProductDto } from '@/modules/products/dto/update-product.dto';
 import { ProductResponseDto } from '@/modules/products/dto/product-response.dto';
-import { CreateProductSwaggerDto, UpdateProductSwaggerDto } from '@/modules/products/dto/product-swagger.dto';
+import {
+  CreateProductSwaggerDto,
+  UpdateProductSwaggerDto,
+} from '@/modules/products/dto/product-swagger.dto';
 
 // Guards & Decorators
 import { Roles } from '@/decorator/roles.decorator';

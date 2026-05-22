@@ -33,7 +33,6 @@ import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 // Enums
 import { UserRole } from '@/modules/enums';
 
-
 @ApiTags('categories')
 @Controller('categories')
 export class CategoriesController {
@@ -59,9 +58,13 @@ export class CategoriesController {
   @Public()
   @ResponseMessage('Lấy danh mục thành công')
   @ApiOperation({ summary: 'Lấy danh sách tất cả danh mục (Public)' })
-  @ApiGenericResponse(CategoryResponseDto, 'Lấy danh sách danh mục thành công', {
-    isArray: true,
-  })
+  @ApiGenericResponse(
+    CategoryResponseDto,
+    'Lấy danh sách danh mục thành công',
+    {
+      isArray: true,
+    },
+  )
   findAll() {
     return this.categoriesService.findAll();
   }
@@ -109,4 +112,3 @@ export class CategoriesController {
     return this.categoriesService.removeById(id);
   }
 }
-

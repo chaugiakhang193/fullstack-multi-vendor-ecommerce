@@ -76,16 +76,16 @@ export const useAuthStore = create<AuthState>()(
           } catch (error: any) {
             // Phân biệt loại lỗi
             const status = error?.status;
-            
+
             // Khi refresh thất bại (Cookie hết hạn / Session bị xóa ở DB), dọn dẹp sạch sẽ
             set({ user: null, accessToken: null, isAuthenticated: false });
             clearAuthCookies();
-            
+
             // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
             if (status === 401 && typeof window !== "undefined") {
               sessionStorage.setItem("auth_security_warning", "true");
             }
-            
+
             return false;
           } finally {
             // Giải phóng Promise global và hạ cờ hiệu

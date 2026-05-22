@@ -80,7 +80,11 @@ export default function SellerLayout({
           const shop = res.data;
 
           // 🔴 Nếu user pending_approval VÀ đã có shop → redirect /seller/pending
-          if (user.status === "pending_approval" && shop && pathname !== "/seller/pending") {
+          if (
+            user.status === "pending_approval" &&
+            shop &&
+            pathname !== "/seller/pending"
+          ) {
             setHasRedirected(true);
             router.push("/seller/pending");
             return;
@@ -200,7 +204,9 @@ export default function SellerLayout({
       <div className="h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-          <p className="text-sm text-muted-foreground">Đang kiểm tra trạng thái...</p>
+          <p className="text-sm text-muted-foreground">
+            Đang kiểm tra trạng thái...
+          </p>
         </div>
       </div>
     );
@@ -516,7 +522,8 @@ export default function SellerLayout({
               Xác nhận đăng xuất
             </DialogTitle>
             <DialogDescription className="text-center text-sm">
-              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi phiên làm việc hiện tại sẽ bị xóa.
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi
+              phiên làm việc hiện tại sẽ bị xóa.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-2">

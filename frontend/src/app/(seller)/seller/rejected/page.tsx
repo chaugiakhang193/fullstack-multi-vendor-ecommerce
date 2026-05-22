@@ -2,7 +2,14 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { XCircle, LogOut, ArrowRight, Store, RefreshCw, Mail } from "lucide-react";
+import {
+  XCircle,
+  LogOut,
+  ArrowRight,
+  Store,
+  RefreshCw,
+  Mail,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,7 +66,7 @@ export default function SellerRejectedPage() {
       const res = await authApiRequest.refreshToken();
       if (res.data) {
         setAuth(res.data.user, res.data.access_token);
-        
+
         // Kiểm tra xem status đã chuyển thành active chưa hoặc pending_approval
         if (res.data.user.status === "active") {
           toast.success("Cửa hàng của bạn đã được phê duyệt!");
@@ -89,9 +96,12 @@ export default function SellerRejectedPage() {
           <div className="mx-auto h-16 w-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4">
             <XCircle className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl font-bold">Yêu cầu bị từ chối</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Yêu cầu bị từ chối
+          </CardTitle>
           <CardDescription className="text-sm mt-1">
-            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đã bị từ chối phê duyệt.
+            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đã bị từ
+            chối phê duyệt.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-2">
@@ -100,7 +110,8 @@ export default function SellerRejectedPage() {
             <div>
               <p className="font-semibold">Vui lòng kiểm tra hộp thư email</p>
               <p className="mt-1 text-xs opacity-90">
-                Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn. Hãy kiểm tra hòm thư chính và thư rác.
+                Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn.
+                Hãy kiểm tra hòm thư chính và thư rác.
               </p>
             </div>
           </div>
@@ -120,7 +131,9 @@ export default function SellerRejectedPage() {
               className="w-full flex items-center justify-center gap-2"
               disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
 
@@ -147,7 +160,8 @@ export default function SellerRejectedPage() {
               Xác nhận đăng xuất
             </DialogTitle>
             <DialogDescription className="text-center text-sm">
-              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi phiên làm việc hiện tại sẽ bị xóa.
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi
+              phiên làm việc hiện tại sẽ bị xóa.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-2">

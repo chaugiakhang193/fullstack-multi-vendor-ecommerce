@@ -26,11 +26,17 @@ async function seed() {
     console.log('-> Đang dọn dẹp các tài khoản dev cũ...');
     const emailsToClean = ['seller_dev@example.com', 'Shopprovip1@gmail.com'];
     for (const emailToClean of emailsToClean) {
-      const oldUser = await userRepository.findOne({ where: { email: emailToClean } });
+      const oldUser = await userRepository.findOne({
+        where: { email: emailToClean },
+      });
       if (oldUser) {
-        const oldShop = await shopRepository.findOne({ where: { seller: { id: oldUser.id } } });
+        const oldShop = await shopRepository.findOne({
+          where: { seller: { id: oldUser.id } },
+        });
         if (oldShop) {
-          const oldProducts = await productRepository.find({ where: { shop: { id: oldShop.id } } });
+          const oldProducts = await productRepository.find({
+            where: { shop: { id: oldShop.id } },
+          });
           for (const p of oldProducts) {
             await variantRepository.delete({ product: { id: p.id } });
           }
@@ -57,7 +63,9 @@ async function seed() {
 
     // 2. Kiểm tra / Tạo Cây Danh Mục Mẫu
     console.log('-> Đang xử lý danh mục...');
-    let fashionCategory = await categoryRepository.findOne({ where: { slug: 'thoi-trang' } });
+    let fashionCategory = await categoryRepository.findOne({
+      where: { slug: 'thoi-trang' },
+    });
     if (!fashionCategory) {
       fashionCategory = categoryRepository.create({
         name: 'Thời Trang',
@@ -67,7 +75,9 @@ async function seed() {
       await categoryRepository.save(fashionCategory);
     }
 
-    let shirtCategory = await categoryRepository.findOne({ where: { slug: 'ao-thun-nam' } });
+    let shirtCategory = await categoryRepository.findOne({
+      where: { slug: 'ao-thun-nam' },
+    });
     if (!shirtCategory) {
       shirtCategory = categoryRepository.create({
         name: 'Áo Thun Nam',
@@ -77,7 +87,9 @@ async function seed() {
       await categoryRepository.save(shirtCategory);
     }
 
-    let jeanCategory = await categoryRepository.findOne({ where: { slug: 'quan-jean-nam' } });
+    let jeanCategory = await categoryRepository.findOne({
+      where: { slug: 'quan-jean-nam' },
+    });
     if (!jeanCategory) {
       jeanCategory = categoryRepository.create({
         name: 'Quần Jean Nam',
@@ -87,7 +99,9 @@ async function seed() {
       await categoryRepository.save(jeanCategory);
     }
 
-    let techCategory = await categoryRepository.findOne({ where: { slug: 'dien-tu' } });
+    let techCategory = await categoryRepository.findOne({
+      where: { slug: 'dien-tu' },
+    });
     if (!techCategory) {
       techCategory = categoryRepository.create({
         name: 'Điện Tử',
@@ -97,7 +111,9 @@ async function seed() {
       await categoryRepository.save(techCategory);
     }
 
-    let phoneCategory = await categoryRepository.findOne({ where: { slug: 'dien-thoai' } });
+    let phoneCategory = await categoryRepository.findOne({
+      where: { slug: 'dien-thoai' },
+    });
     if (!phoneCategory) {
       phoneCategory = categoryRepository.create({
         name: 'Điện Thoại',
@@ -109,14 +125,19 @@ async function seed() {
 
     // 3. Tạo Cửa Hàng (Shop)
     console.log('-> Tạo mới Shop...');
-    let devShop = await shopRepository.findOne({ where: { seller: { id: devSeller.id } } });
+    let devShop = await shopRepository.findOne({
+      where: { seller: { id: devSeller.id } },
+    });
     if (!devShop) {
       devShop = shopRepository.create({
         seller: devSeller,
         name: 'Vũ Trụ Thời Trang - Dev Store',
-        description: 'Cửa hàng mô phỏng phục vụ quá trình phát triển Fullstack Web. Đầy đủ quần áo, phụ kiện cao cấp.',
-        logo_url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300',
-        banner_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+        description:
+          'Cửa hàng mô phỏng phục vụ quá trình phát triển Fullstack Web. Đầy đủ quần áo, phụ kiện cao cấp.',
+        logo_url:
+          'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300',
+        banner_url:
+          'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
         status: AccountStatus.ACTIVE,
         pickup_address: '123 Đường Láng, Láng Thượng, Đống Đa, Hà Nội',
         bank_account_info: JSON.stringify({
@@ -140,17 +161,19 @@ async function seed() {
       name: 'Áo Thun Polo Nam Premium',
       slug: 'ao-thun-polo-nam-premium-' + Date.now().toString().slice(-4),
       sku: 'POLO-PREMIUM',
-      description: 'Áo thun Polo chất liệu Cotton cá sấu 100% tự nhiên siêu thoáng khí, phom dáng Slim-fit tôn dáng lịch lãm, phù hợp mặc đi làm, đi chơi hay hoạt động thể thao nhẹ nhàng.',
+      description:
+        'Áo thun Polo chất liệu Cotton cá sấu 100% tự nhiên siêu thoáng khí, phom dáng Slim-fit tôn dáng lịch lãm, phù hợp mặc đi làm, đi chơi hay hoạt động thể thao nhẹ nhàng.',
       price: 250000,
       weight: 220,
       length: 15,
       width: 10,
       height: 5,
       category: shirtCategory,
-      thumbnail_url: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=800',
+      thumbnail_url:
+        'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=800',
       gallery: [
         'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800',
-        'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800'
+        'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800',
       ],
       has_variants: true,
       status: ProductStatus.ACTIVE,
@@ -164,7 +187,9 @@ async function seed() {
       sku: 'POLO-BLACK-M',
       additional_price: 0,
       stock_quantity: 50,
-      images: ['https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800'],
+      images: [
+        'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800',
+      ],
     });
 
     const v2 = variantRepository.create({
@@ -173,7 +198,9 @@ async function seed() {
       sku: 'POLO-RED-L',
       additional_price: 15000,
       stock_quantity: 35,
-      images: ['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800'],
+      images: [
+        'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800',
+      ],
     });
     await variantRepository.save([v1, v2]);
 
@@ -183,15 +210,19 @@ async function seed() {
       name: 'Quần Jean Slimfit Nam Co Giãn Cực Tốt',
       slug: 'quan-jean-slimfit-nam-co-gian-' + Date.now().toString().slice(-4),
       sku: 'JEAN-SLIMFIT',
-      description: 'Quần jean chất liệu cao cấp co giãn 4 chiều mang lại cảm giác thoải mái khi di chuyển. Màu sắc chàm Indigo thời thượng, không phai màu khi giặt.',
+      description:
+        'Quần jean chất liệu cao cấp co giãn 4 chiều mang lại cảm giác thoải mái khi di chuyển. Màu sắc chàm Indigo thời thượng, không phai màu khi giặt.',
       price: 390000,
       weight: 450,
       length: 30,
       width: 20,
       height: 8,
       category: jeanCategory,
-      thumbnail_url: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=800',
-      gallery: ['https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800'],
+      thumbnail_url:
+        'https://images.unsplash.com/photo-1542272604-787c3835535d?w=800',
+      gallery: [
+        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800',
+      ],
       has_variants: false,
       stock_quantity: 120,
       status: ProductStatus.ACTIVE,
@@ -202,17 +233,22 @@ async function seed() {
     let phoneProduct = productRepository.create({
       shop: devShop,
       name: 'Điện Thoại Flagship Apollo 15 Pro',
-      slug: 'dien-thoai-flagship-apollo-15-pro-' + Date.now().toString().slice(-4),
+      slug:
+        'dien-thoai-flagship-apollo-15-pro-' + Date.now().toString().slice(-4),
       sku: 'APOLLO-15-PRO',
-      description: 'Siêu phẩm công nghệ Apollo 15 Pro với camera 200MP zoom quang học 10x, màn hình LTPO OLED 120Hz siêu mượt và vi xử lý TensorX thế hệ mới siêu tiết kiệm pin.',
+      description:
+        'Siêu phẩm công nghệ Apollo 15 Pro với camera 200MP zoom quang học 10x, màn hình LTPO OLED 120Hz siêu mượt và vi xử lý TensorX thế hệ mới siêu tiết kiệm pin.',
       price: 24990000,
       weight: 198,
       length: 16,
       width: 8,
       height: 2,
       category: phoneCategory,
-      thumbnail_url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800',
-      gallery: ['https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800'],
+      thumbnail_url:
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800',
+      gallery: [
+        'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800',
+      ],
       has_variants: true,
       status: ProductStatus.ACTIVE,
       stock_quantity: 25,
@@ -225,7 +261,9 @@ async function seed() {
       sku: 'APOLLO-TITAN-256',
       additional_price: 0,
       stock_quantity: 15,
-      images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800'],
+      images: [
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800',
+      ],
     });
 
     const vPhone2 = variantRepository.create({
@@ -234,7 +272,9 @@ async function seed() {
       sku: 'APOLLO-BLACK-512',
       additional_price: 3500000,
       stock_quantity: 10,
-      images: ['https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800'],
+      images: [
+        'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800',
+      ],
     });
     await variantRepository.save([vPhone1, vPhone2]);
 
@@ -244,15 +284,19 @@ async function seed() {
       name: 'Áo Khoác Gió Bomber Nam Waterproof',
       slug: 'ao-khoac-gio-bomber-nam-' + Date.now().toString().slice(-4),
       sku: 'BOMBER-WATERPROOF',
-      description: 'Áo khoác gió bomber phom dáng năng động với lớp vải ngoài trượt nước thông minh, chống gió bụi tối ưu. Phù hợp cho những ngày se lạnh hoặc thời tiết giao mùa.',
+      description:
+        'Áo khoác gió bomber phom dáng năng động với lớp vải ngoài trượt nước thông minh, chống gió bụi tối ưu. Phù hợp cho những ngày se lạnh hoặc thời tiết giao mùa.',
       price: 320000,
       weight: 350,
       length: 20,
       width: 15,
       height: 5,
       category: shirtCategory,
-      thumbnail_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800',
-      gallery: ['https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?w=800'],
+      thumbnail_url:
+        'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800',
+      gallery: [
+        'https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?w=800',
+      ],
       has_variants: false,
       stock_quantity: 45,
       status: ProductStatus.ACTIVE,
@@ -263,7 +307,9 @@ async function seed() {
     console.log('Tài khoản Seller của bạn:');
     console.log(' - Email: Shopprovip1@gmail.com');
     console.log(' - Mật khẩu: Shopprovip1@gmail.com');
-    console.log('Đã tạo 1 Shop, 4 Sản phẩm mẫu đỉnh cao kèm 4 Biến thể cực kỳ chi tiết!');
+    console.log(
+      'Đã tạo 1 Shop, 4 Sản phẩm mẫu đỉnh cao kèm 4 Biến thể cực kỳ chi tiết!',
+    );
   } catch (error) {
     console.error('Lỗi khi gieo hạt dữ liệu:', error);
   } finally {

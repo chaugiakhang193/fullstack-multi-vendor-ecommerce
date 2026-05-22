@@ -22,7 +22,8 @@ export class CreateProductSwaggerDto extends CreateProductDto {
   @ApiProperty({
     type: 'array',
     items: { type: 'string', format: 'binary' },
-    description: 'Danh sách các ảnh phục vụ cho các biến thể sản phẩm (tối đa 30 files)',
+    description:
+      'Danh sách các ảnh phục vụ cho các biến thể sản phẩm (tối đa 30 files)',
     required: false,
   })
   variant_images?: any[];
@@ -48,7 +49,8 @@ export class UpdateProductSwaggerDto extends UpdateProductDto {
   @ApiProperty({
     type: 'array',
     items: { type: 'string', format: 'binary' },
-    description: 'Cập nhật thêm ảnh phục vụ các biến thể sản phẩm (tối đa 30 files)',
+    description:
+      'Cập nhật thêm ảnh phục vụ các biến thể sản phẩm (tối đa 30 files)',
     required: false,
   })
   variant_images?: any[];

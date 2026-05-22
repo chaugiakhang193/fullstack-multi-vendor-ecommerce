@@ -22,7 +22,10 @@ const productsApiRequest = {
 
   // Seller cập nhật sản phẩm (multipart/form-data vì có file upload)
   updateProduct: (id: string, body: FormData) => {
-    return http.patch<SingleProductResponseType>(`/seller/products/${id}`, body);
+    return http.patch<SingleProductResponseType>(
+      `/seller/products/${id}`,
+      body,
+    );
   },
 
   // Seller xóa sản phẩm (soft delete)

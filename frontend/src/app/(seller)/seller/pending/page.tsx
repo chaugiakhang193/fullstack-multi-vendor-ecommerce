@@ -59,7 +59,7 @@ export default function SellerPendingPage() {
       const res = await authApiRequest.refreshToken();
       if (res.data) {
         setAuth(res.data.user, res.data.access_token);
-        
+
         // Kiểm tra xem status đã chuyển thành active hay bị từ chối chưa
         if (res.data.user.status === "active") {
           toast.success("Cửa hàng của bạn đã được phê duyệt!");
@@ -89,18 +89,24 @@ export default function SellerPendingPage() {
           <div className="mx-auto h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 animate-pulse">
             <Clock className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl font-bold">Cửa hàng đang chờ duyệt</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Cửa hàng đang chờ duyệt
+          </CardTitle>
           <CardDescription className="text-sm mt-1">
-            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đang được kiểm duyệt.
+            Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đang được
+            kiểm duyệt.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-2">
           <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 flex gap-3">
             <Store className="h-5 w-5 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Thời gian duyệt dự kiến: 1 - 2 ngày làm việc</p>
+              <p className="font-semibold">
+                Thời gian duyệt dự kiến: 1 - 2 ngày làm việc
+              </p>
               <p className="mt-1 text-xs opacity-90">
-                Hệ thống đang kiểm tra thông tin cửa hàng của bạn. Chúng tôi sẽ gửi email thông báo ngay sau khi admin phê duyệt hoặc từ chối.
+                Hệ thống đang kiểm tra thông tin cửa hàng của bạn. Chúng tôi sẽ
+                gửi email thông báo ngay sau khi admin phê duyệt hoặc từ chối.
               </p>
             </div>
           </div>
@@ -111,7 +117,9 @@ export default function SellerPendingPage() {
               className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white"
               disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
 
@@ -149,7 +157,8 @@ export default function SellerPendingPage() {
               Xác nhận đăng xuất
             </DialogTitle>
             <DialogDescription className="text-center text-sm">
-              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi phiên làm việc hiện tại sẽ bị xóa.
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không? Mọi
+              phiên làm việc hiện tại sẽ bị xóa.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-2">

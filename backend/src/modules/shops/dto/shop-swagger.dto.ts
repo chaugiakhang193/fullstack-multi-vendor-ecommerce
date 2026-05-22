@@ -67,8 +67,3 @@ export class UploadMultipleFilesSwaggerDto {
   })
   files: any[];
 }
-
-
-
-
-

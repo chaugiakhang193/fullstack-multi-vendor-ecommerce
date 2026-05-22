@@ -29,13 +29,15 @@ describe('Product Management (e2e)', () => {
   let createdVariantImage: string;
 
   const mockCloudinaryService = {
-    uploadFile: jest.fn().mockImplementation((file, folder, userSub, assetType, shopId) => {
-      return Promise.resolve({
-        id: crypto.randomUUID(),
-        public_id: `mock-public-id-${crypto.randomUUID()}`,
-        url: `https://res.cloudinary.com/mock-cloud/image/upload/v12345/${folder}/mock-file.jpg`,
-      });
-    }),
+    uploadFile: jest
+      .fn()
+      .mockImplementation((file, folder, userSub, assetType, shopId) => {
+        return Promise.resolve({
+          id: crypto.randomUUID(),
+          public_id: `mock-public-id-${crypto.randomUUID()}`,
+          url: `https://res.cloudinary.com/mock-cloud/image/upload/v12345/${folder}/mock-file.jpg`,
+        });
+      }),
     findAssetByUrl: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         id: crypto.randomUUID(),
@@ -55,19 +57,29 @@ describe('Product Management (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     dataSource = moduleFixture.get<DataSource>(DataSource);
     jwtService = moduleFixture.get<JwtService>(ACCESS_TOKEN_SERVICE);
 
     // Clear existing related test data just in case
-    await dataSource.getRepository(ProductVariant).delete({ id: Not(IsNull()) });
+    await dataSource
+      .getRepository(ProductVariant)
+      .delete({ id: Not(IsNull()) });
     await dataSource.getRepository(Product).delete({ id: Not(IsNull()) });
     await dataSource.getRepository(Shop).delete({ id: Not(IsNull()) });
-    await dataSource.getRepository(User).delete({ email: 'e2e-seller@example.com' });
-    await dataSource.getRepository(Category).delete({ slug: 'e2e-test-category' });
-    await dataSource.getRepository(Category).delete({ slug: 'e2e-parent-category' });
+    await dataSource
+      .getRepository(User)
+      .delete({ email: 'e2e-seller@example.com' });
+    await dataSource
+      .getRepository(Category)
+      .delete({ slug: 'e2e-test-category' });
+    await dataSource
+      .getRepository(Category)
+      .delete({ slug: 'e2e-parent-category' });
 
     // 1. Seed Seller User
     const hashedPassword = await hashDataHelper('Password123!');
@@ -116,12 +128,18 @@ describe('Product Management (e2e)', () => {
   afterAll(async () => {
     // Clean up all seeded data
     if (dataSource) {
-      await dataSource.getRepository(ProductVariant).delete({ id: Not(IsNull()) });
+      await dataSource
+        .getRepository(ProductVariant)
+        .delete({ id: Not(IsNull()) });
       await dataSource.getRepository(Product).delete({ id: Not(IsNull()) });
       await dataSource.getRepository(Shop).delete({ id: Not(IsNull()) });
       await dataSource.getRepository(User).delete({ id: sellerUser.id });
-      await dataSource.getRepository(Category).delete({ slug: 'e2e-test-category' });
-      await dataSource.getRepository(Category).delete({ slug: 'e2e-parent-category' });
+      await dataSource
+        .getRepository(Category)
+        .delete({ slug: 'e2e-test-category' });
+      await dataSource
+        .getRepository(Category)
+        .delete({ slug: 'e2e-parent-category' });
       await dataSource.destroy();
     }
     if (app) {
@@ -199,7 +217,9 @@ describe('Product Management (e2e)', () => {
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(response.body.data.length).toBeGreaterThanOrEqual(1);
 
-    const foundProduct = response.body.data.find(p => p.id === createdProductId);
+    const foundProduct = response.body.data.find(
+      (p) => p.id === createdProductId,
+    );
     expect(foundProduct).toBeDefined();
     expect(foundProduct.name).toBe('E2E Super Shirt');
   });
@@ -221,7 +241,11 @@ describe('Product Management (e2e)', () => {
     const response = await request(app.getHttpServer())
       .patch(`/seller/products/${createdProductId}`)
       .set('Authorization', `Bearer ${sellerToken}`)
-      .attach('thumbnail', Buffer.from('mock-thumbnail-image-updated'), 'thumbnail_updated.jpg')
+      .attach(
+        'thumbnail',
+        Buffer.from('mock-thumbnail-image-updated'),
+        'thumbnail_updated.jpg',
+      )
       .field('name', 'E2E Super Shirt Updated')
       .field('price', '165000')
       .field('has_variants', 'true')

@@ -54,7 +54,10 @@ export class ShopResponseDto {
   @ApiProperty({ example: 'https://res.cloudinary.com/.../banner.jpg' })
   banner_url: string;
 
-  @ApiProperty({ example: 'Chuyên cung cấp sản phẩm chất lượng', nullable: true })
+  @ApiProperty({
+    example: 'Chuyên cung cấp sản phẩm chất lượng',
+    nullable: true,
+  })
   description: string | null;
 
   @ApiProperty({ example: 'Vietcombank - 123456789' })

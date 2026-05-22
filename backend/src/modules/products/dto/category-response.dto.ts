@@ -41,4 +41,3 @@ export class CategoryResponseDto {
   @ApiProperty({ example: '2024-03-20T10:00:00Z', description: 'Ngày tạo' })
   created_at: Date;
 }
-
