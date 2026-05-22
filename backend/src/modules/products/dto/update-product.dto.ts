@@ -1,23 +1,50 @@
 import { PartialType, OmitType } from '@nestjs/swagger';
-import { CreateProductDto, CreateProductVariantDto } from '@/modules/products/dto/create-product.dto';
+import {
+  CreateProductDto,
+  CreateProductVariantDto,
+} from '@/modules/products/dto/create-product.dto';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsArray, ValidateNested, IsString, Min, Max, ArrayMaxSize, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsUUID,
+  IsArray,
+  ValidateNested,
+  IsString,
+  Min,
+  Max,
+  ArrayMaxSize,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 import { ProductStatus } from '@/modules/enums';
 
-export class UpdateProductVariantDto extends PartialType(CreateProductVariantDto) {
-  @ApiProperty({ required: false, description: 'ID của biến thể (nếu là cập nhật)' })
+export class UpdateProductVariantDto extends PartialType(
+  CreateProductVariantDto,
+) {
+  @ApiProperty({
+    required: false,
+    description: 'ID của biến thể (nếu là cập nhật)',
+  })
   @IsOptional()
   @IsUUID('all', { message: 'ID biến thể không hợp lệ' })
   id?: string;
 
-  @ApiProperty({ required: false, description: 'Danh sách URL ảnh cũ giữ lại', type: [String] })
+  @ApiProperty({
+    required: false,
+    description: 'Danh sách URL ảnh cũ giữ lại',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   existingImages?: string[];
 
-  @ApiProperty({ required: false, description: 'Số lượng ảnh mới sẽ upload', default: 0 })
+  @ApiProperty({
+    required: false,
+    description: 'Số lượng ảnh mới sẽ upload',
+    default: 0,
+  })
   @IsOptional()
   @Type(() => Number)
   @Min(0)

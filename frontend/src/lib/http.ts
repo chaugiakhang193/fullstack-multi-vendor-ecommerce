@@ -107,14 +107,14 @@ const request = async <Response>(
           if (refreshRes.status === 403) {
             throw new Error("SESSION_EXPIRED");
           }
-          
+
           // Xử lý 401 (Token không hợp lệ - nguy hiểm)
           if (refreshRes.status === 401) {
             throw new Error("INVALID_TOKEN");
           }
-          
+
           if (!refreshRes.ok) throw new Error("Refresh failed");
-          
+
           const refreshData = await refreshRes.json();
           const accessToken = refreshData.data?.access_token;
           const user = refreshData.data?.user;
@@ -152,31 +152,34 @@ const request = async <Response>(
     } catch (error: any) {
       // Phân biệt loại lỗi
       const errorMessage = error?.message || "";
-      
+
       // Refresh thất bại -> Đá văng ra login
       useAuthStore.getState().logout();
-      
+
       if (
         typeof window !== "undefined" &&
         window.location.pathname !== "/login"
       ) {
-        const redirectPath = encodeURIComponent(window.location.pathname + window.location.search);
-        
+        const redirectPath = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+
         // Hiển thị cảnh báo bảo mật nếu token không hợp lệ
         if (errorMessage === "INVALID_TOKEN") {
           // Lưu flag vào sessionStorage để AppProvider hiển thị toast
           sessionStorage.setItem("auth_security_warning", "true");
         }
-        
+
         window.location.href = `/login?redirect=${redirectPath}`;
       }
-      
+
       throw new HttpError({
         status: 401,
-        payload: { 
-          message: errorMessage === "SESSION_EXPIRED" 
-            ? "Phiên đăng nhập đã hết hạn" 
-            : "Phiên đăng nhập không hợp lệ"
+        payload: {
+          message:
+            errorMessage === "SESSION_EXPIRED"
+              ? "Phiên đăng nhập đã hết hạn"
+              : "Phiên đăng nhập không hợp lệ",
         },
       });
     }

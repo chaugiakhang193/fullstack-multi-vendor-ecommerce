@@ -3,11 +3,46 @@ import { Search, Eye, Check, X, Truck } from "lucide-react";
 
 export default function SellerOrdersPage() {
   const dummyOrders = [
-    { id: "DH-1002", customer: "Nguyễn Văn A", date: "19/05/2026 14:22", method: "COD", amount: "450,000 ₫", status: "pending" },
-    { id: "DH-1001", customer: "Trần Thị B", date: "19/05/2026 11:05", method: "Chuyển khoản", amount: "1,200,000 ₫", status: "shipping" },
-    { id: "DH-0999", customer: "Lê Văn C", date: "18/05/2026 18:30", method: "COD", amount: "320,000 ₫", status: "completed" },
-    { id: "DH-0998", customer: "Phạm Văn D", date: "18/05/2026 09:15", method: "Chuyển khoản", amount: "890,000 ₫", status: "cancelled" },
-    { id: "DH-0997", customer: "Hoàng Văn E", date: "17/05/2026 15:40", method: "COD", amount: "750,000 ₫", status: "processing" },
+    {
+      id: "DH-1002",
+      customer: "Nguyễn Văn A",
+      date: "19/05/2026 14:22",
+      method: "COD",
+      amount: "450,000 ₫",
+      status: "pending",
+    },
+    {
+      id: "DH-1001",
+      customer: "Trần Thị B",
+      date: "19/05/2026 11:05",
+      method: "Chuyển khoản",
+      amount: "1,200,000 ₫",
+      status: "shipping",
+    },
+    {
+      id: "DH-0999",
+      customer: "Lê Văn C",
+      date: "18/05/2026 18:30",
+      method: "COD",
+      amount: "320,000 ₫",
+      status: "completed",
+    },
+    {
+      id: "DH-0998",
+      customer: "Phạm Văn D",
+      date: "18/05/2026 09:15",
+      method: "Chuyển khoản",
+      amount: "890,000 ₫",
+      status: "cancelled",
+    },
+    {
+      id: "DH-0997",
+      customer: "Hoàng Văn E",
+      date: "17/05/2026 15:40",
+      method: "COD",
+      amount: "750,000 ₫",
+      status: "processing",
+    },
   ];
 
   const tabs = [
@@ -43,9 +78,13 @@ export default function SellerOrdersPage() {
             }`}
           >
             <span>{tab.label}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-              tab.active ? "bg-violet-600 text-white" : "bg-muted text-muted-foreground"
-            }`}>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                tab.active
+                  ? "bg-violet-600 text-white"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
               {tab.count}
             </span>
           </button>
@@ -88,8 +127,13 @@ export default function SellerOrdersPage() {
             </thead>
             <tbody className="divide-y text-sm">
               {dummyOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-4 font-semibold text-violet-600 dark:text-violet-400">{order.id}</td>
+                <tr
+                  key={order.id}
+                  className="hover:bg-muted/30 transition-colors"
+                >
+                  <td className="p-4 font-semibold text-violet-600 dark:text-violet-400">
+                    {order.id}
+                  </td>
                   <td className="p-4 font-semibold">{order.customer}</td>
                   <td className="p-4 text-muted-foreground">{order.date}</td>
                   <td className="p-4 text-center">
@@ -97,30 +141,32 @@ export default function SellerOrdersPage() {
                       {order.method}
                     </span>
                   </td>
-                  <td className="p-4 text-right font-bold text-foreground">{order.amount}</td>
+                  <td className="p-4 text-right font-bold text-foreground">
+                    {order.amount}
+                  </td>
                   <td className="p-4 text-center">
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                         order.status === "completed"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                           : order.status === "shipping"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                          : order.status === "processing"
-                          ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
-                          : order.status === "pending"
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                          : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                            : order.status === "processing"
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+                              : order.status === "pending"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                                : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                       }`}
                     >
                       {order.status === "completed"
                         ? "Đã giao"
                         : order.status === "shipping"
-                        ? "Đang giao"
-                        : order.status === "processing"
-                        ? "Đang xử lý"
-                        : order.status === "pending"
-                        ? "Chờ xác nhận"
-                        : "Đã hủy"}
+                          ? "Đang giao"
+                          : order.status === "processing"
+                            ? "Đang xử lý"
+                            : order.status === "pending"
+                              ? "Chờ xác nhận"
+                              : "Đã hủy"}
                     </span>
                   </td>
                   <td className="p-4">

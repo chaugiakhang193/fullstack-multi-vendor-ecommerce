@@ -38,4 +38,3 @@ export class CreateCategoryDto {
   @IsNumber({}, { message: 'Thứ tự hiển thị phải là số' })
   display_order?: number;
 }
-

@@ -18,4 +18,3 @@ export type ShopType = components["schemas"]["ShopResponseDto"];
 export type RejectShopBodyType = z.TypeOf<typeof RejectShopBody>;
 export type GetPendingShopsResType = BaseResponse<ShopType[]>;
 export type ActionShopResType = BaseResponse<ShopType>;
-

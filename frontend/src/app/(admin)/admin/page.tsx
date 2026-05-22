@@ -48,7 +48,8 @@ export default function AdminDashboardPage() {
           Tổng quan Quản trị
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Hệ thống giám sát, phê duyệt và quản lý toàn bộ hoạt động của Giang Kha Multi-Vendor E-Commerce.
+          Hệ thống giám sát, phê duyệt và quản lý toàn bộ hoạt động của Giang
+          Kha Multi-Vendor E-Commerce.
         </p>
       </div>
 
@@ -84,7 +85,9 @@ export default function AdminDashboardPage() {
         <div className="col-span-4 rounded-xl border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center justify-between pb-4 border-b">
             <div>
-              <h3 className="font-semibold text-lg leading-none">Cửa hàng mới đăng ký</h3>
+              <h3 className="font-semibold text-lg leading-none">
+                Cửa hàng mới đăng ký
+              </h3>
               <p className="text-xs text-muted-foreground mt-1">
                 Danh sách các yêu cầu mở gian hàng cần được xem xét phê duyệt.
               </p>
@@ -94,24 +97,31 @@ export default function AdminDashboardPage() {
             </button>
           </div>
           <div className="mt-4 text-sm text-muted-foreground py-8 text-center">
-            Tính năng hiển thị yêu cầu đang được triển khai. Vui lòng chuyển qua tab "Duyệt cửa hàng".
+            Tính năng hiển thị yêu cầu đang được triển khai. Vui lòng chuyển qua
+            tab "Duyệt cửa hàng".
           </div>
         </div>
 
         <div className="col-span-3 rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
           <div>
-            <h3 className="font-semibold text-lg leading-none">Hoạt động Hệ thống</h3>
+            <h3 className="font-semibold text-lg leading-none">
+              Hoạt động Hệ thống
+            </h3>
             <p className="text-xs text-muted-foreground mt-1">
               Thông số vận hành hiện tại.
             </p>
             <div className="mt-6 text-sm space-y-4">
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Server API:</span>
-                <span className="font-semibold text-emerald-600">Đang hoạt động (8080)</span>
+                <span className="font-semibold text-emerald-600">
+                  Đang hoạt động (8080)
+                </span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Cơ sở dữ liệu:</span>
-                <span className="font-semibold text-emerald-600">Connected</span>
+                <span className="font-semibold text-emerald-600">
+                  Connected
+                </span>
               </div>
               <div className="flex justify-between pb-2">
                 <span className="text-muted-foreground">Phiên bản FE:</span>

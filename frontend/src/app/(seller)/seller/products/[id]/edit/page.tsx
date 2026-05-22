@@ -98,8 +98,15 @@ function EditVariantImageDropzone({
       <div className="flex flex-wrap gap-2">
         {/* Ảnh cũ giữ lại */}
         {existingImages.map((imageUrl, imgIdx) => (
-          <div key={`existing-${imgIdx}`} className="relative h-16 w-16 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900">
-            <img src={imageUrl} alt={`Ảnh cũ ${imgIdx + 1}`} className="w-full h-full object-cover" />
+          <div
+            key={`existing-${imgIdx}`}
+            className="relative h-16 w-16 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900"
+          >
+            <img
+              src={imageUrl}
+              alt={`Ảnh cũ ${imgIdx + 1}`}
+              className="w-full h-full object-cover"
+            />
             <button
               type="button"
               onClick={() => onRemoveExisting(variantIndex, imageUrl)}
@@ -111,10 +118,19 @@ function EditVariantImageDropzone({
         ))}
         {/* Ảnh mới preview */}
         {newImagePreviews.map((previewUrl, imgIdx) => (
-          <div key={`new-${imgIdx}`} className="relative h-16 w-16 rounded-lg border overflow-hidden group bg-violet-50 dark:bg-violet-950/20">
-            <img src={previewUrl} alt={`Ảnh mới ${imgIdx + 1}`} className="w-full h-full object-cover opacity-80" />
+          <div
+            key={`new-${imgIdx}`}
+            className="relative h-16 w-16 rounded-lg border overflow-hidden group bg-violet-50 dark:bg-violet-950/20"
+          >
+            <img
+              src={previewUrl}
+              alt={`Ảnh mới ${imgIdx + 1}`}
+              className="w-full h-full object-cover opacity-80"
+            />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-[9px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">Mới</span>
+              <span className="text-[9px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">
+                Mới
+              </span>
             </div>
             <button
               type="button"
@@ -133,7 +149,9 @@ function EditVariantImageDropzone({
           >
             <input {...getInputProps()} />
             <Plus className="h-5 w-5 text-zinc-400" />
-            <span className="text-[9px] text-muted-foreground font-semibold mt-0.5">{remainingSlots}</span>
+            <span className="text-[9px] text-muted-foreground font-semibold mt-0.5">
+              {remainingSlots}
+            </span>
           </div>
         )}
       </div>
@@ -169,12 +187,18 @@ export default function EditProductPage() {
   const [hasVariants, setHasVariants] = useState(false);
 
   // State ảnh thumbnail
-  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<string | null>(null);
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<
+    string | null
+  >(null);
   const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);
-  const [newThumbnailPreview, setNewThumbnailPreview] = useState<string | null>(null);
+  const [newThumbnailPreview, setNewThumbnailPreview] = useState<string | null>(
+    null,
+  );
 
   // State gallery: ảnh cũ giữ lại + ảnh mới
-  const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>([]);
+  const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>(
+    [],
+  );
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
   const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);
 
@@ -186,7 +210,9 @@ export default function EditProductPage() {
     return () => {
       if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
       newGalleryPreviews.forEach((url) => URL.revokeObjectURL(url));
-      variants.forEach((v) => v.newImagePreviews.forEach((url) => URL.revokeObjectURL(url)));
+      variants.forEach((v) =>
+        v.newImagePreviews.forEach((url) => URL.revokeObjectURL(url)),
+      );
     };
   }, []);
 
@@ -206,7 +232,10 @@ export default function EditProductPage() {
         const product = productRes.data;
         prefillForm(product, allCategories);
       } catch (error: any) {
-        const msg = error?.payload?.message || error?.message || "Không thể tải thông tin sản phẩm.";
+        const msg =
+          error?.payload?.message ||
+          error?.message ||
+          "Không thể tải thông tin sản phẩm.";
         toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
         router.push("/seller/products");
       } finally {
@@ -217,9 +246,14 @@ export default function EditProductPage() {
   }, [productId]);
 
   // Pre-fill toàn bộ form từ dữ liệu sản phẩm
-  const prefillForm = (product: ProductResponseType, allCategories: CategoryResponseType[]) => {
+  const prefillForm = (
+    product: ProductResponseType,
+    allCategories: CategoryResponseType[],
+  ) => {
     setName(product.name);
-    setDescription(typeof product.description === "string" ? product.description : "");
+    setDescription(
+      typeof product.description === "string" ? product.description : "",
+    );
     setPrice(String(product.price));
     setSku(typeof product.sku === "string" ? product.sku : "");
     setWeight(String(product.weight));
@@ -227,7 +261,9 @@ export default function EditProductPage() {
     setWidth(product.width != null ? String(product.width) : "");
     setHeight(product.height != null ? String(product.height) : "");
     setHasVariants(product.has_variants);
-    setStockQuantity(product.has_variants ? "" : String(product.stock_quantity));
+    setStockQuantity(
+      product.has_variants ? "" : String(product.stock_quantity),
+    );
 
     // Pre-fill thumbnail
     if (product.thumbnail_url && typeof product.thumbnail_url === "string") {
@@ -235,13 +271,18 @@ export default function EditProductPage() {
     }
 
     // Pre-fill gallery: lấy URLs từ aggregated_gallery bỏ thumbnail
-    const thumbnailUrl = typeof product.thumbnail_url === "string" ? product.thumbnail_url : null;
-    const galleryUrls = product.aggregated_gallery.filter((url) => url !== thumbnailUrl);
+    const thumbnailUrl =
+      typeof product.thumbnail_url === "string" ? product.thumbnail_url : null;
+    const galleryUrls = product.aggregated_gallery.filter(
+      (url) => url !== thumbnailUrl,
+    );
     setExistingGalleryImages(galleryUrls);
 
     // Pre-fill danh mục: tìm parent của category hiện tại
     if (product.category) {
-      const currentCategory = allCategories.find((c) => c.id === product.category?.id);
+      const currentCategory = allCategories.find(
+        (c) => c.id === product.category?.id,
+      );
       if (currentCategory?.parent) {
         setSelectedParentId(currentCategory.parent.id);
         setCategoryId(currentCategory.id);
@@ -280,33 +321,36 @@ export default function EditProductPage() {
   };
 
   // Dropzone thumbnail mới
-  const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: false,
-    onDrop: (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (!file) return;
-      if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
-      setNewThumbnailFile(file);
-      setNewThumbnailPreview(URL.createObjectURL(file));
-    },
-  });
+  const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: false,
+      onDrop: (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+        if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
+        setNewThumbnailFile(file);
+        setNewThumbnailPreview(URL.createObjectURL(file));
+      },
+    });
 
   // Dropzone gallery mới
-  const totalGalleryCount = existingGalleryImages.length + newGalleryFiles.length;
+  const totalGalleryCount =
+    existingGalleryImages.length + newGalleryFiles.length;
   const remainingGallerySlots = 5 - totalGalleryCount;
 
-  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: true,
-    disabled: remainingGallerySlots <= 0,
-    onDrop: (acceptedFiles) => {
-      const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
-      const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
-      setNewGalleryFiles((prev) => [...prev, ...filesToAdd]);
-      setNewGalleryPreviews((prev) => [...prev, ...newPreviews]);
-    },
-  });
+  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: true,
+      disabled: remainingGallerySlots <= 0,
+      onDrop: (acceptedFiles) => {
+        const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
+        const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
+        setNewGalleryFiles((prev) => [...prev, ...filesToAdd]);
+        setNewGalleryPreviews((prev) => [...prev, ...newPreviews]);
+      },
+    });
 
   // Xóa ảnh gallery cũ (chỉ bỏ khỏi danh sách giữ lại, không gọi API)
   const handleRemoveExistingGallery = (imageUrl: string) => {
@@ -333,21 +377,32 @@ export default function EditProductPage() {
 
   const handleVariantChange = (
     index: number,
-    field: keyof Omit<EditVariantFormItem, "id" | "existingImages" | "newImages" | "newImagePreviews">,
-    value: string | number
+    field: keyof Omit<
+      EditVariantFormItem,
+      "id" | "existingImages" | "newImages" | "newImagePreviews"
+    >,
+    value: string | number,
   ) => {
     setVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     );
   };
 
-  const handleRemoveExistingVariantImage = (variantIndex: number, imageUrl: string) => {
+  const handleRemoveExistingVariantImage = (
+    variantIndex: number,
+    imageUrl: string,
+  ) => {
     setVariants((prev) =>
       prev.map((v, i) =>
         i === variantIndex
-          ? { ...v, existingImages: v.existingImages.filter((url) => url !== imageUrl) }
-          : v
-      )
+          ? {
+              ...v,
+              existingImages: v.existingImages.filter(
+                (url) => url !== imageUrl,
+              ),
+            }
+          : v,
+      ),
     );
   };
 
@@ -361,12 +416,15 @@ export default function EditProductPage() {
               newImages: [...v.newImages, ...files],
               newImagePreviews: [...v.newImagePreviews, ...newPreviews],
             }
-          : v
-      )
+          : v,
+      ),
     );
   };
 
-  const handleRemoveNewVariantImage = (variantIndex: number, imageIndex: number) => {
+  const handleRemoveNewVariantImage = (
+    variantIndex: number,
+    imageIndex: number,
+  ) => {
     setVariants((prev) =>
       prev.map((v, i) => {
         if (i !== variantIndex) return v;
@@ -374,9 +432,11 @@ export default function EditProductPage() {
         return {
           ...v,
           newImages: v.newImages.filter((_, idx) => idx !== imageIndex),
-          newImagePreviews: v.newImagePreviews.filter((_, idx) => idx !== imageIndex),
+          newImagePreviews: v.newImagePreviews.filter(
+            (_, idx) => idx !== imageIndex,
+          ),
         };
-      })
+      }),
     );
   };
 
@@ -384,8 +444,10 @@ export default function EditProductPage() {
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!name.trim()) newErrors.name = "Tên sản phẩm không được để trống.";
-    if (!price || parseFloat(price) < 0) newErrors.price = "Giá sản phẩm không hợp lệ.";
-    if (!weight || parseFloat(weight) < 1) newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
+    if (!price || parseFloat(price) < 0)
+      newErrors.price = "Giá sản phẩm không hợp lệ.";
+    if (!weight || parseFloat(weight) < 1)
+      newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
     if (!categoryId) newErrors.category_id = "Vui lòng chọn danh mục.";
 
     if (!hasVariants) {
@@ -399,13 +461,15 @@ export default function EditProductPage() {
         for (let i = 0; i < variants.length; i++) {
           const variant = variants[i];
           if (!variant.name.trim()) {
-            newErrors[`variant_${i}_name`] = "Tên biến thể không được để trống.";
+            newErrors[`variant_${i}_name`] =
+              "Tên biến thể không được để trống.";
           }
           if (variant.stock_quantity < 0) {
             newErrors[`variant_${i}_stock`] = "Tồn kho không được âm.";
           }
           // Biến thể phải có ít nhất 1 ảnh (cũ hoặc mới)
-          const totalVariantImages = variant.existingImages.length + variant.newImages.length;
+          const totalVariantImages =
+            variant.existingImages.length + variant.newImages.length;
           if (totalVariantImages === 0) {
             newErrors[`variant_${i}_images`] = "Biến thể cần ít nhất 1 ảnh.";
           }
@@ -452,7 +516,10 @@ export default function EditProductPage() {
       }
 
       // Gallery: ảnh cũ giữ lại (JSON string) + ảnh mới
-      formData.append("existingGalleryImages", JSON.stringify(existingGalleryImages));
+      formData.append(
+        "existingGalleryImages",
+        JSON.stringify(existingGalleryImages),
+      );
       newGalleryFiles.forEach((file) => {
         formData.append("general_gallery", file);
       });
@@ -483,7 +550,10 @@ export default function EditProductPage() {
       toast.success("Cập nhật sản phẩm thành công!");
       router.push("/seller/products");
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Đã xảy ra lỗi khi cập nhật sản phẩm.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Đã xảy ra lỗi khi cập nhật sản phẩm.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsSubmitting(false);
@@ -502,7 +572,10 @@ export default function EditProductPage() {
           </div>
         </div>
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
+          <div
+            key={i}
+            className="rounded-xl border bg-card p-6 shadow-sm space-y-4"
+          >
             <div className="h-5 w-40 bg-muted rounded animate-pulse" />
             <div className="h-9 w-full bg-muted rounded-lg animate-pulse" />
             <div className="h-9 w-full bg-muted rounded-lg animate-pulse" />
@@ -518,7 +591,11 @@ export default function EditProductPage() {
     <div className="space-y-6 max-w-4xl animate-fade-in pb-10">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => router.back()} className="p-1.5 rounded-lg border hover:bg-muted transition">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="p-1.5 rounded-lg border hover:bg-muted transition"
+        >
           <ChevronLeft className="h-4 w-4" />
         </button>
         <div>
@@ -534,104 +611,188 @@ export default function EditProductPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Thông tin cơ bản */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Thông tin cơ bản</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Thông tin cơ bản
+          </h3>
           <Field>
             <FieldLabel htmlFor="edit-name">Tên sản phẩm *</FieldLabel>
-            <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!errors.name} />
+            <Input
+              id="edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={!!errors.name}
+            />
             {errors.name && <FieldError>{errors.name}</FieldError>}
           </Field>
           <Field>
             <FieldLabel htmlFor="edit-description">Mô tả sản phẩm</FieldLabel>
-            <Textarea id="edit-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="resize-none" />
+            <Textarea
+              id="edit-description"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="resize-none"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field>
               <FieldLabel htmlFor="edit-price">Giá bán (VNĐ) *</FieldLabel>
-              <Input id="edit-price" type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} aria-invalid={!!errors.price} />
+              <Input
+                id="edit-price"
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                aria-invalid={!!errors.price}
+              />
               {errors.price && <FieldError>{errors.price}</FieldError>}
             </Field>
             <Field>
               <FieldLabel htmlFor="edit-sku">Mã SKU</FieldLabel>
-              <Input id="edit-sku" value={sku} onChange={(e) => setSku(e.target.value)} />
+              <Input
+                id="edit-sku"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+              />
             </Field>
           </div>
         </div>
 
         {/* Danh mục */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Danh mục</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Danh mục
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <Field>
               <FieldLabel>Danh mục cha</FieldLabel>
-              <select value={selectedParentId} onChange={(e) => handleParentChange(e.target.value)} className="w-full h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+              <select
+                value={selectedParentId}
+                onChange={(e) => handleParentChange(e.target.value)}
+                className="w-full h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+              >
                 <option value="">-- Chọn danh mục cha --</option>
                 {rootCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field>
               <FieldLabel>Danh mục con *</FieldLabel>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!selectedParentId || childCategories.length === 0} className="w-full h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 disabled:opacity-50 disabled:cursor-not-allowed" aria-invalid={!!errors.category_id}>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={!selectedParentId || childCategories.length === 0}
+                className="w-full h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-invalid={!!errors.category_id}
+              >
                 <option value="">-- Chọn danh mục con --</option>
                 {childCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
-              {errors.category_id && <FieldError>{errors.category_id}</FieldError>}
+              {errors.category_id && (
+                <FieldError>{errors.category_id}</FieldError>
+              )}
             </Field>
           </div>
         </div>
 
         {/* Logistics */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Thông số đóng gói</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Thông số đóng gói
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field>
               <FieldLabel htmlFor="edit-weight">Trọng lượng (g) *</FieldLabel>
-              <Input id="edit-weight" type="number" min={1} value={weight} onChange={(e) => setWeight(e.target.value)} aria-invalid={!!errors.weight} />
+              <Input
+                id="edit-weight"
+                type="number"
+                min={1}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                aria-invalid={!!errors.weight}
+              />
               {errors.weight && <FieldError>{errors.weight}</FieldError>}
             </Field>
             <Field>
               <FieldLabel htmlFor="edit-length">Dài (cm)</FieldLabel>
-              <Input id="edit-length" type="number" min={0} value={length} onChange={(e) => setLength(e.target.value)} />
+              <Input
+                id="edit-length"
+                type="number"
+                min={0}
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="edit-width">Rộng (cm)</FieldLabel>
-              <Input id="edit-width" type="number" min={0} value={width} onChange={(e) => setWidth(e.target.value)} />
+              <Input
+                id="edit-width"
+                type="number"
+                min={0}
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="edit-height">Cao (cm)</FieldLabel>
-              <Input id="edit-height" type="number" min={0} value={height} onChange={(e) => setHeight(e.target.value)} />
+              <Input
+                id="edit-height"
+                type="number"
+                min={0}
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+              />
             </Field>
           </div>
         </div>
 
         {/* Hình ảnh */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
-          <h3 className="font-semibold text-lg leading-none border-b pb-3">Hình ảnh sản phẩm</h3>
+          <h3 className="font-semibold text-lg leading-none border-b pb-3">
+            Hình ảnh sản phẩm
+          </h3>
 
           {/* Thumbnail */}
           <div className="space-y-2">
             <p className="text-sm font-semibold">Ảnh đại diện (Thumbnail)</p>
-            <div {...getThumbProps()} className="relative h-36 w-36 rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition overflow-hidden group">
+            <div
+              {...getThumbProps()}
+              className="relative h-36 w-36 rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition overflow-hidden group"
+            >
               <input {...getThumbInputProps()} />
               {displayThumbnail ? (
                 <>
-                  <img src={displayThumbnail} alt="Thumbnail" className="w-full h-full object-cover" />
+                  <img
+                    src={displayThumbnail}
+                    alt="Thumbnail"
+                    className="w-full h-full object-cover"
+                  />
                   {newThumbnailPreview && (
                     <div className="absolute top-1 left-1">
-                      <span className="text-[9px] bg-violet-600 text-white font-bold px-1.5 py-0.5 rounded">Mới</span>
+                      <span className="text-[9px] bg-violet-600 text-white font-bold px-1.5 py-0.5 rounded">
+                        Mới
+                      </span>
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                    <span className="text-white text-xs font-bold">Thay đổi</span>
+                    <span className="text-white text-xs font-bold">
+                      Thay đổi
+                    </span>
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground">
                   <ImageIcon className="h-8 w-8 text-zinc-400" />
-                  <span className="text-xs font-semibold text-center px-2">Kéo thả hoặc click</span>
+                  <span className="text-xs font-semibold text-center px-2">
+                    Kéo thả hoặc click
+                  </span>
                 </div>
               )}
             </div>
@@ -639,35 +800,66 @@ export default function EditProductPage() {
 
           {/* Gallery */}
           <div className="space-y-2">
-            <p className="text-sm font-semibold">Ảnh bộ sưu tập (tối đa 5 ảnh)</p>
+            <p className="text-sm font-semibold">
+              Ảnh bộ sưu tập (tối đa 5 ảnh)
+            </p>
             <div className="flex flex-wrap gap-3">
               {/* Ảnh cũ giữ lại */}
               {existingGalleryImages.map((imageUrl, idx) => (
-                <div key={`existing-${idx}`} className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900">
-                  <img src={imageUrl} alt={`Gallery cũ ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => handleRemoveExistingGallery(imageUrl)} className="absolute top-1 right-1 p-0.5 rounded-full bg-rose-600/90 text-white opacity-0 group-hover:opacity-100 transition">
+                <div
+                  key={`existing-${idx}`}
+                  className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-zinc-100 dark:bg-zinc-900"
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`Gallery cũ ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExistingGallery(imageUrl)}
+                    className="absolute top-1 right-1 p-0.5 rounded-full bg-rose-600/90 text-white opacity-0 group-hover:opacity-100 transition"
+                  >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
               {/* Ảnh mới preview */}
               {newGalleryPreviews.map((previewUrl, idx) => (
-                <div key={`new-${idx}`} className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-violet-50 dark:bg-violet-950/20">
-                  <img src={previewUrl} alt={`Gallery mới ${idx + 1}`} className="w-full h-full object-cover opacity-80" />
+                <div
+                  key={`new-${idx}`}
+                  className="relative h-24 w-24 rounded-lg border overflow-hidden group bg-violet-50 dark:bg-violet-950/20"
+                >
+                  <img
+                    src={previewUrl}
+                    alt={`Gallery mới ${idx + 1}`}
+                    className="w-full h-full object-cover opacity-80"
+                  />
                   <div className="absolute top-1 left-1 pointer-events-none">
-                    <span className="text-[9px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">Mới</span>
+                    <span className="text-[9px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">
+                      Mới
+                    </span>
                   </div>
-                  <button type="button" onClick={() => handleRemoveNewGallery(idx)} className="absolute top-1 right-1 p-0.5 rounded-full bg-zinc-800/90 text-white opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveNewGallery(idx)}
+                    className="absolute top-1 right-1 p-0.5 rounded-full bg-zinc-800/90 text-white opacity-0 group-hover:opacity-100 transition"
+                  >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
               {/* Slot upload thêm */}
               {remainingGallerySlots > 0 && (
-                <div {...getGalleryProps()} className="h-24 w-24 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition">
+                <div
+                  {...getGalleryProps()}
+                  className="h-24 w-24 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition"
+                >
                   <input {...getGalleryInputProps()} />
                   <Plus className="h-6 w-6 text-zinc-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">Thêm ({remainingGallerySlots})</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">
+                    Thêm ({remainingGallerySlots})
+                  </span>
                 </div>
               )}
             </div>
@@ -677,11 +869,20 @@ export default function EditProductPage() {
         {/* Tồn kho & Biến thể */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b pb-3">
-            <h3 className="font-semibold text-lg leading-none">Tồn kho & Biến thể</h3>
+            <h3 className="font-semibold text-lg leading-none">
+              Tồn kho & Biến thể
+            </h3>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">Sản phẩm có nhiều phiên bản</span>
-              <div onClick={() => setHasVariants(!hasVariants)} className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors duration-200 ${hasVariants ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"}`}>
-                <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? "translate-x-5" : "translate-x-0"}`} />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Sản phẩm có nhiều phiên bản
+              </span>
+              <div
+                onClick={() => setHasVariants(!hasVariants)}
+                className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors duration-200 ${hasVariants ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? "translate-x-5" : "translate-x-0"}`}
+                />
               </div>
             </div>
           </div>
@@ -690,8 +891,18 @@ export default function EditProductPage() {
           {!hasVariants && (
             <Field>
               <FieldLabel htmlFor="edit-stock">Số lượng tồn kho *</FieldLabel>
-              <Input id="edit-stock" type="number" min={0} value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} aria-invalid={!!errors.stock_quantity} className="max-w-[200px]" />
-              {errors.stock_quantity && <FieldError>{errors.stock_quantity}</FieldError>}
+              <Input
+                id="edit-stock"
+                type="number"
+                min={0}
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                aria-invalid={!!errors.stock_quantity}
+                className="max-w-[200px]"
+              />
+              {errors.stock_quantity && (
+                <FieldError>{errors.stock_quantity}</FieldError>
+              )}
             </Field>
           )}
 
@@ -700,35 +911,103 @@ export default function EditProductPage() {
             <div className="space-y-4">
               {errors.variants && <FieldError>{errors.variants}</FieldError>}
               {variants.map((variant, idx) => (
-                <div key={variant.id || `new-${idx}`} className="rounded-lg border bg-muted/20 p-4 space-y-3 relative">
+                <div
+                  key={variant.id || `new-${idx}`}
+                  className="rounded-lg border bg-muted/20 p-4 space-y-3 relative"
+                >
                   {variants.length > 1 && (
-                    <button type="button" onClick={() => handleRemoveVariant(idx)} className="absolute top-3 right-3 p-1 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-500 transition" title="Xóa biến thể này">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVariant(idx)}
+                      className="absolute top-3 right-3 p-1 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-500 transition"
+                      title="Xóa biến thể này"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">Biến thể #{idx + 1}</p>
-                    {variant.id && <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-muted-foreground px-1.5 py-0.5 rounded font-mono">Hiện có</span>}
-                    {!variant.id && <span className="text-[10px] bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-bold">Mới</span>}
+                    <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">
+                      Biến thể #{idx + 1}
+                    </p>
+                    {variant.id && (
+                      <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-muted-foreground px-1.5 py-0.5 rounded font-mono">
+                        Hiện có
+                      </span>
+                    )}
+                    {!variant.id && (
+                      <span className="text-[10px] bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-bold">
+                        Mới
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="md:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Tên biến thể *</label>
-                      <Input placeholder="Ví dụ: Đỏ, Size L" value={variant.name} onChange={(e) => handleVariantChange(idx, "name", e.target.value)} aria-invalid={!!errors[`variant_${idx}_name`]} />
-                      {errors[`variant_${idx}_name`] && <FieldError>{errors[`variant_${idx}_name`]}</FieldError>}
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Tên biến thể *
+                      </label>
+                      <Input
+                        placeholder="Ví dụ: Đỏ, Size L"
+                        value={variant.name}
+                        onChange={(e) =>
+                          handleVariantChange(idx, "name", e.target.value)
+                        }
+                        aria-invalid={!!errors[`variant_${idx}_name`]}
+                      />
+                      {errors[`variant_${idx}_name`] && (
+                        <FieldError>{errors[`variant_${idx}_name`]}</FieldError>
+                      )}
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">SKU biến thể</label>
-                      <Input placeholder="SKU-RED-L" value={variant.sku} onChange={(e) => handleVariantChange(idx, "sku", e.target.value)} />
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        SKU biến thể
+                      </label>
+                      <Input
+                        placeholder="SKU-RED-L"
+                        value={variant.sku}
+                        onChange={(e) =>
+                          handleVariantChange(idx, "sku", e.target.value)
+                        }
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Giá thêm (VNĐ)</label>
-                      <Input type="number" min={0} value={variant.additional_price} onChange={(e) => handleVariantChange(idx, "additional_price", parseFloat(e.target.value) || 0)} />
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Giá thêm (VNĐ)
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={variant.additional_price}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            idx,
+                            "additional_price",
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                      />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Tồn kho *</label>
-                      <Input type="number" min={0} value={variant.stock_quantity} onChange={(e) => handleVariantChange(idx, "stock_quantity", parseInt(e.target.value) || 0)} aria-invalid={!!errors[`variant_${idx}_stock`]} />
-                      {errors[`variant_${idx}_stock`] && <FieldError>{errors[`variant_${idx}_stock`]}</FieldError>}
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Tồn kho *
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={variant.stock_quantity}
+                        onChange={(e) =>
+                          handleVariantChange(
+                            idx,
+                            "stock_quantity",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
+                        aria-invalid={!!errors[`variant_${idx}_stock`]}
+                      />
+                      {errors[`variant_${idx}_stock`] && (
+                        <FieldError>
+                          {errors[`variant_${idx}_stock`]}
+                        </FieldError>
+                      )}
                     </div>
                   </div>
                   <EditVariantImageDropzone
@@ -740,10 +1019,16 @@ export default function EditProductPage() {
                     onAddNewImages={handleAddNewVariantImages}
                     onRemoveNewImage={handleRemoveNewVariantImage}
                   />
-                  {errors[`variant_${idx}_images`] && <FieldError>{errors[`variant_${idx}_images`]}</FieldError>}
+                  {errors[`variant_${idx}_images`] && (
+                    <FieldError>{errors[`variant_${idx}_images`]}</FieldError>
+                  )}
                 </div>
               ))}
-              <button type="button" onClick={handleAddVariant} className="flex items-center text-xs font-semibold px-4 py-2 border-2 border-dashed border-violet-400 text-violet-600 dark:text-violet-400 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/20 transition w-full justify-center">
+              <button
+                type="button"
+                onClick={handleAddVariant}
+                className="flex items-center text-xs font-semibold px-4 py-2 border-2 border-dashed border-violet-400 text-violet-600 dark:text-violet-400 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/20 transition w-full justify-center"
+              >
                 <Plus className="h-4 w-4 mr-1.5" /> Thêm biến thể mới
               </button>
             </div>
@@ -752,14 +1037,26 @@ export default function EditProductPage() {
 
         {/* Submit */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button type="button" onClick={() => router.back()} className="flex items-center text-xs font-semibold px-4 py-2 border rounded-lg hover:bg-muted transition bg-background">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex items-center text-xs font-semibold px-4 py-2 border rounded-lg hover:bg-muted transition bg-background"
+          >
             Hủy
           </button>
-          <Button type="submit" disabled={isSubmitting} className="flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 transition">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 transition"
+          >
             {isSubmitting ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Đang lưu...</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Đang lưu...
+              </>
             ) : (
-              <><Save className="h-4 w-4" /> Lưu thay đổi</>
+              <>
+                <Save className="h-4 w-4" /> Lưu thay đổi
+              </>
             )}
           </Button>
         </div>

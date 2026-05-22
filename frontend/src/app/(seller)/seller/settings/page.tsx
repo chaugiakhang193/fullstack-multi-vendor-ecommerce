@@ -23,9 +23,7 @@ import {
 } from "lucide-react";
 
 import sellerApiRequest from "@/apiRequests/seller";
-import {
-  ShopResponseType,
-} from "@/schemaValidations/seller.schema";
+import { ShopResponseType } from "@/schemaValidations/seller.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,11 +44,12 @@ const updateSettingsSchema = z.object({
     .or(z.literal("")),
   pickup_address: z
     .string()
-    .min(10, "Vui lòng nhập chi tiết địa chỉ lấy hàng (Số nhà, đường, xã/phường...).")
+    .min(
+      10,
+      "Vui lòng nhập chi tiết địa chỉ lấy hàng (Số nhà, đường, xã/phường...).",
+    )
     .trim(),
-  bank_name: z
-    .string()
-    .min(2, "Vui lòng nhập hoặc chọn tên ngân hàng."),
+  bank_name: z.string().min(2, "Vui lòng nhập hoặc chọn tên ngân hàng."),
   bank_account_number: z
     .string()
     .min(6, "Số tài khoản ngân hàng không hợp lệ.")
@@ -123,7 +122,7 @@ export default function SellerSettingsPage() {
       const res = await sellerApiRequest.getMyShop();
       const shopData = res.data;
       setShop(shopData);
-      
+
       let bank_name = "";
       let bank_account_number = "";
       let bank_account_name = "";
@@ -132,7 +131,9 @@ export default function SellerSettingsPage() {
           const parsed = JSON.parse(shopData.bank_account_info);
           if (parsed && typeof parsed === "object") {
             if (Array.isArray(parsed)) {
-              const flatArray = parsed.map((item: any) => Array.isArray(item) ? item[0] : item);
+              const flatArray = parsed.map((item: any) =>
+                Array.isArray(item) ? item[0] : item,
+              );
               bank_name = String(flatArray[0] || "");
               bank_account_number = String(flatArray[1] || "");
               bank_account_name = String(flatArray[2] || "");
@@ -160,7 +161,10 @@ export default function SellerSettingsPage() {
         bank_account_name,
       });
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể tải thông tin cửa hàng.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Không thể tải thông tin cửa hàng.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsLoading(false);
@@ -172,26 +176,28 @@ export default function SellerSettingsPage() {
   }, []);
 
   // Dropzone for Logo
-  const { getRootProps: getLogoProps, getInputProps: getLogoInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: false,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles?.[0]) {
-        setLogoFile(acceptedFiles[0]);
-      }
-    },
-  });
+  const { getRootProps: getLogoProps, getInputProps: getLogoInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: false,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles?.[0]) {
+          setLogoFile(acceptedFiles[0]);
+        }
+      },
+    });
 
   // Dropzone for Banner
-  const { getRootProps: getBannerProps, getInputProps: getBannerInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: false,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles?.[0]) {
-        setBannerFile(acceptedFiles[0]);
-      }
-    },
-  });
+  const { getRootProps: getBannerProps, getInputProps: getBannerInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: false,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles?.[0]) {
+          setBannerFile(acceptedFiles[0]);
+        }
+      },
+    });
 
   // Dropzone for Gallery (max 3 images)
   const remainingGallerySlots = useMemo(() => {
@@ -200,19 +206,27 @@ export default function SellerSettingsPage() {
     return Math.max(0, 3 - existingCount - newGalleryFiles.length);
   }, [shop, newGalleryFiles]);
 
-  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: true,
-    maxFiles: remainingGallerySlots,
-    disabled: remainingGallerySlots <= 0,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > remainingGallerySlots) {
-        toast.error(`Bạn chỉ được chọn thêm tối đa ${remainingGallerySlots} ảnh.`);
-        return;
-      }
-      setNewGalleryFiles((prev) => [...prev, ...acceptedFiles].slice(0, 3 - (shop?.gallery?.length || 0)));
-    },
-  });
+  const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: true,
+      maxFiles: remainingGallerySlots,
+      disabled: remainingGallerySlots <= 0,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles.length > remainingGallerySlots) {
+          toast.error(
+            `Bạn chỉ được chọn thêm tối đa ${remainingGallerySlots} ảnh.`,
+          );
+          return;
+        }
+        setNewGalleryFiles((prev) =>
+          [...prev, ...acceptedFiles].slice(
+            0,
+            3 - (shop?.gallery?.length || 0),
+          ),
+        );
+      },
+    });
 
   // Delete existing gallery image (API call)
   const handleDeleteExistingImage = async (assetId: string) => {
@@ -221,7 +235,8 @@ export default function SellerSettingsPage() {
       toast.success("Xóa ảnh khỏi bộ sưu tập thành công!");
       fetchShopData();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể xóa ảnh.";
+      const msg =
+        error?.payload?.message || error?.message || "Không thể xóa ảnh.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     }
   };
@@ -240,7 +255,7 @@ export default function SellerSettingsPage() {
     formData.append("name", data.name);
     formData.append("description", data.description || "");
     formData.append("pickup_address", data.pickup_address);
-    
+
     const bankAccountInfo = JSON.stringify({
       bank_name: data.bank_name,
       bank_account_number: data.bank_account_number,
@@ -270,7 +285,10 @@ export default function SellerSettingsPage() {
       setNewGalleryFiles([]);
       fetchShopData();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Đã xảy ra lỗi khi lưu cài đặt.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Đã xảy ra lỗi khi lưu cài đặt.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsSaving(false);
@@ -281,7 +299,9 @@ export default function SellerSettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-        <p className="text-sm text-muted-foreground">Đang tải cấu hình cửa hàng...</p>
+        <p className="text-sm text-muted-foreground">
+          Đang tải cấu hình cửa hàng...
+        </p>
       </div>
     );
   }
@@ -289,7 +309,8 @@ export default function SellerSettingsPage() {
   if (!shop) {
     return (
       <div className="text-center py-20 text-muted-foreground border rounded-xl bg-card">
-        Không tìm thấy thông tin cửa hàng của bạn. Vui lòng liên hệ quản trị viên.
+        Không tìm thấy thông tin cửa hàng của bạn. Vui lòng liên hệ quản trị
+        viên.
       </div>
     );
   }
@@ -302,7 +323,8 @@ export default function SellerSettingsPage() {
           Cài đặt Cửa hàng
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Cập nhật hồ sơ, thương hiệu (Logo, Banner, Ảnh bộ sưu tập) và thông tin vận hành của bạn.
+          Cập nhật hồ sơ, thương hiệu (Logo, Banner, Ảnh bộ sưu tập) và thông
+          tin vận hành của bạn.
         </p>
       </div>
 
@@ -324,7 +346,9 @@ export default function SellerSettingsPage() {
             ) : (
               <div className="flex flex-col items-center gap-1 text-muted-foreground">
                 <ImageIcon className="h-10 w-10 text-zinc-400" />
-                <span className="text-xs font-semibold">Tải lên ảnh Banner (Khuyên dùng: 3:1)</span>
+                <span className="text-xs font-semibold">
+                  Tải lên ảnh Banner (Khuyên dùng: 3:1)
+                </span>
               </div>
             )}
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
@@ -361,7 +385,9 @@ export default function SellerSettingsPage() {
             {/* Shop Basic Meta */}
             <div className="md:pl-36">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl md:text-2xl font-bold text-foreground">{shop.name}</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                  {shop.name}
+                </h2>
                 {shop.status === "active" ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                     <ShieldCheck className="h-3.5 w-3.5" /> Hoạt động
@@ -372,7 +398,9 @@ export default function SellerSettingsPage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">Mã cửa hàng: {shop.id}</p>
+              <p className="text-xs text-muted-foreground mt-1 font-mono">
+                Mã cửa hàng: {shop.id}
+              </p>
             </div>
           </div>
         </div>
@@ -381,7 +409,9 @@ export default function SellerSettingsPage() {
         <div className="grid gap-6 md:grid-cols-5">
           {/* Text Settings (Left Column) */}
           <div className="md:col-span-3 space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 text-foreground">Thông tin cơ bản</h3>
+            <h3 className="text-lg font-bold border-b pb-2 text-foreground">
+              Thông tin cơ bản
+            </h3>
 
             <Field>
               <FieldLabel htmlFor="shop-name">
@@ -393,12 +423,15 @@ export default function SellerSettingsPage() {
                 {...register("name")}
                 aria-invalid={!!errors.name}
               />
-              {errors.name && <FieldError>{errors.name.message?.toString()}</FieldError>}
+              {errors.name && (
+                <FieldError>{errors.name.message?.toString()}</FieldError>
+              )}
             </Field>
 
             <Field>
               <FieldLabel htmlFor="pickup-address">
-                <MapPin className="h-4 w-4 text-violet-500" /> Địa chỉ lấy hàng *
+                <MapPin className="h-4 w-4 text-violet-500" /> Địa chỉ lấy hàng
+                *
               </FieldLabel>
               <Input
                 id="pickup-address"
@@ -406,16 +439,23 @@ export default function SellerSettingsPage() {
                 {...register("pickup_address")}
                 aria-invalid={!!errors.pickup_address}
               />
-              {errors.pickup_address && <FieldError>{errors.pickup_address.message?.toString()}</FieldError>}
-              <p className="text-[11px] text-muted-foreground">Địa chỉ nhân viên giao vận tới lấy hàng khi có đơn.</p>
+              {errors.pickup_address && (
+                <FieldError>
+                  {errors.pickup_address.message?.toString()}
+                </FieldError>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Địa chỉ nhân viên giao vận tới lấy hàng khi có đơn.
+              </p>
             </Field>
 
             {/* Thông tin ngân hàng */}
             <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
               <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4 text-violet-500" /> Thông tin ngân hàng rút tiền
+                <CreditCard className="h-4 w-4 text-violet-500" /> Thông tin
+                ngân hàng rút tiền
               </h4>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="bank-name">Tên ngân hàng *</FieldLabel>
@@ -425,31 +465,50 @@ export default function SellerSettingsPage() {
                     {...register("bank_name")}
                     aria-invalid={!!errors.bank_name}
                   />
-                  {errors.bank_name && <FieldError>{errors.bank_name.message?.toString()}</FieldError>}
+                  {errors.bank_name && (
+                    <FieldError>
+                      {errors.bank_name.message?.toString()}
+                    </FieldError>
+                  )}
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="bank-account-number">Số tài khoản *</FieldLabel>
+                  <FieldLabel htmlFor="bank-account-number">
+                    Số tài khoản *
+                  </FieldLabel>
                   <Input
                     id="bank-account-number"
                     placeholder="Ví dụ: 1903456789..."
                     {...register("bank_account_number")}
                     aria-invalid={!!errors.bank_account_number}
                   />
-                  {errors.bank_account_number && <FieldError>{errors.bank_account_number.message?.toString()}</FieldError>}
+                  {errors.bank_account_number && (
+                    <FieldError>
+                      {errors.bank_account_number.message?.toString()}
+                    </FieldError>
+                  )}
                 </Field>
               </div>
 
               <Field>
-                <FieldLabel htmlFor="bank-account-name">Tên chủ tài khoản *</FieldLabel>
+                <FieldLabel htmlFor="bank-account-name">
+                  Tên chủ tài khoản *
+                </FieldLabel>
                 <Input
                   id="bank-account-name"
                   placeholder="Ví dụ: NGUYEN VAN A"
                   {...register("bank_account_name")}
                   aria-invalid={!!errors.bank_account_name}
                 />
-                {errors.bank_account_name && <FieldError>{errors.bank_account_name.message?.toString()}</FieldError>}
-                <p className="text-[11px] text-muted-foreground">Tên viết hoa không dấu. Sử dụng để đối soát và rút doanh thu từ nền tảng.</p>
+                {errors.bank_account_name && (
+                  <FieldError>
+                    {errors.bank_account_name.message?.toString()}
+                  </FieldError>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Tên viết hoa không dấu. Sử dụng để đối soát và rút doanh thu
+                  từ nền tảng.
+                </p>
               </Field>
             </div>
 
@@ -465,22 +524,34 @@ export default function SellerSettingsPage() {
                 className="resize-none"
                 aria-invalid={!!errors.description}
               />
-              {errors.description && <FieldError>{errors.description.message?.toString()}</FieldError>}
+              {errors.description && (
+                <FieldError>
+                  {errors.description.message?.toString()}
+                </FieldError>
+              )}
             </Field>
           </div>
 
           {/* Gallery Media Section (Right Column) */}
           <div className="md:col-span-2 space-y-4 rounded-xl border bg-card p-6 shadow-sm flex flex-col">
             <div className="border-b pb-2">
-              <h3 className="text-lg font-bold text-foreground">Bộ sưu tập cửa hàng</h3>
-              <p className="text-xs text-muted-foreground">Hiển thị các hình ảnh chụp gian hàng, showroom hoặc chứng chỉ (Tối đa 3 ảnh).</p>
+              <h3 className="text-lg font-bold text-foreground">
+                Bộ sưu tập cửa hàng
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Hiển thị các hình ảnh chụp gian hàng, showroom hoặc chứng chỉ
+                (Tối đa 3 ảnh).
+              </p>
             </div>
 
             {/* Gallery Grid */}
             <div className="grid grid-cols-3 gap-2 py-2">
               {/* Existing Gallery Images */}
               {shop.gallery?.map((asset: any) => (
-                <div key={asset.id} className="relative aspect-square rounded-lg overflow-hidden border group bg-zinc-100 dark:bg-zinc-900">
+                <div
+                  key={asset.id}
+                  className="relative aspect-square rounded-lg overflow-hidden border group bg-zinc-100 dark:bg-zinc-900"
+                >
                   <img
                     src={asset.url}
                     alt="Gallery item"
@@ -499,14 +570,19 @@ export default function SellerSettingsPage() {
 
               {/* Newly Selected Gallery Previews */}
               {newGalleryPreviews.map((preview, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group bg-violet-50 dark:bg-violet-950/20">
+                <div
+                  key={idx}
+                  className="relative aspect-square rounded-lg overflow-hidden border group bg-violet-50 dark:bg-violet-950/20"
+                >
                   <img
                     src={preview.url}
                     alt="New upload"
                     className="w-full h-full object-cover opacity-70"
                   />
                   <div className="absolute inset-0 bg-violet-600/10 flex items-center justify-center">
-                    <span className="text-[10px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">Mới</span>
+                    <span className="text-[10px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">
+                      Mới
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -534,11 +610,19 @@ export default function SellerSettingsPage() {
             </div>
 
             <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg mt-auto space-y-1">
-              <p className="font-bold flex items-center gap-1 text-zinc-700 dark:text-zinc-300">💡 Hướng dẫn upload:</p>
+              <p className="font-bold flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
+                💡 Hướng dẫn upload:
+              </p>
               <ul className="list-disc pl-4 space-y-0.5">
                 <li>Bấm vào khung ảnh tương ứng để chọn ảnh mới thay thế.</li>
-                <li>Hệ thống tự động lưu Logo và Banner mới khi bấm <strong>"Lưu thay đổi"</strong>.</li>
-                <li>Các ảnh trong <strong>Bộ sưu tập</strong> mới cũng sẽ được tải lên khi lưu.</li>
+                <li>
+                  Hệ thống tự động lưu Logo và Banner mới khi bấm{" "}
+                  <strong>"Lưu thay đổi"</strong>.
+                </li>
+                <li>
+                  Các ảnh trong <strong>Bộ sưu tập</strong> mới cũng sẽ được tải
+                  lên khi lưu.
+                </li>
               </ul>
             </div>
           </div>
@@ -553,7 +637,8 @@ export default function SellerSettingsPage() {
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Đang lưu thay đổi...
+                <Loader2 className="h-4 w-4 animate-spin" /> Đang lưu thay
+                đổi...
               </>
             ) : (
               <>

@@ -1,5 +1,6 @@
 import { applyDecorators, Type } from '@nestjs/common';
 import { ApiResponse, getSchemaPath, ApiExtraModels } from '@nestjs/swagger';
+import { PaginationMetaDto } from '@/common/dto/paginated-response.dto';
 
 interface ApiGenericResponseOptions {
   isArray?: boolean;
@@ -67,4 +68,42 @@ export function ApiGenericResponse(
   }
 
   return applyDecorators(...decorators);
+}
+
+export function ApiPaginatedResponse<TModel extends Type<any>>(
+  model: TModel,
+  description?: string,
+) {
+  return applyDecorators(
+    ApiExtraModels(PaginationMetaDto, model),
+    ApiResponse({
+      status: 200,
+      description: description || 'Thao tác thành công',
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: {
+            type: 'number',
+            example: 200,
+          },
+          message: {
+            type: 'string',
+            example: description || 'Thao tác thành công',
+          },
+          data: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: { $ref: getSchemaPath(model) },
+              },
+              meta: {
+                $ref: getSchemaPath(PaginationMetaDto),
+              },
+            },
+          },
+        },
+      },
+    }),
+  );
 }

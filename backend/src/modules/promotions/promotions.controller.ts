@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PromotionsService } from './promotions.service';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
@@ -25,7 +33,10 @@ export class PromotionsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePromotionDto: UpdatePromotionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePromotionDto: UpdatePromotionDto,
+  ) {
     return this.promotionsService.update(+id, updatePromotionDto);
   }
 

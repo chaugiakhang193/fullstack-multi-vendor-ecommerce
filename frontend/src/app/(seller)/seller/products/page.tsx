@@ -47,13 +47,16 @@ export default function SellerProductsPage() {
   const [products, setProducts] = useState<ProductResponseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
+  const [stockFilter, setStockFilter] = useState<
+    "all" | "in_stock" | "out_of_stock"
+  >("all");
 
   // State cho toggle is_hidden đang xử lý (lưu id sản phẩm đang toggle)
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // State cho confirm dialog xóa
-  const [deletingProduct, setDeletingProduct] = useState<ProductResponseType | null>(null);
+  const [deletingProduct, setDeletingProduct] =
+    useState<ProductResponseType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch danh sách sản phẩm
@@ -63,7 +66,10 @@ export default function SellerProductsPage() {
       const res = await productsApiRequest.getSellerInventory();
       setProducts(res.data ?? []);
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể tải danh sách sản phẩm.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Không thể tải danh sách sản phẩm.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsLoading(false);
@@ -78,7 +84,8 @@ export default function SellerProductsPage() {
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const query = searchQuery.toLowerCase().trim();
-      const productSku = typeof product.sku === "string" ? product.sku.toLowerCase() : "";
+      const productSku =
+        typeof product.sku === "string" ? product.sku.toLowerCase() : "";
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
@@ -108,12 +115,15 @@ export default function SellerProductsPage() {
       // Cập nhật state local ngay lập tức để UI phản hồi nhanh
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === productId ? { ...p, is_hidden: newIsHidden } : p
-        )
+          p.id === productId ? { ...p, is_hidden: newIsHidden } : p,
+        ),
       );
       toast.success(newIsHidden ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể cập nhật trạng thái ẩn/hiện.";
+      const msg =
+        error?.payload?.message ||
+        error?.message ||
+        "Không thể cập nhật trạng thái ẩn/hiện.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setTogglingId(null);
@@ -130,7 +140,8 @@ export default function SellerProductsPage() {
       setDeletingProduct(null);
       fetchProducts();
     } catch (error: any) {
-      const msg = error?.payload?.message || error?.message || "Không thể xóa sản phẩm.";
+      const msg =
+        error?.payload?.message || error?.message || "Không thể xóa sản phẩm.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setIsDeleting(false);
@@ -151,7 +162,10 @@ export default function SellerProductsPage() {
         <div className="h-14 bg-muted rounded-xl animate-pulse" />
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-4 border-b last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-4 p-4 border-b last:border-0"
+            >
               <div className="h-12 w-12 bg-muted rounded-lg animate-pulse shrink-0" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-48 bg-muted rounded animate-pulse" />
@@ -177,7 +191,8 @@ export default function SellerProductsPage() {
             Quản lý Sản phẩm
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của bạn.
+            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của
+            bạn.
           </p>
         </div>
         <Link href="/seller/products/create">
@@ -203,7 +218,9 @@ export default function SellerProductsPage() {
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <select
             value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
+            onChange={(e) =>
+              setStockFilter(e.target.value as typeof stockFilter)
+            }
             className="text-xs font-semibold px-3 py-2 border rounded-lg hover:bg-muted transition bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20"
           >
             <option value="all">Tất cả trạng thái</option>
@@ -257,7 +274,10 @@ export default function SellerProductsPage() {
                   const isToggling = togglingId === product.id;
 
                   return (
-                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={product.id}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
                       {/* Ảnh thumbnail */}
                       <td className="p-4">
                         <div className="h-12 w-12 rounded-lg border bg-zinc-100 dark:bg-zinc-900 overflow-hidden shrink-0">
@@ -289,7 +309,9 @@ export default function SellerProductsPage() {
 
                       {/* SKU */}
                       <td className="p-4 font-mono text-xs text-muted-foreground">
-                        {typeof product.sku === "string" && product.sku ? product.sku : "—"}
+                        {typeof product.sku === "string" && product.sku
+                          ? product.sku
+                          : "—"}
                       </td>
 
                       {/* Danh mục */}
@@ -309,8 +331,8 @@ export default function SellerProductsPage() {
                             isOutOfStock
                               ? "text-rose-600 dark:text-rose-400"
                               : totalStock <= 5
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-foreground"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-foreground"
                           }`}
                         >
                           {totalStock}
@@ -335,7 +357,11 @@ export default function SellerProductsPage() {
                         <button
                           onClick={() => handleToggleHidden(product)}
                           disabled={isToggling}
-                          title={product.is_hidden ? "Đang ẩn — Nhấn để hiện" : "Đang hiện — Nhấn để ẩn"}
+                          title={
+                            product.is_hidden
+                              ? "Đang ẩn — Nhấn để hiện"
+                              : "Đang hiện — Nhấn để ẩn"
+                          }
                           className={`p-1.5 rounded-md transition ${
                             product.is_hidden
                               ? "text-zinc-400 hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-950"
@@ -381,7 +407,11 @@ export default function SellerProductsPage() {
 
           {/* Footer tổng số */}
           <div className="px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground">
-            Hiển thị <span className="font-bold text-foreground">{filteredProducts.length}</span> / {products.length} sản phẩm
+            Hiển thị{" "}
+            <span className="font-bold text-foreground">
+              {filteredProducts.length}
+            </span>{" "}
+            / {products.length} sản phẩm
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 //DTO
 import { RegisterDto } from '@/auth/dto/register.dto';
@@ -42,6 +43,7 @@ import { ACCESS_TOKEN_SERVICE } from './auth.constants';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
@@ -84,7 +86,8 @@ export class AuthService {
     if (
       user.status === AccountStatus.ACTIVE ||
       (user.role === UserRole.SELLER &&
-        (user.status === AccountStatus.PENDING_APPROVAL || user.status === AccountStatus.NEW_SELLER))
+        (user.status === AccountStatus.PENDING_APPROVAL ||
+          user.status === AccountStatus.NEW_SELLER))
     ) {
       throw new BadRequestException(
         'Tài khoản này đã được kích hoạt từ trước.',
@@ -134,7 +137,8 @@ export class AuthService {
       if (
         user.status === AccountStatus.ACTIVE ||
         (user.role === UserRole.SELLER &&
-          (user.status === AccountStatus.PENDING_APPROVAL || user.status === AccountStatus.NEW_SELLER))
+          (user.status === AccountStatus.PENDING_APPROVAL ||
+            user.status === AccountStatus.NEW_SELLER))
       ) {
         throw new BadRequestException(
           'Tài khoản này đã được kích hoạt từ trước.',
@@ -232,7 +236,7 @@ export class AuthService {
           });
         }
       } catch (error) {
-        console.log(error);
+        this.logger.error(error);
       }
     }
 
@@ -385,7 +389,7 @@ export class AuthService {
       originalRefreshToken,
       session.refresh_token,
     );
-    
+
     // Token không khớp → 401 (Nguy hiểm - có thể bị đánh cắp)
     if (!isTokenMatch) {
       throw new UnauthorizedException(
@@ -396,14 +400,14 @@ export class AuthService {
     // Tìm kiếm thông tin mới nhất về người dùng thông qua session.user.id
     // để đảm bảo user chưa bị xóa hoặc cập nhật role/status
     const user = await this.usersService.findById(session.user.id);
-    
+
     // User không tồn tại → 401
     if (!user) {
       throw new UnauthorizedException(
         'Tài khoản người dùng không còn tồn tại!',
       );
     }
-    
+
     const newPayload = {
       username: user.username,
       id: user.id,
@@ -445,11 +449,13 @@ export class AuthService {
         const result = await this.sessionRepository.delete(sessionId);
 
         if (result.affected === 0) {
-          console.log(`Session ${refreshToken} không tồn tại hoặc đã bị xóa.`);
+          this.logger.warn(
+            `Session ${refreshToken} không tồn tại hoặc đã bị xóa.`,
+          );
         }
       }
     } catch (error) {
-      console.log(
+      this.logger.warn(
         'Refresh token không hợp lệ hoặc đã hết hạn trong lúc Logout',
       );
     }

@@ -19,7 +19,6 @@ import { EngagementsModule } from '@/modules/engagements/engagements.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 
-
 //entities
 import { User } from '@/modules/users/entities/user.entity';
 import { Address } from '@/modules/users/entities/address.entity';
