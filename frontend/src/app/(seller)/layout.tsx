@@ -48,6 +48,23 @@ export default function SellerLayout({
   const [isMounted, setIsMounted] = useState(false);
   const [isCheckingShop, setIsCheckingShop] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false); // Flag để ngăn check lại sau redirect
+  const [customLabels, setCustomLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const handleCustomBreadcrumb = (e: Event) => {
+      const customEvent = e as CustomEvent<{ key: string; label: string }>;
+      if (customEvent?.detail) {
+        setCustomLabels((prev) => ({
+          ...prev,
+          [customEvent.detail.key]: customEvent.detail.label,
+        }));
+      }
+    };
+    window.addEventListener("update-breadcrumb", handleCustomBreadcrumb);
+    return () => {
+      window.removeEventListener("update-breadcrumb", handleCustomBreadcrumb);
+    };
+  }, []);
 
   // Check shop status và redirect logic
   useEffect(() => {
@@ -111,6 +128,13 @@ export default function SellerLayout({
 
   useEffect(() => {
     setIsMounted(true);
+    // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Seller Dashboard
+    document.documentElement.classList.add("overflow-hidden", "h-screen");
+    document.body.classList.add("overflow-hidden", "h-screen");
+    return () => {
+      document.documentElement.classList.remove("overflow-hidden", "h-screen");
+      document.body.classList.remove("overflow-hidden", "h-screen");
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -177,17 +201,41 @@ export default function SellerLayout({
       products: "Sản phẩm",
       orders: "Đơn hàng",
       settings: "Cài đặt",
+      create: "Tạo sản phẩm mới",
+      edit: "Sửa thông tin",
     };
 
     let currentHref = "";
+    const isUUID = (str: string) =>
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        str,
+      );
+
     for (let i = 0; i < paths.length; i++) {
       currentHref += `/${paths[i]}`;
+
+      const segment = paths[i];
+      let label = routeMap[segment] || segment;
+      let isClickable = true;
+
+      if (isUUID(segment)) {
+        isClickable = false; // UUID không có trang riêng để click vào
+        label = customLabels[segment] || "Chi tiết";
+      }
+
       breadcrumbs.push({
-        label: routeMap[paths[i]] || paths[i],
+        label,
         href: currentHref,
-        isLast: i === paths.length - 1,
+        isClickable,
+        isLast: false,
       });
     }
+
+    // Thiết lập lại thuộc tính isLast cho breadcrumb hiển thị cuối cùng
+    if (breadcrumbs.length > 0) {
+      breadcrumbs[breadcrumbs.length - 1].isLast = true;
+    }
+
     return breadcrumbs;
   };
 
@@ -402,8 +450,14 @@ export default function SellerLayout({
               {getBreadcrumbs().map((crumb, idx) => (
                 <React.Fragment key={crumb.href}>
                   <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
-                  {crumb.isLast ? (
-                    <span className="text-foreground font-bold">
+                  {crumb.isLast || !crumb.isClickable ? (
+                    <span
+                      className={
+                        crumb.isLast
+                          ? "text-foreground font-bold"
+                          : "text-muted-foreground"
+                      }
+                    >
                       {crumb.label}
                     </span>
                   ) : (

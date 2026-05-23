@@ -10,9 +10,9 @@ const productsApiRequest = {
     return http.get<ProductListResponseType>("/seller/products");
   },
 
-  // Lấy chi tiết 1 sản phẩm theo ID (public endpoint, dùng cho trang edit)
+  // Seller lấy chi tiết 1 sản phẩm theo ID để chỉnh sửa
   getProductDetail: (id: string) => {
-    return http.get<SingleProductResponseType>(`/products/${id}`);
+    return http.get<SingleProductResponseType>(`/seller/products/${id}`);
   },
 
   // Seller tạo sản phẩm mới (multipart/form-data vì có file upload)

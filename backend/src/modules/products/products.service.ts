@@ -838,6 +838,18 @@ export class ProductsService {
     }
   }
 
+  async findOneForSeller(id: string, userId: string) {
+    const shop = await this.shopsService.findOneByUserId(userId);
+    const product = await this.findOne(id, false); // Lấy chi tiết sản phẩm (bao gồm cả sản phẩm ẩn)
+
+    if (product.shop.id !== shop.id) {
+      throw new BadRequestException(
+        'Yêu cầu bị từ chối do bạn không có quyền sở hữu sản phẩm này',
+      );
+    }
+    return product;
+  }
+
   private generateSlug(name: string): string {
     return slugify(name, { lower: true, locale: 'vi' });
   }

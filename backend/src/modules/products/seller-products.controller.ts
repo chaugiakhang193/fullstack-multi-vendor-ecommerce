@@ -140,6 +140,20 @@ export class SellerProductsController {
     return this.productsService.update(id, updateProductDto, files, user);
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Seller lấy chi tiết sản phẩm của chính mình' })
+  @ResponseMessage('Lấy chi tiết sản phẩm thành công')
+  @ApiGenericResponse(ProductResponseDto, 'Lấy chi tiết sản phẩm thành công')
+  @ApiResponse({ status: 404, description: 'Không tìm thấy sản phẩm' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({
+    description: 'Không có quyền Seller hoặc sản phẩm không thuộc về shop',
+  })
+  findOne(@Param('id') id: string, @User() user: IUser) {
+    const userId = user.sub;
+    return this.productsService.findOneForSeller(id, userId);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Seller xóa sản phẩm (Soft delete)' })
   @ResponseMessage('Xóa sản phẩm thành công')
