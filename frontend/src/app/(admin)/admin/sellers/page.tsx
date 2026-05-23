@@ -224,13 +224,13 @@ export default function AdminSellersPage() {
                       <img
                         src={
                           shop.logo_url ||
-                          "https://images.unsplash.com/photo-1472851294608-062f824d296e?w=80&q=80"
+                          "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80"
                         }
                         alt={shop.name}
                         className="h-10 w-10 rounded-lg object-cover border bg-zinc-100 shadow-sm"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1472851294608-062f824d296e?w=80&q=80";
+                            "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80";
                         }}
                       />
                       <div className="min-w-0">
@@ -255,13 +255,13 @@ export default function AdminSellersPage() {
                   <TableCell className="py-4">
                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                       {shop.categories && shop.categories.length > 0 ? (
-                        shop.categories.slice(0, 2).map((cat) => (
+                        shop.categories.slice(0, 2).map((category) => (
                           <Badge
-                            key={cat.id}
+                            key={category.id}
                             variant="outline"
                             className="text-[10px] px-1.5 py-0 border-zinc-200 bg-zinc-50 dark:bg-zinc-900/50"
                           >
-                            {cat.name}
+                            {category.name}
                           </Badge>
                         ))
                       ) : (
@@ -371,13 +371,13 @@ export default function AdminSellersPage() {
                   <img
                     src={
                       selectedShop.logo_url ||
-                      "https://images.unsplash.com/photo-1472851294608-062f824d296e?w=80&q=80"
+                      "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80"
                     }
                     alt="Logo"
                     className="h-20 w-20 rounded-xl object-cover border-2 border-white dark:border-zinc-950 bg-white shadow-md"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1472851294608-062f824d296e?w=80&q=80";
+                        "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80";
                     }}
                   />
                   <div className="bg-black/60 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs font-bold shadow-md">
@@ -477,14 +477,14 @@ export default function AdminSellersPage() {
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {selectedShop.categories &&
                       selectedShop.categories.length > 0 ? (
-                        selectedShop.categories.map((cat) => (
+                        selectedShop.categories.map((category) => (
                           <Badge
-                            key={cat.id}
+                            key={category.id}
                             variant="outline"
                             className="text-sm py-1 px-3 border-zinc-200 font-semibold"
                           >
                             <Tag className="h-3.5 w-3.5 mr-1.5 text-zinc-400" />
-                            {cat.name}
+                            {category.name}
                           </Badge>
                         ))
                       ) : (

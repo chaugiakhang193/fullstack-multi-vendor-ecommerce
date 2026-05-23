@@ -66,20 +66,14 @@ export const useAuthStore = create<AuthState>()(
             const newAccessToken = res.data.access_token;
             const user = res.data.user;
 
-            set({
-              accessToken: newAccessToken,
-              user: user,
-              isAuthenticated: true,
-            });
-            setAuthCookies(user.role, user.status);
+            get().setAuth(user, newAccessToken);
             return true;
           } catch (error: any) {
             // Phân biệt loại lỗi
             const status = error?.status;
 
             // Khi refresh thất bại (Cookie hết hạn / Session bị xóa ở DB), dọn dẹp sạch sẽ
-            set({ user: null, accessToken: null, isAuthenticated: false });
-            clearAuthCookies();
+            get().logout();
 
             // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
             if (status === 401 && typeof window !== "undefined") {

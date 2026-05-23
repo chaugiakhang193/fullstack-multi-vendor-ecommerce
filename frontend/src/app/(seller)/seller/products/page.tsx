@@ -1,7 +1,8 @@
-"use client";
+"use client"; // Định nghĩa đây là một Client Component trong Next.js (chạy phía trình duyệt, sử dụng React Hooks)
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+// Import các biểu tượng từ thư viện lucide-react để dựng giao diện trực quan
 import {
   Plus,
   Search,
@@ -14,20 +15,24 @@ import {
   EyeOff,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "sonner"; // Thư viện dùng để hiển thị thông báo (toast notification) dạng pop-up
 
-import productsApiRequest from "@/apiRequests/products";
-import { ProductResponseType } from "@/schemaValidations/products.schema";
-import { Button } from "@/components/ui/button";
+import productsApiRequest from "@/apiRequests/products"; // File định nghĩa các hàm gọi API đến backend cho sản phẩm
+import { ProductResponseType } from "@/schemaValidations/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
+import { Button } from "@/components/ui/button"; // Component nút bấm dùng chung từ Shadcn UI
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"; // Component Dialog (Hộp thoại xác nhận) từ Shadcn UI
 
-// Tính tổng tồn kho: nếu có biến thể thì cộng tồn kho từng biến thể, ngược lại dùng stock_quantity gốc
+/**
+ * Hàm hỗ trợ tính tổng lượng tồn kho của một sản phẩm.
+ * - Nếu sản phẩm có phân loại biến thể (has_variants = true) và có danh sách biến thể: cộng dồn `stock_quantity` của tất cả biến thể.
+ * - Ngược lại: trả về giá trị `stock_quantity` của sản phẩm gốc.
+ */
 function getTotalStock(product: ProductResponseType): number {
   if (product.has_variants && product.variants.length > 0) {
     return product.variants.reduce((sum, v) => sum + v.stock_quantity, 0);
@@ -35,7 +40,10 @@ function getTotalStock(product: ProductResponseType): number {
   return product.stock_quantity;
 }
 
-// Format giá tiền VND
+/**
+ * Hàm định dạng số thành chuỗi tiền tệ Việt Nam Đồng (VND).
+ * Ví dụ: 100000 -> 100.000 ₫
+ */
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -44,80 +52,108 @@ function formatPrice(price: number): string {
 }
 
 export default function SellerProductsPage() {
+  // --- ĐỊNH NGHĨA CÁC STATE (TRẠNG THÁI) ---
+  
+  // Lưu trữ danh sách toàn bộ sản phẩm của gian hàng được tải về từ API
   const [products, setProducts] = useState<ProductResponseType[]>([]);
+  
+  // Trạng thái hiển thị màn hình đang tải (loading) ban đầu
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Từ khóa tìm kiếm nhập bởi người dùng (để tìm theo tên hoặc SKU)
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Bộ lọc tồn kho: 'all' (Tất cả), 'in_stock' (Còn hàng), 'out_of_stock' (Hết hàng)
   const [stockFilter, setStockFilter] = useState<
     "all" | "in_stock" | "out_of_stock"
   >("all");
 
-  // State cho toggle is_hidden đang xử lý (lưu id sản phẩm đang toggle)
+  // Lưu ID của sản phẩm đang được thay đổi trạng thái Ẩn/Hiện (để hiển thị vòng quay loading tương ứng)
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // State cho confirm dialog xóa
+  // Lưu thông tin sản phẩm mà người dùng nhấn nút "Xóa" và chuẩn bị xác nhận xóa
   const [deletingProduct, setDeletingProduct] =
     useState<ProductResponseType | null>(null);
+    
+  // Trạng thái đang gửi yêu cầu xóa sản phẩm lên API (để hiển thị loading trên nút xóa)
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch danh sách sản phẩm
+  // --- HÀM GỌI API LẤY DANH SÁCH SẢN PHẨM ---
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
+      // Gọi API lấy kho hàng của Seller hiện tại
       const res = await productsApiRequest.getSellerInventory();
+      // Nếu API trả về thành công, lưu dữ liệu vào state `products`. Nếu không có, mặc định là mảng rỗng []
       setProducts(res.data ?? []);
     } catch (error: any) {
+      // Xử lý lỗi: lấy thông báo lỗi từ payload hoặc từ message hệ thống
       const msg =
         error?.payload?.message ||
         error?.message ||
         "Không thể tải danh sách sản phẩm.";
+      // Hiển thị thông báo lỗi lên màn hình (nếu là mảng lỗi thì nối các chuỗi lại bằng dấu phẩy)
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
+      // Kết thúc trạng thái tải
       setIsLoading(false);
     }
   };
 
+  // Fetch danh sách sản phẩm ngay khi trang web được tải lần đầu (mount)
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Filter client-side theo tên/SKU và trạng thái tồn kho
+  // --- LỌC SẢN PHẨM PHÍA CLIENT (CLIENT-SIDE FILTERING) ---
+  // Sử dụng useMemo để tối ưu hóa hiệu năng, chỉ tính toán lại danh sách lọc khi các biến `products`, `searchQuery` hoặc `stockFilter` thay đổi.
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      // Chuẩn hóa chuỗi tìm kiếm (chuyển sang chữ thường, cắt khoảng trắng đầu cuối)
       const query = searchQuery.toLowerCase().trim();
       const productSku =
         typeof product.sku === "string" ? product.sku.toLowerCase() : "";
+      
+      // Kiểm tra sản phẩm có chứa từ khóa tìm kiếm trong tên hoặc SKU không
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
         productSku.includes(query);
 
+      // Tính tổng số lượng hàng tồn của sản phẩm
       const totalStock = getTotalStock(product);
+      
+      // Kiểm tra xem sản phẩm có thỏa mãn bộ lọc tồn kho đã chọn không
       const matchesStock =
         stockFilter === "all" ||
         (stockFilter === "in_stock" && totalStock > 0) ||
         (stockFilter === "out_of_stock" && totalStock === 0);
 
+      // Sản phẩm hợp lệ phải thỏa mãn cả điều kiện tìm kiếm và điều kiện tồn kho
       return matchesSearch && matchesStock;
     });
   }, [products, searchQuery, stockFilter]);
 
-  // Toggle is_hidden — gửi qua FormData vì endpoint nhận multipart/form-data
+  // --- XỬ LÝ ẨN / HIỆN SẢN PHẨM ---
+  // Gọi API cập nhật thông tin sản phẩm. Dùng FormData do backend quy định sử dụng multipart/form-data
   const handleToggleHidden = async (product: ProductResponseType) => {
     const productId = product.id;
-    setTogglingId(productId);
+    setTogglingId(productId); // Đánh dấu sản phẩm này đang xử lý
     try {
       const formData = new FormData();
-      const newIsHidden = !product.is_hidden;
+      const newIsHidden = !product.is_hidden; // Đảo trạng thái ẩn/hiện hiện tại
       formData.append("is_hidden", String(newIsHidden));
 
+      // Gọi API cập nhật
       await productsApiRequest.updateProduct(productId, formData);
 
-      // Cập nhật state local ngay lập tức để UI phản hồi nhanh
+      // Cập nhật ngay lập tức trạng thái ẩn/hiện trong state cục bộ để UI thay đổi mượt mà mà không cần fetch lại toàn bộ danh sách
       setProducts((prev) =>
         prev.map((p) =>
           p.id === productId ? { ...p, is_hidden: newIsHidden } : p,
         ),
       );
+      // Hiển thị thông báo thành công tương ứng
       toast.success(newIsHidden ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
     } catch (error: any) {
       const msg =
@@ -126,19 +162,21 @@ export default function SellerProductsPage() {
         "Không thể cập nhật trạng thái ẩn/hiện.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
-      setTogglingId(null);
+      setTogglingId(null); // Giải phóng trạng thái xử lý ẩn/hiện
     }
   };
 
-  // Xóa sản phẩm (soft delete)
+  // --- XỬ LÝ XÓA SẢN PHẨM ---
+  // Thực hiện soft delete sản phẩm sau khi người dùng xác nhận ở hộp thoại Dialog
   const handleConfirmDelete = async () => {
     if (!deletingProduct) return;
     setIsDeleting(true);
     try {
+      // Gọi API xóa sản phẩm theo ID
       await productsApiRequest.deleteProduct(deletingProduct.id);
       toast.success(`Đã xóa sản phẩm "${deletingProduct.name}".`);
-      setDeletingProduct(null);
-      fetchProducts();
+      setDeletingProduct(null); // Đóng Dialog xác nhận xóa
+      fetchProducts(); // Tải lại danh sách sản phẩm mới từ server để cập nhật bảng
     } catch (error: any) {
       const msg =
         error?.payload?.message || error?.message || "Không thể xóa sản phẩm.";
@@ -148,10 +186,12 @@ export default function SellerProductsPage() {
     }
   };
 
-  // Loading skeleton
+  // --- GIAO DIỆN KHI ĐANG TẢI DỮ LIỆU (LOADING SKELETON) ---
+  // Tạo hiệu ứng khung xương màu xám chuyển động nhấp nháy (skeleton animation) thay cho loading xoay truyền thống
   if (isLoading) {
     return (
       <div className="space-y-6 animate-fade-in">
+        {/* Skeleton cho phần Tiêu đề và Nút thêm sản phẩm */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="h-9 w-64 bg-muted rounded-lg animate-pulse" />
@@ -159,7 +199,9 @@ export default function SellerProductsPage() {
           </div>
           <div className="h-9 w-36 bg-muted rounded-lg animate-pulse" />
         </div>
+        {/* Skeleton cho thanh tìm kiếm và bộ lọc */}
         <div className="h-14 bg-muted rounded-xl animate-pulse" />
+        {/* Skeleton cho Bảng danh sách sản phẩm (mô phỏng 5 dòng) */}
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
           {[...Array(5)].map((_, i) => (
             <div
@@ -182,19 +224,20 @@ export default function SellerProductsPage() {
     );
   }
 
+  // --- GIAO DIỆN CHÍNH CỦA TRANG QUẢN LÝ ---
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Tiêu đề trang & Nút thêm sản phẩm */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             Quản lý Sản phẩm
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của
-            bạn.
+            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của bạn.
           </p>
         </div>
+        {/* Đường dẫn chuyển hướng đến trang tạo sản phẩm mới */}
         <Link href="/seller/products/create">
           <button className="flex items-center text-xs font-semibold px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20">
             <Plus className="h-4 w-4 mr-1.5" /> Thêm sản phẩm
@@ -202,8 +245,9 @@ export default function SellerProductsPage() {
         </Link>
       </div>
 
-      {/* Filter và Search Bar */}
+      {/* Thanh tìm kiếm và bộ lọc trạng thái tồn kho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
+        {/* Ô nhập tìm kiếm */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
@@ -214,6 +258,7 @@ export default function SellerProductsPage() {
             className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
           />
         </div>
+        {/* Menu thả xuống (Dropdown) để lọc tồn kho */}
         <div className="flex items-center space-x-2">
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <select
@@ -230,7 +275,7 @@ export default function SellerProductsPage() {
         </div>
       </div>
 
-      {/* Empty State */}
+      {/* Trường hợp danh sách sản phẩm trống (Không tìm thấy kết quả hoặc Chưa có sản phẩm) */}
       {filteredProducts.length === 0 && !isLoading && (
         <div className="flex flex-col items-center justify-center py-20 rounded-xl border bg-card text-center gap-3">
           <Package className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
@@ -239,6 +284,7 @@ export default function SellerProductsPage() {
               ? "Không tìm thấy sản phẩm phù hợp."
               : "Chưa có sản phẩm nào. Thêm sản phẩm đầu tiên!"}
           </p>
+          {/* Chỉ hiện nút tạo nếu cửa hàng chưa có bất kỳ sản phẩm nào (không phải do bộ lọc tìm kiếm) */}
           {!searchQuery && stockFilter === "all" && (
             <Link href="/seller/products/create">
               <button className="flex items-center text-xs font-semibold px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20 mt-1">
@@ -249,7 +295,7 @@ export default function SellerProductsPage() {
         </div>
       )}
 
-      {/* Bảng sản phẩm */}
+      {/* Bảng danh sách sản phẩm */}
       {filteredProducts.length > 0 && (
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -271,14 +317,14 @@ export default function SellerProductsPage() {
                 {filteredProducts.map((product) => {
                   const totalStock = getTotalStock(product);
                   const isOutOfStock = totalStock === 0;
-                  const isToggling = togglingId === product.id;
+                  const isToggling = togglingId === product.id; // Kiểm tra xem sản phẩm cụ thể này có đang chạy hành động ẩn/hiện không
 
                   return (
                     <tr
                       key={product.id}
                       className="hover:bg-muted/30 transition-colors"
                     >
-                      {/* Ảnh thumbnail */}
+                      {/* Cột 1: Ảnh thumbnail của sản phẩm */}
                       <td className="p-4">
                         <div className="h-12 w-12 rounded-lg border bg-zinc-100 dark:bg-zinc-900 overflow-hidden shrink-0">
                           {product.thumbnail_url ? (
@@ -288,6 +334,7 @@ export default function SellerProductsPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
+                            // Hiển thị icon hộp quà mặc định nếu sản phẩm không có ảnh
                             <div className="w-full h-full flex items-center justify-center">
                               <Package className="h-5 w-5 text-zinc-400" />
                             </div>
@@ -295,7 +342,7 @@ export default function SellerProductsPage() {
                         </div>
                       </td>
 
-                      {/* Tên sản phẩm */}
+                      {/* Cột 2: Tên sản phẩm & nhãn thông tin phân loại (biến thể) nếu có */}
                       <td className="p-4">
                         <p className="font-semibold text-foreground line-clamp-2 max-w-[200px]">
                           {product.name}
@@ -307,39 +354,39 @@ export default function SellerProductsPage() {
                         )}
                       </td>
 
-                      {/* SKU */}
+                      {/* Cột 3: Mã định danh sản phẩm (SKU) */}
                       <td className="p-4 font-mono text-xs text-muted-foreground">
                         {typeof product.sku === "string" && product.sku
                           ? product.sku
                           : "—"}
                       </td>
 
-                      {/* Danh mục */}
+                      {/* Cột 4: Tên danh mục của sản phẩm */}
                       <td className="p-4 text-xs text-muted-foreground">
                         {product.category?.name ?? "—"}
                       </td>
 
-                      {/* Giá bán */}
+                      {/* Cột 5: Giá bán lẻ (Được định dạng sang tiền VND) */}
                       <td className="p-4 text-right font-semibold text-foreground">
                         {formatPrice(product.price)}
                       </td>
 
-                      {/* Tồn kho */}
+                      {/* Cột 6: Số lượng tồn kho (Đổi màu sắc tùy theo mức độ tồn kho) */}
                       <td className="p-4 text-center">
                         <span
                           className={`font-bold ${
                             isOutOfStock
-                              ? "text-rose-600 dark:text-rose-400"
+                              ? "text-rose-600 dark:text-rose-400" // Đỏ khi hết hàng
                               : totalStock <= 5
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-foreground"
+                                ? "text-amber-600 dark:text-amber-400" // Cam khi sắp hết hàng (<= 5)
+                                : "text-foreground" // Bình thường
                           }`}
                         >
                           {totalStock}
                         </span>
                       </td>
 
-                      {/* Trạng thái tồn kho */}
+                      {/* Cột 7: Nhãn trạng thái tồn kho (Hết hàng / Còn hàng) */}
                       <td className="p-4 text-center">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
@@ -352,7 +399,7 @@ export default function SellerProductsPage() {
                         </span>
                       </td>
 
-                      {/* Toggle Ẩn/Hiện */}
+                      {/* Cột 8: Nút bật/tắt (Toggle) trạng thái ẩn hoặc hiện sản phẩm ngoài trang chủ cửa hàng */}
                       <td className="p-4 text-center">
                         <button
                           onClick={() => handleToggleHidden(product)}
@@ -369,18 +416,19 @@ export default function SellerProductsPage() {
                           }`}
                         >
                           {isToggling ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" /> // Spinner quay khi đang gọi API
                           ) : product.is_hidden ? (
-                            <EyeOff className="h-4 w-4" />
+                            <EyeOff className="h-4 w-4" /> // Biểu tượng mắt gạch chéo (đang ẩn)
                           ) : (
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4" /> // Biểu tượng con mắt mở (đang hiện)
                           )}
                         </button>
                       </td>
 
-                      {/* Thao tác */}
+                      {/* Cột 9: Các thao tác sửa và xóa sản phẩm */}
                       <td className="p-4">
                         <div className="flex items-center justify-center space-x-1">
+                          {/* Nút sửa dẫn đến trang sửa chi tiết sản phẩm qua ID */}
                           <Link href={`/seller/products/${product.id}/edit`}>
                             <button
                               className="p-1.5 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
@@ -389,6 +437,7 @@ export default function SellerProductsPage() {
                               <Edit className="h-4 w-4" />
                             </button>
                           </Link>
+                          {/* Nút xóa sản phẩm, nhấn vào sẽ kích hoạt state deletingProduct để mở Dialog xác nhận */}
                           <button
                             onClick={() => setDeletingProduct(product)}
                             className="p-1.5 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition"
@@ -405,7 +454,7 @@ export default function SellerProductsPage() {
             </table>
           </div>
 
-          {/* Footer tổng số */}
+          {/* Dưới bảng: Hiển thị tóm tắt số lượng sản phẩm được lọc thành công */}
           <div className="px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground">
             Hiển thị{" "}
             <span className="font-bold text-foreground">
@@ -416,11 +465,11 @@ export default function SellerProductsPage() {
         </div>
       )}
 
-      {/* Confirm Dialog xóa sản phẩm */}
+      {/* --- DIALOG HỘP THOẠI XÁC NHẬN XÓA SẢN PHẨM --- */}
       <Dialog
-        open={!!deletingProduct}
+        open={!!deletingProduct} // Mở khi deletingProduct khác null
         onOpenChange={(open) => {
-          if (!open) setDeletingProduct(null);
+          if (!open) setDeletingProduct(null); // Nếu đóng Dialog thì reset deletingProduct về null
         }}
       >
         <DialogContent className="max-w-sm">
@@ -440,6 +489,7 @@ export default function SellerProductsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-2">
+            {/* Nút bấm thực hiện hành động xóa */}
             <Button
               variant="destructive"
               className="w-full font-bold text-xs"
@@ -455,6 +505,7 @@ export default function SellerProductsPage() {
                 "Xóa sản phẩm"
               )}
             </Button>
+            {/* Nút hủy để tắt hộp thoại */}
             <Button
               variant="outline"
               className="w-full font-bold text-xs"
