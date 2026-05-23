@@ -3,9 +3,6 @@ import type { components } from "@/lib/api/api-schema";
 
 type UpdateShopSwaggerDto = components["schemas"]["UpdateShopSwaggerDto"];
 
-// ==========================================
-// 1. SCHEMA KHỞI TẠO GIAN HÀNG (SETUP SHOP)
-// ==========================================
 // Schema cho form tạo gian hàng lần đầu (Setup Shop)
 // Frontend có 3 input riêng cho thông tin ngân hàng, sẽ merge thành bank_account_info khi gửi API
 export const CreateShopBody = z
@@ -43,10 +40,6 @@ export const CreateShopBody = z
   })
   .strict();
 
-// ==========================================
-// 2. SCHEMA CẬP NHẬT GIAN HÀNG (UPDATE SHOP)
-// ==========================================
-// Thông thường update sẽ cho phép sửa đổi các trường thông tin cơ bản
 export const UpdateShopBody = z
   .object({
     name: z
@@ -78,9 +71,6 @@ export const UpdateShopBody = z
   Omit<UpdateShopSwaggerDto, "categoryIds" | "logo_url" | "banner_url">
 >;
 
-// ==========================================
-// 3. SCHEMA RESPONSE TRẢ VỀ TỪ API
-// ==========================================
 export const ShopResponse = z.object({
   id: z.string(),
   name: z.string(),
@@ -102,9 +92,6 @@ export const ShopResponseRes = z.object({
   data: ShopResponse,
 });
 
-// ==========================================
-// 4. TRÍCH XUẤT TYPES SỬ DỤNG CHO COMPONENT
-// ==========================================
 export type CreateShopBodyType = z.TypeOf<typeof CreateShopBody>;
 export type UpdateShopBodyType = z.TypeOf<typeof UpdateShopBody>;
 

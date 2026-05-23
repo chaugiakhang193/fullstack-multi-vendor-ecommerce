@@ -35,7 +35,7 @@ export default function AppProvider({
         );
         if (hasSecurityWarning === "true") {
           toast.error(
-            "⚠️ Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại để bảo mật tài khoản.",
+            "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại để bảo mật tài khoản.",
             { duration: 5000 },
           );
           sessionStorage.removeItem("auth_security_warning");

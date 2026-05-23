@@ -52,11 +52,6 @@ export default function SellerLayout({
   // Check shop status và redirect logic
   useEffect(() => {
     const checkShopStatus = async () => {
-      console.log("[Layout Debug] checkShopStatus:", {
-        pathname,
-        userStatus: user?.status,
-      });
-
       // Bỏ qua check nếu đang ở trang settings, setup hoặc rejected
       if (
         pathname === "/seller/settings" ||
@@ -79,7 +74,7 @@ export default function SellerLayout({
           const res = await sellerApiRequest.getMyShop();
           const shop = res.data;
 
-          // 🔴 Nếu user pending_approval VÀ đã có shop → redirect /seller/pending
+          //  Nếu user pending_approval VÀ đã có shop → redirect /seller/pending
           if (
             user.status === "pending_approval" &&
             shop &&
@@ -92,7 +87,7 @@ export default function SellerLayout({
 
           // User active + shop active → OK, không redirect
         } catch (error: any) {
-          // 🔴 Nếu 404 (không có shop) → redirect /seller/setup NGAY
+          //  Nếu 404 (không có shop) → redirect /seller/setup NGAY
           if (error?.status === 404) {
             // Nếu đang ở /seller/pending mà không có shop → redirect setup với toast
             if (pathname === "/seller/pending") {

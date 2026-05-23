@@ -1,9 +1,9 @@
-"use client";
+"use client"; // Chạy dưới dạng Client Component để xử lý logic tương tác trên trình duyệt
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
+import { useDropzone } from "react-dropzone"; // Thư viện kéo thả file
+import { toast } from "sonner"; // Thông báo dạng pop-up
 import {
   Plus,
   Trash2,
@@ -13,10 +13,10 @@ import {
   Package,
   X,
   Save,
-} from "lucide-react";
+} from "lucide-react"; // Bộ biểu tượng SVG
 
-import productsApiRequest from "@/apiRequests/products";
-import categoriesApiRequest from "@/apiRequests/categories";
+import productsApiRequest from "@/apiRequests/products"; // API liên quan đến sản phẩm
+import categoriesApiRequest from "@/apiRequests/categories"; // API liên quan đến danh mục
 import { CategoryResponseType } from "@/schemaValidations/categories.schema";
 import { ProductResponseType } from "@/schemaValidations/products.schema";
 import { Button } from "@/components/ui/button";
@@ -24,19 +24,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 
-// Kiểu dữ liệu cho 1 row biến thể trong form Edit
-// Khác Create: có thêm id (biến thể cũ) và existingImages (URLs ảnh cũ giữ lại)
+// Định nghĩa kiểu dữ liệu cho một biến thể trong Form Chỉnh sửa
 type EditVariantFormItem = {
-  id?: string;
-  name: string;
-  sku: string;
-  additional_price: number;
-  stock_quantity: number;
-  existingImages: string[];
-  newImages: File[];
-  newImagePreviews: string[];
+  id?: string;               // ID của biến thể (chỉ có với các biến thể cũ đã tồn tại trên cơ sở dữ liệu)
+  name: string;              // Tên biến thể (Ví dụ: "Đỏ - XL")
+  sku: string;               // Mã định danh hàng hóa (SKU) cho riêng biến thể
+  additional_price: number;  // Giá cộng thêm so với giá gốc sản phẩm
+  stock_quantity: number;    // Số lượng hàng tồn kho của biến thể này
+  existingImages: string[];  // Danh sách các URL ảnh cũ của biến thể đang được giữ lại
+  newImages: File[];         // Các file ảnh mới được thêm vào ở phiên làm việc này
+  newImagePreviews: string[]; // URL dạng Blob để hiển thị trước ảnh mới tải lên
 };
 
+// Kiểu dữ liệu chứa thông tin các lỗi khi validate Form
 type FormErrors = {
   name?: string;
   price?: string;
@@ -47,6 +47,7 @@ type FormErrors = {
   [key: string]: string | undefined;
 };
 
+// Hàm khởi tạo một đối tượng biến thể trống rỗng
 function createEmptyEditVariant(): EditVariantFormItem {
   return {
     name: "",
@@ -59,7 +60,10 @@ function createEmptyEditVariant(): EditVariantFormItem {
   };
 }
 
-// Component Dropzone ảnh biến thể cho Edit (hiển thị ảnh cũ + upload mới)
+/**
+ * Component hiển thị khu vực upload hình ảnh cho từng biến thể.
+ * Hỗ trợ hiển thị ảnh cũ đã tải lên, xem trước ảnh mới chọn, xóa ảnh cũ/mới và kéo thả tối đa 3 ảnh.
+ */
 function EditVariantImageDropzone({
   variantIndex,
   existingImages,
@@ -77,14 +81,16 @@ function EditVariantImageDropzone({
   onAddNewImages: (variantIndex: number, files: File[]) => void;
   onRemoveNewImage: (variantIndex: number, imageIndex: number) => void;
 }) {
-  const totalImages = existingImages.length + newImages.length;
-  const remainingSlots = 3 - totalImages;
+  const totalImages = existingImages.length + newImages.length; // Tổng số ảnh hiện tại của biến thể
+  const remainingSlots = 3 - totalImages; // Số lượng ảnh còn lại có thể upload (tối đa 3)
 
+  // Cấu hình Dropzone kéo thả ảnh cho biến thể
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { "image/*": [] },
-    multiple: true,
-    disabled: remainingSlots <= 0,
+    accept: { "image/*": [] }, // Chỉ nhận các file ảnh
+    multiple: true, // Cho phép chọn nhiều ảnh cùng lúc
+    disabled: remainingSlots <= 0, // Vô hiệu hóa kéo thả nếu đã đủ 3 ảnh
     onDrop: (acceptedFiles) => {
+      // Giới hạn số file nhận vào vừa đúng số slot còn lại
       const filesToAdd = acceptedFiles.slice(0, remainingSlots);
       onAddNewImages(variantIndex, filesToAdd);
     },
@@ -96,7 +102,7 @@ function EditVariantImageDropzone({
         Ảnh biến thể (tối đa 3)
       </p>
       <div className="flex flex-wrap gap-2">
-        {/* Ảnh cũ giữ lại */}
+        {/* Vòng lặp hiển thị những ảnh Cũ đang được giữ lại */}
         {existingImages.map((imageUrl, imgIdx) => (
           <div
             key={`existing-${imgIdx}`}
@@ -107,6 +113,7 @@ function EditVariantImageDropzone({
               alt={`Ảnh cũ ${imgIdx + 1}`}
               className="w-full h-full object-cover"
             />
+            {/* Nút xóa ảnh cũ ra khỏi danh sách gửi lên (chỉ xóa ở giao diện trước, không xóa trực tiếp trên DB lúc này) */}
             <button
               type="button"
               onClick={() => onRemoveExisting(variantIndex, imageUrl)}
@@ -116,7 +123,8 @@ function EditVariantImageDropzone({
             </button>
           </div>
         ))}
-        {/* Ảnh mới preview */}
+
+        {/* Vòng lặp hiển thị các ảnh Mới được người dùng chọn thêm */}
         {newImagePreviews.map((previewUrl, imgIdx) => (
           <div
             key={`new-${imgIdx}`}
@@ -127,11 +135,13 @@ function EditVariantImageDropzone({
               alt={`Ảnh mới ${imgIdx + 1}`}
               className="w-full h-full object-cover opacity-80"
             />
+            {/* Nhãn đánh dấu ảnh mới */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <span className="text-[9px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">
                 Mới
               </span>
             </div>
+            {/* Nút xóa bỏ ảnh mới đã chọn */}
             <button
               type="button"
               onClick={() => onRemoveNewImage(variantIndex, imgIdx)}
@@ -141,7 +151,8 @@ function EditVariantImageDropzone({
             </button>
           </div>
         ))}
-        {/* Slot upload thêm */}
+
+        {/* Khung bấm chọn file / kéo thả ảnh mới nếu còn lượt */}
         {remainingSlots > 0 && (
           <div
             {...getRootProps()}
@@ -162,18 +173,18 @@ function EditVariantImageDropzone({
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string;
+  const productId = params.id as string; // Lấy ID sản phẩm cần chỉnh sửa từ URL
 
-  // State loading
-  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  // --- CÁC TRẠNG THÁI LOADING & LỖI ---
+  const [isLoadingProduct, setIsLoadingProduct] = useState(true); // Load thông tin sản phẩm ban đầu
+  const [isSubmitting, setIsSubmitting] = useState(false);        // Đang submit form
+  const [errors, setErrors] = useState<FormErrors>({});          // Chứa thông tin lỗi validate form
 
-  // State danh mục
-  const [categories, setCategories] = useState<CategoryResponseType[]>([]);
-  const [selectedParentId, setSelectedParentId] = useState<string>("");
+  // --- CÁC TRẠNG THÁI LIÊN QUAN ĐẾN DANH MỤC ---
+  const [categories, setCategories] = useState<CategoryResponseType[]>([]); // Toàn bộ danh mục hệ thống
+  const [selectedParentId, setSelectedParentId] = useState<string>("");    // ID danh mục cha được chọn
 
-  // State form cơ bản
+  // --- CÁC TRẠNG THÁI THÔNG TIN CƠ BẢN SẢN PHẨM ---
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<string>("");
@@ -182,30 +193,24 @@ export default function EditProductPage() {
   const [length, setLength] = useState<string>("");
   const [width, setWidth] = useState<string>("");
   const [height, setHeight] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<string>("");
-  const [stockQuantity, setStockQuantity] = useState<string>("");
-  const [hasVariants, setHasVariants] = useState(false);
+  const [categoryId, setCategoryId] = useState<string>(""); // ID danh mục con (lưu trữ chính thức vào sản phẩm)
+  const [stockQuantity, setStockQuantity] = useState<string>(""); // Số lượng tồn kho nếu không có biến thể
+  const [hasVariants, setHasVariants] = useState(false);     // Đánh dấu sản phẩm có phân loại biến thể hay không
 
-  // State ảnh thumbnail
-  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<
-    string | null
-  >(null);
-  const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);
-  const [newThumbnailPreview, setNewThumbnailPreview] = useState<string | null>(
-    null,
-  );
+  // --- CÁC TRẠNG THÁI ẢNH ĐẠI DIỆN (THUMBNAIL) ---
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState<string | null>(null); // URL ảnh đại diện hiện tại
+  const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);           // File ảnh đại diện mới chọn
+  const [newThumbnailPreview, setNewThumbnailPreview] = useState<string | null>(null);   // Preview ảnh đại diện mới
 
-  // State gallery: ảnh cũ giữ lại + ảnh mới
-  const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>(
-    [],
-  );
-  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
-  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);
+  // --- CÁC TRẠNG THÁI BỘ SƯU TẬP ẢNH (GALLERY) ---
+  const [existingGalleryImages, setExistingGalleryImages] = useState<string[]>([]); // Các ảnh gallery cũ được giữ lại
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);               // File ảnh gallery mới chọn
+  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);       // Preview ảnh gallery mới
 
-  // State biến thể
+  // --- DANH SÁCH BIẾN THỂ ---
   const [variants, setVariants] = useState<EditVariantFormItem[]>([]);
 
-  // Cleanup object URLs khi unmount
+  // DỌN DẸP BỘ NHỚ: Thu hồi (revoke) các đường dẫn xem trước ảnh tạm thời (Blob URLs) khi component unmount
   useEffect(() => {
     return () => {
       if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
@@ -216,7 +221,7 @@ export default function EditProductPage() {
     };
   }, []);
 
-  // Fetch danh mục và chi tiết sản phẩm song song khi mount
+  // LẤY DỮ LIỆU BAN ĐẦU: Gọi đồng thời API lấy danh mục và API chi tiết sản phẩm cần sửa
   useEffect(() => {
     const fetchData = async () => {
       setIsLoadingProduct(true);
@@ -230,14 +235,14 @@ export default function EditProductPage() {
         setCategories(allCategories);
 
         const product = productRes.data;
-        prefillForm(product, allCategories);
+        prefillForm(product, allCategories); // Đổ dữ liệu cũ vào form nhập liệu
       } catch (error: any) {
         const msg =
           error?.payload?.message ||
           error?.message ||
           "Không thể tải thông tin sản phẩm.";
         toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
-        router.push("/seller/products");
+        router.push("/seller/products"); // Gặp lỗi thì đẩy người dùng về trang danh sách
       } finally {
         setIsLoadingProduct(false);
       }
@@ -245,7 +250,7 @@ export default function EditProductPage() {
     fetchData();
   }, [productId]);
 
-  // Pre-fill toàn bộ form từ dữ liệu sản phẩm
+  // ĐỔ DỮ LIỆU (PRE-FILL): Gán các dữ liệu cũ từ server vào các biến State của form
   const prefillForm = (
     product: ProductResponseType,
     allCategories: CategoryResponseType[],
@@ -265,12 +270,13 @@ export default function EditProductPage() {
       product.has_variants ? "" : String(product.stock_quantity),
     );
 
-    // Pre-fill thumbnail
+    // Gán URL thumbnail cũ
     if (product.thumbnail_url && typeof product.thumbnail_url === "string") {
       setExistingThumbnailUrl(product.thumbnail_url);
     }
 
-    // Pre-fill gallery: lấy URLs từ aggregated_gallery bỏ thumbnail
+    // Tách bộ sưu tập ảnh: aggregated_gallery chứa toàn bộ ảnh của sản phẩm kể cả thumbnail.
+    // Cần lọc bỏ ảnh trùng với thumbnail_url để chỉ lấy danh sách ảnh phụ (Gallery).
     const thumbnailUrl =
       typeof product.thumbnail_url === "string" ? product.thumbnail_url : null;
     const galleryUrls = product.aggregated_gallery.filter(
@@ -278,7 +284,7 @@ export default function EditProductPage() {
     );
     setExistingGalleryImages(galleryUrls);
 
-    // Pre-fill danh mục: tìm parent của category hiện tại
+    // Gán dữ liệu danh mục cũ: tìm danh mục cha dựa trên danh mục con của sản phẩm
     if (product.category) {
       const currentCategory = allCategories.find(
         (c) => c.id === product.category?.id,
@@ -287,13 +293,13 @@ export default function EditProductPage() {
         setSelectedParentId(currentCategory.parent.id);
         setCategoryId(currentCategory.id);
       } else if (currentCategory) {
-        // Danh mục gốc (không có parent) — set trực tiếp
+        // Nếu bản thân danh mục đó là danh mục cha (không có parent), chọn trực tiếp
         setSelectedParentId(currentCategory.id);
         setCategoryId(currentCategory.id);
       }
     }
 
-    // Pre-fill biến thể
+    // Gán danh sách biến thể cũ
     if (product.has_variants && product.variants.length > 0) {
       const editVariants: EditVariantFormItem[] = product.variants.map((v) => ({
         id: v.id,
@@ -301,7 +307,7 @@ export default function EditProductPage() {
         sku: v.sku || "",
         additional_price: v.additional_price,
         stock_quantity: v.stock_quantity,
-        existingImages: v.images,
+        existingImages: v.images, // Các ảnh cũ của biến thể
         newImages: [],
         newImagePreviews: [],
       }));
@@ -309,41 +315,43 @@ export default function EditProductPage() {
     }
   };
 
-  // Danh mục gốc và con
-  const rootCategories = categories.filter((c) => !c.parent);
+  // Chia danh sách các danh mục phục vụ chọn dropdown
+  const rootCategories = categories.filter((c) => !c.parent); // Danh mục cha
   const childCategories = selectedParentId
-    ? categories.filter((c) => c.parent?.id === selectedParentId)
+    ? categories.filter((c) => c.parent?.id === selectedParentId) // Danh mục con tương ứng với danh mục cha đã chọn
     : [];
 
+  // Khi danh mục cha thay đổi thì reset danh mục con đã chọn
   const handleParentChange = (parentId: string) => {
     setSelectedParentId(parentId);
     setCategoryId("");
   };
 
-  // Dropzone thumbnail mới
+  // Cấu hình Dropzone ảnh đại diện (Thumbnail)
   const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } =
     useDropzone({
       accept: { "image/*": [] },
-      multiple: false,
+      multiple: false, // Chỉ cho chọn 1 ảnh đại diện duy nhất
       onDrop: (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (!file) return;
+        // Nếu có preview cũ trước đó, hãy giải phóng bộ nhớ
         if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
         setNewThumbnailFile(file);
-        setNewThumbnailPreview(URL.createObjectURL(file));
+        setNewThumbnailPreview(URL.createObjectURL(file)); // Tạo link xem trước ảnh mới chọn
       },
     });
 
-  // Dropzone gallery mới
+  // Cấu hình Dropzone bộ sưu tập ảnh (Gallery)
   const totalGalleryCount =
-    existingGalleryImages.length + newGalleryFiles.length;
-  const remainingGallerySlots = 5 - totalGalleryCount;
+    existingGalleryImages.length + newGalleryFiles.length; // Tổng số ảnh cũ giữ lại + ảnh mới chọn thêm
+  const remainingGallerySlots = 5 - totalGalleryCount; // Chỉ cho phép tối đa 5 ảnh phụ
 
   const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
     useDropzone({
       accept: { "image/*": [] },
       multiple: true,
-      disabled: remainingGallerySlots <= 0,
+      disabled: remainingGallerySlots <= 0, // Đầy slot thì khóa tính năng
       onDrop: (acceptedFiles) => {
         const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
         const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
@@ -352,29 +360,34 @@ export default function EditProductPage() {
       },
     });
 
-  // Xóa ảnh gallery cũ (chỉ bỏ khỏi danh sách giữ lại, không gọi API)
+  // Loại bỏ một ảnh cũ trong gallery (chỉ bỏ khỏi mảng hiển thị và gửi lên, API backend sẽ xóa khi nhận submit)
   const handleRemoveExistingGallery = (imageUrl: string) => {
     setExistingGalleryImages((prev) => prev.filter((url) => url !== imageUrl));
   };
 
-  // Xóa ảnh gallery mới chưa upload
+  // Loại bỏ một ảnh mới đã chọn trong gallery trước khi upload
   const handleRemoveNewGallery = (index: number) => {
     URL.revokeObjectURL(newGalleryPreviews[index]);
     setNewGalleryFiles((prev) => prev.filter((_, i) => i !== index));
     setNewGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Handlers biến thể
+  // --- CÁC HÀM TƯƠNG TÁC BIẾN THỂ ---
+  
+  // Thêm một hàng biến thể rỗng mới vào form
   const handleAddVariant = () => {
     setVariants((prev) => [...prev, createEmptyEditVariant()]);
   };
 
+  // Xóa một hàng biến thể ra khỏi danh sách
   const handleRemoveVariant = (index: number) => {
     const variant = variants[index];
+    // Dọn dẹp link xem trước ảnh của biến thể đó để tránh rò rỉ bộ nhớ
     variant.newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
     setVariants((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Xử lý thay đổi dữ liệu (tên, sku, tồn kho, giá...) tại một trường bất kỳ của biến thể
   const handleVariantChange = (
     index: number,
     field: keyof Omit<
@@ -388,6 +401,7 @@ export default function EditProductPage() {
     );
   };
 
+  // Xóa ảnh cũ của một biến thể cụ thể
   const handleRemoveExistingVariantImage = (
     variantIndex: number,
     imageUrl: string,
@@ -406,6 +420,7 @@ export default function EditProductPage() {
     );
   };
 
+  // Thêm các ảnh mới cho một biến thể cụ thể
   const handleAddNewVariantImages = (variantIndex: number, files: File[]) => {
     const newPreviews = files.map((f) => URL.createObjectURL(f));
     setVariants((prev) =>
@@ -421,6 +436,7 @@ export default function EditProductPage() {
     );
   };
 
+  // Xóa ảnh mới (chưa upload) của một biến thể cụ thể
   const handleRemoveNewVariantImage = (
     variantIndex: number,
     imageIndex: number,
@@ -440,7 +456,7 @@ export default function EditProductPage() {
     );
   };
 
-  // Validate form
+  // --- HÀM VALIDATE FORM TRƯỚC KHI SUBMIT ---
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!name.trim()) newErrors.name = "Tên sản phẩm không được để trống.";
@@ -451,10 +467,12 @@ export default function EditProductPage() {
     if (!categoryId) newErrors.category_id = "Vui lòng chọn danh mục.";
 
     if (!hasVariants) {
+      // Nếu KHÔNG có biến thể, thì kiểm tra số lượng tồn kho sản phẩm gốc
       if (!stockQuantity || parseInt(stockQuantity) < 0) {
         newErrors.stock_quantity = "Tồn kho không hợp lệ.";
       }
     } else {
+      // Nếu CÓ biến thể, kiểm tra từng dòng biến thể
       if (variants.length === 0) {
         newErrors.variants = "Cần ít nhất 1 biến thể.";
       } else {
@@ -467,7 +485,7 @@ export default function EditProductPage() {
           if (variant.stock_quantity < 0) {
             newErrors[`variant_${i}_stock`] = "Tồn kho không được âm.";
           }
-          // Biến thể phải có ít nhất 1 ảnh (cũ hoặc mới)
+          // Yêu cầu bắt buộc mỗi phân loại phải có ít nhất 1 ảnh (cũ hoặc mới)
           const totalVariantImages =
             variant.existingImages.length + variant.newImages.length;
           if (totalVariantImages === 0) {
@@ -478,12 +496,12 @@ export default function EditProductPage() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0; // Trả về true nếu không có bất kỳ lỗi nào
   };
 
-  // Build FormData và submit PATCH
+  // --- HÀM GỬI DỮ LIỆU CẬP NHẬT (SUBMIT FORM) ---
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Ngăn trình duyệt load lại trang mặc định
     if (!validate()) {
       toast.error("Vui lòng kiểm tra lại các trường bắt buộc.");
       return;
@@ -491,9 +509,10 @@ export default function EditProductPage() {
 
     setIsSubmitting(true);
     try {
+      // Dùng FormData để hỗ trợ upload nhiều file đính kèm song song với thông tin JSON khác
       const formData = new FormData();
 
-      // Append các trường cơ bản
+      // Đưa các thông tin cơ bản vào FormData
       formData.append("name", name.trim());
       formData.append("description", description.trim());
       formData.append("price", price);
@@ -505,40 +524,43 @@ export default function EditProductPage() {
       formData.append("category_id", categoryId);
       formData.append("has_variants", String(hasVariants));
 
-      // Tồn kho gốc (chỉ khi không có biến thể)
+      // Lưu trữ tồn kho của sản phẩm không có biến thể
       if (!hasVariants && stockQuantity) {
         formData.append("stock_quantity", stockQuantity);
       }
 
-      // Thumbnail mới (nếu có chọn)
+      // Đính kèm ảnh Thumbnail mới nếu người dùng vừa đổi ảnh đại diện
       if (newThumbnailFile) {
         formData.append("thumbnail", newThumbnailFile);
       }
 
-      // Gallery: ảnh cũ giữ lại (JSON string) + ảnh mới
+      // Gửi danh sách các URL ảnh cũ của bộ sưu tập còn được giữ lại dưới dạng chuỗi JSON
       formData.append(
         "existingGalleryImages",
         JSON.stringify(existingGalleryImages),
       );
+      // Đính kèm từng file ảnh phụ mới tải lên dưới cùng 1 tên key để Backend nhận diện dạng mảng
       newGalleryFiles.forEach((file) => {
         formData.append("general_gallery", file);
       });
 
-      // Biến thể và ảnh biến thể
+      // Xử lý đính kèm mảng biến thể
       if (hasVariants) {
-        // Build variants JSON với imageCount = số ảnh MỚI (không tính ảnh cũ)
+        // Tạo cấu trúc dữ liệu JSON gửi lên cho biến thể.
+        // Chỉ lưu thông tin metadata + "imageCount" tương ứng số ảnh mới để backend map đúng file tương ứng.
         const variantsData = variants.map((v) => ({
-          ...(v.id ? { id: v.id } : {}),
+          ...(v.id ? { id: v.id } : {}), // Gửi kèm ID để backend biết đây là biến thể cũ cần sửa, không có ID sẽ là thêm mới
           name: v.name,
           sku: v.sku || undefined,
           additional_price: v.additional_price,
           stock_quantity: v.stock_quantity,
-          existingImages: v.existingImages,
-          imageCount: v.newImages.length,
+          existingImages: v.existingImages, // Ảnh cũ được giữ lại của biến thể này
+          imageCount: v.newImages.length,   // Số lượng file ảnh mới của biến thể này
         }));
         formData.append("variants", JSON.stringify(variantsData));
 
-        // Flatten ảnh mới của các biến thể theo đúng thứ tự
+        // Duỗi phẳng (flatten) tất cả các file ảnh của mọi biến thể và đẩy lên cùng key 'variant_images'.
+        // Backend dựa trên thứ tự xuất hiện và trường 'imageCount' bên trên để gán ảnh đúng vào biến thể.
         variants.forEach((v) => {
           v.newImages.forEach((imageFile) => {
             formData.append("variant_images", imageFile);
@@ -546,9 +568,10 @@ export default function EditProductPage() {
         });
       }
 
+      // Gọi API gửi yêu cầu cập nhật sản phẩm
       await productsApiRequest.updateProduct(productId, formData);
       toast.success("Cập nhật sản phẩm thành công!");
-      router.push("/seller/products");
+      router.push("/seller/products"); // Chuyển về trang danh sách quản lý
     } catch (error: any) {
       const msg =
         error?.payload?.message ||
@@ -560,7 +583,7 @@ export default function EditProductPage() {
     }
   };
 
-  // Loading skeleton
+  // --- GIAO DIỆN SKELETON KHI ĐANG LOAD THÔNG TIN SẢN PHẨM ---
   if (isLoadingProduct) {
     return (
       <div className="space-y-6 max-w-4xl animate-fade-in">
@@ -585,11 +608,12 @@ export default function EditProductPage() {
     );
   }
 
+  // Thứ tự ưu tiên ảnh đại diện hiển thị trên form: ảnh mới chọn xem trước > ảnh cũ từ backend
   const displayThumbnail = newThumbnailPreview || existingThumbnailUrl;
 
   return (
     <div className="space-y-6 max-w-4xl animate-fade-in pb-10">
-      {/* Header */}
+      {/* Header điều hướng quay lại */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -609,7 +633,7 @@ export default function EditProductPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Thông tin cơ bản */}
+        {/* Form: Thông tin cơ bản */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
           <h3 className="font-semibold text-lg leading-none border-b pb-3">
             Thông tin cơ bản
@@ -658,12 +682,13 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* Danh mục */}
+        {/* Form: Chọn danh mục phân loại */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
           <h3 className="font-semibold text-lg leading-none border-b pb-3">
             Danh mục
           </h3>
           <div className="grid grid-cols-2 gap-4">
+            {/* Dropdown danh mục cha */}
             <Field>
               <FieldLabel>Danh mục cha</FieldLabel>
               <select
@@ -679,6 +704,7 @@ export default function EditProductPage() {
                 ))}
               </select>
             </Field>
+            {/* Dropdown danh mục con */}
             <Field>
               <FieldLabel>Danh mục con *</FieldLabel>
               <select
@@ -702,7 +728,7 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* Logistics */}
+        {/* Form: Thông số đóng gói (Kích thước & Cân nặng cho đơn vị vận chuyển) */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
           <h3 className="font-semibold text-lg leading-none border-b pb-3">
             Thông số đóng gói
@@ -753,13 +779,13 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* Hình ảnh */}
+        {/* Form: Quản lý toàn bộ hình ảnh sản phẩm */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
           <h3 className="font-semibold text-lg leading-none border-b pb-3">
             Hình ảnh sản phẩm
           </h3>
 
-          {/* Thumbnail */}
+          {/* Upload Thumbnail mới */}
           <div className="space-y-2">
             <p className="text-sm font-semibold">Ảnh đại diện (Thumbnail)</p>
             <div
@@ -781,6 +807,7 @@ export default function EditProductPage() {
                       </span>
                     </div>
                   )}
+                  {/* Nhãn phủ hover lên ảnh để báo thay đổi ảnh đại diện */}
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <span className="text-white text-xs font-bold">
                       Thay đổi
@@ -798,13 +825,13 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Gallery */}
+          {/* Upload ảnh Gallery bộ sưu tập */}
           <div className="space-y-2">
             <p className="text-sm font-semibold">
               Ảnh bộ sưu tập (tối đa 5 ảnh)
             </p>
             <div className="flex flex-wrap gap-3">
-              {/* Ảnh cũ giữ lại */}
+              {/* Danh sách ảnh cũ đang giữ lại */}
               {existingGalleryImages.map((imageUrl, idx) => (
                 <div
                   key={`existing-${idx}`}
@@ -824,7 +851,7 @@ export default function EditProductPage() {
                   </button>
                 </div>
               ))}
-              {/* Ảnh mới preview */}
+              {/* Danh sách ảnh mới chọn */}
               {newGalleryPreviews.map((previewUrl, idx) => (
                 <div
                   key={`new-${idx}`}
@@ -849,7 +876,7 @@ export default function EditProductPage() {
                   </button>
                 </div>
               ))}
-              {/* Slot upload thêm */}
+              {/* Slot bấm tải thêm ảnh gallery phụ nếu chưa đủ 5 ảnh */}
               {remainingGallerySlots > 0 && (
                 <div
                   {...getGalleryProps()}
@@ -866,12 +893,13 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        {/* Tồn kho & Biến thể */}
+        {/* Form: Quản lý Tồn kho & Các phân loại biến thể */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b pb-3">
             <h3 className="font-semibold text-lg leading-none">
               Tồn kho & Biến thể
             </h3>
+            {/* Toggle bật tắt sản phẩm nhiều biến thể */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground">
                 Sản phẩm có nhiều phiên bản
@@ -887,7 +915,7 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Tồn kho gốc */}
+          {/* Tồn kho trực tiếp (chỉ hiện khi sản phẩm KHÔNG chia biến thể) */}
           {!hasVariants && (
             <Field>
               <FieldLabel htmlFor="edit-stock">Số lượng tồn kho *</FieldLabel>
@@ -906,7 +934,7 @@ export default function EditProductPage() {
             </Field>
           )}
 
-          {/* Variant rows */}
+          {/* Danh sách form biến thể chi tiết (chỉ hiện khi bật nhiều biến thể) */}
           {hasVariants && (
             <div className="space-y-4">
               {errors.variants && <FieldError>{errors.variants}</FieldError>}
@@ -915,6 +943,7 @@ export default function EditProductPage() {
                   key={variant.id || `new-${idx}`}
                   className="rounded-lg border bg-muted/20 p-4 space-y-3 relative"
                 >
+                  {/* Nút xóa dòng biến thể (chỉ cho phép xóa khi tổng số biến thể lớn hơn 1) */}
                   {variants.length > 1 && (
                     <button
                       type="button"
@@ -925,6 +954,7 @@ export default function EditProductPage() {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
+                  {/* Tiêu đề biến thể và nhãn hiển thị loại biến thể mới hoặc đã lưu trên DB */}
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">
                       Biến thể #{idx + 1}
@@ -940,6 +970,7 @@ export default function EditProductPage() {
                       </span>
                     )}
                   </div>
+                  {/* Grid nhập thông số của từng biến thể */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="md:col-span-2">
                       <label className="text-xs font-semibold text-muted-foreground block mb-1">
@@ -1010,6 +1041,7 @@ export default function EditProductPage() {
                       )}
                     </div>
                   </div>
+                  {/* Dropzone quản lý ảnh dành riêng cho biến thể này */}
                   <EditVariantImageDropzone
                     variantIndex={idx}
                     existingImages={variant.existingImages}
@@ -1024,6 +1056,7 @@ export default function EditProductPage() {
                   )}
                 </div>
               ))}
+              {/* Nút bấm để nối tiếp thêm 1 biến thể trống mới */}
               <button
                 type="button"
                 onClick={handleAddVariant}
@@ -1035,7 +1068,7 @@ export default function EditProductPage() {
           )}
         </div>
 
-        {/* Submit */}
+        {/* Nút Submit / Quay lại ở cuối trang */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
             type="button"
