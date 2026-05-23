@@ -47,6 +47,13 @@ export default function AdminLayout({
 
   useEffect(() => {
     setIsMounted(true);
+    // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Admin Dashboard
+    document.documentElement.classList.add("overflow-hidden", "h-screen");
+    document.body.classList.add("overflow-hidden", "h-screen");
+    return () => {
+      document.documentElement.classList.remove("overflow-hidden", "h-screen");
+      document.body.classList.remove("overflow-hidden", "h-screen");
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -102,7 +109,6 @@ export default function AdminLayout({
     return pathname.startsWith(href);
   };
 
-  // Helper to render dynamic breadcrumbs
   const getBreadcrumbs = () => {
     const paths = pathname.split("/").filter(Boolean);
     const breadcrumbs = [];
@@ -113,17 +119,36 @@ export default function AdminLayout({
       sellers: "Duyệt cửa hàng",
       categories: "Danh mục",
       products: "Sản phẩm",
+      create: "Tạo mới",
+      edit: "Chỉnh sửa",
     };
 
     let currentHref = "";
+    const isUUID = (str: string) =>
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        str,
+      );
+
     for (let i = 0; i < paths.length; i++) {
       currentHref += `/${paths[i]}`;
+
+      // Bỏ qua hiển thị UUID trong breadcrumbs để tránh link 404 và làm giao diện sạch hơn
+      if (isUUID(paths[i])) {
+        continue;
+      }
+
       breadcrumbs.push({
         label: routeMap[paths[i]] || paths[i],
         href: currentHref,
-        isLast: i === paths.length - 1,
+        isLast: false,
       });
     }
+
+    // Thiết lập lại thuộc tính isLast cho breadcrumb hiển thị cuối cùng
+    if (breadcrumbs.length > 0) {
+      breadcrumbs[breadcrumbs.length - 1].isLast = true;
+    }
+
     return breadcrumbs;
   };
 

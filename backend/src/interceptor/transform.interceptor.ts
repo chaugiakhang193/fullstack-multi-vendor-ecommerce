@@ -16,24 +16,26 @@ export interface Response<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T> implements NestInterceptor<
-  T,
-  Response<T>
-> {
+export class TransformInterceptor<T> implements NestInterceptor<T, any> {
   constructor(private reflector: Reflector) {}
 
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<Response<T>> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      map((data) => ({
-        statusCode: context.switchToHttp().getResponse().statusCode,
-        message:
-          this.reflector.get<string>(RESPONSE_MESSAGE, context.getHandler()) ||
-          '',
-        data: data,
-      })),
+      map((data) => {
+        // Nếu data có trường url (dành cho redirect), trả về nguyên bản để NestJS tự xử lý redirect
+        if (data && typeof data === 'object' && 'url' in data) {
+          return data;
+        }
+        return {
+          statusCode: context.switchToHttp().getResponse().statusCode,
+          message:
+            this.reflector.get<string>(
+              RESPONSE_MESSAGE,
+              context.getHandler(),
+            ) || '',
+          data: data,
+        };
+      }),
     );
   }
 }

@@ -30,6 +30,7 @@ import {
 
 /**
  * Hàm hỗ trợ tính tổng lượng tồn kho của một sản phẩm.
+ * - Đây là hàm dự phòng lỗi (fallback) để tránh trường hợp Backend gặp lỗi đồng bộ tồn kho giữa sản phẩm cha và các biến thể.
  * - Nếu sản phẩm có phân loại biến thể (has_variants = true) và có danh sách biến thể: cộng dồn `stock_quantity` của tất cả biến thể.
  * - Ngược lại: trả về giá trị `stock_quantity` của sản phẩm gốc.
  */
@@ -53,16 +54,16 @@ function formatPrice(price: number): string {
 
 export default function SellerProductsPage() {
   // --- ĐỊNH NGHĨA CÁC STATE (TRẠNG THÁI) ---
-  
+
   // Lưu trữ danh sách toàn bộ sản phẩm của gian hàng được tải về từ API
   const [products, setProducts] = useState<ProductResponseType[]>([]);
-  
+
   // Trạng thái hiển thị màn hình đang tải (loading) ban đầu
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Từ khóa tìm kiếm nhập bởi người dùng (để tìm theo tên hoặc SKU)
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Bộ lọc tồn kho: 'all' (Tất cả), 'in_stock' (Còn hàng), 'out_of_stock' (Hết hàng)
   const [stockFilter, setStockFilter] = useState<
     "all" | "in_stock" | "out_of_stock"
@@ -74,7 +75,7 @@ export default function SellerProductsPage() {
   // Lưu thông tin sản phẩm mà người dùng nhấn nút "Xóa" và chuẩn bị xác nhận xóa
   const [deletingProduct, setDeletingProduct] =
     useState<ProductResponseType | null>(null);
-    
+
   // Trạng thái đang gửi yêu cầu xóa sản phẩm lên API (để hiển thị loading trên nút xóa)
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -113,7 +114,7 @@ export default function SellerProductsPage() {
       const query = searchQuery.toLowerCase().trim();
       const productSku =
         typeof product.sku === "string" ? product.sku.toLowerCase() : "";
-      
+
       // Kiểm tra sản phẩm có chứa từ khóa tìm kiếm trong tên hoặc SKU không
       const matchesSearch =
         !query ||
@@ -122,7 +123,7 @@ export default function SellerProductsPage() {
 
       // Tính tổng số lượng hàng tồn của sản phẩm
       const totalStock = getTotalStock(product);
-      
+
       // Kiểm tra xem sản phẩm có thỏa mãn bộ lọc tồn kho đã chọn không
       const matchesStock =
         stockFilter === "all" ||
@@ -234,7 +235,8 @@ export default function SellerProductsPage() {
             Quản lý Sản phẩm
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của bạn.
+            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của
+            bạn.
           </p>
         </div>
         {/* Đường dẫn chuyển hướng đến trang tạo sản phẩm mới */}

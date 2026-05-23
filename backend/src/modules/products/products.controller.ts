@@ -2,9 +2,9 @@ import {
   Controller,
   Get,
   Param,
-  Res,
   ParseUUIDPipe,
   Query,
+  Redirect,
 } from '@nestjs/common';
 import * as express from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -62,14 +62,12 @@ export class ProductsController {
   }
 
   @Get(':id')
+  @Redirect()
   @ResponseMessage('Lấy chi tiết sản phẩm thành công')
   @ApiOperation({ summary: 'Khách hàng lấy chi tiết sản phẩm (Public)' })
   @ApiGenericResponse(ProductResponseDto, 'Lấy chi tiết sản phẩm thành công')
   @ApiResponse({ status: 404, description: 'Không tìm thấy sản phẩm' })
-  async findOne(
-    @Param('id') idWithSlug: string,
-    @Res({ passthrough: true }) res: express.Response,
-  ) {
+  async findOne(@Param('id') idWithSlug: string) {
     const product = await this.productsService.findOne(idWithSlug, true);
 
     // Logic SEO Redirect 301
@@ -77,7 +75,10 @@ export class ProductsController {
     const canonicalPart = `${product.slug}-i.${product.id}`;
 
     if (idWithSlug !== canonicalPart) {
-      return res.redirect(301, `/api/v1/products/${canonicalPart}`);
+      return {
+        url: `/api/v1/products/${canonicalPart}`,
+        statusCode: 301,
+      };
     }
 
     return product;

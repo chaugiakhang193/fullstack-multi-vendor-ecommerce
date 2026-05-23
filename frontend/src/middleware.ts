@@ -115,15 +115,6 @@ export function middleware(request: NextRequest) {
           pathname.startsWith(prefix),
         );
 
-        console.log("[Middleware Debug] Routing check:", {
-          pathname,
-          userStatus,
-          rawStatus,
-          status,
-          isAllowedExact,
-          isAllowedPrefix,
-        });
-
         if (!isAllowedExact && !isAllowedPrefix) {
           // Bị từ chối truy cập đường dẫn hiện tại -> Chuyển hướng về "vùng an toàn" tương ứng
           if (status === "PENDING_APPROVAL") {

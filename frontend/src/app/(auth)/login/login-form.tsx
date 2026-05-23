@@ -81,7 +81,6 @@ export function LoginForm({
       const res = await authApiRequest.login(dataToSend);
       const UserInfo = res.data.user;
       const access_token = res.data.access_token;
-      console.log(res);
       setAuth(UserInfo, access_token);
       toast.success("Đăng nhập thành công!", {
         description: res.message || "Chào mừng bạn quay trở lại.",

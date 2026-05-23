@@ -185,8 +185,10 @@ export default function CreateProductPage() {
     };
   }, []);
 
-  // Danh mục gốc (parent = null)
-  const rootCategories = categories.filter((c) => !c.parent);
+  // Danh mục gốc (parent = null) và phải có ít nhất 1 danh mục con
+  const rootCategories = categories.filter(
+    (c) => !c.parent && categories.some((child) => child.parent?.id === c.id),
+  );
 
   // Danh mục con của parent đang chọn
   const childCategories = selectedParentId
@@ -197,6 +199,37 @@ export default function CreateProductPage() {
   const handleParentChange = (parentId: string) => {
     setSelectedParentId(parentId);
     setCategoryId("");
+    if (errors.category_id) {
+      setErrors((prev) => ({ ...prev, category_id: undefined }));
+    }
+  };
+
+  // Wrapper handlers to clear errors when users modify basic fields
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+  };
+
+  const handlePriceChange = (val: string) => {
+    setPrice(val);
+    if (errors.price) setErrors((prev) => ({ ...prev, price: undefined }));
+  };
+
+  const handleWeightChange = (val: string) => {
+    setWeight(val);
+    if (errors.weight) setErrors((prev) => ({ ...prev, weight: undefined }));
+  };
+
+  const handleCategoryIdChange = (val: string) => {
+    setCategoryId(val);
+    if (errors.category_id)
+      setErrors((prev) => ({ ...prev, category_id: undefined }));
+  };
+
+  const handleStockQuantityChange = (val: string) => {
+    setStockQuantity(val);
+    if (errors.stock_quantity)
+      setErrors((prev) => ({ ...prev, stock_quantity: undefined }));
   };
 
   // Khi toggle has_variants → reset stock_quantity gốc hoặc variants
@@ -205,8 +238,14 @@ export default function CreateProductPage() {
     if (checked) {
       setStockQuantity("");
       if (variants.length === 0) setVariants([createEmptyVariant()]);
+      if (errors.stock_quantity) {
+        setErrors((prev) => ({ ...prev, stock_quantity: undefined }));
+      }
     } else {
       setVariants([createEmptyVariant()]);
+      if (errors.variants) {
+        setErrors((prev) => ({ ...prev, variants: undefined }));
+      }
     }
   };
 
@@ -221,6 +260,9 @@ export default function CreateProductPage() {
         if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
         setThumbnailFile(file);
         setThumbnailPreview(URL.createObjectURL(file));
+        if (errors.thumbnail) {
+          setErrors((prev) => ({ ...prev, thumbnail: undefined }));
+        }
       },
     });
 
@@ -236,6 +278,9 @@ export default function CreateProductPage() {
         const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
         setGalleryFiles((prev) => [...prev, ...filesToAdd]);
         setGalleryPreviews((prev) => [...prev, ...newPreviews]);
+        if (errors.general_gallery) {
+          setErrors((prev) => ({ ...prev, general_gallery: undefined }));
+        }
       },
     });
 
@@ -248,12 +293,24 @@ export default function CreateProductPage() {
   // Handlers cho variant rows
   const handleAddVariant = () => {
     setVariants((prev) => [...prev, createEmptyVariant()]);
+    if (errors.variants) {
+      setErrors((prev) => ({ ...prev, variants: undefined }));
+    }
   };
 
   const handleRemoveVariant = (index: number) => {
     const variant = variants[index];
     variant.imagePreviews.forEach((url) => URL.revokeObjectURL(url));
     setVariants((prev) => prev.filter((_, i) => i !== index));
+
+    // Clear errors associated with the removed variant
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`variant_${index}_name`];
+      delete next[`variant_${index}_stock`];
+      delete next[`variant_${index}_images`];
+      return next;
+    });
   };
 
   const handleVariantChange = (
@@ -264,6 +321,19 @@ export default function CreateProductPage() {
     setVariants((prev) =>
       prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
     );
+
+    // Clear dynamic error key when modified
+    const errKeyName = `variant_${index}_name`;
+    const errKeyStock = `variant_${index}_stock`;
+    if (field === "name" && errors[errKeyName]) {
+      setErrors((prev) => ({ ...prev, [errKeyName]: undefined }));
+    }
+    if (field === "stock_quantity" && errors[errKeyStock]) {
+      setErrors((prev) => ({ ...prev, [errKeyStock]: undefined }));
+    }
+    if (errors.variants) {
+      setErrors((prev) => ({ ...prev, variants: undefined }));
+    }
   };
 
   const handleAddVariantImages = (variantIndex: number, files: File[]) => {
@@ -279,6 +349,10 @@ export default function CreateProductPage() {
           : v,
       ),
     );
+    const errKeyImages = `variant_${variantIndex}_images`;
+    if (errors[errKeyImages]) {
+      setErrors((prev) => ({ ...prev, [errKeyImages]: undefined }));
+    }
   };
 
   const handleRemoveVariantImage = (
@@ -340,7 +414,7 @@ export default function CreateProductPage() {
   };
 
   // Build FormData và submit
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) {
       toast.error("Vui lòng kiểm tra lại các trường bắt buộc.");
@@ -412,15 +486,16 @@ export default function CreateProductPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in pb-10">
+    <div className="space-y-6 w-full animate-fade-in pb-10">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="space-y-2">
         <button
           type="button"
           onClick={() => router.back()}
-          className="p-1.5 rounded-lg border hover:bg-muted transition"
+          className="group inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+          Quay lại danh sách sản phẩm
         </button>
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
@@ -445,7 +520,7 @@ export default function CreateProductPage() {
               id="product-name"
               placeholder="Nhập tên sản phẩm..."
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => handleNameChange(e.target.value)}
               aria-invalid={!!errors.name}
             />
             {errors.name && <FieldError>{errors.name}</FieldError>}
@@ -474,7 +549,7 @@ export default function CreateProductPage() {
                 min={0}
                 placeholder="150000"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => handlePriceChange(e.target.value)}
                 aria-invalid={!!errors.price}
               />
               {errors.price && <FieldError>{errors.price}</FieldError>}
@@ -516,7 +591,7 @@ export default function CreateProductPage() {
               <FieldLabel>Danh mục con *</FieldLabel>
               <select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(e) => handleCategoryIdChange(e.target.value)}
                 disabled={!selectedParentId || childCategories.length === 0}
                 className="w-full h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-invalid={!!errors.category_id}
@@ -551,7 +626,7 @@ export default function CreateProductPage() {
                 min={1}
                 placeholder="500"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => handleWeightChange(e.target.value)}
                 aria-invalid={!!errors.weight}
               />
               {errors.weight && <FieldError>{errors.weight}</FieldError>}
@@ -709,7 +784,7 @@ export default function CreateProductPage() {
                 min={0}
                 placeholder="100"
                 value={stockQuantity}
-                onChange={(e) => setStockQuantity(e.target.value)}
+                onChange={(e) => handleStockQuantityChange(e.target.value)}
                 aria-invalid={!!errors.stock_quantity}
                 className="max-w-[200px]"
               />
@@ -830,39 +905,39 @@ export default function CreateProductPage() {
               <button
                 type="button"
                 onClick={handleAddVariant}
-                className="flex items-center text-xs font-semibold px-4 py-2 border-2 border-dashed border-violet-400 text-violet-600 dark:text-violet-400 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/20 transition w-full justify-center"
+                className="flex items-center text-xs font-semibold px-4 py-2 border-2 border-dashed border-violet-400 text-violet-600 dark:text-violet-400 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/20 transition w-2/5 mx-auto justify-center"
               >
                 <Plus className="h-4 w-4 mr-1.5" /> Thêm biến thể
               </button>
             </div>
           )}
-        </div>
 
-        {/* Submit */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex items-center text-xs font-semibold px-4 py-2 border rounded-lg hover:bg-muted transition bg-background"
-          >
-            Hủy
-          </button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 transition"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng sản
-                phẩm...
-              </>
-            ) : (
-              <>
-                <Package className="h-4 w-4" /> Đăng sản phẩm
-              </>
-            )}
-          </Button>
+          {/* Các nút hành động nằm chung trong Card */}
+          <div className="border-t pt-5 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-5 py-2 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:text-foreground transition text-xs font-bold bg-background"
+            >
+              Hủy
+            </button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex items-center gap-1.5 px-6 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 hover:shadow-violet-500/35 transition-all text-xs hover:scale-[1.01] active:scale-[0.99]"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng sản
+                  phẩm...
+                </>
+              ) : (
+                <>
+                  <Package className="h-4 w-4" /> Đăng sản phẩm
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </div>
