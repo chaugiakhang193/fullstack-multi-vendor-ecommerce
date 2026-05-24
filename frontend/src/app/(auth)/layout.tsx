@@ -1,5 +1,4 @@
 // app/(auth)/layout.tsx
-import { cn } from "@/lib/utils";
 
 export default function AuthLayout({
   children,
@@ -7,11 +6,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    // h-[calc(100dvh-64px)]: Lấy chiều cao màn hình trừ đi chiều cao Navbar (giả sử Navbar cao 64px)
-    // overflow-hidden: Chặn cuộn toàn trang ở vùng Auth
-
     <div
-      className="w-full h-[calc(100dvh-52px)] overflow-hidden flex flex-col items-center justify-center bg-muted"
+      className="w-full min-h-dvh flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-6"
       suppressHydrationWarning={true}
     >
       {children}
