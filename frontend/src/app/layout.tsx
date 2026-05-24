@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@/app/globals.css";
 import { cn } from "@/lib/utils";
-import { Navbar } from "@/app/navmenu";
 import { Toaster } from "@/components/ui/sonner";
 import AppProvider from "./app-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -37,7 +36,6 @@ export default function RootLayout({
         suppressHydrationWarning={true}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar />
         <AppProvider>{children}</AppProvider>
         <Toaster />
       </body>
