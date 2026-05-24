@@ -15,8 +15,8 @@ const sellerApiRequest = {
     return http.patch<ShopResponseResType>("/seller/shops", body);
   },
   // Seller nộp lại đơn đăng ký sau khi bị từ chối
-  reApplyShop: () => {
-    return http.post<ShopResponseResType>("/seller/shops/re-apply", {});
+  reApplyShop: (body: FormData) => {
+    return http.post<ShopResponseResType>("/seller/shops/re-apply", body);
   },
   // Seller xóa 1 ảnh trong gallery
   deleteGalleryImage: (assetId: string) => {

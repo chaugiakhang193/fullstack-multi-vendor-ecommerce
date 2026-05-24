@@ -404,9 +404,44 @@ export default function AdminSellersPage() {
                     </h4>
                     <div className="flex items-start gap-2 mt-1 p-2.5 rounded-lg border bg-zinc-50 dark:bg-zinc-900/50">
                       <CreditCard className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
-                      <p className="text-sm font-semibold text-foreground leading-tight">
-                        {selectedShop.bank_account_info}
-                      </p>
+                      <div className="text-sm font-semibold text-foreground leading-tight space-y-1">
+                        {(() => {
+                          if (!selectedShop.bank_account_info) return <span>Chưa cập nhật</span>;
+                          try {
+                            const parsed = JSON.parse(selectedShop.bank_account_info);
+                            if (parsed && typeof parsed === "object") {
+                              if (Array.isArray(parsed)) {
+                                return (
+                                  <>
+                                    <p><span className="text-muted-foreground text-xs font-medium">Ngân hàng:</span> {parsed[0] || "N/A"}</p>
+                                    <p><span className="text-muted-foreground text-xs font-medium">Số TK:</span> {parsed[1] || "N/A"}</p>
+                                    <p><span className="text-muted-foreground text-xs font-medium">Chủ TK:</span> {parsed[2] || "N/A"}</p>
+                                  </>
+                                );
+                              }
+                              return (
+                                <>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Ngân hàng:</span> {parsed.bank_name || "N/A"}</p>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Số TK:</span> {parsed.bank_account_number || "N/A"}</p>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Chủ TK:</span> {parsed.bank_account_name || "N/A"}</p>
+                                </>
+                              );
+                            }
+                          } catch (e) {
+                            const parts = selectedShop.bank_account_info.split(" - ");
+                            if (parts.length >= 3) {
+                              return (
+                                <>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Ngân hàng:</span> {parts[0]}</p>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Số TK:</span> {parts[1]}</p>
+                                  <p><span className="text-muted-foreground text-xs font-medium">Chủ TK:</span> {parts[2]}</p>
+                                </>
+                              );
+                            }
+                          }
+                          return <span>{selectedShop.bank_account_info}</span>;
+                        })()}
+                      </div>
                     </div>
                   </div>
 

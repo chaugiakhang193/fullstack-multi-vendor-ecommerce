@@ -156,6 +156,11 @@ export const AuthRes = z.object({
   message: z.string(),
 });
 
+export const AccountRes = z.object({
+  data: UserSchema,
+  message: z.string(),
+});
+
 export type AccountType = z.infer<typeof UserSchema>;
 
 export type RegisterBodyType = z.TypeOf<typeof RegisterBody>;
@@ -180,3 +185,5 @@ export type ResendVerificationResType = z.TypeOf<typeof AuthRes>;
 
 export type VerifyEmailBodyType = z.TypeOf<typeof VerifyEmailBody>;
 export type VerifyEmailResType = z.TypeOf<typeof AuthRes>;
+
+export type AccountResType = z.TypeOf<typeof AccountRes>;

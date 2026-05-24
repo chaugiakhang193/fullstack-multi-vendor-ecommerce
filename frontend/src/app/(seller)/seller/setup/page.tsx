@@ -271,8 +271,7 @@ export default function SellerSetupPage() {
 
       // Call API dựa trên trạng thái
       if (isRejected) {
-        await sellerApiRequest.updateMyShop(formData);
-        await sellerApiRequest.reApplyShop();
+        await sellerApiRequest.reApplyShop(formData);
       } else {
         await sellerApiRequest.setupInitialShop(formData);
       }

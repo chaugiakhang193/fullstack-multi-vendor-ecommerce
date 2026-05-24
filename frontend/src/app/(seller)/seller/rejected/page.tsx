@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth";
+import sellerApiRequest from "@/apiRequests/seller";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -33,10 +34,30 @@ import { AlertCircle, Loader2 } from "lucide-react";
 
 export default function SellerRejectedPage() {
   const router = useRouter();
-  const { user, logout, setAuth } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [rejectReason, setRejectReason] = useState<string | null>(null);
+  const [isLoadingReason, setIsLoadingReason] = useState(false);
+
+  React.useEffect(() => {
+    const fetchShopInfo = async () => {
+      setIsLoadingReason(true);
+      try {
+        const res = await sellerApiRequest.getMyShop();
+        if (res.data && res.data.reject_reason) {
+          setRejectReason(res.data.reject_reason);
+        }
+      } catch (error) {
+        console.error("Lỗi lấy thông tin cửa hàng bị từ chối:", error);
+      } finally {
+        setIsLoadingReason(false);
+      }
+    };
+    fetchShopInfo();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -62,28 +83,55 @@ export default function SellerRejectedPage() {
   const handleCheckStatus = async () => {
     try {
       setIsRefreshing(true);
-      // Gọi API refresh token để lấy thông tin trạng thái mới nhất
-      const res = await authApiRequest.refreshToken();
+      // Gọi API GET /auth/me nhẹ để lấy thông tin trạng thái mới nhất từ DB
+      const res = await authApiRequest.me();
       if (res.data) {
-        setAuth(res.data.user, res.data.access_token);
+        const latestUser = res.data;
+        const currentStatus = user?.status;
+        const newStatus = latestUser.status;
 
-        // Kiểm tra xem status đã chuyển thành active chưa hoặc pending_approval
-        if (res.data.user.status === "active") {
-          toast.success("Cửa hàng của bạn đã được phê duyệt!");
-          router.push("/seller");
-          router.refresh();
-          return;
-        } else if (res.data.user.status === "pending_approval") {
-          toast.success("Cửa hàng của bạn đang chờ phê duyệt.");
-          router.push("/seller/pending");
-          router.refresh();
-          return;
+        // Nếu trạng thái của user thay đổi
+        if (newStatus !== currentStatus) {
+          // Trạng thái thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
+          await useAuthStore.getState().silentRefresh();
+          
+          if (newStatus === "active") {
+            const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
+            toast.success(successMsg);
+            const targetPath = "/seller";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          } else if (newStatus === "pending_approval") {
+            const pendingMsg = "Cửa hàng của bạn đang chờ phê duyệt.";
+            toast.success(pendingMsg);
+            const targetPath = "/seller/pending";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          }
+        } else {
+          // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
+          if (newStatus === "active") {
+            const targetPath = "/seller";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          } else if (newStatus === "pending_approval") {
+            const targetPath = "/seller/pending";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          }
         }
       }
-      toast.info("Yêu cầu đăng ký vẫn bị từ chối.");
+      const infoMsg = "Yêu cầu đăng ký vẫn bị từ chối.";
+      toast.info(infoMsg);
     } catch (error) {
-      console.error("Lỗi kiểm tra trạng thái:", error);
-      toast.error("Không thể kết nối đến máy chủ.");
+      const logTitle = "Lỗi kiểm tra trạng thái:";
+      console.error(logTitle, error);
+      const errMsg = "Không thể kết nối đến máy chủ.";
+      toast.error(errMsg);
     } finally {
       setIsRefreshing(false);
     }
@@ -105,16 +153,33 @@ export default function SellerRejectedPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-2">
-          <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
-            <Mail className="h-5 w-5 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Vui lòng kiểm tra hộp thư email</p>
-              <p className="mt-1 text-xs opacity-90">
-                Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn.
-                Hãy kiểm tra hòm thư chính và thư rác.
-              </p>
+          {isLoadingReason ? (
+            <div className="flex justify-center items-center py-6 text-sm text-muted-foreground gap-2 border rounded-xl bg-zinc-50/30 dark:bg-zinc-950/10">
+              <Loader2 className="h-4 w-4 animate-spin text-rose-500" />
+              Đang tải lý do từ chối...
             </div>
-          </div>
+          ) : rejectReason ? (
+            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-rose-600" />
+              <div>
+                <p className="font-bold">Lý do từ chối cụ thể:</p>
+                <p className="mt-1 text-xs opacity-90 whitespace-pre-wrap font-medium leading-relaxed">
+                  {rejectReason}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
+              <Mail className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Vui lòng kiểm tra hộp thư email</p>
+                <p className="mt-1 text-xs opacity-90">
+                  Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn.
+                  Hãy kiểm tra hòm thư chính và thư rác.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2.5">
             <Button

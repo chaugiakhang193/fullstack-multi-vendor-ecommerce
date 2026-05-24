@@ -128,14 +128,28 @@ export default function SellerLayout({
 
   useEffect(() => {
     setIsMounted(true);
-    // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Seller Dashboard
-    document.documentElement.classList.add("overflow-hidden", "h-screen");
-    document.body.classList.add("overflow-hidden", "h-screen");
+  }, []);
+
+  useEffect(() => {
+    const isSetupOrPendingPage =
+      pathname === "/seller/setup" ||
+      pathname === "/seller/pending" ||
+      pathname === "/seller/rejected";
+
+    if (!isSetupOrPendingPage) {
+      // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Seller Dashboard
+      document.documentElement.classList.add("overflow-hidden", "h-screen");
+      document.body.classList.add("overflow-hidden", "h-screen");
+    } else {
+      document.documentElement.classList.remove("overflow-hidden", "h-screen");
+      document.body.classList.remove("overflow-hidden", "h-screen");
+    }
+
     return () => {
       document.documentElement.classList.remove("overflow-hidden", "h-screen");
       document.body.classList.remove("overflow-hidden", "h-screen");
     };
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

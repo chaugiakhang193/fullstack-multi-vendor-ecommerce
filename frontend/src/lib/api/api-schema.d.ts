@@ -1001,6 +1001,7 @@ export interface components {
       bank_account_info: string;
       /** @example 123 Đường ABC, Quận 1, TP.HCM */
       pickup_address: string;
+      reject_reason?: string | null;
       /**
        * @example active
        * @enum {string}

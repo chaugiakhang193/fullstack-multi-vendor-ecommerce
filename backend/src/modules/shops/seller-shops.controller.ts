@@ -181,12 +181,30 @@ export class SellerShopsController {
   }
 
   @Post('re-apply')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'logo', maxCount: 1 },
+      { name: 'banner', maxCount: 1 },
+      { name: 'gallery', maxCount: 3 },
+    ]),
+  )
   @ResponseMessage('Đã nộp lại đơn đăng ký gian hàng thành công.')
   @ApiOperation({ summary: 'Seller nộp lại đơn đăng ký sau khi bị từ chối' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UpdateShopSwaggerDto })
   @ApiGenericResponse(ShopResponseDto, 'Nộp lại đơn đăng ký thành công.')
-  reApplyShop(@User() user: IUser) {
+  reApplyShop(
+    @User() user: IUser,
+    @Body() updateShopDto: UpdateShopDto,
+    @UploadedFiles()
+    files: {
+      logo?: Express.Multer.File[];
+      banner?: Express.Multer.File[];
+      gallery?: Express.Multer.File[];
+    },
+  ) {
     const userId = user.sub;
-    return this.shopsService.reApplyShop(userId);
+    return this.shopsService.reApplyShop(userId, updateShopDto, files);
   }
 
   @Post('gallery')

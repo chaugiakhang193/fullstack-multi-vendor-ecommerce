@@ -26,7 +26,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 
 export default function SellerPendingPage() {
   const router = useRouter();
-  const { user, logout, setAuth } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -55,28 +55,55 @@ export default function SellerPendingPage() {
   const handleCheckStatus = async () => {
     try {
       setIsRefreshing(true);
-      // Gọi API refresh token hoặc lấy thông tin user mới nhất
-      const res = await authApiRequest.refreshToken();
+      // Gọi API GET /auth/me nhẹ để lấy thông tin user mới nhất từ DB
+      const res = await authApiRequest.me();
       if (res.data) {
-        setAuth(res.data.user, res.data.access_token);
+        const latestUser = res.data;
+        const currentStatus = user?.status;
+        const newStatus = latestUser.status;
 
-        // Kiểm tra xem status đã chuyển thành active hay bị từ chối chưa
-        if (res.data.user.status === "active") {
-          toast.success("Cửa hàng của bạn đã được phê duyệt!");
-          router.push("/seller");
-          router.refresh();
-          return;
-        } else if (res.data.user.status === "rejected") {
-          toast.error("Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.");
-          router.push("/seller/rejected");
-          router.refresh();
-          return;
+        // Nếu trạng thái của user thay đổi
+        if (newStatus !== currentStatus) {
+          // Trạng thái đã thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
+          await useAuthStore.getState().silentRefresh();
+          
+          if (newStatus === "active") {
+            const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
+            toast.success(successMsg);
+            const targetPath = "/seller";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          } else if (newStatus === "rejected") {
+            const errorMsg = "Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.";
+            toast.error(errorMsg);
+            const targetPath = "/seller/rejected";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          }
+        } else {
+          // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
+          if (newStatus === "active") {
+            const targetPath = "/seller";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          } else if (newStatus === "rejected") {
+            const targetPath = "/seller/rejected";
+            router.push(targetPath);
+            router.refresh();
+            return;
+          }
         }
       }
-      toast.info("Tài khoản vẫn đang trong quá trình phê duyệt.");
+      const infoMsg = "Tài khoản vẫn đang trong quá trình phê duyệt.";
+      toast.info(infoMsg);
     } catch (error) {
-      console.error("Lỗi kiểm tra trạng thái:", error);
-      toast.error("Không thể kết nối đến máy chủ.");
+      const logTitle = "Lỗi kiểm tra trạng thái:";
+      console.error(logTitle, error);
+      const errMsg = "Không thể kết nối đến máy chủ.";
+      toast.error(errMsg);
     } finally {
       setIsRefreshing(false);
     }
