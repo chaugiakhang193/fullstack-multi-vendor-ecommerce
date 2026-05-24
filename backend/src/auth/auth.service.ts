@@ -38,8 +38,8 @@ import {
 
 //JWT
 import { JwtService } from '@nestjs/jwt';
-import { REFRESH_TOKEN_SERVICE } from './auth.constants';
-import { ACCESS_TOKEN_SERVICE } from './auth.constants';
+import { REFRESH_TOKEN_SERVICE } from '@/auth/auth.constants';
+import { ACCESS_TOKEN_SERVICE } from '@/auth/auth.constants';
 
 @Injectable()
 export class AuthService {
