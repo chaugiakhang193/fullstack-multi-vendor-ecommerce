@@ -13,7 +13,7 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 import { JwtService } from '@nestjs/jwt';
 import { ACCESS_TOKEN_SERVICE } from '@/auth/auth.constants';
 import { UserRole, AccountStatus } from '@/modules/enums';
-import { hashDataHelper } from '@/helpers/ultis';
+import { hashDataHelper } from '@/common/helpers/utils';
 import * as crypto from 'crypto';
 
 describe('Product Management (e2e)', () => {

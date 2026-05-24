@@ -27,7 +27,7 @@ import { VerificationToken } from '@/auth/entities/verification-token.entity';
 import { User } from '@/modules/users/entities/user.entity';
 
 //helpers
-import { compareHashedDataHelper, hashDataHelper } from '@/helpers/ultis';
+import { compareHashedDataHelper, hashDataHelper } from '@/common/helpers/utils';
 import ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 import {

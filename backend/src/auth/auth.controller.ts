@@ -58,7 +58,7 @@ import { RefreshTokenGuard } from '@/auth/guard/jwt-refresh-auth.guard';
 import {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
-} from '@/helpers/cookie.helper';
+} from '@/common/helpers/cookie.helper';
 
 @ApiTags('Auth')
 @Controller('auth')

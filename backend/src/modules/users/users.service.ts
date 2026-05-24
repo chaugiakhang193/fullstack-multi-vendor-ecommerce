@@ -12,7 +12,7 @@ import {
   hashDataHelper,
   compareHashedDataHelper,
   isDataExist,
-} from '@/helpers/ultis';
+} from '@/common/helpers/utils';
 import { UserRole, AccountStatus } from '@/modules/enums';
 @Injectable()
 export class UsersService {
