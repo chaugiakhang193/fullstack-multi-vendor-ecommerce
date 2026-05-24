@@ -8,9 +8,9 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CartsService } from './carts.service';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
+import { CartsService } from '@/modules/carts/carts.service';
+import { CreateCartDto } from '@/modules/carts/dto/create-cart.dto';
+import { UpdateCartDto } from '@/modules/carts/dto/update-cart.dto';
 
 @ApiTags('carts')
 @Controller('carts')

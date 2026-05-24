@@ -3,7 +3,7 @@ import {
   NotFoundException,
   Injectable,
 } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { RegisterDto } from '@/auth/dto/register.dto';
 import { User } from '@/modules/users/entities/user.entity';
 import { Repository } from 'typeorm';

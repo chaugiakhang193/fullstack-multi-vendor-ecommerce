@@ -2,8 +2,8 @@
 import { Repository, SelectQueryBuilder, FindManyOptions, ObjectLiteral } from 'typeorm';
 
 // DTOs
-import { PaginationQueryDto } from '../dto/pagination-query.dto';
-import { PaginatedResponseDto } from '../dto/paginated-response.dto';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 
 /**
  * Helper toàn cục hỗ trợ tự động tính toán phân trang
