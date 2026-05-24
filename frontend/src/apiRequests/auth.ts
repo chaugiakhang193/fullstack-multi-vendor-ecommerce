@@ -13,6 +13,7 @@ import {
   ResendVerificationResType,
   VerifyEmailBodyType,
   VerifyEmailResType,
+  AccountResType,
 } from "@/schemaValidations/auth.schema";
 import http from "@/lib/http";
 const authApiRequest = {
@@ -44,6 +45,9 @@ const authApiRequest = {
   },
   verifyEmail: (body: VerifyEmailBodyType) => {
     return http.post<VerifyEmailResType>("/auth/verify-email", body);
+  },
+  me: () => {
+    return http.get<AccountResType>("/auth/me");
   },
 };
 export default authApiRequest;

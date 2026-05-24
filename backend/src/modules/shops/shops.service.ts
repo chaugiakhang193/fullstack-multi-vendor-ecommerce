@@ -260,6 +260,13 @@ export class ShopsService {
       relations: ['seller', 'categories', 'gallery'],
     });
     if (!shop) throw new NotFoundException('Không tìm thấy gian hàng');
+
+    if (shop.gallery) {
+      shop.gallery = shop.gallery.filter(
+        (asset) => asset.type === AssetType.SHOP_GALLERY,
+      );
+    }
+
     return shop;
   }
 
@@ -269,6 +276,13 @@ export class ShopsService {
       relations: ['categories', 'gallery'],
     });
     if (!shop) throw new NotFoundException('Không tìm thấy gian hàng của bạn');
+
+    if (shop.gallery) {
+      shop.gallery = shop.gallery.filter(
+        (asset) => asset.type === AssetType.SHOP_GALLERY,
+      );
+    }
+
     return shop;
   }
 
@@ -393,9 +407,13 @@ export class ShopsService {
       throw new BadRequestException('Vui lòng tải lên ít nhất 1 ảnh');
     }
 
-    if (shop.gallery.length + files.length > 3) {
+    const shopGallery = (shop.gallery || []).filter(
+      (asset) => asset.type === AssetType.SHOP_GALLERY,
+    );
+
+    if (shopGallery.length + files.length > 3) {
       throw new BadRequestException(
-        `Bạn chỉ được upload tối đa 3 ảnh liên quan. Hiện tại bạn đã có ${shop.gallery.length} ảnh, không thể upload thêm ${files.length} ảnh.`,
+        `Bạn chỉ được upload tối đa 3 ảnh liên quan. Hiện tại bạn đã có ${shopGallery.length} ảnh, không thể upload thêm ${files.length} ảnh.`,
       );
     }
 
@@ -424,10 +442,7 @@ export class ShopsService {
         throw new Error('Có lỗi xảy ra trong quá trình upload ảnh Gallery');
       }
 
-      return await this.shopsRepository.findOne({
-        where: { id: shop.id },
-        relations: ['gallery'],
-      });
+      return await this.findOneByUserId(userId);
     } catch (error) {
       if (uploadedAssets.length > 0) {
         // 1. Xóa file Cloudinary
@@ -471,10 +486,7 @@ export class ShopsService {
 
     await this.cloudinaryService.deleteAsset(assetId, userId);
 
-    return await this.shopsRepository.findOne({
-      where: { id: shop.id },
-      relations: ['gallery'],
-    });
+    return await this.findOneByUserId(userId);
   }
 
   async approveShop(id: string) {
@@ -514,8 +526,8 @@ export class ShopsService {
       // Cập nhật trạng thái Shop
       shop.status = AccountStatus.REJECTED;
 
-      // Nếu trong Entity Shop bạn có làm thêm cột reject_reason thì gán luôn ở đây:
-      // shop.reject_reason = reason;
+      // Lưu lý do từ chối vào database
+      shop.reject_reason = reason;
 
       const savedShop = await manager.save(Shop, shop);
 
@@ -541,7 +553,15 @@ export class ShopsService {
     return updatedShop;
   }
 
-  async reApplyShop(userId: string) {
+  async reApplyShop(
+    userId: string,
+    updateShopDto?: UpdateShopDto,
+    files?: {
+      logo?: Express.Multer.File[];
+      banner?: Express.Multer.File[];
+      gallery?: Express.Multer.File[];
+    },
+  ) {
     const shop = await this.findOneByUserId(userId);
 
     if (shop.status !== AccountStatus.REJECTED) {
@@ -550,27 +570,54 @@ export class ShopsService {
       );
     }
 
-    // Bắt đầu Transaction
+    // 1. Tái sử dụng các hàm update có sẵn
+    if (updateShopDto && Object.keys(updateShopDto).length > 0) {
+      await this.updateMyShop(userId, updateShopDto);
+    }
+
+    if (files?.logo?.[0]) {
+      await this.updateLogo(userId, files.logo[0]);
+    }
+
+    if (files?.banner?.[0]) {
+      await this.updateBanner(userId, files.banner[0]);
+    }
+
+    if (files?.gallery && files.gallery.length > 0) {
+      await this.addGalleryImages(userId, files.gallery);
+    }
+
+    // 2. Chạy transaction đổi trạng thái duyệt
     return await this.dataSource.transaction(
       async (transactionalEntityManager) => {
-        // Cập nhật trạng thái Shop sang PENDING_APPROVAL
-        shop.status = AccountStatus.PENDING_APPROVAL;
-        const updatedShop = await transactionalEntityManager.save(shop);
+        // Cập nhật trạng thái Shop sang PENDING_APPROVAL và xóa lý do từ chối cũ
+        await transactionalEntityManager.update(Shop, shop.id, {
+          status: AccountStatus.PENDING_APPROVAL,
+          reject_reason: null,
+        });
 
-        //cập nhật trạng thái User (Seller) sang PENDING_APPROVAL
+        // Cập nhật trạng thái User (Seller) sang PENDING_APPROVAL
         await transactionalEntityManager.update(User, userId, {
           status: AccountStatus.PENDING_APPROVAL,
         });
 
-        return updatedShop;
+        return await this.findOneByUserId(userId);
       },
     );
   }
 
   async getPendingShops() {
-    return this.shopsRepository.find({
+    const shops = await this.shopsRepository.find({
       where: { status: AccountStatus.PENDING_APPROVAL },
       relations: ['seller', 'categories', 'gallery'],
     });
+    shops.forEach((shop) => {
+      if (shop.gallery) {
+        shop.gallery = shop.gallery.filter(
+          (asset) => asset.type === AssetType.SHOP_GALLERY,
+        );
+      }
+    });
+    return shops;
   }
 }

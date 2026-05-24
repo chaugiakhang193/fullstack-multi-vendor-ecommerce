@@ -39,6 +39,7 @@ import { ResetPasswordDto } from '@/auth/dto/reset-password.dto';
 import {
   AuthResponseDto,
   UnverifiedAccountResponseDto,
+  UserResponseDto,
 } from '@/auth/dto/auth-response.dto';
 
 import { Public, ResponseMessage } from '@/decorator/customize';
@@ -229,6 +230,22 @@ export class AuthController {
   })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Get('me')
+  @ApiBearerAuth('access-token')
+  @ResponseMessage('Lấy thông tin người dùng hiện tại thành công')
+  @ApiOperation({ summary: 'Lấy thông tin người dùng hiện tại từ Access Token' })
+  @ApiGenericResponse(UserResponseDto, 'Trả về thông tin người dùng không bao gồm mật khẩu.', {
+    status: 200,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Không có quyền truy cập hoặc Access Token đã hết hạn.',
+  })
+  async getMe(@Req() req: any) {
+    const userId = req.user.sub;
+    return await this.authService.getCurrentUser(userId);
   }
 
   @Public()

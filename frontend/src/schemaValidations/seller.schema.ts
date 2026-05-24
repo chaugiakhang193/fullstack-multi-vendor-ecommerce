@@ -79,6 +79,7 @@ export const ShopResponse = z.object({
   description: z.any().nullable().optional(),
   bank_account_info: z.string().nullable().optional(),
   pickup_address: z.string().nullable().optional(),
+  reject_reason: z.string().nullable().optional(),
   status: z.string(),
   categories: z.array(z.any()),
   gallery: z.array(z.any()),

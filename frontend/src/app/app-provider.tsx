@@ -5,6 +5,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "@/lib/query-client";
 
 export default function AppProvider({
   children,
@@ -43,7 +46,7 @@ export default function AppProvider({
       }
 
       // Ngay khi ứng dụng vừa load (F5), âm thầm gọi API xin lại Access Token
-      silentRefresh();
+      silentRefresh(router);
     }
   }, [silentRefresh]);
 
@@ -60,7 +63,7 @@ export default function AppProvider({
 
       if (data.type === "login_success") {
         // Gọi silentRefresh để lấy accessToken mới cập nhật vào Zustand
-        const isSuccess = await silentRefresh();
+        const isSuccess = await silentRefresh(router);
         if (isSuccess) {
           toast.info("Đã đăng nhập thành công từ tab khác!");
           if (currentPath === "/login" || currentPath === "/register") {
@@ -90,6 +93,11 @@ export default function AppProvider({
     };
   }, [silentRefresh, logout, router]);
 
-  // Trả về nguyên vẹn giao diện gốc
-  return <>{children}</>;
+  // Trả về giao diện bọc trong QueryClientProvider và Devtools
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
 }

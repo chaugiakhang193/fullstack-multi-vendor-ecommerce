@@ -42,6 +42,9 @@ export class Shop {
   @Column({ type: 'text', nullable: true })
   pickup_address: string;
 
+  @Column({ type: 'text', nullable: true })
+  reject_reason: string | null;
+
   @Column({
     type: 'enum',
     enum: AccountStatus,

@@ -463,6 +463,18 @@ export class AuthService {
     return { message: 'Đăng xuất thành công' };
   }
 
+  // [GET] /auth/me
+  async getCurrentUser(userId: string) {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('Tài khoản người dùng không còn tồn tại!');
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
   create(createAuthDto: RegisterDto) {
     return 'This action adds a new auth';
   }

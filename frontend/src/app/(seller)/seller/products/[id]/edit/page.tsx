@@ -292,13 +292,8 @@ export default function EditProductPage() {
       setExistingThumbnailUrl(product.thumbnail_url);
     }
 
-    // Tách bộ sưu tập ảnh: aggregated_gallery chứa toàn bộ ảnh của sản phẩm kể cả thumbnail.
-    // Cần lọc bỏ ảnh trùng với thumbnail_url để chỉ lấy danh sách ảnh phụ (Gallery).
-    const thumbnailUrl =
-      typeof product.thumbnail_url === "string" ? product.thumbnail_url : null;
-    const galleryUrls = product.aggregated_gallery.filter(
-      (url) => url !== thumbnailUrl,
-    );
+    // Sử dụng trực tiếp trường gallery lưu ở database để tránh bị lẫn các ảnh của biến thể
+    const galleryUrls = Array.isArray(product.gallery) ? product.gallery : [];
     setExistingGalleryImages(galleryUrls);
 
     // Gán dữ liệu danh mục cũ: tìm danh mục cha dựa trên danh mục con của sản phẩm

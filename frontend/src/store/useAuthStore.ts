@@ -29,7 +29,7 @@ interface AuthState {
 
   setAuth: (user: AccountType, token: string) => void;
   setAccessToken: (token: string) => void;
-  silentRefresh: () => Promise<boolean>;
+  silentRefresh: (router?: any) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>()(
       setAccessToken: (token) => set({ accessToken: token }),
 
       // Cơ chế Đăng nhập âm thầm - Đạt chuẩn Chống Đạn (Bulletproof)
-      silentRefresh: async () => {
+      silentRefresh: async (router?: any) => {
         // Nếu đang có một tiến trình refresh đang chạy, trả về luôn cái Promise đó để dùng chung kết quả
         if (refreshPromise) return refreshPromise;
 
@@ -67,6 +67,31 @@ export const useAuthStore = create<AuthState>()(
             const user = res.data.user;
 
             get().setAuth(user, newAccessToken);
+
+            // Phòng thủ: Nếu status thay đổi + đang kẹt sai trang → soft redirect
+            if (router && typeof window !== "undefined") {
+              const currentPath = window.location.pathname;
+
+              // Đã được duyệt nhưng kẹt ở /seller/pending
+              if (user.status === "active" && currentPath === "/seller/pending") {
+                router.push("/seller");
+              }
+              // Bị reject nhưng kẹt ở /seller/pending
+              else if (
+                user.status === "rejected" &&
+                currentPath === "/seller/pending"
+              ) {
+                router.push("/seller/rejected");
+              }
+              // Đang chờ duyệt nhưng kẹt ở /seller/rejected
+              else if (
+                user.status === "pending_approval" &&
+                currentPath === "/seller/rejected"
+              ) {
+                router.push("/seller/pending");
+              }
+            }
+
             return true;
           } catch (error: any) {
             // Phân biệt loại lỗi

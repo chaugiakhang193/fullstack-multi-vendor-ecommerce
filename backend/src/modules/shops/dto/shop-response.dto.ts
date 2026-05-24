@@ -66,6 +66,13 @@ export class ShopResponseDto {
   @ApiProperty({ example: '123 Đường ABC, Quận 1, TP.HCM' })
   pickup_address: string;
 
+  @ApiProperty({
+    example: 'Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ.',
+    nullable: true,
+    required: false,
+  })
+  reject_reason?: string | null;
+
   @ApiProperty({ enum: AccountStatus, example: AccountStatus.ACTIVE })
   status: AccountStatus;
 
