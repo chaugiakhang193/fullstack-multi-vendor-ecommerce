@@ -5,11 +5,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface SkeletonTableRowsProps {
   rows?: number;
   columns?: number;
+  hasCheckbox?: boolean;
 }
 
 export default function SkeletonTableRows({
   rows = 5,
   columns = 4,
+  hasCheckbox = true,
 }: SkeletonTableRowsProps) {
   // Tập hợp các class độ rộng để giả lập độ dài khác nhau của dữ liệu thật
   const widthClasses = [
@@ -26,7 +28,7 @@ export default function SkeletonTableRows({
   return (
     <>
       {[...Array(rows)].map((_, rowIndex) => (
-        <TableRow key={rowIndex} className="animate-pulse">
+        <TableRow key={rowIndex}>
           {[...Array(columns)].map((_, colIndex) => {
             // Sử dụng thuật toán tuần tuần tự dựa trên index để tránh hydration mismatch (lỗi SSR)
             const widthIndex = (rowIndex * 3 + colIndex * 2) % widthClasses.length;
@@ -34,7 +36,7 @@ export default function SkeletonTableRows({
 
             return (
               <TableCell key={colIndex}>
-                {colIndex === 0 ? (
+                {colIndex === 0 && hasCheckbox ? (
                   // Cột đầu thường là Checkbox hoặc Icon hoặc ID ngắn
                   <div className="flex items-center gap-3">
                     <Skeleton className="h-4 w-4 shrink-0 rounded" />

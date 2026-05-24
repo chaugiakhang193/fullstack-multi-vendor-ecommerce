@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ProductResponseType } from "@/schemaValidations/products.schema";
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
@@ -10,17 +11,17 @@ interface ProductCardProps {
   product: ProductResponseType;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
-  // Format giá tiền Việt Nam Đồng
-  const formatPrice = (val: number) => {
-    const currencyOptions: Intl.NumberFormatOptions = {
-      style: "currency",
-      currency: "VND",
-    };
-    const formatted = new Intl.NumberFormat("vi-VN", currencyOptions).format(val);
-    return formatted;
-  };
+// Khai báo formatter bên ngoài component để tránh re-creation thừa trên RAM
+const priceFormatter = new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
+});
 
+const formatPrice = (val: number) => {
+  return priceFormatter.format(val);
+};
+
+export default function ProductCard({ product }: ProductCardProps) {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -52,6 +53,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     const targetVariant = product.variants?.[0];
     const variantId = targetVariant ? targetVariant.id : null;
 
+    // Xác định đúng giá tiền và hình ảnh theo biến thể được chọn
+    const finalPrice = targetVariant
+      ? product.price + targetVariant.additional_price
+      : product.price;
+    const finalThumbnailUrl =
+      targetVariant && targetVariant.images && targetVariant.images.length > 0
+        ? targetVariant.images[0]
+        : (product.thumbnail_url || "/placeholder-product.png");
+
     const findItemFn = (item: any) => {
       const isSameProduct = item.productId === product.id;
       const isSameVariant = item.variantId === variantId;
@@ -74,8 +84,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         variantId: variantId,
         quantity: 1,
         name: product.name,
-        price: product.price,
-        thumbnailUrl: product.thumbnail_url,
+        price: finalPrice,
+        thumbnailUrl: finalThumbnailUrl,
         shopName: product.shop?.name || "Cửa hàng",
       };
       cartItems.push(newItem);
@@ -105,21 +115,23 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="relative rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden hover:scale-[1.02] hover:shadow-md transition-all duration-300 flex flex-col h-full">
         {/* Thumbnail Image Wrapper */}
         <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-          <img
+          <Image
             src={product.thumbnail_url || "/placeholder-product.png"}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
 
           {/* Badge Out of stock */}
           {isOutOfStock ? (
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider z-10">
               Tạm hết hàng
             </div>
           ) : (
             /* Quick Add to Cart button (Only shows when in-stock on hover) */
             <button
+              type="button"
               onClick={handleQuickAdd}
               className="absolute bottom-3 right-3 p-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10"
               title="Thêm nhanh vào giỏ"
@@ -130,7 +142,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Featured / Highlight Badge (Placeholder for Sale badge) */}
           {isFeatured && !isOutOfStock && (
-            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-rose-500 text-white uppercase tracking-wider shadow-sm">
+            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-rose-500 text-white uppercase tracking-wider shadow-sm z-10">
               Nổi bật
             </span>
           )}

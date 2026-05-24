@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { ShoppingBag, ShoppingCart, Package } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface EmptyStateProps {
@@ -51,26 +51,21 @@ export function EmptyState({
 
       {/* CTA Action Button */}
       {actionLabel && (actionHref || onAction) && (
-        <div>
-          {actionHref ? (
-            <Link
-              href={actionHref}
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
-              )}
-            >
-              {actionLabel}
-            </Link>
-          ) : (
-            <Button
-              onClick={onAction}
-              className="rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
-            >
-              {actionLabel}
-            </Button>
-          )}
-        </div>
+        actionHref ? (
+          <Button
+            render={<Link href={actionHref} />}
+            className="rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
+          >
+            {actionLabel}
+          </Button>
+        ) : (
+          <Button
+            onClick={onAction}
+            className="rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
+          >
+            {actionLabel}
+          </Button>
+        )
       )}
     </div>
   );

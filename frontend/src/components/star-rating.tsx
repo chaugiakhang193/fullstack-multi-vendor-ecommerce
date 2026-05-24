@@ -37,9 +37,9 @@ export function StarRating({
   // Giá trị rating thực tế dùng hiển thị (tính cả trạng thái hover khi interactive)
   const displayRating = interactive && hoverRating !== null ? hoverRating : rating;
 
-  const handleMouseEnter = (index: number) => {
+  const handleMouseEnter = (val: number) => {
     if (!interactive) return;
-    setHoverRating(index);
+    setHoverRating(val);
   };
 
   const handleMouseLeave = () => {
@@ -47,9 +47,24 @@ export function StarRating({
     setHoverRating(null);
   };
 
-  const handleClick = (index: number) => {
+  const handleClick = (val: number) => {
     if (!interactive || !onChange) return;
-    onChange(index);
+    onChange(val);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!interactive || !onChange) return;
+
+    let newRating = rating;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      newRating = Math.min(rating + 0.5, maxRating);
+      onChange(newRating);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      newRating = Math.max(rating - 0.5, 0);
+      onChange(newRating);
+    }
   };
 
   // Render một ngôi sao cụ thể
@@ -67,19 +82,14 @@ export function StarRating({
     return (
       <div
         key={starIndex}
-        className={cn(
-          "relative select-none",
-          interactive ? "cursor-pointer transition-transform hover:scale-115 active:scale-95" : ""
-        )}
-        onMouseEnter={() => handleMouseEnter(starValue)}
-        onClick={() => handleClick(starValue)}
+        className="relative select-none"
       >
         {/* Ngôi sao nền (trống/xám) */}
         <Star className={cn(iconSize, emptyStarColorClass)} />
 
         {/* Ngôi sao đầy xếp chồng lên với chiều rộng tuỳ biến */}
         {isFilled && (
-          <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
+          <div className="absolute top-0 left-0 h-full w-full overflow-hidden pointer-events-none">
             <Star className={cn(iconSize, starColorClass)} />
           </div>
         )}
@@ -94,23 +104,52 @@ export function StarRating({
             <Star className={cn(iconSize, starColorClass)} />
           </div>
         )}
+
+        {/* Khối tương tác chia đôi ngôi sao (chỉ khi interactive=true) */}
+        {interactive && (
+          <>
+            {/* Nửa trái (chọn starValue - 0.5) */}
+            <div
+              className="absolute top-0 left-0 w-1/2 h-full z-10 cursor-pointer"
+              onMouseEnter={() => handleMouseEnter(starValue - 0.5)}
+              onClick={() => handleClick(starValue - 0.5)}
+            />
+            {/* Nửa phải (chọn starValue) */}
+            <div
+              className="absolute top-0 right-0 w-1/2 h-full z-10 cursor-pointer"
+              onMouseEnter={() => handleMouseEnter(starValue)}
+              onClick={() => handleClick(starValue)}
+            />
+          </>
+        )}
       </div>
     );
   };
 
   return (
     <div
-      className={cn("flex items-center gap-1", className)}
+      className={cn(
+        "flex items-center gap-1 outline-none",
+        interactive && "focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded-lg p-0.5",
+        className
+      )}
       onMouseLeave={handleMouseLeave}
+      role={interactive ? "slider" : undefined}
+      aria-label={interactive ? "Đánh giá sản phẩm" : undefined}
+      aria-valuenow={displayRating}
+      aria-valuemin={0}
+      aria-valuemax={maxRating}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={handleKeyDown}
     >
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5" aria-hidden="true">
         {[...Array(maxRating)].map((_, i) => renderStar(i))}
       </div>
 
       {showValue && (
         <span
           className={cn(
-            "font-bold text-muted-foreground ml-1.5 leading-none select-none",
+            "font-bold text-muted-foreground ml-1.5 leading-none select-none w-8 text-left tabular-nums shrink-0",
             size === "sm" && "text-xs",
             size === "md" && "text-sm",
             size === "lg" && "text-base"
