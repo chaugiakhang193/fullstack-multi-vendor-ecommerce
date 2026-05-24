@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsInt, Min, IsString, IsIn, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class PaginationQueryDto {
@@ -11,7 +11,10 @@ export class PaginationQueryDto {
   @IsOptional()
   @Transform(({ value }) => {
     const val = Number(value);
-    return isNaN(val) ? 1 : val;
+    const defaultValue = 1;
+    const isValNaN = isNaN(val);
+    const result = isValNaN ? defaultValue : val;
+    return result;
   })
   @IsInt({ message: 'Trang phải là số nguyên' })
   @Min(1, { message: 'Trang phải lớn hơn hoặc bằng 1' })
@@ -25,10 +28,20 @@ export class PaginationQueryDto {
   @IsOptional()
   @Transform(({ value }) => {
     const val = Number(value);
-    return isNaN(val) ? 10 : val;
+    const defaultLimit = 10;
+    const maxLimit = 100;
+    const isValNaN = isNaN(val);
+    if (isValNaN) {
+      return defaultLimit;
+    }
+    const valNumber = val;
+    const maxLimitNumber = maxLimit;
+    const finalLimit = Math.min(valNumber, maxLimitNumber);
+    return finalLimit;
   })
   @IsInt({ message: 'Giới hạn phải là số nguyên' })
   @Min(1, { message: 'Giới hạn phải lớn hơn hoặc bằng 1' })
+  @Max(100, { message: 'Giới hạn tối đa là 100 phần tử trên mỗi trang' })
   limit?: number = 10;
 
   @ApiPropertyOptional({

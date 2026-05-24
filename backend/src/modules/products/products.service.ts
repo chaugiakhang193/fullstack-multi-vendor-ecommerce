@@ -16,6 +16,9 @@ import { UpdateProductDto } from '@/modules/products/dto/update-product.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 
+// Helpers
+import { paginate } from '@/common/helpers/pagination.helper';
+
 // Entities
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
@@ -244,8 +247,7 @@ export class ProductsService {
   async findAll(
     query: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<Product>> {
-    const { page = 1, limit = 10, sort, order = 'DESC' } = query;
-    const skip = (page - 1) * limit;
+    const { sort, order = 'DESC' } = query;
 
     const orderCondition: any = {};
     if (sort) {
@@ -259,7 +261,7 @@ export class ProductsService {
       orderCondition['created_at'] = 'DESC';
     }
 
-    const [items, totalItems] = await this.productsRepository.findAndCount({
+    const paginateOptions = {
       where: {
         status: ProductStatus.ACTIVE,
         is_hidden: false,
@@ -267,21 +269,10 @@ export class ProductsService {
       },
       relations: ['shop', 'category', 'variants'],
       order: orderCondition,
-      take: limit,
-      skip: skip,
-    });
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      items,
-      meta: {
-        page,
-        limit,
-        totalItems,
-        totalPages,
-      },
     };
+
+    const result = await paginate<Product>(this.productsRepository, query, paginateOptions);
+    return result;
   }
 
   async findOne(id: string, isPublic?: boolean) {

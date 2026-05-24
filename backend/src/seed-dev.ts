@@ -7,7 +7,7 @@ import { Category } from '@/modules/products/entities/category.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 import { AccountStatus, ProductStatus, UserRole } from '@/modules/enums';
-import { hashDataHelper } from '@/helpers/ultis';
+import { hashDataHelper } from '@/common/helpers/utils';
 
 async function seed() {
   console.log('====== BẮT ĐẦU GIEO HẠT DỮ LIỆU PHÁT TRIỂN (DEV SEEDER) ======');
