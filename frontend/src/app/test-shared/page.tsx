@@ -11,6 +11,8 @@ import {
   RefreshCw,
   Search,
   Plus,
+  ArrowUpDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +34,36 @@ import {
   EmptyOrders,
 } from "@/components/empty-state";
 import { StarRating } from "@/components/star-rating";
+import { SortDropdown, SortOption } from "@/components/sort-dropdown";
+import { FilterSidebar, FilterState } from "@/components/filter-sidebar";
+
+const mockCategories = [
+  {
+    id: "cat-1",
+    name: "Công Nghệ & Điện Tử",
+    children: [
+      { id: "cat-1-1", name: "Laptop & Macbook" },
+      { id: "cat-1-2", name: "Điện thoại & Tablet" },
+      { id: "cat-1-3", name: "Bàn phím cơ & Chuột" },
+    ],
+  },
+  {
+    id: "cat-2",
+    name: "Nhà Cửa & Đời Sống",
+    children: [
+      { id: "cat-2-1", name: "Bàn ghế làm việc" },
+      { id: "cat-2-2", name: "Đèn bàn trang trí" },
+    ],
+  },
+  {
+    id: "cat-3",
+    name: "Thời Trang & Phụ Kiện",
+    children: [
+      { id: "cat-3-1", name: "Áo thun & Hoodie" },
+      { id: "cat-3-2", name: "Balo & Túi xách" },
+    ],
+  },
+];
 
 // Custom Mock Product Card for verification
 function MockProductCard({ name, price, rating, shopName }: { name: string; price: number; rating: number; shopName: string }) {
@@ -71,6 +103,23 @@ export default function TestSharedComponentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userRating, setUserRating] = useState(4);
   const [customRating, setCustomRating] = useState(3.5);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [filters, setFilters] = useState<FilterState>({
+    categoryIds: [],
+    minPrice: undefined,
+    maxPrice: undefined,
+    rating: undefined,
+  });
+
+  const handleResetFilters = () => {
+    const defaultState = {
+      categoryIds: [],
+      minPrice: undefined,
+      maxPrice: undefined,
+      rating: undefined,
+    };
+    setFilters(defaultState);
+  };
 
   return (
     <div className="space-y-12 max-w-6xl mx-auto p-4 sm:p-6 md:p-8 pb-24">
@@ -362,6 +411,148 @@ export default function TestSharedComponentsPage() {
               onAction={() => alert("Đang điều hướng đến trang tạo sản phẩm...")}
               className="border-none bg-transparent max-w-2xl"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: SORT DROPDOWN */}
+      <div className="space-y-6">
+        <div className="border-l-4 border-violet-500 pl-4 flex items-center gap-2">
+          <ArrowUpDown className="h-5 w-5 text-violet-500" />
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">4. Sort Dropdown (Lựa chọn sắp xếp)</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Component lựa chọn thứ tự sắp xếp sản phẩm sử dụng Base UI Select đã được style chuẩn.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-card p-6 max-w-xl mx-auto space-y-4 shadow-sm">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Bộ chọn sắp xếp</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Thử thay đổi giá trị của bộ chọn:</p>
+            </div>
+            <SortDropdown value={sortBy} onChange={(val) => setSortBy(val)} className="w-48" />
+          </div>
+
+          {/* Hiển thị giá trị thân thiện kèm state raw */}
+          <div className="flex flex-col gap-2.5 bg-zinc-50 dark:bg-zinc-900/40 p-4 rounded-lg border text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-muted-foreground">Tùy chọn đang chọn:</span>
+              <span className="font-bold text-violet-600 dark:text-violet-400 text-sm">
+                {sortBy === "newest" && "🆕 Mới nhất"}
+                {sortBy === "price_asc" && "💰 Giá thấp → cao"}
+                {sortBy === "price_desc" && "💰 Giá cao → thấp"}
+                {sortBy === "popular" && "🔥 Phổ biến nhất"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t pt-2.5 border-zinc-200 dark:border-zinc-800">
+              <span className="font-bold text-muted-foreground">Giá trị State (Raw):</span>
+              <span className="font-mono bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded font-bold">
+                "{sortBy}"
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 5: FILTER SIDEBAR */}
+      <div className="space-y-6">
+        <div className="border-l-4 border-violet-500 pl-4 flex items-center gap-2">
+          <SlidersHorizontal className="h-5 w-5 text-violet-500" />
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">5. Filter Sidebar (Thanh bộ lọc bên sườn)</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Thanh bộ lọc sản phẩm gồm các nhóm: danh mục 2 cấp, lọc khoảng giá min-max, lọc số sao đánh giá. Hỗ trợ responsive Slide-in Drawer trên mobile.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+          {/* Component cần test */}
+          <FilterSidebar
+            categories={mockCategories}
+            filters={filters}
+            onFilterChange={(f) => setFilters(f)}
+            onReset={handleResetFilters}
+            className="w-full md:w-64"
+          />
+
+          {/* Hiển thị kết quả Filter State thời gian thực */}
+          <div className="flex-1 w-full rounded-xl border bg-card p-6 space-y-4 shadow-sm">
+            <h3 className="font-bold text-sm text-foreground border-b pb-2 flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-violet-500" />
+              <span>Giá trị Filter State hiện tại</span>
+            </h3>
+
+            <div className="space-y-3.5 text-xs">
+              {/* Category IDs */}
+              <div className="flex flex-col gap-1.5 border-b pb-3">
+                <span className="font-bold text-muted-foreground">Danh mục đã chọn (categoryIds):</span>
+                {filters.categoryIds.length === 0 ? (
+                  <span className="text-muted-foreground italic">Trống (Mọi danh mục)</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {filters.categoryIds.map((cid) => {
+                      // Tìm tên danh mục từ mock data để hiển thị label cho đẹp
+                      let name = cid;
+                      const findFn = (p: any) => {
+                        if (p.id === cid) {
+                          name = p.name;
+                          return true;
+                        }
+                        const child = p.children?.find((c: any) => c.id === cid);
+                        if (child) {
+                          name = `${p.name} > ${child.name}`;
+                          return true;
+                        }
+                        return false;
+                      };
+                      mockCategories.forEach(findFn);
+
+                      return (
+                        <span
+                          key={cid}
+                          className="bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400 font-bold px-2 py-0.5 rounded border border-violet-100 dark:border-violet-900/30"
+                        >
+                          {name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Price Range */}
+              <div className="flex items-center justify-between border-b pb-3">
+                <span className="font-bold text-muted-foreground">Khoảng giá (minPrice — maxPrice):</span>
+                <span className="font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded">
+                  {filters.minPrice !== undefined ? `${filters.minPrice.toLocaleString("vi-VN")} đ` : "0 đ"}{" "}
+                  —{" "}
+                  {filters.maxPrice !== undefined ? `${filters.maxPrice.toLocaleString("vi-VN")} đ` : "Không giới hạn"}
+                </span>
+              </div>
+
+              {/* Rating */}
+              <div className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                <span className="font-bold text-muted-foreground">Số sao tối thiểu (rating):</span>
+                {filters.rating !== undefined ? (
+                  <div className="flex items-center gap-1">
+                    <StarRating rating={filters.rating} size="sm" showValue />
+                    <span className="font-bold text-zinc-500">(Từ {filters.rating} sao trở lên)</span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground italic">Mọi số sao</span>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button onClick={handleResetFilters} variant="outline" size="sm" className="text-xs rounded-lg">
+                Xóa tất cả bộ lọc
+              </Button>
+            </div>
           </div>
         </div>
       </div>
