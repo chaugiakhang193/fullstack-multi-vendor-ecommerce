@@ -204,11 +204,21 @@ export const ProductResponse = z.object({
   updated_at: z.string(),
 });
 
+export const PaginationMetaSchema = z.object({
+  page: z.number(),
+  limit: z.number(),
+  totalItems: z.number(),
+  totalPages: z.number(),
+});
+
 // Schema response danh sách sản phẩm
 export const ProductListResponse = z.object({
   statusCode: z.number().optional(),
   message: z.string().optional(),
-  data: z.array(ProductResponse),
+  data: z.object({
+    items: z.array(ProductResponse),
+    meta: PaginationMetaSchema,
+  }),
 });
 
 // Schema response 1 sản phẩm

@@ -21,7 +21,7 @@ import {
   ApiGenericResponse,
   ApiPaginatedResponse,
 } from '@/decorator/api-response.decorator';
-import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { GetProductsQueryDto } from '@/modules/products/dto/get-products-query.dto';
 
 @ApiTags('products')
 @Public()
@@ -33,7 +33,7 @@ export class ProductsController {
   @ResponseMessage('Lấy danh sách sản phẩm thành công')
   @ApiOperation({ summary: 'Khách hàng lấy danh sách sản phẩm (Public)' })
   @ApiPaginatedResponse(ProductResponseDto, 'Lấy danh sách sản phẩm thành công')
-  findAll(@Query() query: PaginationQueryDto) {
+  findAll(@Query() query: GetProductsQueryDto) {
     return this.productsService.findAll(query);
   }
 
@@ -42,12 +42,9 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Khách hàng lấy danh sách sản phẩm của một gian hàng (Public)',
   })
-  @ApiGenericResponse(
+  @ApiPaginatedResponse(
     ProductResponseDto,
     'Lấy danh sách sản phẩm của gian hàng thành công',
-    {
-      isArray: true,
-    },
   )
   @ApiResponse({
     status: 400,
@@ -57,8 +54,11 @@ export class ProductsController {
     status: 404,
     description: 'Không tìm thấy gian hàng hoặc gian hàng bị khóa',
   })
-  getPublicCatalogByShop(@Param('shopId', ParseUUIDPipe) shopId: string) {
-    return this.productsService.getPublicCatalogByShop(shopId);
+  getPublicCatalogByShop(
+    @Param('shopId', ParseUUIDPipe) shopId: string,
+    @Query() query: GetProductsQueryDto,
+  ) {
+    return this.productsService.getPublicCatalogByShop(shopId, query);
   }
 
   @Get(':id')

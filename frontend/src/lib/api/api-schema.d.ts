@@ -4,3670 +4,3792 @@
  */
 
 export interface paths {
-  "/api/v1": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AppController_getHello"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["AppController_getHello"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/users": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["UsersController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["UsersController_findAll"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/users/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["UsersController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["UsersController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["UsersController_update"];
+        trace?: never;
     };
-    get: operations["UsersController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["UsersController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["UsersController_update"];
-    trace?: never;
-  };
-  "/api/v1/auth/register": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng ký tài khoản mới */
+        post: operations["AuthController_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Đăng ký tài khoản mới */
-    post: operations["AuthController_register"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/seller/register": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/seller/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng ký tài khoản người bán mới */
+        post: operations["AuthController_registerSeller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Đăng ký tài khoản người bán mới */
-    post: operations["AuthController_registerSeller"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/resend-verification": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gửi lại email xác thực tài khoản */
+        post: operations["AuthController_resendVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Gửi lại email xác thực tài khoản */
-    post: operations["AuthController_resendVerification"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/verify-email": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Xác thực tài khoản bằng mã từ email */
+        post: operations["AuthController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Xác thực tài khoản bằng mã từ email */
-    post: operations["AuthController_verifyEmail"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng nhập vào hệ thống */
+        post: operations["AuthController_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Đăng nhập vào hệ thống */
-    post: operations["AuthController_login"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/change-password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Đổi mật khẩu (Cần đăng nhập) */
+        put: operations["AuthController_changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Đổi mật khẩu (Cần đăng nhập) */
-    put: operations["AuthController_changePassword"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/forgot-password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quên mật khẩu (gửi email khôi phục) */
+        post: operations["AuthController_forgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Quên mật khẩu (gửi email khôi phục) */
-    post: operations["AuthController_forgotPassword"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/reset-password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đặt lại mật khẩu mới */
+        post: operations["AuthController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Đặt lại mật khẩu mới */
-    post: operations["AuthController_resetPassword"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/refresh": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy thông tin người dùng hiện tại từ Access Token */
+        get: operations["AuthController_getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Cấp lại Access Token mới bằng Refresh Token */
-    post: operations["AuthController_refreshTokens"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/auth/logout": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cấp lại Access Token mới bằng Refresh Token */
+        post: operations["AuthController_refreshTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Đăng xuất khỏi hệ thống */
-    post: operations["AuthController_logout"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/shops/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng xuất khỏi hệ thống */
+        post: operations["AuthController_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Lấy chi tiết một gian hàng cho khách hàng (Public) */
-    get: operations["ShopsController_findOne"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops/setup": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/shops/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy chi tiết một gian hàng cho khách hàng (Public) */
+        get: operations["ShopsController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Seller khởi tạo thông tin gian hàng lần đầu
-     * @description Yêu cầu:
-     *     - Phải là tài khoản Seller chưa có gian hàng.
-     *     - Phải upload đủ logo (1), banner (1) và gallery (1-3 ảnh).
-     *     - categoryIds phải là danh mục gốc (không có danh mục cha).
-     */
-    post: operations["SellerShopsController_setup"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seller khởi tạo thông tin gian hàng lần đầu
+         * @description Yêu cầu:
+         *     - Phải là tài khoản Seller chưa có gian hàng.
+         *     - Phải upload đủ logo (1), banner (1) và gallery (1-3 ảnh).
+         *     - categoryIds phải là danh mục gốc (không có danh mục cha).
+         */
+        post: operations["SellerShopsController_setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Seller lấy chi tiết gian hàng của mình */
-    get: operations["SellerShopsController_getMyShop"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Seller cập nhật thông tin gian hàng của mình */
-    patch: operations["SellerShopsController_updateMyShop"];
-    trace?: never;
-  };
-  "/api/v1/seller/shops/logo": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seller lấy chi tiết gian hàng của mình */
+        get: operations["SellerShopsController_getMyShop"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seller cập nhật thông tin gian hàng của mình */
+        patch: operations["SellerShopsController_updateMyShop"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Seller cập nhật logo gian hàng */
-    post: operations["SellerShopsController_uploadLogo"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops/banner": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Seller cập nhật logo gian hàng */
+        post: operations["SellerShopsController_uploadLogo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Seller cập nhật banner gian hàng */
-    post: operations["SellerShopsController_uploadBanner"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops/re-apply": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Seller cập nhật banner gian hàng */
+        post: operations["SellerShopsController_uploadBanner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Seller nộp lại đơn đăng ký sau khi bị từ chối */
-    post: operations["SellerShopsController_reApplyShop"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops/gallery": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/re-apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Seller nộp lại đơn đăng ký sau khi bị từ chối */
+        post: operations["SellerShopsController_reApplyShop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Seller thêm tối đa 3 ảnh vào gallery */
-    post: operations["SellerShopsController_addGalleryImages"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/shops/gallery/{assetId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/gallery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Seller thêm tối đa 3 ảnh vào gallery */
+        post: operations["SellerShopsController_addGalleryImages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Seller xóa 1 ảnh khỏi gallery */
-    delete: operations["SellerShopsController_removeGalleryImage"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/shops": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/shops/gallery/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Seller xóa 1 ảnh khỏi gallery */
+        delete: operations["SellerShopsController_removeGalleryImage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Admin lấy danh sách tất cả gian hàng */
-    get: operations["AdminShopsController_findAll"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/shops/pending": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/shops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin lấy danh sách tất cả gian hàng */
+        get: operations["AdminShopsController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Admin lấy danh sách gian hàng đang chờ duyệt */
-    get: operations["AdminShopsController_getPendingShops"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/shops/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/shops/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin lấy danh sách gian hàng đang chờ duyệt */
+        get: operations["AdminShopsController_getPendingShops"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Admin xem chi tiết một gian hàng */
-    get: operations["AdminShopsController_findOneAdmin"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/admin/shops/{id}/approve": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/shops/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin xem chi tiết một gian hàng */
+        get: operations["AdminShopsController_findOneAdmin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Admin duyệt gian hàng */
-    patch: operations["AdminShopsController_approveShop"];
-    trace?: never;
-  };
-  "/api/v1/admin/shops/{id}/reject": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/shops/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin duyệt gian hàng */
+        patch: operations["AdminShopsController_approveShop"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Admin từ chối gian hàng */
-    patch: operations["AdminShopsController_rejectShop"];
-    trace?: never;
-  };
-  "/api/v1/products": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/admin/shops/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin từ chối gian hàng */
+        patch: operations["AdminShopsController_rejectShop"];
+        trace?: never;
     };
-    /** Khách hàng lấy danh sách sản phẩm (Public) */
-    get: operations["ProductsController_findAll"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/products/shop/{shopId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Khách hàng lấy danh sách sản phẩm (Public) */
+        get: operations["ProductsController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Khách hàng lấy danh sách sản phẩm của một gian hàng (Public) */
-    get: operations["ProductsController_getPublicCatalogByShop"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/products/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/products/shop/{shopId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Khách hàng lấy danh sách sản phẩm của một gian hàng (Public) */
+        get: operations["ProductsController_getPublicCatalogByShop"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Khách hàng lấy chi tiết sản phẩm (Public) */
-    get: operations["ProductsController_findOne"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/products": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Khách hàng lấy chi tiết sản phẩm (Public) */
+        get: operations["ProductsController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Seller lấy danh sách sản phẩm của chính mình */
-    get: operations["SellerProductsController_getSellerInventory"];
-    put?: never;
-    /** Seller tạo sản phẩm mới */
-    post: operations["SellerProductsController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/seller/products/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seller lấy danh sách sản phẩm của chính mình */
+        get: operations["SellerProductsController_getSellerInventory"];
+        put?: never;
+        /** Seller tạo sản phẩm mới */
+        post: operations["SellerProductsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Seller xóa sản phẩm (Soft delete) */
-    delete: operations["SellerProductsController_remove"];
-    options?: never;
-    head?: never;
-    /** Seller cập nhật sản phẩm */
-    patch: operations["SellerProductsController_update"];
-    trace?: never;
-  };
-  "/api/v1/categories": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/seller/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seller lấy chi tiết sản phẩm của chính mình */
+        get: operations["SellerProductsController_findOne"];
+        put?: never;
+        post?: never;
+        /** Seller xóa sản phẩm (Soft delete) */
+        delete: operations["SellerProductsController_remove"];
+        options?: never;
+        head?: never;
+        /** Seller cập nhật sản phẩm */
+        patch: operations["SellerProductsController_update"];
+        trace?: never;
     };
-    /** Lấy danh sách tất cả danh mục (Public) */
-    get: operations["CategoriesController_findAll"];
-    put?: never;
-    /** Admin tạo danh mục mới */
-    post: operations["CategoriesController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/categories/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy danh sách tất cả danh mục (Public) */
+        get: operations["CategoriesController_findAll"];
+        put?: never;
+        /** Admin tạo danh mục mới */
+        post: operations["CategoriesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Lấy chi tiết một danh mục */
-    get: operations["CategoriesController_findOne"];
-    put?: never;
-    post?: never;
-    /** Admin xóa danh mục */
-    delete: operations["CategoriesController_remove"];
-    options?: never;
-    head?: never;
-    /** Admin cập nhật danh mục */
-    patch: operations["CategoriesController_update"];
-    trace?: never;
-  };
-  "/api/v1/carts": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy chi tiết một danh mục */
+        get: operations["CategoriesController_findOne"];
+        put?: never;
+        post?: never;
+        /** Admin xóa danh mục */
+        delete: operations["CategoriesController_remove"];
+        options?: never;
+        head?: never;
+        /** Admin cập nhật danh mục */
+        patch: operations["CategoriesController_update"];
+        trace?: never;
     };
-    get: operations["CartsController_findAll"];
-    put?: never;
-    post: operations["CartsController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/carts/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/carts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CartsController_findAll"];
+        put?: never;
+        post: operations["CartsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["CartsController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["CartsController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["CartsController_update"];
-    trace?: never;
-  };
-  "/api/v1/orders": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/carts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CartsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["CartsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["CartsController_update"];
+        trace?: never;
     };
-    get: operations["OrdersController_findAll"];
-    put?: never;
-    post: operations["OrdersController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/orders/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OrdersController_findAll"];
+        put?: never;
+        post: operations["OrdersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["OrdersController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["OrdersController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["OrdersController_update"];
-    trace?: never;
-  };
-  "/api/v1/promotions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OrdersController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["OrdersController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["OrdersController_update"];
+        trace?: never;
     };
-    get: operations["PromotionsController_findAll"];
-    put?: never;
-    post: operations["PromotionsController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/promotions/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PromotionsController_findAll"];
+        put?: never;
+        post: operations["PromotionsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["PromotionsController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["PromotionsController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["PromotionsController_update"];
-    trace?: never;
-  };
-  "/api/v1/payments": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/promotions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PromotionsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["PromotionsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["PromotionsController_update"];
+        trace?: never;
     };
-    get: operations["PaymentsController_findAll"];
-    put?: never;
-    post: operations["PaymentsController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/payments/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaymentsController_findAll"];
+        put?: never;
+        post: operations["PaymentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["PaymentsController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["PaymentsController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["PaymentsController_update"];
-    trace?: never;
-  };
-  "/api/v1/engagements": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaymentsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["PaymentsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["PaymentsController_update"];
+        trace?: never;
     };
-    get: operations["EngagementsController_findAll"];
-    put?: never;
-    post: operations["EngagementsController_create"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/engagements/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/engagements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["EngagementsController_findAll"];
+        put?: never;
+        post: operations["EngagementsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["EngagementsController_findOne"];
-    put?: never;
-    post?: never;
-    delete: operations["EngagementsController_remove"];
-    options?: never;
-    head?: never;
-    patch: operations["EngagementsController_update"];
-    trace?: never;
-  };
+    "/api/v1/engagements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["EngagementsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["EngagementsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["EngagementsController_update"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    UpdateUserDto: {
-      /**
-       * @description Tên đăng nhập
-       * @example nguyenvana
-       */
-      username?: string;
-      /**
-       * @description Địa chỉ email
-       * @example nguyenvana@gmail.com
-       */
-      email?: string;
-      /**
-       * @description Mật khẩu
-       * @example Password123
-       */
-      password?: string;
-      /**
-       * @description Vai trò người dùng
-       * @example customer
-       * @enum {string}
-       */
-      role?: "admin" | "customer" | "seller";
-      /**
-       * @description Trạng thái tài khoản
-       * @example active
-       * @enum {string}
-       */
-      status?:
-        | "pending_verification"
-        | "pending_approval"
-        | "new_seller"
-        | "active"
-        | "suspended"
-        | "banned"
-        | "rejected";
-      /**
-       * @description Họ và tên đầy đủ
-       * @example Nguyễn Văn A
-       */
-      full_name?: string;
-      /**
-       * @description Số điện thoại
-       * @example 0987654321
-       */
-      phone?: string;
+    schemas: {
+        UpdateUserDto: {
+            /**
+             * @description Tên đăng nhập
+             * @example nguyenvana
+             */
+            username?: string;
+            /**
+             * @description Địa chỉ email
+             * @example nguyenvana@gmail.com
+             */
+            email?: string;
+            /**
+             * @description Mật khẩu
+             * @example Password123
+             */
+            password?: string;
+            /**
+             * @description Vai trò người dùng
+             * @example customer
+             * @enum {string}
+             */
+            role?: "admin" | "customer" | "seller";
+            /**
+             * @description Trạng thái tài khoản
+             * @example active
+             * @enum {string}
+             */
+            status?: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /**
+             * @description Họ và tên đầy đủ
+             * @example Nguyễn Văn A
+             */
+            full_name?: string;
+            /**
+             * @description Số điện thoại
+             * @example 0987654321
+             */
+            phone?: string;
+        };
+        RegisterDto: {
+            /**
+             * @description Tên đăng nhập (3–32 ký tự, phải chứa ít nhất 1 chữ cái)
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Địa chỉ email hợp lệ
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+            /**
+             * @description Mật khẩu (≥8 ký tự, có chữ hoa, chữ thường và số)
+             * @example Password123
+             */
+            password: string;
+        };
+        ResendVerificationEmailDto: {
+            /**
+             * @description Email cần để gửi lại mã xác nhận
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+        };
+        UserResponseDto: {
+            /**
+             * @description Tên đăng nhập
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Địa chỉ email
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+            /**
+             * @description Vai trò người dùng
+             * @example customer
+             * @enum {string}
+             */
+            role: "admin" | "customer" | "seller";
+            /**
+             * @description Trạng thái tài khoản
+             * @example active
+             * @enum {string}
+             */
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /**
+             * @description Họ và tên đầy đủ
+             * @example Nguyễn Văn A
+             */
+            full_name?: string;
+            /**
+             * @description Số điện thoại
+             * @example 0987654321
+             */
+            phone?: string;
+            /**
+             * @description Mã ID của người dùng
+             * @example 60d0fe4f5311236168a109ca
+             */
+            _id: string;
+        };
+        AuthResponseDto: {
+            /**
+             * @description JWT Access Token dùng để gọi các API yêu cầu xác thực
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI...
+             */
+            access_token: string;
+            /** @description Thông tin người dùng (đã ẩn mật khẩu) */
+            user: components["schemas"]["UserResponseDto"];
+        };
+        VerifyEmailDto: {
+            /**
+             * @description Mã xác thực từ email
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            verification_token: string;
+        };
+        LoginDto: {
+            /**
+             * @description Tên đăng nhập hoặc email
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Mật khẩu
+             * @example Password123
+             */
+            password: string;
+        };
+        UnverifiedAccountResponseDto: {
+            /**
+             * @description Mã trạng thái HTTP
+             * @example 401
+             */
+            statusCode: number;
+            /**
+             * @description Thông báo lỗi chi tiết
+             * @example Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt.
+             */
+            message: string;
+            /**
+             * @description Loại lỗi xác thực
+             * @example Unauthorized
+             */
+            error: string;
+        };
+        ChangePasswordDto: {
+            /**
+             * @description Mật khẩu hiện tại
+             * @example OldPassword123
+             */
+            old_password: string;
+            /**
+             * @description Mật khẩu mới
+             * @example NewPassword123
+             */
+            new_password: string;
+        };
+        ForgotPasswordDto: {
+            /**
+             * @description Email của tài khoản cần khôi phục mật khẩu
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+        };
+        ResetPasswordDto: {
+            /**
+             * @description Mã token khôi phục mật khẩu nhận được từ email
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            token: string;
+            /**
+             * @description Mật khẩu mới
+             * @example NewPassword123
+             */
+            new_password: string;
+        };
+        CategoryResponseDto: {
+            /**
+             * @description ID của danh mục
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * @description Tên danh mục
+             * @example Thời trang nam
+             */
+            name: string;
+            /**
+             * @description Slug tự động (dùng cho URL)
+             * @example thoi-trang-nam
+             */
+            slug: string;
+            /** @description Thông tin danh mục cha (null nếu là danh mục gốc) */
+            parent?: components["schemas"]["CategoryResponseDto"] | null;
+            /**
+             * @description Thứ tự ưu tiên hiển thị
+             * @default 0
+             * @example 1
+             */
+            display_order: number;
+            /** @description Danh sách các danh mục con */
+            children?: components["schemas"]["CategoryResponseDto"][];
+            /**
+             * Format: date-time
+             * @description Ngày tạo
+             * @example 2024-03-20T10:00:00Z
+             */
+            created_at: string;
+        };
+        MediaAssetResponseDto: {
+            /** @example 550e8400-e29b-41d4-a716-446655440000 */
+            id: string;
+            /** @example https://res.cloudinary.com/.../image.jpg */
+            url: string;
+            /**
+             * @example shop_gallery
+             * @enum {string}
+             */
+            type: "shop_logo" | "shop_banner" | "shop_gallery" | "product_image" | "product_thumbnail" | "product_gallery" | "product_variant_image" | "user_avatar";
+            /** Format: date-time */
+            created_at: string;
+        };
+        ShopResponseDto: {
+            /** @example 550e8400-e29b-41d4-a716-446655440001 */
+            id: string;
+            /** @description Thông tin chủ cửa hàng */
+            seller?: components["schemas"]["UserResponseDto"] | null;
+            /** @example Cửa hàng quần áo ABC */
+            name: string;
+            /** @example https://res.cloudinary.com/.../logo.jpg */
+            logo_url: string;
+            /** @example https://res.cloudinary.com/.../banner.jpg */
+            banner_url: string;
+            /** @example Chuyên cung cấp sản phẩm chất lượng */
+            description: Record<string, never> | null;
+            /** @example Vietcombank - 123456789 */
+            bank_account_info: string;
+            /** @example 123 Đường ABC, Quận 1, TP.HCM */
+            pickup_address: string;
+            /** @example Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ. */
+            reject_reason?: Record<string, never> | null;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /** @description Các danh mục kinh doanh */
+            categories: components["schemas"]["CategoryResponseDto"][];
+            /** @description Bộ sưu tập ảnh của shop */
+            gallery: components["schemas"]["MediaAssetResponseDto"][];
+            /**
+             * Format: date-time
+             * @example 2024-03-20T10:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @example 2024-03-20T11:00:00Z
+             */
+            updated_at: string;
+        };
+        SetupShopSwaggerDto: {
+            /**
+             * @description Tên gian hàng
+             * @example Cửa hàng quần áo ABC
+             */
+            name: string;
+            /**
+             * @description Mô tả về gian hàng
+             * @example Chuyên cung cấp quần áo nam nữ chất lượng cao
+             */
+            description?: string;
+            /**
+             * @description Địa chỉ lấy hàng (kho)
+             * @example Số 1, đường ABC, Quận 1, TP.HCM
+             */
+            pickup_address: string;
+            /**
+             * @description URL ảnh logo của shop
+             * @example https://cloudinary.com/logo.png
+             */
+            logo_url?: string;
+            /**
+             * @description URL ảnh banner của shop
+             * @example https://cloudinary.com/banner.png
+             */
+            banner_url?: string;
+            /**
+             * @description Thông tin tài khoản ngân hàng
+             * @example VCB - 123456789 - NGUYEN VAN A
+             */
+            bank_account_info: string;
+            /**
+             * @description Danh sách các ID danh mục mà shop kinh doanh
+             * @example [
+             *       "uuid-category-1",
+             *       "uuid-category-2"
+             *     ]
+             */
+            categoryIds: string[];
+            /**
+             * Format: binary
+             * @description Ảnh logo của shop (1 file)
+             */
+            logo: string;
+            /**
+             * Format: binary
+             * @description Ảnh banner của shop (1 file)
+             */
+            banner: string;
+            /** @description Mảng các ảnh gallery (1-3 files) */
+            gallery: string[];
+        };
+        UpdateShopSwaggerDto: {
+            /**
+             * @description Tên gian hàng
+             * @example Cửa hàng quần áo ABC
+             */
+            name?: string;
+            /**
+             * @description Mô tả về gian hàng
+             * @example Chuyên cung cấp quần áo nam nữ chất lượng cao
+             */
+            description?: string;
+            /**
+             * @description Địa chỉ lấy hàng (kho)
+             * @example Số 1, đường ABC, Quận 1, TP.HCM
+             */
+            pickup_address?: string;
+            /**
+             * @description URL ảnh logo của shop
+             * @example https://cloudinary.com/logo.png
+             */
+            logo_url?: string;
+            /**
+             * @description URL ảnh banner của shop
+             * @example https://cloudinary.com/banner.png
+             */
+            banner_url?: string;
+            /**
+             * @description Thông tin tài khoản ngân hàng
+             * @example VCB - 123456789 - NGUYEN VAN A
+             */
+            bank_account_info?: string;
+            /**
+             * @description Danh sách các ID danh mục mà shop kinh doanh
+             * @example [
+             *       "uuid-category-1",
+             *       "uuid-category-2"
+             *     ]
+             */
+            categoryIds?: string[];
+            /**
+             * Format: binary
+             * @description Cập nhật logo mới
+             */
+            logo?: string;
+            /**
+             * Format: binary
+             * @description Cập nhật banner mới
+             */
+            banner?: string;
+            /** @description Thêm ảnh vào bộ sưu tập */
+            gallery?: string[];
+        };
+        UploadSingleFileSwaggerDto: {
+            /**
+             * Format: binary
+             * @description File ảnh cần upload
+             */
+            file: string;
+        };
+        UploadMultipleFilesSwaggerDto: {
+            /** @description Danh sách các file ảnh (tối đa 3) */
+            files: string[];
+        };
+        PaginationMetaDto: {
+            /**
+             * @description Trang hiện tại
+             * @example 1
+             */
+            page: number;
+            /**
+             * @description Số lượng phần tử trên mỗi trang
+             * @example 10
+             */
+            limit: number;
+            /**
+             * @description Tổng số phần tử
+             * @example 100
+             */
+            totalItems: number;
+            /**
+             * @description Tổng số trang
+             * @example 10
+             */
+            totalPages: number;
+        };
+        ProductVariantResponseDto: {
+            /**
+             * @description ID của biến thể
+             * @example 550e8400-e29b-41d4-a716-446655440003
+             */
+            id: string;
+            /**
+             * @description Tên hoặc thuộc tính của biến thể
+             * @example Màu đỏ - Size L
+             */
+            name: string;
+            /**
+             * @description Mã định danh kho hàng của biến thể
+             * @example SKU-RED-L
+             */
+            sku: string;
+            /**
+             * @description Giá cộng thêm so với giá gốc sản phẩm
+             * @example 15000
+             */
+            additional_price: number;
+            /**
+             * @description Số lượng tồn kho của biến thể này
+             * @example 50
+             */
+            stock_quantity: number;
+            /**
+             * @description Danh sách ảnh riêng của biến thể này
+             * @example [
+             *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/variants/img1.jpg"
+             *     ]
+             */
+            images: string[];
+        };
+        ProductResponseDto: {
+            /**
+             * @description ID sản phẩm
+             * @example 550e8400-e29b-41d4-a716-446655440004
+             */
+            id: string;
+            /** @description Thông tin gian hàng bán sản phẩm */
+            shop?: components["schemas"]["ShopResponseDto"];
+            /**
+             * @description Tên sản phẩm
+             * @example Áo sơ mi lụa tơ tằm
+             */
+            name: string;
+            /**
+             * @description Slug sản phẩm dùng cho SEO
+             * @example ao-so-mi-lua-to-tam
+             */
+            slug: string;
+            /**
+             * @description Mã định danh kho hàng sản phẩm gốc
+             * @example SKU-SILK-SHIRT
+             */
+            sku: Record<string, never> | null;
+            /** @example Mô tả chi tiết áo sơ mi sang trọng */
+            description: Record<string, never> | null;
+            /**
+             * @description Giá bán cơ bản của sản phẩm
+             * @example 250000
+             */
+            price: number;
+            /**
+             * @description Trọng lượng sản phẩm (gram)
+             * @example 200
+             */
+            weight: number;
+            /**
+             * @description Chiều dài hộp đóng gói (cm)
+             * @example 30
+             */
+            length: Record<string, never> | null;
+            /**
+             * @description Chiều rộng hộp đóng gói (cm)
+             * @example 20
+             */
+            width: Record<string, never> | null;
+            /**
+             * @description Chiều cao hộp đóng gói (cm)
+             * @example 5
+             */
+            height: Record<string, never> | null;
+            /** @description Danh mục chứa sản phẩm */
+            category?: components["schemas"]["CategoryResponseDto"];
+            /** @description Danh sách biến thể của sản phẩm */
+            variants: components["schemas"]["ProductVariantResponseDto"][];
+            /**
+             * @description Đường dẫn ảnh đại diện sản phẩm
+             * @example https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/thumbnails/thumb.jpg
+             */
+            thumbnail_url: Record<string, never> | null;
+            /**
+             * @description Bộ sưu tập ảnh chi tiết sản phẩm
+             * @example [
+             *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/gallery/gallery1.jpg"
+             *     ]
+             */
+            gallery: Record<string, never> | null;
+            /**
+             * @description Ảnh tổng hợp gồm thumbnail + gallery
+             * @example [
+             *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/thumbnails/thumb.jpg",
+             *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/gallery/gallery1.jpg"
+             *     ]
+             */
+            aggregated_gallery: string[];
+            /**
+             * @description Tổng số lượng tồn kho của tất cả biến thể hoặc của chính sản phẩm gốc
+             * @example 150
+             */
+            stock_quantity: number;
+            /**
+             * @description Đánh dấu sản phẩm có nhiều biến thể (màu sắc, kích thước) hay không
+             * @example true
+             */
+            has_variants: boolean;
+            /**
+             * @description Đánh dấu sản phẩm bị ẩn khỏi khách hàng hay không
+             * @example false
+             */
+            is_hidden: boolean;
+            /**
+             * @description Đánh dấu sản phẩm nổi bật hay không
+             * @example false
+             */
+            is_featured: boolean;
+            /**
+             * @description Trạng thái hoạt động sản phẩm
+             * @example active
+             * @enum {string}
+             */
+            status: "active" | "deleted";
+            /**
+             * Format: date-time
+             * @example 2024-03-20T10:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @example 2024-03-20T11:00:00Z
+             */
+            updated_at: string;
+        };
+        CreateProductVariantDto: {
+            /**
+             * @description Tên biến thể (màu sắc, kích cỡ...)
+             * @example Màu Đỏ, Size L
+             */
+            name: string;
+            /**
+             * @description Giá cộng thêm so với giá gốc
+             * @example 10000
+             */
+            additional_price: number;
+            /**
+             * @description Mã SKU của biến thể
+             * @example SKU-RED-L
+             */
+            sku: string;
+            /**
+             * @description Số lượng tồn kho của biến thể này
+             * @example 50
+             */
+            stock_quantity: number;
+            /**
+             * @description Số lượng ảnh của biến thể này
+             * @example 1
+             */
+            imageCount: number;
+        };
+        CreateProductSwaggerDto: {
+            /**
+             * @description Tên sản phẩm
+             * @example Áo thun Nam
+             */
+            name: string;
+            /**
+             * @description Mô tả sản phẩm
+             * @example Áo thun cotton 100% cao cấp
+             */
+            description?: string;
+            /**
+             * @description Giá sản phẩm
+             * @example 150000
+             */
+            price: number;
+            /**
+             * @description Mã SKU sản phẩm
+             * @example SKU-001
+             */
+            sku: string;
+            /**
+             * @description Trọng lượng (gram)
+             * @example 500
+             */
+            weight: number;
+            /**
+             * @description Chiều dài (cm)
+             * @example 10
+             */
+            length?: number;
+            /**
+             * @description Chiều rộng (cm)
+             * @example 10
+             */
+            width?: number;
+            /**
+             * @description Chiều cao (cm)
+             * @example 10
+             */
+            height?: number;
+            /**
+             * @description ID danh mục
+             * @example uuid-category
+             */
+            category_id: string;
+            /**
+             * @description Số lượng tồn kho (Dùng cho sản phẩm không có biến thể)
+             * @example 100
+             */
+            stock_quantity?: number;
+            /**
+             * @description Sản phẩm có biến thể hay không?
+             * @example false
+             */
+            has_variants: boolean;
+            /** @description Danh sách các biến thể của sản phẩm (JSON String) */
+            variants?: components["schemas"]["CreateProductVariantDto"][];
+            /**
+             * Format: binary
+             * @description Ảnh đại diện (Thumbnail) của sản phẩm (1 file)
+             */
+            thumbnail: string;
+            /** @description Ảnh bộ sưu tập (Gallery) của sản phẩm (tối đa 5 files) */
+            general_gallery?: string[];
+            /** @description Danh sách các ảnh phục vụ cho các biến thể sản phẩm (tối đa 30 files) */
+            variant_images?: string[];
+        };
+        UpdateProductVariantDto: {
+            /**
+             * @description Tên biến thể (màu sắc, kích cỡ...)
+             * @example Màu Đỏ, Size L
+             */
+            name?: string;
+            /**
+             * @description Giá cộng thêm so với giá gốc
+             * @example 10000
+             */
+            additional_price?: number;
+            /**
+             * @description Mã SKU của biến thể
+             * @example SKU-RED-L
+             */
+            sku?: string;
+            /**
+             * @description Số lượng tồn kho của biến thể này
+             * @example 50
+             */
+            stock_quantity?: number;
+            /**
+             * @description Số lượng ảnh mới sẽ upload
+             * @default 0
+             * @example 1
+             */
+            imageCount: number;
+            /** @description ID của biến thể (nếu là cập nhật) */
+            id?: string;
+            /** @description Danh sách URL ảnh cũ giữ lại */
+            existingImages?: string[];
+        };
+        UpdateProductSwaggerDto: {
+            /**
+             * @description Tên sản phẩm
+             * @example Áo thun Nam
+             */
+            name?: string;
+            /**
+             * @description Mô tả sản phẩm
+             * @example Áo thun cotton 100% cao cấp
+             */
+            description?: string;
+            /**
+             * @description Giá sản phẩm
+             * @example 150000
+             */
+            price?: number;
+            /**
+             * @description Mã SKU sản phẩm
+             * @example SKU-001
+             */
+            sku?: string;
+            /**
+             * @description Trọng lượng (gram)
+             * @example 500
+             */
+            weight?: number;
+            /**
+             * @description Chiều dài (cm)
+             * @example 10
+             */
+            length?: number;
+            /**
+             * @description Chiều rộng (cm)
+             * @example 10
+             */
+            width?: number;
+            /**
+             * @description Chiều cao (cm)
+             * @example 10
+             */
+            height?: number;
+            /**
+             * @description ID danh mục
+             * @example uuid-category
+             */
+            category_id?: string;
+            /**
+             * @description Số lượng tồn kho (Dùng cho sản phẩm không có biến thể)
+             * @example 100
+             */
+            stock_quantity?: number;
+            /**
+             * @description Sản phẩm có biến thể hay không?
+             * @example false
+             */
+            has_variants?: boolean;
+            /**
+             * @description Trạng thái hoạt động của sản phẩm
+             * @enum {string}
+             */
+            status?: "active" | "deleted";
+            /** @description Ẩn/hiện sản phẩm với khách hàng */
+            is_hidden?: boolean;
+            /** @description Danh sách các biến thể của sản phẩm (JSON String) */
+            variants?: components["schemas"]["UpdateProductVariantDto"][];
+            /** @description Danh sách URL ảnh phụ cũ giữ lại */
+            existingGalleryImages?: string[];
+            /**
+             * Format: binary
+             * @description Cập nhật ảnh đại diện mới (1 file)
+             */
+            thumbnail?: string;
+            /** @description Thêm ảnh mới vào bộ sưu tập sản phẩm (tối đa 5 files) */
+            general_gallery?: string[];
+            /** @description Cập nhật thêm ảnh phục vụ các biến thể sản phẩm (tối đa 30 files) */
+            variant_images?: string[];
+        };
+        CreateCategoryDto: {
+            /**
+             * @description Tên hiển thị của danh mục
+             * @example Thời trang nam
+             */
+            name: string;
+            /**
+             * @description ID của danh mục cha. Để trống nếu là danh mục gốc.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            parentId?: Record<string, never> | null;
+            /**
+             * @description Thứ tự ưu tiên hiển thị (số càng nhỏ càng hiện trước)
+             * @default 0
+             * @example 1
+             */
+            display_order: number;
+        };
+        UpdateCategoryDto: {
+            /**
+             * @description Tên hiển thị của danh mục
+             * @example Thời trang nam
+             */
+            name?: string;
+            /**
+             * @description ID của danh mục cha. Để trống nếu là danh mục gốc.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            parentId?: Record<string, never> | null;
+            /**
+             * @description Thứ tự ưu tiên hiển thị (số càng nhỏ càng hiện trước)
+             * @default 0
+             * @example 1
+             */
+            display_order: number;
+        };
+        CreateCartDto: Record<string, never>;
+        UpdateCartDto: Record<string, never>;
+        CreateOrderDto: Record<string, never>;
+        UpdateOrderDto: Record<string, never>;
+        CreatePromotionDto: Record<string, never>;
+        UpdatePromotionDto: Record<string, never>;
+        CreatePaymentDto: Record<string, never>;
+        UpdatePaymentDto: Record<string, never>;
+        CreateEngagementDto: Record<string, never>;
+        UpdateEngagementDto: Record<string, never>;
     };
-    RegisterDto: {
-      /**
-       * @description Tên đăng nhập (3–32 ký tự, phải chứa ít nhất 1 chữ cái)
-       * @example nguyenvana
-       */
-      username: string;
-      /**
-       * @description Địa chỉ email hợp lệ
-       * @example nguyenvana@gmail.com
-       */
-      email: string;
-      /**
-       * @description Mật khẩu (≥8 ký tự, có chữ hoa, chữ thường và số)
-       * @example Password123
-       */
-      password: string;
-    };
-    ResendVerificationEmailDto: {
-      /**
-       * @description Email cần để gửi lại mã xác nhận
-       * @example nguyenvana@gmail.com
-       */
-      email: string;
-    };
-    UserResponseDto: {
-      /**
-       * @description Tên đăng nhập
-       * @example nguyenvana
-       */
-      username: string;
-      /**
-       * @description Địa chỉ email
-       * @example nguyenvana@gmail.com
-       */
-      email: string;
-      /**
-       * @description Vai trò người dùng
-       * @example customer
-       * @enum {string}
-       */
-      role: "admin" | "customer" | "seller";
-      /**
-       * @description Trạng thái tài khoản
-       * @example active
-       * @enum {string}
-       */
-      status:
-        | "pending_verification"
-        | "pending_approval"
-        | "new_seller"
-        | "active"
-        | "suspended"
-        | "banned"
-        | "rejected";
-      /**
-       * @description Họ và tên đầy đủ
-       * @example Nguyễn Văn A
-       */
-      full_name?: string;
-      /**
-       * @description Số điện thoại
-       * @example 0987654321
-       */
-      phone?: string;
-      /**
-       * @description Mã ID của người dùng
-       * @example 60d0fe4f5311236168a109ca
-       */
-      _id: string;
-    };
-    AuthResponseDto: {
-      /**
-       * @description JWT Access Token dùng để gọi các API yêu cầu xác thực
-       * @example eyJhbGciOiJIUzI1NiIsInR5cCI...
-       */
-      access_token: string;
-      /** @description Thông tin người dùng (đã ẩn mật khẩu) */
-      user: components["schemas"]["UserResponseDto"];
-    };
-    VerifyEmailDto: {
-      /**
-       * @description Mã xác thực từ email
-       * @example 123e4567-e89b-12d3-a456-426614174000
-       */
-      verification_token: string;
-    };
-    LoginDto: {
-      /**
-       * @description Tên đăng nhập hoặc email
-       * @example nguyenvana
-       */
-      username: string;
-      /**
-       * @description Mật khẩu
-       * @example Password123
-       */
-      password: string;
-    };
-    UnverifiedAccountResponseDto: {
-      /**
-       * @description Mã trạng thái HTTP
-       * @example 401
-       */
-      statusCode: number;
-      /**
-       * @description Thông báo lỗi chi tiết
-       * @example Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt.
-       */
-      message: string;
-      /**
-       * @description Loại lỗi xác thực
-       * @example Unauthorized
-       */
-      error: string;
-    };
-    ChangePasswordDto: {
-      /**
-       * @description Mật khẩu hiện tại
-       * @example OldPassword123
-       */
-      old_password: string;
-      /**
-       * @description Mật khẩu mới
-       * @example NewPassword123
-       */
-      new_password: string;
-    };
-    ForgotPasswordDto: {
-      /**
-       * @description Email của tài khoản cần khôi phục mật khẩu
-       * @example nguyenvana@gmail.com
-       */
-      email: string;
-    };
-    ResetPasswordDto: {
-      /**
-       * @description Mã token khôi phục mật khẩu nhận được từ email
-       * @example 123e4567-e89b-12d3-a456-426614174000
-       */
-      token: string;
-      /**
-       * @description Mật khẩu mới
-       * @example NewPassword123
-       */
-      new_password: string;
-    };
-    CategoryResponseDto: {
-      /**
-       * @description ID của danh mục
-       * @example 550e8400-e29b-41d4-a716-446655440000
-       */
-      id: string;
-      /**
-       * @description Tên danh mục
-       * @example Thời trang nam
-       */
-      name: string;
-      /**
-       * @description Slug tự động (dùng cho URL)
-       * @example thoi-trang-nam
-       */
-      slug: string;
-      /** @description Thông tin danh mục cha (null nếu là danh mục gốc) */
-      parent?: components["schemas"]["CategoryResponseDto"] | null;
-      /**
-       * @description Thứ tự ưu tiên hiển thị
-       * @default 0
-       * @example 1
-       */
-      display_order: number;
-      /** @description Danh sách các danh mục con */
-      children?: components["schemas"]["CategoryResponseDto"][];
-      /**
-       * Format: date-time
-       * @description Ngày tạo
-       * @example 2024-03-20T10:00:00Z
-       */
-      created_at: string;
-    };
-    MediaAssetResponseDto: {
-      /** @example 550e8400-e29b-41d4-a716-446655440000 */
-      id: string;
-      /** @example https://res.cloudinary.com/.../image.jpg */
-      url: string;
-      /**
-       * @example shop_gallery
-       * @enum {string}
-       */
-      type:
-        | "shop_logo"
-        | "shop_banner"
-        | "shop_gallery"
-        | "product_image"
-        | "product_thumbnail"
-        | "product_gallery"
-        | "product_variant_image"
-        | "user_avatar";
-      /** Format: date-time */
-      created_at: string;
-    };
-    ShopResponseDto: {
-      /** @example 550e8400-e29b-41d4-a716-446655440001 */
-      id: string;
-      /** @description Thông tin chủ cửa hàng */
-      seller?: components["schemas"]["UserResponseDto"] | null;
-      /** @example Cửa hàng quần áo ABC */
-      name: string;
-      /** @example https://res.cloudinary.com/.../logo.jpg */
-      logo_url: string;
-      /** @example https://res.cloudinary.com/.../banner.jpg */
-      banner_url: string;
-      /** @example Chuyên cung cấp sản phẩm chất lượng */
-      description: Record<string, never> | null;
-      /** @example Vietcombank - 123456789 */
-      bank_account_info: string;
-      /** @example 123 Đường ABC, Quận 1, TP.HCM */
-      pickup_address: string;
-      reject_reason?: string | null;
-      /**
-       * @example active
-       * @enum {string}
-       */
-      status:
-        | "pending_verification"
-        | "pending_approval"
-        | "new_seller"
-        | "active"
-        | "suspended"
-        | "banned"
-        | "rejected";
-      /** @description Các danh mục kinh doanh */
-      categories: components["schemas"]["CategoryResponseDto"][];
-      /** @description Bộ sưu tập ảnh của shop */
-      gallery: components["schemas"]["MediaAssetResponseDto"][];
-      /**
-       * Format: date-time
-       * @example 2024-03-20T10:00:00Z
-       */
-      created_at: string;
-      /**
-       * Format: date-time
-       * @example 2024-03-20T11:00:00Z
-       */
-      updated_at: string;
-    };
-    SetupShopSwaggerDto: {
-      /**
-       * @description Tên gian hàng
-       * @example Cửa hàng quần áo ABC
-       */
-      name: string;
-      /**
-       * @description Mô tả về gian hàng
-       * @example Chuyên cung cấp quần áo nam nữ chất lượng cao
-       */
-      description?: string;
-      /**
-       * @description Địa chỉ lấy hàng (kho)
-       * @example Số 1, đường ABC, Quận 1, TP.HCM
-       */
-      pickup_address: string;
-      /**
-       * @description URL ảnh logo của shop
-       * @example https://cloudinary.com/logo.png
-       */
-      logo_url?: string;
-      /**
-       * @description URL ảnh banner của shop
-       * @example https://cloudinary.com/banner.png
-       */
-      banner_url?: string;
-      /**
-       * @description Thông tin tài khoản ngân hàng
-       * @example VCB - 123456789 - NGUYEN VAN A
-       */
-      bank_account_info: string;
-      /**
-       * @description Danh sách các ID danh mục mà shop kinh doanh
-       * @example [
-       *       "uuid-category-1",
-       *       "uuid-category-2"
-       *     ]
-       */
-      categoryIds: string[];
-      /**
-       * Format: binary
-       * @description Ảnh logo của shop (1 file)
-       */
-      logo: string;
-      /**
-       * Format: binary
-       * @description Ảnh banner của shop (1 file)
-       */
-      banner: string;
-      /** @description Mảng các ảnh gallery (1-3 files) */
-      gallery: string[];
-    };
-    UpdateShopSwaggerDto: {
-      /**
-       * @description Tên gian hàng
-       * @example Cửa hàng quần áo ABC
-       */
-      name?: string;
-      /**
-       * @description Mô tả về gian hàng
-       * @example Chuyên cung cấp quần áo nam nữ chất lượng cao
-       */
-      description?: string;
-      /**
-       * @description Địa chỉ lấy hàng (kho)
-       * @example Số 1, đường ABC, Quận 1, TP.HCM
-       */
-      pickup_address?: string;
-      /**
-       * @description URL ảnh logo của shop
-       * @example https://cloudinary.com/logo.png
-       */
-      logo_url?: string;
-      /**
-       * @description URL ảnh banner của shop
-       * @example https://cloudinary.com/banner.png
-       */
-      banner_url?: string;
-      /**
-       * @description Thông tin tài khoản ngân hàng
-       * @example VCB - 123456789 - NGUYEN VAN A
-       */
-      bank_account_info?: string;
-      /**
-       * @description Danh sách các ID danh mục mà shop kinh doanh
-       * @example [
-       *       "uuid-category-1",
-       *       "uuid-category-2"
-       *     ]
-       */
-      categoryIds?: string[];
-      /**
-       * Format: binary
-       * @description Cập nhật logo mới
-       */
-      logo?: string;
-      /**
-       * Format: binary
-       * @description Cập nhật banner mới
-       */
-      banner?: string;
-      /** @description Thêm ảnh vào bộ sưu tập */
-      gallery?: string[];
-    };
-    UploadSingleFileSwaggerDto: {
-      /**
-       * Format: binary
-       * @description File ảnh cần upload
-       */
-      file: string;
-    };
-    UploadMultipleFilesSwaggerDto: {
-      /** @description Danh sách các file ảnh (tối đa 3) */
-      files: string[];
-    };
-    PaginationMetaDto: {
-      /**
-       * @description Trang hiện tại
-       * @example 1
-       */
-      page: number;
-      /**
-       * @description Số lượng phần tử trên mỗi trang
-       * @example 10
-       */
-      limit: number;
-      /**
-       * @description Tổng số phần tử
-       * @example 100
-       */
-      totalItems: number;
-      /**
-       * @description Tổng số trang
-       * @example 10
-       */
-      totalPages: number;
-    };
-    ProductVariantResponseDto: {
-      /**
-       * @description ID của biến thể
-       * @example 550e8400-e29b-41d4-a716-446655440003
-       */
-      id: string;
-      /**
-       * @description Tên hoặc thuộc tính của biến thể
-       * @example Màu đỏ - Size L
-       */
-      name: string;
-      /**
-       * @description Mã định danh kho hàng của biến thể
-       * @example SKU-RED-L
-       */
-      sku: string;
-      /**
-       * @description Giá cộng thêm so với giá gốc sản phẩm
-       * @example 15000
-       */
-      additional_price: number;
-      /**
-       * @description Số lượng tồn kho của biến thể này
-       * @example 50
-       */
-      stock_quantity: number;
-      /**
-       * @description Danh sách ảnh riêng của biến thể này
-       * @example [
-       *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/variants/img1.jpg"
-       *     ]
-       */
-      images: string[];
-    };
-    ProductResponseDto: {
-      /**
-       * @description ID sản phẩm
-       * @example 550e8400-e29b-41d4-a716-446655440004
-       */
-      id: string;
-      /** @description Thông tin gian hàng bán sản phẩm */
-      shop?: components["schemas"]["ShopResponseDto"];
-      /**
-       * @description Tên sản phẩm
-       * @example Áo sơ mi lụa tơ tằm
-       */
-      name: string;
-      /**
-       * @description Slug sản phẩm dùng cho SEO
-       * @example ao-so-mi-lua-to-tam
-       */
-      slug: string;
-      /**
-       * @description Mã định danh kho hàng sản phẩm gốc
-       * @example SKU-SILK-SHIRT
-       */
-      sku: Record<string, never> | null;
-      /** @example Mô tả chi tiết áo sơ mi sang trọng */
-      description: Record<string, never> | null;
-      /**
-       * @description Giá bán cơ bản của sản phẩm
-       * @example 250000
-       */
-      price: number;
-      /**
-       * @description Trọng lượng sản phẩm (gram)
-       * @example 200
-       */
-      weight: number;
-      /**
-       * @description Chiều dài hộp đóng gói (cm)
-       * @example 30
-       */
-      length: Record<string, never> | null;
-      /**
-       * @description Chiều rộng hộp đóng gói (cm)
-       * @example 20
-       */
-      width: Record<string, never> | null;
-      /**
-       * @description Chiều cao hộp đóng gói (cm)
-       * @example 5
-       */
-      height: Record<string, never> | null;
-      /** @description Danh mục chứa sản phẩm */
-      category?: components["schemas"]["CategoryResponseDto"];
-      /** @description Danh sách biến thể của sản phẩm */
-      variants: components["schemas"]["ProductVariantResponseDto"][];
-      /**
-       * @description Đường dẫn ảnh đại diện sản phẩm
-       * @example https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/thumbnails/thumb.jpg
-       */
-      thumbnail_url: Record<string, never> | null;
-      /**
-       * @description Bộ sưu tập ảnh chi tiết sản phẩm
-       * @example [
-       *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/gallery/gallery1.jpg"
-       *     ]
-       */
-      gallery: Record<string, never> | null;
-      /**
-       * @description Ảnh tổng hợp gồm thumbnail + gallery
-       * @example [
-       *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/thumbnails/thumb.jpg",
-       *       "https://res.cloudinary.com/cloudinary-name/image/upload/v12345/products/gallery/gallery1.jpg"
-       *     ]
-       */
-      aggregated_gallery: string[];
-      /**
-       * @description Tổng số lượng tồn kho của tất cả biến thể hoặc của chính sản phẩm gốc
-       * @example 150
-       */
-      stock_quantity: number;
-      /**
-       * @description Đánh dấu sản phẩm có nhiều biến thể (màu sắc, kích thước) hay không
-       * @example true
-       */
-      has_variants: boolean;
-      /**
-       * @description Đánh dấu sản phẩm bị ẩn khỏi khách hàng hay không
-       * @example false
-       */
-      is_hidden: boolean;
-      /**
-       * @description Đánh dấu sản phẩm nổi bật hay không
-       * @example false
-       */
-      is_featured: boolean;
-      /**
-       * @description Trạng thái hoạt động sản phẩm
-       * @example active
-       * @enum {string}
-       */
-      status: "active" | "deleted";
-      /**
-       * Format: date-time
-       * @example 2024-03-20T10:00:00Z
-       */
-      created_at: string;
-      /**
-       * Format: date-time
-       * @example 2024-03-20T11:00:00Z
-       */
-      updated_at: string;
-    };
-    CreateProductVariantDto: {
-      /**
-       * @description Tên biến thể (màu sắc, kích cỡ...)
-       * @example Màu Đỏ, Size L
-       */
-      name: string;
-      /**
-       * @description Giá cộng thêm so với giá gốc
-       * @example 10000
-       */
-      additional_price: number;
-      /**
-       * @description Mã SKU của biến thể
-       * @example SKU-RED-L
-       */
-      sku: string;
-      /**
-       * @description Số lượng tồn kho của biến thể này
-       * @example 50
-       */
-      stock_quantity: number;
-      /**
-       * @description Số lượng ảnh của biến thể này
-       * @example 1
-       */
-      imageCount: number;
-    };
-    CreateProductSwaggerDto: {
-      /**
-       * @description Tên sản phẩm
-       * @example Áo thun Nam
-       */
-      name: string;
-      /**
-       * @description Mô tả sản phẩm
-       * @example Áo thun cotton 100% cao cấp
-       */
-      description?: string;
-      /**
-       * @description Giá sản phẩm
-       * @example 150000
-       */
-      price: number;
-      /**
-       * @description Mã SKU sản phẩm
-       * @example SKU-001
-       */
-      sku: string;
-      /**
-       * @description Trọng lượng (gram)
-       * @example 500
-       */
-      weight: number;
-      /**
-       * @description Chiều dài (cm)
-       * @example 10
-       */
-      length?: number;
-      /**
-       * @description Chiều rộng (cm)
-       * @example 10
-       */
-      width?: number;
-      /**
-       * @description Chiều cao (cm)
-       * @example 10
-       */
-      height?: number;
-      /**
-       * @description ID danh mục
-       * @example uuid-category
-       */
-      category_id: string;
-      /**
-       * @description Số lượng tồn kho (Dùng cho sản phẩm không có biến thể)
-       * @example 100
-       */
-      stock_quantity?: number;
-      /**
-       * @description Sản phẩm có biến thể hay không?
-       * @example false
-       */
-      has_variants: boolean;
-      /** @description Danh sách các biến thể của sản phẩm (JSON String) */
-      variants?: components["schemas"]["CreateProductVariantDto"][];
-      /**
-       * Format: binary
-       * @description Ảnh đại diện (Thumbnail) của sản phẩm (1 file)
-       */
-      thumbnail: string;
-      /** @description Ảnh bộ sưu tập (Gallery) của sản phẩm (tối đa 5 files) */
-      general_gallery?: string[];
-      /** @description Danh sách các ảnh phục vụ cho các biến thể sản phẩm (tối đa 30 files) */
-      variant_images?: string[];
-    };
-    UpdateProductVariantDto: {
-      /**
-       * @description Tên biến thể (màu sắc, kích cỡ...)
-       * @example Màu Đỏ, Size L
-       */
-      name?: string;
-      /**
-       * @description Giá cộng thêm so với giá gốc
-       * @example 10000
-       */
-      additional_price?: number;
-      /**
-       * @description Mã SKU của biến thể
-       * @example SKU-RED-L
-       */
-      sku?: string;
-      /**
-       * @description Số lượng tồn kho của biến thể này
-       * @example 50
-       */
-      stock_quantity?: number;
-      /**
-       * @description Số lượng ảnh mới sẽ upload
-       * @default 0
-       * @example 1
-       */
-      imageCount: number;
-      /** @description ID của biến thể (nếu là cập nhật) */
-      id?: string;
-      /** @description Danh sách URL ảnh cũ giữ lại */
-      existingImages?: string[];
-    };
-    UpdateProductSwaggerDto: {
-      /**
-       * @description Tên sản phẩm
-       * @example Áo thun Nam
-       */
-      name?: string;
-      /**
-       * @description Mô tả sản phẩm
-       * @example Áo thun cotton 100% cao cấp
-       */
-      description?: string;
-      /**
-       * @description Giá sản phẩm
-       * @example 150000
-       */
-      price?: number;
-      /**
-       * @description Mã SKU sản phẩm
-       * @example SKU-001
-       */
-      sku?: string;
-      /**
-       * @description Trọng lượng (gram)
-       * @example 500
-       */
-      weight?: number;
-      /**
-       * @description Chiều dài (cm)
-       * @example 10
-       */
-      length?: number;
-      /**
-       * @description Chiều rộng (cm)
-       * @example 10
-       */
-      width?: number;
-      /**
-       * @description Chiều cao (cm)
-       * @example 10
-       */
-      height?: number;
-      /**
-       * @description ID danh mục
-       * @example uuid-category
-       */
-      category_id?: string;
-      /**
-       * @description Số lượng tồn kho (Dùng cho sản phẩm không có biến thể)
-       * @example 100
-       */
-      stock_quantity?: number;
-      /**
-       * @description Sản phẩm có biến thể hay không?
-       * @example false
-       */
-      has_variants?: boolean;
-      /**
-       * @description Trạng thái hoạt động của sản phẩm
-       * @enum {string}
-       */
-      status?: "active" | "deleted";
-      /** @description Ẩn/hiện sản phẩm với khách hàng */
-      is_hidden?: boolean;
-      /** @description Danh sách các biến thể của sản phẩm (JSON String) */
-      variants?: components["schemas"]["UpdateProductVariantDto"][];
-      /** @description Danh sách URL ảnh phụ cũ giữ lại */
-      existingGalleryImages?: string[];
-      /**
-       * Format: binary
-       * @description Cập nhật ảnh đại diện mới (1 file)
-       */
-      thumbnail?: string;
-      /** @description Thêm ảnh mới vào bộ sưu tập sản phẩm (tối đa 5 files) */
-      general_gallery?: string[];
-      /** @description Cập nhật thêm ảnh phục vụ các biến thể sản phẩm (tối đa 30 files) */
-      variant_images?: string[];
-    };
-    CreateCategoryDto: {
-      /**
-       * @description Tên hiển thị của danh mục
-       * @example Thời trang nam
-       */
-      name: string;
-      /**
-       * @description ID của danh mục cha. Để trống nếu là danh mục gốc.
-       * @example 550e8400-e29b-41d4-a716-446655440000
-       */
-      parentId?: Record<string, never> | null;
-      /**
-       * @description Thứ tự ưu tiên hiển thị (số càng nhỏ càng hiện trước)
-       * @default 0
-       * @example 1
-       */
-      display_order: number;
-    };
-    UpdateCategoryDto: {
-      /**
-       * @description Tên hiển thị của danh mục
-       * @example Thời trang nam
-       */
-      name?: string;
-      /**
-       * @description ID của danh mục cha. Để trống nếu là danh mục gốc.
-       * @example 550e8400-e29b-41d4-a716-446655440000
-       */
-      parentId?: Record<string, never> | null;
-      /**
-       * @description Thứ tự ưu tiên hiển thị (số càng nhỏ càng hiện trước)
-       * @default 0
-       * @example 1
-       */
-      display_order: number;
-    };
-    CreateCartDto: Record<string, never>;
-    UpdateCartDto: Record<string, never>;
-    CreateOrderDto: Record<string, never>;
-    UpdateOrderDto: Record<string, never>;
-    CreatePromotionDto: Record<string, never>;
-    UpdatePromotionDto: Record<string, never>;
-    CreatePaymentDto: Record<string, never>;
-    UpdatePaymentDto: Record<string, never>;
-    CreateEngagementDto: Record<string, never>;
-    UpdateEngagementDto: Record<string, never>;
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  AppController_getHello: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  UsersController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  UsersController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  UsersController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  UsersController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateUserDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_register: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RegisterDto"];
-      };
-    };
-    responses: {
-      /** @description Đăng ký thành công, vui lòng kiểm tra email. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 201 */
-            statusCode?: number;
-            /** @example Đăng ký thành công, vui lòng kiểm tra email. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Dữ liệu đầu vào không hợp lệ hoặc tài khoản/email đã tồn tại. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_registerSeller: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RegisterDto"];
-      };
-    };
-    responses: {
-      /** @description Đăng ký thành công, vui lòng kiểm tra email. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 201 */
-            statusCode?: number;
-            /** @example Đăng ký thành công, vui lòng kiểm tra email. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Dữ liệu không hợp lệ hoặc tài khoản đã tồn tại. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_resendVerification: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ResendVerificationEmailDto"];
-      };
-    };
-    responses: {
-      /** @description Đã gửi lại email xác thực. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đã gửi lại email xác thực. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Email không tồn tại hoặc tài khoản đã kích hoạt. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_verifyEmail: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["VerifyEmailDto"];
-      };
-    };
-    responses: {
-      /** @description Xác thực thành công và tự động đăng nhập (trả về access_token). */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Xác thực thành công và tự động đăng nhập (trả về access_token). */
-            message?: string;
-            data?: components["schemas"]["AuthResponseDto"];
-          };
-        };
-      };
-      /** @description Mã xác thực không hợp lệ hoặc đã hết hạn. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_login: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginDto"];
-      };
-    };
-    responses: {
-      /** @description Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
-            message?: string;
-            data?: components["schemas"]["AuthResponseDto"];
-          };
-        };
-      };
-      /**
-       * @description Lỗi xác thực:
-       *     - Sai tài khoản hoặc mật khẩu.
-       *     - Tài khoản chưa được xác thực (nếu đăng nhập bằng email): Hệ thống sẽ tự động gửi email chứa token xác thực và yêu cầu frontend redirect người dùng đến trang verify-email.
-       */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["UnverifiedAccountResponseDto"];
-        };
-      };
-    };
-  };
-  AuthController_changePassword: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ChangePasswordDto"];
-      };
-    };
-    responses: {
-      /** @description Đổi mật khẩu thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đổi mật khẩu thành công. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Mật khẩu cũ không chính xác. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền truy cập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_forgotPassword: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ForgotPasswordDto"];
-      };
-    };
-    responses: {
-      /** @description Đã gửi email khôi phục. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đã gửi email khôi phục. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-    };
-  };
-  AuthController_resetPassword: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ResetPasswordDto"];
-      };
-    };
-    responses: {
-      /** @description Đặt lại mật khẩu thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đặt lại mật khẩu thành công. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Token khôi phục không hợp lệ hoặc đã hết hạn. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_refreshTokens: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Cấp lại token thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cấp lại token thành công. */
-            message?: string;
-            data?: components["schemas"]["AuthResponseDto"];
-          };
-        };
-      };
-      /** @description Refresh token không hợp lệ hoặc đã hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_logout: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Đăng xuất thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Đăng xuất thành công. */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-    };
-  };
-  ShopsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy chi tiết gian hàng thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy chi tiết gian hàng thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Không tìm thấy gian hàng. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_setup: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["SetupShopSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Khởi tạo thành công, đang chờ duyệt. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 201 */
-            statusCode?: number;
-            /** @example Khởi tạo thành công, đang chờ duyệt. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Dữ liệu không hợp lệ hoặc thiếu file. */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy người dùng. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_getMyShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy chi tiết gian hàng thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy chi tiết gian hàng thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_updateMyShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["UpdateShopSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Cập nhật thông tin thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cập nhật thông tin thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_uploadLogo: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["UploadSingleFileSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Cập nhật logo thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cập nhật logo thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_uploadBanner: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["UploadSingleFileSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Cập nhật banner thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cập nhật banner thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_reApplyShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Nộp lại đơn đăng ký thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Nộp lại đơn đăng ký thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_addGalleryImages: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["UploadMultipleFilesSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Thêm ảnh thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Thêm ảnh thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerShopsController_removeGalleryImage: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        assetId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Xóa ảnh thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Xóa ảnh thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập hoặc Token hết hạn. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chỉ dành cho tài khoản có quyền SELLER. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AdminShopsController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"][];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Yêu cầu quyền ADMIN. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AdminShopsController_getPendingShops: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách chờ duyệt thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách chờ duyệt thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"][];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Yêu cầu quyền ADMIN. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AdminShopsController_findOneAdmin: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy chi tiết gian hàng thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy chi tiết gian hàng thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Yêu cầu quyền ADMIN. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AdminShopsController_approveShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Duyệt gian hàng thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Duyệt gian hàng thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Yêu cầu quyền ADMIN. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AdminShopsController_rejectShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Từ chối gian hàng thành công. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Từ chối gian hàng thành công. */
-            message?: string;
-            data?: components["schemas"]["ShopResponseDto"];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Yêu cầu quyền ADMIN. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  ProductsController_findAll: {
-    parameters: {
-      query?: {
-        /** @description Số trang hiện tại (bắt đầu từ 1) */
-        page?: number;
-        /** @description Số lượng phần tử trên mỗi trang */
-        limit?: number;
-        /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
-        sort?: string;
-        /** @description Chiều sắp xếp (ASC hoặc DESC) */
-        order?: "ASC" | "DESC";
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách sản phẩm thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách sản phẩm thành công */
-            message?: string;
-            data?: {
-              items?: components["schemas"]["ProductResponseDto"][];
-              meta?: components["schemas"]["PaginationMetaDto"];
+    AppController_getHello: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
-          };
-        };
-      };
-    };
-  };
-  ProductsController_getPublicCatalogByShop: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        shopId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách sản phẩm của gian hàng thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách sản phẩm của gian hàng thành công */
-            message?: string;
-            data?: components["schemas"]["ProductResponseDto"][];
-          };
-        };
-      };
-      /** @description ID gian hàng không đúng định dạng UUID */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy gian hàng hoặc gian hàng bị khóa */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  ProductsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy chi tiết sản phẩm thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy chi tiết sản phẩm thành công */
-            message?: string;
-            data?: components["schemas"]["ProductResponseDto"];
-          };
-        };
-      };
-      /** @description Không tìm thấy sản phẩm */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerProductsController_getSellerInventory: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách sản phẩm thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách sản phẩm thành công */
-            message?: string;
-            data?: components["schemas"]["ProductResponseDto"][];
-          };
-        };
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Seller hoặc chưa kích hoạt shop */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerProductsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["CreateProductSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Tạo sản phẩm thành công */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 201 */
-            statusCode?: number;
-            /** @example Tạo sản phẩm thành công */
-            message?: string;
-            data?: components["schemas"]["ProductResponseDto"];
-          };
-        };
-      };
-      /** @description Dữ liệu đầu vào không hợp lệ hoặc vượt định lượng ảnh tải lên */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Seller hoặc tài khoản shop chưa được duyệt/kích hoạt */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerProductsController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Xóa sản phẩm thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Xóa sản phẩm thành công */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Seller hoặc sản phẩm không thuộc về shop của người dùng */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa trước đó */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  SellerProductsController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "multipart/form-data": components["schemas"]["UpdateProductSwaggerDto"];
-      };
-    };
-    responses: {
-      /** @description Cập nhật sản phẩm thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cập nhật sản phẩm thành công */
-            message?: string;
-            data?: components["schemas"]["ProductResponseDto"];
-          };
-        };
-      };
-      /** @description Dữ liệu cập nhật không hợp lệ */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Seller hoặc sản phẩm không thuộc về shop của người dùng */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy sản phẩm cần cập nhật */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CategoriesController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy danh sách danh mục thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy danh sách danh mục thành công */
-            message?: string;
-            data?: components["schemas"]["CategoryResponseDto"][];
-          };
-        };
-      };
-    };
-  };
-  CategoriesController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateCategoryDto"];
-      };
-    };
-    responses: {
-      /** @description Tạo danh mục thành công */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 201 */
-            statusCode?: number;
-            /** @example Tạo danh mục thành công */
-            message?: string;
-            data?: components["schemas"]["CategoryResponseDto"];
-          };
-        };
-      };
-      /** @description Dữ liệu đầu vào không hợp lệ */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Danh mục hoặc Slug đã tồn tại */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CategoriesController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Lấy chi tiết danh mục thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Lấy chi tiết danh mục thành công */
-            message?: string;
-            data?: components["schemas"]["CategoryResponseDto"];
-          };
-        };
-      };
-      /** @description Không tìm thấy danh mục */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CategoriesController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Xóa danh mục thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Xóa danh mục thành công */
-            message?: string;
-            /** @example null */
-            data?: Record<string, never>;
-          };
-        };
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy danh mục để xóa */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CategoriesController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateCategoryDto"];
-      };
-    };
-    responses: {
-      /** @description Cập nhật danh mục thành công */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @example 200 */
-            statusCode?: number;
-            /** @example Cập nhật danh mục thành công */
-            message?: string;
-            data?: components["schemas"]["CategoryResponseDto"];
-          };
-        };
-      };
-      /** @description Dữ liệu cập nhật không hợp lệ */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Chưa đăng nhập */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không có quyền Admin */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Không tìm thấy danh mục để cập nhật */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CartsController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CartsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateCartDto"];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CartsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CartsController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  CartsController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateCartDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  OrdersController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  OrdersController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateOrderDto"];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  OrdersController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  OrdersController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  OrdersController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateOrderDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PromotionsController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PromotionsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreatePromotionDto"];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PromotionsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PromotionsController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PromotionsController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdatePromotionDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PaymentsController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PaymentsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreatePaymentDto"];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PaymentsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PaymentsController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  PaymentsController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdatePaymentDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  EngagementsController_findAll: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  EngagementsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateEngagementDto"];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  EngagementsController_findOne: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  EngagementsController_remove: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  EngagementsController_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateEngagementDto"];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
+        };
+    };
+    UsersController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Dữ liệu đầu vào không hợp lệ hoặc tài khoản/email đã tồn tại. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_registerSeller: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc tài khoản đã tồn tại. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_resendVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationEmailDto"];
+            };
+        };
+        responses: {
+            /** @description Đã gửi lại email xác thực. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đã gửi lại email xác thực. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Email không tồn tại hoặc tài khoản đã kích hoạt. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            /** @description Xác thực thành công và tự động đăng nhập (trả về access_token). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xác thực thành công và tự động đăng nhập (trả về access_token). */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /** @description Mã xác thực không hợp lệ hoặc đã hết hạn. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /**
+             * @description Lỗi xác thực:
+             *     - Sai tài khoản hoặc mật khẩu.
+             *     - Tài khoản chưa được xác thực (nếu đăng nhập bằng email): Hệ thống sẽ tự động gửi email chứa token xác thực và yêu cầu frontend redirect người dùng đến trang verify-email.
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnverifiedAccountResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đổi mật khẩu thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đổi mật khẩu thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Mật khẩu cũ không chính xác. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền truy cập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_forgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đã gửi email khôi phục. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đã gửi email khôi phục. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    AuthController_resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đặt lại mật khẩu thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đặt lại mật khẩu thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Token khôi phục không hợp lệ hoặc đã hết hạn. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trả về thông tin người dùng không bao gồm mật khẩu. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Trả về thông tin người dùng không bao gồm mật khẩu. */
+                        message?: string;
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+            /** @description Không có quyền truy cập hoặc Access Token đã hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_refreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cấp lại token thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cấp lại token thành công. */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /** @description Refresh token không hợp lệ hoặc đã hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đăng xuất thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đăng xuất thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    ShopsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết gian hàng thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết gian hàng thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Không tìm thấy gian hàng. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SetupShopSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Khởi tạo thành công, đang chờ duyệt. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Khởi tạo thành công, đang chờ duyệt. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc thiếu file. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy người dùng. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_getMyShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết gian hàng thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết gian hàng thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_updateMyShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UpdateShopSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật thông tin thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật thông tin thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_uploadLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadSingleFileSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật logo thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật logo thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_uploadBanner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadSingleFileSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật banner thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật banner thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_reApplyShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UpdateShopSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Nộp lại đơn đăng ký thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Nộp lại đơn đăng ký thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_addGalleryImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadMultipleFilesSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Thêm ảnh thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Thêm ảnh thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerShopsController_removeGalleryImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xóa ảnh thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xóa ảnh thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập hoặc Token hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chỉ dành cho tài khoản có quyền SELLER. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminShopsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"][];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminShopsController_getPendingShops: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách chờ duyệt thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách chờ duyệt thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"][];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminShopsController_findOneAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết gian hàng thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết gian hàng thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminShopsController_approveShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Duyệt gian hàng thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Duyệt gian hàng thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminShopsController_rejectShop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Từ chối gian hàng thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Từ chối gian hàng thành công. */
+                        message?: string;
+                        data?: components["schemas"]["ShopResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProductsController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Từ khóa tìm kiếm (theo tên hoặc mô tả sản phẩm) */
+                q?: string;
+                /** @description Lọc theo ID danh mục */
+                category_id?: string;
+                /** @description Giá tối thiểu */
+                min_price?: number;
+                /** @description Giá tối đa */
+                max_price?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách sản phẩm thành công */
+                        message?: string;
+                        data?: {
+                            items?: components["schemas"]["ProductResponseDto"][];
+                            meta?: components["schemas"]["PaginationMetaDto"];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    ProductsController_getPublicCatalogByShop: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Từ khóa tìm kiếm (theo tên hoặc mô tả sản phẩm) */
+                q?: string;
+                /** @description Lọc theo ID danh mục */
+                category_id?: string;
+                /** @description Giá tối thiểu */
+                min_price?: number;
+                /** @description Giá tối đa */
+                max_price?: number;
+            };
+            header?: never;
+            path: {
+                shopId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách sản phẩm của gian hàng thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách sản phẩm của gian hàng thành công */
+                        message?: string;
+                        data?: {
+                            items?: components["schemas"]["ProductResponseDto"][];
+                            meta?: components["schemas"]["PaginationMetaDto"];
+                        };
+                    };
+                };
+            };
+            /** @description ID gian hàng không đúng định dạng UUID */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy gian hàng hoặc gian hàng bị khóa */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProductsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Không tìm thấy sản phẩm */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerProductsController_getSellerInventory: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Từ khóa tìm kiếm theo tên, SKU gốc hoặc SKU biến thể con */
+                q?: string;
+                /** @description Lọc theo trạng thái ẩn/hiện của sản phẩm (true: ẩn, false: hiện) */
+                is_hidden?: boolean;
+                /** @description Lọc theo trạng thái tồn kho (in_stock: còn hàng, out_of_stock: hết hàng, all: tất cả) */
+                stock_status?: "all" | "in_stock" | "out_of_stock";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách sản phẩm thành công */
+                        message?: string;
+                        data?: {
+                            items?: components["schemas"]["ProductResponseDto"][];
+                            meta?: components["schemas"]["PaginationMetaDto"];
+                        };
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Seller hoặc chưa kích hoạt shop */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerProductsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["CreateProductSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Tạo sản phẩm thành công */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Tạo sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu đầu vào không hợp lệ hoặc vượt định lượng ảnh tải lên */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Seller hoặc tài khoản shop chưa được duyệt/kích hoạt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerProductsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Seller hoặc sản phẩm không thuộc về shop */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerProductsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xóa sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xóa sản phẩm thành công */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Seller hoặc sản phẩm không thuộc về shop của người dùng */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa trước đó */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerProductsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UpdateProductSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật sản phẩm thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["ProductResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu cập nhật không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Seller hoặc sản phẩm không thuộc về shop của người dùng */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm cần cập nhật */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CategoriesController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách danh mục thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách danh mục thành công */
+                        message?: string;
+                        data?: components["schemas"]["CategoryResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    CategoriesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCategoryDto"];
+            };
+        };
+        responses: {
+            /** @description Tạo danh mục thành công */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Tạo danh mục thành công */
+                        message?: string;
+                        data?: components["schemas"]["CategoryResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu đầu vào không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Danh mục hoặc Slug đã tồn tại */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CategoriesController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết danh mục thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết danh mục thành công */
+                        message?: string;
+                        data?: components["schemas"]["CategoryResponseDto"];
+                    };
+                };
+            };
+            /** @description Không tìm thấy danh mục */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CategoriesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xóa danh mục thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xóa danh mục thành công */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy danh mục để xóa */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CategoriesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCategoryDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật danh mục thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật danh mục thành công */
+                        message?: string;
+                        data?: components["schemas"]["CategoryResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu cập nhật không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền Admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy danh mục để cập nhật */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCartDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCartDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrderDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromotionsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromotionsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePromotionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromotionsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromotionsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PromotionsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePromotionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaymentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaymentsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePaymentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EngagementsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EngagementsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEngagementDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EngagementsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EngagementsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EngagementsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEngagementDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
 }

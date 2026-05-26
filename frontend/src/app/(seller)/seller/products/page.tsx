@@ -1,6 +1,6 @@
 "use client"; // Định nghĩa đây là một Client Component trong Next.js (chạy phía trình duyệt, sử dụng React Hooks)
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 // Import các biểu tượng từ thư viện lucide-react để dựng giao diện trực quan
 import {
@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"; // Component Dialog (Hộp thoại xác nhận) từ Shadcn UI
+import { Pagination } from "@/components/pagination"; // Component phân trang dùng chung
 
 /**
  * Hàm hỗ trợ tính tổng lượng tồn kho của một sản phẩm.
@@ -55,14 +56,27 @@ function formatPrice(price: number): string {
 export default function SellerProductsPage() {
   // --- ĐỊNH NGHĨA CÁC STATE (TRẠNG THÁI) ---
 
-  // Lưu trữ danh sách toàn bộ sản phẩm của gian hàng được tải về từ API
+  // Lưu trữ danh sách sản phẩm của gian hàng được tải về từ API
   const [products, setProducts] = useState<ProductResponseType[]>([]);
+
+  // Lưu trữ metadata phân trang từ API
+  const [meta, setMeta] = useState<{
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  } | null>(null);
+
+  // Số trang hiện tại
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   // Trạng thái hiển thị màn hình đang tải (loading) ban đầu
   const [isLoading, setIsLoading] = useState(true);
 
   // Từ khóa tìm kiếm nhập bởi người dùng (để tìm theo tên hoặc SKU)
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   // Bộ lọc tồn kho: 'all' (Tất cả), 'in_stock' (Còn hàng), 'out_of_stock' (Hết hàng)
   const [stockFilter, setStockFilter] = useState<
@@ -79,21 +93,43 @@ export default function SellerProductsPage() {
   // Trạng thái đang gửi yêu cầu xóa sản phẩm lên API (để hiển thị loading trên nút xóa)
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // --- HIỆU ỨNG DEBOUNCE TÌM KIẾM ---
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
+  // Reset về trang 1 khi thay đổi từ khóa tìm kiếm hoặc bộ lọc tồn kho
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchQuery, stockFilter]);
+
   // --- HÀM GỌI API LẤY DANH SÁCH SẢN PHẨM ---
-  const fetchProducts = async () => {
+  const fetchProducts = async (currentPage: number, search: string, stock: typeof stockFilter) => {
     setIsLoading(true);
     try {
-      // Gọi API lấy kho hàng của Seller hiện tại
-      const res = await productsApiRequest.getSellerInventory();
-      // Nếu API trả về thành công, lưu dữ liệu vào state `products`. Nếu không có, mặc định là mảng rỗng []
-      setProducts(res.data ?? []);
+      // Gọi API lấy kho hàng của Seller hiện tại kèm các tham số phân trang & lọc
+      const res = await productsApiRequest.getSellerInventory({
+        page: currentPage,
+        limit,
+        q: search ? search.trim() : undefined,
+        stock_status: stock,
+      });
+
+      // Nếu API trả về thành công, lưu dữ liệu sản phẩm và phân trang
+      setProducts(res.data?.items ?? []);
+      setMeta(res.data?.meta ?? null);
     } catch (error: any) {
       // Xử lý lỗi: lấy thông báo lỗi từ payload hoặc từ message hệ thống
       const msg =
         error?.payload?.message ||
         error?.message ||
         "Không thể tải danh sách sản phẩm.";
-      // Hiển thị thông báo lỗi lên màn hình (nếu là mảng lỗi thì nối các chuỗi lại bằng dấu phẩy)
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       // Kết thúc trạng thái tải
@@ -101,39 +137,10 @@ export default function SellerProductsPage() {
     }
   };
 
-  // Fetch danh sách sản phẩm ngay khi trang web được tải lần đầu (mount)
+  // Gọi fetchProducts khi trang hiện tại, từ khóa đã debounce hoặc bộ lọc thay đổi
   useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // --- LỌC SẢN PHẨM PHÍA CLIENT (CLIENT-SIDE FILTERING) ---
-  // Sử dụng useMemo để tối ưu hóa hiệu năng, chỉ tính toán lại danh sách lọc khi các biến `products`, `searchQuery` hoặc `stockFilter` thay đổi.
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      // Chuẩn hóa chuỗi tìm kiếm (chuyển sang chữ thường, cắt khoảng trắng đầu cuối)
-      const query = searchQuery.toLowerCase().trim();
-      const productSku =
-        typeof product.sku === "string" ? product.sku.toLowerCase() : "";
-
-      // Kiểm tra sản phẩm có chứa từ khóa tìm kiếm trong tên hoặc SKU không
-      const matchesSearch =
-        !query ||
-        product.name.toLowerCase().includes(query) ||
-        productSku.includes(query);
-
-      // Tính tổng số lượng hàng tồn của sản phẩm
-      const totalStock = getTotalStock(product);
-
-      // Kiểm tra xem sản phẩm có thỏa mãn bộ lọc tồn kho đã chọn không
-      const matchesStock =
-        stockFilter === "all" ||
-        (stockFilter === "in_stock" && totalStock > 0) ||
-        (stockFilter === "out_of_stock" && totalStock === 0);
-
-      // Sản phẩm hợp lệ phải thỏa mãn cả điều kiện tìm kiếm và điều kiện tồn kho
-      return matchesSearch && matchesStock;
-    });
-  }, [products, searchQuery, stockFilter]);
+    fetchProducts(page, debouncedSearchQuery, stockFilter);
+  }, [page, debouncedSearchQuery, stockFilter]);
 
   // --- XỬ LÝ ẨN / HIỆN SẢN PHẨM ---
   // Gọi API cập nhật thông tin sản phẩm. Dùng FormData do backend quy định sử dụng multipart/form-data
@@ -163,7 +170,7 @@ export default function SellerProductsPage() {
         "Không thể cập nhật trạng thái ẩn/hiện.";
       toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
-      setTogglingId(null); // Giải phóng trạng thái xử lý ẩn/hiện
+      setTogglingId(null); // // Giải phóng trạng thái xử lý ẩn/hiện
     }
   };
 
@@ -177,7 +184,7 @@ export default function SellerProductsPage() {
       await productsApiRequest.deleteProduct(deletingProduct.id);
       toast.success(`Đã xóa sản phẩm "${deletingProduct.name}".`);
       setDeletingProduct(null); // Đóng Dialog xác nhận xóa
-      fetchProducts(); // Tải lại danh sách sản phẩm mới từ server để cập nhật bảng
+      fetchProducts(page, debouncedSearchQuery, stockFilter); // Tải lại danh sách sản phẩm mới từ server để cập nhật bảng
     } catch (error: any) {
       const msg =
         error?.payload?.message || error?.message || "Không thể xóa sản phẩm.";
@@ -278,7 +285,7 @@ export default function SellerProductsPage() {
       </div>
 
       {/* Trường hợp danh sách sản phẩm trống (Không tìm thấy kết quả hoặc Chưa có sản phẩm) */}
-      {filteredProducts.length === 0 && !isLoading && (
+      {products.length === 0 && !isLoading && (
         <div className="flex flex-col items-center justify-center py-20 rounded-xl border bg-card text-center gap-3">
           <Package className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
           <p className="text-base font-semibold text-foreground">
@@ -298,7 +305,7 @@ export default function SellerProductsPage() {
       )}
 
       {/* Bảng danh sách sản phẩm */}
-      {filteredProducts.length > 0 && (
+      {products.length > 0 && (
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
@@ -316,7 +323,7 @@ export default function SellerProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y text-sm">
-                {filteredProducts.map((product) => {
+                {products.map((product) => {
                   const totalStock = getTotalStock(product);
                   const isOutOfStock = totalStock === 0;
                   const isToggling = togglingId === product.id; // Kiểm tra xem sản phẩm cụ thể này có đang chạy hành động ẩn/hiện không
@@ -457,14 +464,24 @@ export default function SellerProductsPage() {
           </div>
 
           {/* Dưới bảng: Hiển thị tóm tắt số lượng sản phẩm được lọc thành công */}
-          <div className="px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground">
-            Hiển thị{" "}
-            <span className="font-bold text-foreground">
-              {filteredProducts.length}
-            </span>{" "}
-            / {products.length} sản phẩm
+          <div className="px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              Hiển thị{" "}
+              <span className="font-bold text-foreground">
+                {products.length}
+              </span>{" "}
+              / {meta?.totalItems ?? 0} sản phẩm
+            </div>
           </div>
         </div>
+      )}
+
+      {meta && meta.totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={meta.totalPages}
+          onPageChange={(p) => setPage(p)}
+        />
       )}
 
       {/* --- DIALOG HỘP THOẠI XÁC NHẬN XÓA SẢN PHẨM --- */}

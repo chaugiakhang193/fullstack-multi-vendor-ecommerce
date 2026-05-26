@@ -8,6 +8,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFiles,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -33,10 +34,13 @@ import {
   UpdateProductSwaggerDto,
 } from '@/modules/products/dto/product-swagger.dto';
 
+// DTOs
+import { GetSellerProductsQueryDto } from '@/modules/products/dto/get-products-query.dto';
+
 // Guards & Decorators
 import { Roles } from '@/decorator/roles.decorator';
 import { User } from '@/decorator/user.decorator';
-import { ApiGenericResponse } from '@/decorator/api-response.decorator';
+import { ApiGenericResponse, ApiPaginatedResponse } from '@/decorator/api-response.decorator';
 import { ResponseMessage } from '@/decorator/customize';
 
 // Enums & Interfaces
@@ -91,16 +95,16 @@ export class SellerProductsController {
   @Get()
   @ApiOperation({ summary: 'Seller lấy danh sách sản phẩm của chính mình' })
   @ResponseMessage('Lấy danh sách sản phẩm thành công')
-  @ApiGenericResponse(ProductResponseDto, 'Lấy danh sách sản phẩm thành công', {
-    isArray: true,
-  })
+  @ApiPaginatedResponse(ProductResponseDto, 'Lấy danh sách sản phẩm thành công')
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
   @ApiForbiddenResponse({
     description: 'Không có quyền Seller hoặc chưa kích hoạt shop',
   })
-  getSellerInventory(@User() user: IUser) {
-    // TODO: Implement pagination
-    return this.productsService.getSellerInventory(user.sub);
+  getSellerInventory(
+    @User() user: IUser,
+    @Query() query: GetSellerProductsQueryDto,
+  ) {
+    return this.productsService.getSellerInventory(user.sub, query);
   }
 
   @Patch(':id')
