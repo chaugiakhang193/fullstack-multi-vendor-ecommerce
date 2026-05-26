@@ -48,7 +48,8 @@ import { ResponseMessage } from '@/decorator/customize';
 import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 
 // Enums & Interfaces
-import { UserRole } from '@/modules/enums';
+import { UserRole } from '@/common/enums';
+import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
 import type { IUser } from '@/interface/user.interface';
 
 @ApiTags('seller-shops')
@@ -67,9 +68,9 @@ export class SellerShopsController {
   @Post('setup')
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'banner', maxCount: 1 },
-      { name: 'gallery', maxCount: 3 },
+      { name: 'logo', maxCount: UPLOAD_LIMITS.SHOP.MAX_LOGOS },
+      { name: 'banner', maxCount: UPLOAD_LIMITS.SHOP.MAX_BANNERS },
+      { name: 'gallery', maxCount: UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES },
     ]),
   )
   @ResponseMessage('Khởi tạo gian hàng thành công, vui lòng chờ Admin duyệt.')
@@ -117,9 +118,9 @@ export class SellerShopsController {
   @Patch()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'banner', maxCount: 1 },
-      { name: 'gallery', maxCount: 3 },
+      { name: 'logo', maxCount: UPLOAD_LIMITS.SHOP.MAX_LOGOS },
+      { name: 'banner', maxCount: UPLOAD_LIMITS.SHOP.MAX_BANNERS },
+      { name: 'gallery', maxCount: UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES },
     ]),
   )
   @ResponseMessage('Cập nhật thông tin gian hàng thành công.')
@@ -183,9 +184,9 @@ export class SellerShopsController {
   @Post('re-apply')
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'banner', maxCount: 1 },
-      { name: 'gallery', maxCount: 3 },
+      { name: 'logo', maxCount: UPLOAD_LIMITS.SHOP.MAX_LOGOS },
+      { name: 'banner', maxCount: UPLOAD_LIMITS.SHOP.MAX_BANNERS },
+      { name: 'gallery', maxCount: UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES },
     ]),
   )
   @ResponseMessage('Đã nộp lại đơn đăng ký gian hàng thành công.')
@@ -208,7 +209,7 @@ export class SellerShopsController {
   }
 
   @Post('gallery')
-  @UseInterceptors(FilesInterceptor('files', 3))
+  @UseInterceptors(FilesInterceptor('files', UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES))
   @ResponseMessage('Thêm ảnh liên quan thành công.')
   @ApiOperation({ summary: 'Seller thêm tối đa 3 ảnh vào gallery' })
   @ApiConsumes('multipart/form-data')

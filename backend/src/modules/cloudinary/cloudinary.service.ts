@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MediaAsset } from './entities/media-asset.entity';
-import { AssetType } from '@/modules/enums';
+import { AssetType } from '@/common/enums';
 
 @Injectable()
 export class CloudinaryService {

@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
 
 export class CreateProductVariantDto {
   @ApiProperty({
@@ -49,7 +50,7 @@ export class CreateProductVariantDto {
   @Transform(({ value }) => (value ? Number(value) : value))
   @IsNumber({}, { message: 'Số lượng ảnh phải là một số' })
   @Min(1, { message: 'Mỗi biến thể phải có ít nhất 1 ảnh' })
-  @Max(3, { message: 'Mỗi biến thể chỉ được phép có tối đa 3 hình ảnh' })
+  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, { message: `Mỗi biến thể chỉ được phép có tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} hình ảnh` })
   imageCount: number;
 }
 

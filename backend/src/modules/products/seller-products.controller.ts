@@ -44,7 +44,8 @@ import { ApiGenericResponse, ApiPaginatedResponse } from '@/decorator/api-respon
 import { ResponseMessage } from '@/decorator/customize';
 
 // Enums & Interfaces
-import { UserRole } from '@/modules/enums';
+import { UserRole } from '@/common/enums';
+import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
 import type { IUser } from '@/interface/user.interface';
 
 @ApiTags('seller-products')
@@ -57,9 +58,9 @@ export class SellerProductsController {
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'general_gallery', maxCount: 5 },
-      { name: 'variant_images', maxCount: 30 },
+      { name: 'thumbnail', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_THUMBNAILS },
+      { name: 'general_gallery', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES },
+      { name: 'variant_images', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH },
     ]),
   )
   @ApiOperation({ summary: 'Seller tạo sản phẩm mới' })
@@ -110,9 +111,9 @@ export class SellerProductsController {
   @Patch(':id')
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'general_gallery', maxCount: 5 },
-      { name: 'variant_images', maxCount: 30 },
+      { name: 'thumbnail', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_THUMBNAILS },
+      { name: 'general_gallery', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES },
+      { name: 'variant_images', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH },
     ]),
   )
   @ApiOperation({ summary: 'Seller cập nhật sản phẩm' })

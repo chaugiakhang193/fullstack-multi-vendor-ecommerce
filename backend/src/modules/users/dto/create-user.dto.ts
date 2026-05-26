@@ -7,7 +7,7 @@ import {
   IsPhoneNumber,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole, AccountStatus } from '@/modules/enums';
+import { UserRole, AccountStatus } from '@/common/enums';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'nguyenvana', description: 'Tên đăng nhập' })

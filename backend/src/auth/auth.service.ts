@@ -27,14 +27,13 @@ import { VerificationToken } from '@/auth/entities/verification-token.entity';
 import { User } from '@/modules/users/entities/user.entity';
 
 //helpers
-import { compareHashedDataHelper, hashDataHelper } from '@/common/helpers/utils';
+import {
+  compareHashedDataHelper,
+  hashDataHelper,
+} from '@/common/helpers/utils';
 import ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  VerificationTokenType,
-  AccountStatus,
-  UserRole,
-} from '@/modules/enums';
+import { VerificationTokenType, AccountStatus, UserRole } from '@/common/enums';
 
 //JWT
 import { JwtService } from '@nestjs/jwt';
@@ -468,7 +467,9 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException('Tài khoản người dùng không còn tồn tại!');
+      throw new UnauthorizedException(
+        'Tài khoản người dùng không còn tồn tại!',
+      );
     }
 
     const { password, ...userWithoutPassword } = user;

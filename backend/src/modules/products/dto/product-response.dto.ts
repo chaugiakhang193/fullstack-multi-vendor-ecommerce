@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CategoryResponseDto } from '@/modules/products/dto/category-response.dto';
 import { ShopResponseDto } from '@/modules/shops/dto/shop-response.dto';
-import { ProductStatus } from '@/modules/enums';
+import { ProductStatus } from '@/common/enums';
 
 export class ProductVariantResponseDto {
   @ApiProperty({

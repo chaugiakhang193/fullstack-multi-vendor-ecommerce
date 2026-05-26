@@ -12,7 +12,7 @@ import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 import { JwtService } from '@nestjs/jwt';
 import { ACCESS_TOKEN_SERVICE } from '@/auth/auth.constants';
-import { UserRole, AccountStatus } from '@/modules/enums';
+import { UserRole, AccountStatus } from '@/common/enums';
 import { hashDataHelper } from '@/common/helpers/utils';
 import * as crypto from 'crypto';
 

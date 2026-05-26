@@ -20,7 +20,7 @@ import { ResponseMessage } from '@/decorator/customize';
 import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 
 // Enums
-import { UserRole } from '@/modules/enums';
+import { UserRole } from '@/common/enums';
 
 @ApiTags('admin-shops')
 @ApiBearerAuth('access-token')
