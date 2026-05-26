@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { CouponType, DiscountType } from '@/modules/enums';
+import { CouponType, DiscountType } from '@/common/enums';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 
 @Entity()

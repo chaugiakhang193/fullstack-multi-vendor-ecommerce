@@ -11,7 +11,7 @@ import {
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Category } from '@/modules/products/entities/category.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
-import { ProductStatus } from '@/modules/enums';
+import { ProductStatus } from '@/common/enums';
 
 @Entity()
 export class Product {

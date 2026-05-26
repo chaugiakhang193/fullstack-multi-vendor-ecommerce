@@ -6,7 +6,7 @@ import {
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { PaymentMethod, PaymentStatus } from '@/modules/enums';
+import { PaymentMethod, PaymentStatus } from '@/common/enums';
 import { Order } from '@/modules/orders/entities/order.entity';
 
 @Entity()

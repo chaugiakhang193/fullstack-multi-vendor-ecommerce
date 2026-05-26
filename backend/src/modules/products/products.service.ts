@@ -44,8 +44,8 @@ import {
   AccountStatus,
   AssetType,
   ProductStatus,
-  CloudinaryFolder,
-} from '@/modules/enums';
+} from '@/common/enums';
+import { UPLOAD_LIMITS, CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
 import { IUser } from '@/interface/user.interface';
 
 @Injectable()
@@ -147,7 +147,7 @@ export class ProductsService {
 
     try {
       // Upload Thumbnail
-      const thumbnailFolder = CloudinaryFolder.PRODUCT_THUMBNAILS;
+      const thumbnailFolder = CLOUDINARY_FOLDER.PRODUCT_THUMBNAILS;
       const userSub = user.sub;
       const assetTypeThumbnail = AssetType.PRODUCT_THUMBNAIL;
       const shopId = shop.id;
@@ -163,7 +163,7 @@ export class ProductsService {
 
       // Upload General Gallery
       const generalGalleryFiles = files.general_gallery;
-      const galleryFolder = CloudinaryFolder.PRODUCT_GALLERY;
+      const galleryFolder = CLOUDINARY_FOLDER.PRODUCT_GALLERY;
       const assetTypeGallery = AssetType.PRODUCT_GALLERY;
 
       const galleryAssets = await this.cloudinaryService.uploadMultipleFiles(
@@ -212,13 +212,13 @@ export class ProductsService {
           // Lấy các file ảnh thuộc về biến thể này
           const nextOffset = imageOffset + variantDto.imageCount;
           const variantFiles = (files.variant_images || []).slice(
-            imageOffset,
-            nextOffset,
+              imageOffset,
+              nextOffset,
           );
           imageOffset = nextOffset;
 
           // Upload ảnh của biến thể
-          const variantFolder = CloudinaryFolder.PRODUCT_VARIANTS;
+          const variantFolder = CLOUDINARY_FOLDER.PRODUCT_VARIANTS;
           const assetTypeVariant = AssetType.PRODUCT_VARIANT_IMAGE;
 
           const variantAssets =
@@ -742,7 +742,7 @@ export class ProductsService {
           );
         }
 
-        const thumbnailFolder = CloudinaryFolder.PRODUCT_THUMBNAILS;
+        const thumbnailFolder = CLOUDINARY_FOLDER.PRODUCT_THUMBNAILS;
         const userSub = user.sub;
         const assetTypeThumbnail = AssetType.PRODUCT_THUMBNAIL;
         const shopId = shop.id;
@@ -788,7 +788,7 @@ export class ProductsService {
 
         // Xử lý ảnh mới
         const generalGalleryFiles = files.general_gallery;
-        const galleryFolder = CloudinaryFolder.PRODUCT_GALLERY;
+        const galleryFolder = CLOUDINARY_FOLDER.PRODUCT_GALLERY;
         const userSub = user.sub;
         const assetTypeGallery = AssetType.PRODUCT_GALLERY;
         const shopId = shop.id;
@@ -805,11 +805,11 @@ export class ProductsService {
         const mapUrlFn = (asset: { url: string }) => asset.url;
         const newUploadedUrls = newUploadedAssets.map(mapUrlFn);
 
-        // Kiểm tra giới hạn 5 ảnh
+        // Kiểm tra giới hạn ảnh
         const totalImagesCount = existingImages.length + newUploadedUrls.length;
-        const isLimitExceeded = totalImagesCount > 5;
+        const isLimitExceeded = totalImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES;
         if (isLimitExceeded) {
-          const limitMsg = `Số lượng ảnh trong bộ sưu tập vượt quá giới hạn (tối đa 5 ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
+          const limitMsg = `Số lượng ảnh trong bộ sưu tập vượt quá giới hạn (tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES} ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
           throw new BadRequestException(limitMsg);
         }
 
@@ -975,7 +975,7 @@ export class ProductsService {
             );
             imageOffset = nextOffset;
 
-            const variantFolder = CloudinaryFolder.PRODUCT_VARIANTS;
+            const variantFolder = CLOUDINARY_FOLDER.PRODUCT_VARIANTS;
             const userSub = user.sub;
             const assetTypeVariant = AssetType.PRODUCT_VARIANT_IMAGE;
             const shopId = shop.id;
@@ -1020,12 +1020,12 @@ export class ProductsService {
               }
             }
 
-            // Kiểm tra giới hạn 3 ảnh
+            // Kiểm tra giới hạn ảnh
             const totalVarImagesCount =
               existingImages.length + newUploadedUrls.length;
-            const isVarLimitExceeded = totalVarImagesCount > 3;
+            const isVarLimitExceeded = totalVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
             if (isVarLimitExceeded) {
-              const limitMsg = `Biến thể "${variantDto.name}" vượt quá số lượng ảnh cho phép (tối đa 3 ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
+              const limitMsg = `Biến thể "${variantDto.name}" vượt quá số lượng ảnh cho phép (tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
               throw new BadRequestException(limitMsg);
             }
 
@@ -1056,11 +1056,11 @@ export class ProductsService {
             variantsToSave.push(oldVariant);
           } else {
             // Trường hợp TẠO MỚI biến thể
-            // Kiểm tra giới hạn 3 ảnh
+            // Kiểm tra giới hạn ảnh
             const newVarImagesCount = newUploadedUrls.length;
-            const isNewVarLimitExceeded = newVarImagesCount > 3;
+            const isNewVarLimitExceeded = newVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
             if (isNewVarLimitExceeded) {
-              const limitMsg = `Biến thể "${variantDto.name}" chỉ được phép có tối đa 3 ảnh.`;
+              const limitMsg = `Biến thể "${variantDto.name}" chỉ được phép có tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh.`;
               throw new BadRequestException(limitMsg);
             }
 

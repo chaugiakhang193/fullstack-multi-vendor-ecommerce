@@ -31,7 +31,7 @@ import { ResponseMessage, Public } from '@/decorator/customize';
 import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 
 // Enums
-import { UserRole } from '@/modules/enums';
+import { UserRole } from '@/common/enums';
 
 @ApiTags('categories')
 @Controller('categories')

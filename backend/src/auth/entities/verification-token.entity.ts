@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
-import { VerificationTokenType } from '@/modules/enums';
+import { VerificationTokenType } from '@/common/enums';
 
 @Entity()
 export class VerificationToken {

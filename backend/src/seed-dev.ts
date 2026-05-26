@@ -6,7 +6,7 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Category } from '@/modules/products/entities/category.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
-import { AccountStatus, ProductStatus, UserRole } from '@/modules/enums';
+import { AccountStatus, ProductStatus, UserRole } from '@/common/enums';
 import { hashDataHelper } from '@/common/helpers/utils';
 
 async function seed() {

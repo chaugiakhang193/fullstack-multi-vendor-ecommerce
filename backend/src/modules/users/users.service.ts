@@ -13,7 +13,7 @@ import {
   compareHashedDataHelper,
   isDataExist,
 } from '@/common/helpers/utils';
-import { UserRole, AccountStatus } from '@/modules/enums';
+import { UserRole, AccountStatus } from '@/common/enums';
 @Injectable()
 export class UsersService {
   constructor(

@@ -17,7 +17,8 @@ import {
   IsEnum,
   IsBoolean,
 } from 'class-validator';
-import { ProductStatus } from '@/modules/enums';
+import { ProductStatus } from '@/common/enums';
+import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
 
 export class UpdateProductVariantDto extends PartialType(
   CreateProductVariantDto,
@@ -48,7 +49,7 @@ export class UpdateProductVariantDto extends PartialType(
   @IsOptional()
   @Type(() => Number)
   @Min(0)
-  @Max(3, { message: 'Mỗi biến thể chỉ được phép tải lên tối đa 3 ảnh mới' })
+  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, { message: `Mỗi biến thể chỉ được phép tải lên tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh mới` })
   imageCount?: number;
 }
 

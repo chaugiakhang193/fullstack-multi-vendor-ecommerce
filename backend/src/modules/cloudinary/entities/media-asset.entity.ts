@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { AssetType } from '@/modules/enums';
+import { AssetType } from '@/common/enums';
 import { User } from '@/modules/users/entities/user.entity';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 

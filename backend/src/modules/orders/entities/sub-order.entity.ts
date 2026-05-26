@@ -8,7 +8,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { OrderStatus } from '@/modules/enums';
+import { OrderStatus } from '@/common/enums';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';

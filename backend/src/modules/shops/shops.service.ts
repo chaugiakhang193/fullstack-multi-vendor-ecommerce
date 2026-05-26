@@ -27,7 +27,8 @@ import { CategoriesService } from '@/modules/products/categories.service';
 import { MailService } from '@/modules/mail/mail.service';
 
 // Enums
-import { AccountStatus, AssetType, CloudinaryFolder } from '@/modules/enums';
+import { AccountStatus, AssetType } from '@/common/enums';
+import { UPLOAD_LIMITS, CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
 
 @Injectable()
 export class ShopsService {
@@ -102,8 +103,8 @@ export class ShopsService {
       );
     }
 
-    if (files.gallery.length > 3) {
-      throw new BadRequestException('Chỉ được upload tối đa 3 ảnh liên quan');
+    if (files.gallery.length > UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES) {
+      throw new BadRequestException(`Chỉ được upload tối đa ${UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES} ảnh liên quan`);
     }
 
     // Danh sách cái Assest ID đã upload thành công
@@ -114,7 +115,7 @@ export class ShopsService {
       // Upload logo
       const logoResult = await this.cloudinaryService.uploadFile(
         files.logo[0],
-        CloudinaryFolder.SHOP_LOGOS,
+        CLOUDINARY_FOLDER.SHOP_LOGOS,
         userId,
         AssetType.SHOP_LOGO,
       );
@@ -126,7 +127,7 @@ export class ShopsService {
       // Upload banner
       const bannerResult = await this.cloudinaryService.uploadFile(
         files.banner[0],
-        CloudinaryFolder.SHOP_BANNERS,
+        CLOUDINARY_FOLDER.SHOP_BANNERS,
         userId,
         AssetType.SHOP_BANNER,
       );
@@ -170,7 +171,7 @@ export class ShopsService {
         const uploadPromises = files.gallery.map(async (file) => {
           const galleryResult = await this.cloudinaryService.uploadFile(
             file,
-            CloudinaryFolder.SHOP_GALLERIES,
+            CLOUDINARY_FOLDER.SHOP_GALLERIES,
             userId,
             AssetType.SHOP_GALLERY,
             savedShop.id,
@@ -323,7 +324,7 @@ export class ShopsService {
     try {
       newAssetResult = await this.cloudinaryService.uploadFile(
         file,
-        CloudinaryFolder.SHOP_LOGOS,
+        CLOUDINARY_FOLDER.SHOP_LOGOS,
         userId,
         AssetType.SHOP_LOGO,
         shop.id,
@@ -362,7 +363,7 @@ export class ShopsService {
     try {
       newAssetResult = await this.cloudinaryService.uploadFile(
         file,
-        CloudinaryFolder.SHOP_BANNERS,
+        CLOUDINARY_FOLDER.SHOP_BANNERS,
         userId,
         AssetType.SHOP_BANNER,
         shop.id,
@@ -411,9 +412,9 @@ export class ShopsService {
       (asset) => asset.type === AssetType.SHOP_GALLERY,
     );
 
-    if (shopGallery.length + files.length > 3) {
+    if (shopGallery.length + files.length > UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES) {
       throw new BadRequestException(
-        `Bạn chỉ được upload tối đa 3 ảnh liên quan. Hiện tại bạn đã có ${shopGallery.length} ảnh, không thể upload thêm ${files.length} ảnh.`,
+        `Bạn chỉ được upload tối đa ${UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES} ảnh liên quan. Hiện tại bạn đã có ${shopGallery.length} ảnh, không thể upload thêm ${files.length} ảnh.`,
       );
     }
 
@@ -423,7 +424,7 @@ export class ShopsService {
       const uploadPromises = files.map(async (file) => {
         const galleryResult = await this.cloudinaryService.uploadFile(
           file,
-          CloudinaryFolder.SHOP_GALLERIES,
+          CLOUDINARY_FOLDER.SHOP_GALLERIES,
           userId,
           AssetType.SHOP_GALLERY,
           shop.id,

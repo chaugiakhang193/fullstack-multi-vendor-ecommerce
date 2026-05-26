@@ -1,4 +1,4 @@
-import { UserRole, AccountStatus } from '@/modules/enums';
+import { UserRole, AccountStatus } from '@/common/enums';
 
 export interface IUser {
   sub: string;
