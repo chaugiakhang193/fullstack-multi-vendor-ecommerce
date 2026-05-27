@@ -13,6 +13,7 @@ import { ShopsService } from '@/modules/shops/shops.service';
 
 // DTOs
 import { ShopResponseDto } from '@/modules/shops/dto/shop-response.dto';
+import { RejectShopDto } from '@/modules/shops/dto/reject-shop.dto';
 
 // Guards & Decorators
 import { Roles } from '@/decorator/roles.decorator';
@@ -71,7 +72,10 @@ export class AdminShopsController {
   @ApiGenericResponse(ShopResponseDto, 'Từ chối gian hàng thành công.')
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập.' })
   @ApiForbiddenResponse({ description: 'Yêu cầu quyền ADMIN.' })
-  rejectShop(@Param('id') id: string, @Body('reason') reason: string) {
-    return this.shopsService.rejectShop(id, reason);
+  rejectShop(
+    @Param('id') id: string,
+    @Body() rejectShopDto: RejectShopDto,
+  ) {
+    return this.shopsService.rejectShop(id, rejectShopDto.reason);
   }
 }

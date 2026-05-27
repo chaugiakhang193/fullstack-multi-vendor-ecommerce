@@ -40,12 +40,11 @@ import { ShopsService } from '@/modules/shops/shops.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 
 // Enums & Interfaces
+import { AccountStatus, AssetType, ProductStatus } from '@/common/enums';
 import {
-  AccountStatus,
-  AssetType,
-  ProductStatus,
-} from '@/common/enums';
-import { UPLOAD_LIMITS, CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
+  UPLOAD_LIMITS,
+  CLOUDINARY_FOLDER,
+} from '@/common/constants/upload.constant';
 import { IUser } from '@/interface/user.interface';
 
 @Injectable()
@@ -53,8 +52,6 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-    @InjectRepository(ProductVariant)
-    private readonly variantsRepository: Repository<ProductVariant>,
     private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
     @Inject(forwardRef(() => ShopsService))
@@ -212,8 +209,8 @@ export class ProductsService {
           // Lấy các file ảnh thuộc về biến thể này
           const nextOffset = imageOffset + variantDto.imageCount;
           const variantFiles = (files.variant_images || []).slice(
-              imageOffset,
-              nextOffset,
+            imageOffset,
+            nextOffset,
           );
           imageOffset = nextOffset;
 
@@ -807,7 +804,8 @@ export class ProductsService {
 
         // Kiểm tra giới hạn ảnh
         const totalImagesCount = existingImages.length + newUploadedUrls.length;
-        const isLimitExceeded = totalImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES;
+        const isLimitExceeded =
+          totalImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES;
         if (isLimitExceeded) {
           const limitMsg = `Số lượng ảnh trong bộ sưu tập vượt quá giới hạn (tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES} ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
           throw new BadRequestException(limitMsg);
@@ -1023,7 +1021,8 @@ export class ProductsService {
             // Kiểm tra giới hạn ảnh
             const totalVarImagesCount =
               existingImages.length + newUploadedUrls.length;
-            const isVarLimitExceeded = totalVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
+            const isVarLimitExceeded =
+              totalVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
             if (isVarLimitExceeded) {
               const limitMsg = `Biến thể "${variantDto.name}" vượt quá số lượng ảnh cho phép (tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh). Hiện có ${existingImages.length} ảnh cũ và ${newUploadedUrls.length} ảnh mới được tải lên.`;
               throw new BadRequestException(limitMsg);
@@ -1058,7 +1057,8 @@ export class ProductsService {
             // Trường hợp TẠO MỚI biến thể
             // Kiểm tra giới hạn ảnh
             const newVarImagesCount = newUploadedUrls.length;
-            const isNewVarLimitExceeded = newVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
+            const isNewVarLimitExceeded =
+              newVarImagesCount > UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES;
             if (isNewVarLimitExceeded) {
               const limitMsg = `Biến thể "${variantDto.name}" chỉ được phép có tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh.`;
               throw new BadRequestException(limitMsg);
@@ -1387,6 +1387,18 @@ export class ProductsService {
     const slugifyOptions = { lower: true, locale: 'vi' };
     const result = slugify(name, slugifyOptions);
     return result;
+  }
+
+  async getProductForCartValidation(id: string): Promise<Product> {
+    const realId = this.extractId(id);
+    const product = await this.productsRepository.findOne({
+      where: { id: realId },
+      relations: ['shop', 'shop.seller', 'variants'],
+    });
+    if (!product) {
+      throw new NotFoundException('Không tìm thấy sản phẩm');
+    }
+    return product;
   }
 
   private extractId(idOrSlugWithId: string): string {

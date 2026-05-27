@@ -592,36 +592,74 @@ export interface paths {
         patch: operations["CategoriesController_update"];
         trace?: never;
     };
-    "/api/v1/carts": {
+    "/api/v1/cart/items": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["CartsController_findAll"];
+        get?: never;
         put?: never;
-        post: operations["CartsController_create"];
+        /** Thêm sản phẩm vào giỏ hàng */
+        post: operations["CartsController_addItem"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/carts/{id}": {
+    "/api/v1/cart": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["CartsController_findOne"];
+        /** Xem giỏ hàng hiện tại (nhóm theo shop) */
+        get: operations["CartsController_getCart"];
         put?: never;
         post?: never;
-        delete: operations["CartsController_remove"];
+        /** Xóa toàn bộ giỏ hàng */
+        delete: operations["CartsController_clearCart"];
         options?: never;
         head?: never;
-        patch: operations["CartsController_update"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cart/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Xóa một sản phẩm khỏi giỏ hàng */
+        delete: operations["CartsController_removeItem"];
+        options?: never;
+        head?: never;
+        /** Cập nhật số lượng của sản phẩm trong giỏ hàng */
+        patch: operations["CartsController_updateItem"];
+        trace?: never;
+    };
+    "/api/v1/cart/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gộp giỏ hàng từ khách vãng lai (localStorage) vào tài khoản */
+        post: operations["CartsController_mergeCart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/orders": {
@@ -1134,6 +1172,13 @@ export interface components {
             /** @description Danh sách các file ảnh (tối đa 3) */
             files: string[];
         };
+        RejectShopDto: {
+            /**
+             * @description Lý do từ chối phê duyệt gian hàng
+             * @example Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ.
+             */
+            reason: string;
+        };
         PaginationMetaDto: {
             /**
              * @description Trang hiện tại
@@ -1541,8 +1586,96 @@ export interface components {
              */
             display_order: number;
         };
-        CreateCartDto: Record<string, never>;
-        UpdateCartDto: Record<string, never>;
+        CartShopDto: {
+            id: string;
+            name: string;
+            logo_url: Record<string, never> | null;
+        };
+        CartItemProductDto: {
+            id: string;
+            name: string;
+            slug: string;
+            price: number;
+            thumbnail_url: Record<string, never> | null;
+            is_hidden: boolean;
+            /** @enum {string} */
+            status: "active" | "deleted";
+        };
+        CartItemVariantDto: {
+            id: string;
+            name: string;
+            additional_price: number;
+        };
+        CartItemResponseDto: {
+            id: string;
+            product: components["schemas"]["CartItemProductDto"];
+            variant: components["schemas"]["CartItemVariantDto"] | null;
+            quantity: number;
+            unit_price: number;
+            subtotal: number;
+            /** Format: date-time */
+            added_at: string;
+            available_stock: number;
+            is_available: boolean;
+            /** @enum {string} */
+            reason?: "out_of_stock" | "insufficient_stock" | "product_hidden" | "product_deleted" | "shop_inactive";
+        };
+        CartShopGroupDto: {
+            shop: components["schemas"]["CartShopDto"];
+            items: components["schemas"]["CartItemResponseDto"][];
+            shop_subtotal: number;
+        };
+        CartResponseDto: {
+            items_by_shop: components["schemas"]["CartShopGroupDto"][];
+            total_items: number;
+            total_quantity: number;
+            total_amount: number;
+        };
+        AddCartItemDto: {
+            /**
+             * @description ID sản phẩm
+             * @example d0b8f418-2e8f-4cb1-8cb5-4cfeb9d701e6
+             */
+            product_id: string;
+            /**
+             * @description ID biến thể (bắt buộc nếu sản phẩm có biến thể)
+             * @example a0b9f418-2e8f-4cb1-8cb5-4cfeb9d701e7
+             */
+            variant_id?: string;
+            /**
+             * @description Số lượng mua
+             * @default 1
+             */
+            quantity: number;
+        };
+        UpdateCartItemDto: {
+            /**
+             * @description Số lượng mua mới
+             * @example 5
+             */
+            quantity: number;
+        };
+        GuestCartItemDto: {
+            /**
+             * @description ID sản phẩm
+             * @example d0b8f418-2e8f-4cb1-8cb5-4cfeb9d701e6
+             */
+            product_id: string;
+            /**
+             * @description ID biến thể (nếu có)
+             * @example a0b9f418-2e8f-4cb1-8cb5-4cfeb9d701e7
+             */
+            variant_id?: string;
+            /**
+             * @description Số lượng mua
+             * @example 2
+             */
+            quantity: number;
+        };
+        MergeCartDto: {
+            /** @description Danh sách sản phẩm từ localStorage khách */
+            items: components["schemas"]["GuestCartItemDto"][];
+        };
         CreateOrderDto: Record<string, never>;
         UpdateOrderDto: Record<string, never>;
         CreatePromotionDto: Record<string, never>;
@@ -2624,7 +2757,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectShopDto"];
+            };
+        };
         responses: {
             /** @description Từ chối gian hàng thành công. */
             200: {
@@ -3297,24 +3434,7 @@ export interface operations {
             };
         };
     };
-    CartsController_findAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    CartsController_create: {
+    CartsController_addItem: {
         parameters: {
             query?: never;
             header?: never;
@@ -3323,19 +3443,136 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateCartDto"];
+                "application/json": components["schemas"]["AddCartItemDto"];
             };
         };
         responses: {
+            /** @description Thêm sản phẩm thành công */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Thêm sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Yêu cầu không hợp lệ (tự mua hàng của mình, vượt giới hạn, ...) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm/biến thể */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content?: never;
             };
         };
     };
-    CartsController_findOne: {
+    CartsController_getCart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Thông tin giỏ hàng */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Thông tin giỏ hàng */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_clearCart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Xóa toàn bộ giỏ hàng thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xóa toàn bộ giỏ hàng thành công */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_removeItem: {
         parameters: {
             query?: never;
             header?: never;
@@ -3346,7 +3583,37 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Xóa sản phẩm thành công */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xóa sản phẩm thành công */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm trong giỏ hàng của user */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3354,26 +3621,7 @@ export interface operations {
             };
         };
     };
-    CartsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    CartsController_update: {
+    CartsController_updateItem: {
         parameters: {
             query?: never;
             header?: never;
@@ -3384,11 +3632,85 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateCartDto"];
+                "application/json": components["schemas"]["UpdateCartItemDto"];
             };
         };
         responses: {
+            /** @description Cập nhật số lượng thành công */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật số lượng thành công */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm trong giỏ hàng của user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CartsController_mergeCart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeCartDto"];
+            };
+        };
+        responses: {
+            /** @description Giỏ hàng sau khi gộp */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Giỏ hàng sau khi gộp */
+                        message?: string;
+                        data?: components["schemas"]["CartResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

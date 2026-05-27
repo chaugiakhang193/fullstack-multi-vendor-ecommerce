@@ -1,9 +1,13 @@
 import z from "zod";
 import { components } from "@/lib/api/api-schema";
 
-export const RejectShopBody = z.object({
-  reason: z.string().min(1, "Vui lòng nhập lý do từ chối."),
-});
+type RejectShopDto = components["schemas"]["RejectShopDto"];
+
+export const RejectShopBody = z
+  .object({
+    reason: z.string().min(5, "Lý do từ chối phải có ít nhất 5 ký tự."),
+  })
+  .strict() satisfies z.ZodType<RejectShopDto, any, any>;
 
 export interface BaseResponse<T> {
   statusCode: number;
