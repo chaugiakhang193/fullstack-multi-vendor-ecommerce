@@ -125,7 +125,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Badge Out of stock */}
           {isOutOfStock ? (
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider z-10">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center text-white text-sm font-bold uppercase tracking-wider z-10">
               Tạm hết hàng
             </div>
           ) : (
@@ -133,16 +133,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button
               type="button"
               onClick={handleQuickAdd}
-              className="absolute bottom-3 right-3 p-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10"
+              className="absolute bottom-4 right-4 p-3 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10"
               title="Thêm nhanh vào giỏ"
             >
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart className="h-5 w-5" />
             </button>
           )}
 
           {/* Featured / Highlight Badge (Placeholder for Sale badge) */}
           {isFeatured && !isOutOfStock && (
-            <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-rose-500 text-white uppercase tracking-wider shadow-sm z-10">
+            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-rose-500 text-white uppercase tracking-wider shadow-sm z-10">
               Nổi bật
             </span>
           )}
@@ -152,13 +152,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="p-4 flex-1 flex flex-col justify-between gap-2.5">
           <div className="space-y-1.5">
             {/* Shop name */}
-            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-              <Store className="h-3 w-3 shrink-0" />
+            <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+              <Store className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{product.shop?.name || "Cửa hàng"}</span>
             </div>
 
             {/* Product Name */}
-            <h3 className="text-xs font-bold text-foreground leading-snug line-clamp-2 h-8 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+            <h3 className="text-base font-extrabold text-foreground leading-snug line-clamp-2 h-12 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
               {product.name}
             </h3>
           </div>
@@ -166,18 +166,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="space-y-1.5">
             {/* Stars / Rating reviews placeholder */}
             <div className="flex items-center gap-0.5 text-amber-500">
-              <Star className="h-3 w-3 fill-current" />
-              <Star className="h-3 w-3 fill-current" />
-              <Star className="h-3 w-3 fill-current" />
-              <Star className="h-3 w-3 fill-current" />
-              <Star className="h-3 w-3 text-zinc-300 dark:text-zinc-700 fill-current" />
-              <span className="text-[10px] text-muted-foreground font-bold ml-1">
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <Star className="h-3.5 w-3.5 text-zinc-300 dark:text-zinc-700 fill-current" />
+              <span className="text-sm text-muted-foreground font-bold ml-1">
                 (4.0)
               </span>
             </div>
 
             {/* Product Price */}
-            <div className="text-sm font-bold text-violet-600 dark:text-violet-400">
+            <div className="text-xl font-black text-violet-600 dark:text-violet-400">
               {priceText}
             </div>
           </div>

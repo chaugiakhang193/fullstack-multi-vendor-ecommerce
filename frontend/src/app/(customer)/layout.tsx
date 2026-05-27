@@ -32,6 +32,10 @@ import {
   LayoutDashboard,
   AlertCircle,
   Loader2,
+  MapPin,
+  Phone,
+  Mail,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function CustomerLayout({
@@ -159,22 +163,22 @@ export default function CustomerLayout({
   return (
     <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-900 text-foreground">
       {/* HEADER SECTION */}
-      <header className="sticky top-0 z-40 h-16 w-full border-b bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between gap-4 relative">
+      <header className="sticky top-0 z-40 h-32 w-full border-b bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
+        <div className="max-w-none w-full h-full px-6 md:px-12 flex items-center justify-between gap-4 relative">
           
           {/* Logo & Category Menu (Left) */}
-          <div className="flex items-center gap-2 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-8">
             {/* Mobile Hamburger Trigger */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-lg border hover:bg-zinc-100 dark:hover:bg-zinc-900 transition md:hidden"
+              className="p-3.5 rounded-2xl border-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition md:hidden"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-6 w-6" />
             </button>
 
             <Link
               href="/"
-              className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent select-none cursor-pointer"
+              className="font-extrabold text-4xl tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent select-none cursor-pointer"
             >
               Giang Kha
             </Link>
@@ -183,10 +187,10 @@ export default function CustomerLayout({
             <div className="relative hidden md:block">
               <button
                 onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-xs font-semibold"
+                className="flex items-center space-x-1.5 px-6 h-16 rounded-2xl border-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-base font-bold"
               >
                 <span>Danh mục</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${isCategoryMenuOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`h-5 w-5 transition-transform ${isCategoryMenuOpen ? "rotate-180" : ""}`} />
               </button>
 
               {isCategoryMenuOpen && (
@@ -203,13 +207,13 @@ export default function CustomerLayout({
                             key={cat.id}
                             href={`/categories/${cat.slug}`}
                             onClick={() => setIsCategoryMenuOpen(false)}
-                            className="block px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
+                            className="block px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
                           >
                             {cat.name}
                           </Link>
                         ))
                       ) : (
-                        <span className="block px-4 py-2 text-xs text-muted-foreground italic">
+                        <span className="block px-4 py-2 text-sm text-muted-foreground italic">
                           Không có danh mục
                         </span>
                       )}
@@ -221,12 +225,12 @@ export default function CustomerLayout({
           </div>
 
           {/* Search Bar (Middle - Desktop) */}
-          <div className="relative flex-1 max-w-md mx-auto hidden md:block">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative flex-1 max-w-4xl mx-auto hidden md:block">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
             <input
               type="text"
               placeholder="Tìm kiếm sản phẩm..."
-              className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
+              className="w-full h-16 pl-14 pr-6 text-base border-2 rounded-2xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
               value={searchQuery}
               onChange={(e) => {
                 const val = e.target.value;
@@ -237,18 +241,18 @@ export default function CustomerLayout({
           </div>
 
           {/* Right Actions Section */}
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-3 md:gap-4">
             {/* Mobile Search Button */}
             <button
               onClick={() => setIsMobileSearchOpen(true)}
-              className="p-2 rounded-lg border hover:bg-zinc-100 dark:hover:bg-zinc-900 transition md:hidden"
+              className="p-3.5 rounded-2xl border-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition md:hidden"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-6 w-6" />
             </button>
 
             {!user && (
               <Link href="/register-seller" className="hidden md:inline-block">
-                <button className="text-xs font-semibold px-3 py-1.5 border rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition">
+                <button className="text-base font-bold px-6 h-16 border-2 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 transition">
                   Trở thành người bán
                 </button>
               </Link>
@@ -256,31 +260,31 @@ export default function CustomerLayout({
 
             {/* Cart Button */}
             <Link href="/cart">
-              <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
-                <ShoppingCart className="h-4 w-4" />
+              <button className="h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm">
+                <ShoppingCart className="h-6 w-6" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-zinc-950">
+                  <span className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-rose-500 text-xs font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-zinc-950">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}
               </button>
             </Link>
 
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-12" />
 
             {/* User Dropdown Profile Menu */}
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
+                  className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-sm">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-base text-white shadow-sm">
                     {user.username?.charAt(0).toUpperCase() || (
-                      <User className="h-4 w-4" />
+                      <User className="h-5 w-5" />
                     )}
                   </div>
-                  <span className="text-xs font-bold hidden sm:inline-block pr-1">
+                  <span className="text-base font-bold hidden sm:inline-block pr-1">
                     {user.username}
                   </span>
                 </button>
@@ -354,14 +358,14 @@ export default function CustomerLayout({
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Link href="/login">
-                  <Button variant="outline" size="sm" className="text-xs font-semibold rounded-lg h-9">
+                  <Button variant="outline" className="text-base font-bold rounded-2xl border-2 h-16 px-6 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-900">
                     Đăng nhập
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button size="sm" className="text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 h-9">
+                  <Button className="text-base font-bold rounded-2xl bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 h-16 px-6 transition-all">
                     Đăng ký
                   </Button>
                 </Link>
@@ -474,93 +478,154 @@ export default function CustomerLayout({
       )}
 
       {/* MAIN CONTENT WRAPPER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8 animate-fade-in">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8 animate-fade-in">
         {children}
       </main>
 
       {/* FOOTER SECTION */}
-      <footer className="bg-zinc-100 dark:bg-zinc-950 border-t py-12 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-          
-          {/* Col 1: Brand Info */}
-          <div className="space-y-4">
-            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              Giang Kha
-            </span>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Nền tảng thương mại điện tử Multi-Vendor hiện đại, chất lượng và đáng tin cậy. Mua sắm dễ dàng từ hàng ngàn nhà bán hàng chất lượng trên toàn quốc.
-            </p>
-            <div className="text-xs text-muted-foreground space-y-1.5 font-medium">
-              <p>Hotline: 1900 8198</p>
-              <p>Email: support@giangkha.com</p>
+      <footer className="bg-zinc-50 dark:bg-zinc-950 border-t py-16 px-6 md:px-12 mt-12">
+        <div className="max-w-[1600px] mx-auto">
+          {/* Main Footer Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
+            
+            {/* Col 1: Brand Info & Socials (4 columns span) */}
+            <div className="space-y-6 lg:col-span-4">
+              <div className="space-y-4">
+                <span className="font-extrabold text-4xl tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent block">
+                  Giang Kha
+                </span>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  Nền tảng thương mại điện tử Multi-Vendor hiện đại, chất lượng và đáng tin cậy. Mua sắm dễ dàng từ hàng ngàn nhà bán hàng chất lượng trên toàn quốc.
+                </p>
+              </div>
+
+              {/* Contact details with icons */}
+              <div className="space-y-3.5 text-base text-muted-foreground font-medium">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-violet-600 shrink-0 mt-0.5" />
+                  <span>Tòa nhà Giang Kha, Đường Cách Mạng Tháng 8, Quận 1, TP. Hồ Chí Minh</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-violet-600 shrink-0" />
+                  <span>Hotline: 1900 8198 (8:00 - 22:00)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-violet-600 shrink-0" />
+                  <span>Email: support@giangkha.com</span>
+                </div>
+              </div>
+
+              {/* Social Media Links */}
+              <div className="space-y-2.5">
+                <span className="text-sm font-bold uppercase tracking-wider text-foreground block">Kết nối với chúng tôi</span>
+                <div className="flex items-center gap-3">
+                  <a href="#" className="p-2.5 rounded-full bg-zinc-200 dark:bg-zinc-900 text-muted-foreground hover:bg-violet-600 hover:text-white transition-all duration-300 shadow-sm flex items-center justify-center">
+                    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </a>
+                  <a href="#" className="p-2.5 rounded-full bg-zinc-200 dark:bg-zinc-900 text-muted-foreground hover:bg-violet-600 hover:text-white transition-all duration-300 shadow-sm flex items-center justify-center">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                  </a>
+                  <a href="#" className="p-2.5 rounded-full bg-zinc-200 dark:bg-zinc-900 text-muted-foreground hover:bg-violet-600 hover:text-white transition-all duration-300 shadow-sm flex items-center justify-center">
+                    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.507a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.507 9.388.507 9.388.507s7.517 0 9.388-.507a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Col 2: Navigation Links (2 columns span) */}
+            <div className="lg:col-span-2 space-y-4">
+              <h4 className="text-lg font-bold text-foreground uppercase tracking-wider">Mua sắm</h4>
+              <ul className="space-y-3.5 text-base text-muted-foreground font-semibold">
+                <li>
+                  <Link href="/" className="hover:text-violet-600 transition-colors">Trang chủ</Link>
+                </li>
+                <li>
+                  <Link href="/products" className="hover:text-violet-600 transition-colors">Sản phẩm</Link>
+                </li>
+                <li>
+                  <Link href="/categories" className="hover:text-violet-600 transition-colors">Danh mục ngành hàng</Link>
+                </li>
+                <li>
+                  <Link href="/promotions" className="hover:text-violet-600 transition-colors">Chương trình khuyến mãi</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 3: Support Info (3 columns span) */}
+            <div className="lg:col-span-3 space-y-4">
+              <h4 className="text-lg font-bold text-foreground uppercase tracking-wider">Hỗ trợ & Chính sách</h4>
+              <ul className="space-y-3.5 text-base text-muted-foreground font-semibold">
+                <li>
+                  <Link href="/faq" className="hover:text-violet-600 transition-colors">Câu hỏi thường gặp (FAQ)</Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="hover:text-violet-600 transition-colors">Điều khoản sử dụng</Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-violet-600 transition-colors">Chính sách bảo mật</Link>
+                </li>
+                <li>
+                  <Link href="/register-seller" className="hover:text-violet-600 transition-colors">Đăng ký bán hàng cùng chúng tôi</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 4: Newsletter & Trust (3 columns span) */}
+            <div className="lg:col-span-3 space-y-6">
+              <div className="space-y-4">
+                <h4 className="text-lg font-bold text-foreground uppercase tracking-wider">Bản tin Giang Kha</h4>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  Đăng ký nhận thông tin ưu đãi và các sản phẩm nổi bật mới nhất từ chúng tôi.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="Email của bạn..."
+                    className="flex-1 px-4 py-3 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 bg-background"
+                  />
+                  <Button size="default" className="text-base font-bold rounded-lg bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 h-12 px-5">
+                    Đăng ký
+                  </Button>
+                </div>
+              </div>
+
+              {/* Trust Badge / Security Info */}
+              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
+                <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
+                <div className="text-sm font-semibold text-muted-foreground">
+                  <p className="text-foreground">Mua sắm an toàn 100%</p>
+                  <p className="text-xs font-normal">Thông tin bảo mật và mã hóa hoàn toàn</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Col 2: Navigation Links */}
-          <div>
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Mua sắm</h4>
-            <ul className="space-y-2.5 text-xs text-muted-foreground font-semibold">
-              <li>
-                <Link href="/" className="hover:text-foreground transition">Trang chủ</Link>
-              </li>
-              <li>
-                <Link href="/products" className="hover:text-foreground transition">Sản phẩm</Link>
-              </li>
-              <li>
-                <Link href="/categories" className="hover:text-foreground transition">Danh mục ngành hàng</Link>
-              </li>
-              <li>
-                <Link href="/promotions" className="hover:text-foreground transition">Chương trình khuyến mãi</Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: Support Info */}
-          <div>
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">Hỗ trợ & Chính sách</h4>
-            <ul className="space-y-2.5 text-xs text-muted-foreground font-semibold">
-              <li>
-                <Link href="/faq" className="hover:text-foreground transition">Câu hỏi thường gặp (FAQ)</Link>
-              </li>
-              <li>
-                <Link href="/terms" className="hover:text-foreground transition">Điều khoản sử dụng</Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="hover:text-foreground transition">Chính sách bảo mật</Link>
-              </li>
-              <li>
-                <Link href="/register-seller" className="hover:text-foreground transition">Đăng ký bán hàng cùng chúng tôi</Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 4: Newsletter */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">Bản tin Giang Kha</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Đăng ký nhận thông tin ưu đãi và các sản phẩm nổi bật mới nhất từ chúng tôi.
+          {/* Bottom copyright & payment methods */}
+          <div className="border-t border-zinc-200 dark:border-zinc-800 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">
+              © 2026 Giang Kha Multi-Vendor. All rights reserved.
             </p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Email của bạn..."
-                className="flex-1 px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 bg-background"
-              />
-              <Button size="sm" className="text-xs font-bold rounded-lg bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20">
-                Đăng ký
-              </Button>
+            {/* Payment Icons / Badges */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase mr-2 hidden sm:inline">Thanh toán:</span>
+              <div className="flex gap-2.5">
+                <span className="px-2.5 py-1 text-xs font-bold bg-zinc-200 dark:bg-zinc-800 text-foreground rounded border border-zinc-300 dark:border-zinc-700 tracking-wider">VISA</span>
+                <span className="px-2.5 py-1 text-xs font-bold bg-zinc-200 dark:bg-zinc-800 text-foreground rounded border border-zinc-300 dark:border-zinc-700 tracking-wider">MASTER</span>
+                <span className="px-2.5 py-1 text-xs font-bold bg-zinc-200 dark:bg-zinc-800 text-foreground rounded border border-zinc-300 dark:border-zinc-700 tracking-wider">MOMO</span>
+                <span className="px-2.5 py-1 text-xs font-bold bg-zinc-200 dark:bg-zinc-800 text-foreground rounded border border-zinc-300 dark:border-zinc-700 tracking-wider">COD</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Copyright Footer */}
-        <div className="max-w-7xl mx-auto border-t mt-12 pt-8 text-center">
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-            © 2026 Giang Kha Multi-Vendor. All rights reserved.
-          </p>
         </div>
       </footer>
-
       {/* LOGOUT CONFIRMATION MODAL */}
       <Dialog open={isLogoutConfirmOpen} onOpenChange={setIsLogoutConfirmOpen}>
         <DialogContent className="max-w-sm">
