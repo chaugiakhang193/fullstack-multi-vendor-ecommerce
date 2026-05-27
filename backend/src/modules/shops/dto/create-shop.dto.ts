@@ -6,6 +6,7 @@ import {
   IsUUID,
   MinLength,
   ArrayNotEmpty,
+  IsUrl,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -42,7 +43,7 @@ export class CreateShopDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: 'Logo URL phải là chuỗi ký tự' })
+  @IsUrl({}, { message: 'Logo URL phải là định dạng URL hợp lệ' })
   logo_url?: string;
 
   @ApiProperty({
@@ -51,7 +52,7 @@ export class CreateShopDto {
     required: false,
   })
   @IsOptional()
-  @IsString({ message: 'Banner URL phải là chuỗi ký tự' })
+  @IsUrl({}, { message: 'Banner URL phải là định dạng URL hợp lệ' })
   banner_url?: string;
 
   @ApiProperty({

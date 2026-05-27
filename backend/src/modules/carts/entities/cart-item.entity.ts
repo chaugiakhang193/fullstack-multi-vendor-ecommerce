@@ -5,12 +5,14 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 
 @Entity()
+@Index(['user', 'added_at'])
 export class CartItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;

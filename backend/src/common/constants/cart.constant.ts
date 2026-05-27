@@ -1,0 +1,5 @@
+export const CART_LIMITS = {
+  MIN_QUANTITY_PER_ITEM: 1,
+  MAX_QUANTITY_PER_ITEM: 99,
+  MAX_DISTINCT_ITEMS: 50,
+} as const;

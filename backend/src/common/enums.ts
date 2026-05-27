@@ -64,3 +64,12 @@ export enum ProductStatus {
   ACTIVE = 'active',
   DELETED = 'deleted',
 }
+
+export enum CartItemUnavailableReason {
+  OUT_OF_STOCK = 'out_of_stock',
+  INSUFFICIENT_STOCK = 'insufficient_stock',
+  PRODUCT_HIDDEN = 'product_hidden',
+  PRODUCT_DELETED = 'product_deleted',
+  SHOP_INACTIVE = 'shop_inactive',
+}
+

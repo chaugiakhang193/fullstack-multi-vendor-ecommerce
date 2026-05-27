@@ -31,6 +31,6 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     CategoriesController,
   ],
   providers: [ProductsService, CategoriesService],
-  exports: [CategoriesService],
+  exports: [ProductsService, CategoriesService],
 })
 export class ProductsModule {}
