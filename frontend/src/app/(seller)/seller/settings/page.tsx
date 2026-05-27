@@ -316,25 +316,55 @@ export default function SellerSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl animate-fade-in pb-10">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-          Cài đặt Cửa hàng
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Cập nhật hồ sơ, thương hiệu (Logo, Banner, Ảnh bộ sưu tập) và thông
-          tin vận hành của bạn.
-        </p>
-      </div>
+    <div className="space-y-8 max-w-[1600px] w-full animate-fade-in pb-12">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {/* Header lồng cụm nút thao tác tĩnh hệ thống */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 pb-5 border-b border-zinc-200 dark:border-zinc-800">
+          <div>
+            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              Cài đặt Cửa hàng
+            </h1>
+            <p className="text-muted-foreground text-base mt-2">
+              Cập nhật hồ sơ, thương hiệu (Logo, Banner, Ảnh bộ sưu tập) và
+              thông tin vận hành của bạn.
+            </p>
+          </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Cụm nút bấm tĩnh đồng bộ góc phải Header */}
+          <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving || isLoading}
+              onClick={fetchShopData} // Khôi phục dữ liệu ban đầu
+              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition duration-150"
+            >
+              Hủy thay đổi
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-extrabold shadow-md shadow-violet-500/10 transition duration-150"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" /> Lưu thông tin shop
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
         {/* Banner and Logo Section */}
-        <div className="relative rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="relative rounded-2xl border bg-card overflow-hidden shadow-sm">
           {/* Banner Dropzone */}
           <div
             {...getBannerProps()}
-            className="h-48 md:h-64 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center relative cursor-pointer group transition duration-200"
+            className="h-60 md:h-80 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center relative cursor-pointer group transition duration-200"
           >
             <input {...getBannerInputProps()} />
             {bannerPreviewUrl || shop.banner_url ? (
@@ -344,27 +374,27 @@ export default function SellerSettingsPage() {
                 className="w-full h-full object-cover transition group-hover:opacity-90"
               />
             ) : (
-              <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                <ImageIcon className="h-10 w-10 text-zinc-400" />
-                <span className="text-xs font-semibold">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <ImageIcon className="h-12 w-12 text-zinc-400" />
+                <span className="text-sm font-semibold">
                   Tải lên ảnh Banner (Khuyên dùng: 3:1)
                 </span>
               </div>
             )}
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
-              <span className="bg-background/80 backdrop-blur-xs text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm text-foreground">
-                <Camera className="h-3.5 w-3.5" /> Thay đổi Banner
+              <span className="bg-background/80 backdrop-blur-xs text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm text-foreground">
+                <Camera className="h-4.5 w-4.5" /> Thay đổi Banner
               </span>
             </div>
           </div>
 
           {/* Avatar / Logo Container */}
-          <div className="p-6 pt-16 relative flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="p-8 pt-20 relative flex flex-col md:flex-row md:items-end justify-between gap-5">
             {/* Round Logo Dropzone */}
-            <div className="absolute -top-16 left-6 md:-top-20">
+            <div className="absolute -top-20 left-8 md:-top-24">
               <div
                 {...getLogoProps()}
-                className="h-28 w-28 md:h-32 md:w-32 rounded-full border-4 border-card bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center relative overflow-hidden cursor-pointer group shadow-md"
+                className="h-36 w-36 md:h-44 md:w-44 rounded-full border-6 border-card bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center relative overflow-hidden cursor-pointer group shadow-md"
               >
                 <input {...getLogoInputProps()} />
                 {logoPreviewUrl || shop.logo_url ? (
@@ -374,31 +404,31 @@ export default function SellerSettingsPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <Store className="h-12 w-12 text-zinc-400" />
+                  <Store className="h-16 w-16 text-zinc-400" />
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
-                  <Camera className="h-6 w-6 text-white" />
+                  <Camera className="h-8 w-8 text-white" />
                 </div>
               </div>
             </div>
 
             {/* Shop Basic Meta */}
-            <div className="md:pl-36">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl md:text-2xl font-bold text-foreground">
+            <div className="md:pl-48">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-2xl md:text-3xl font-black text-foreground">
                   {shop.name}
                 </h2>
                 {shop.status === "active" ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Hoạt động
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    <ShieldCheck className="h-4 w-4" /> Hoạt động
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse">
-                    <ShieldAlert className="h-3.5 w-3.5" /> Chờ duyệt
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse">
+                    <ShieldAlert className="h-4 w-4" /> Chờ duyệt
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">
+              <p className="text-sm text-muted-foreground mt-1.5 font-mono">
                 Mã cửa hàng: {shop.id}
               </p>
             </div>
@@ -406,21 +436,25 @@ export default function SellerSettingsPage() {
         </div>
 
         {/* Form Fields Grid */}
-        <div className="grid gap-6 md:grid-cols-5">
+        <div className="grid gap-8 md:grid-cols-5">
           {/* Text Settings (Left Column) */}
-          <div className="md:col-span-3 space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 text-foreground">
+          <div className="md:col-span-3 space-y-6 rounded-2xl border bg-card p-8 shadow-sm">
+            <h3 className="text-xl font-extrabold border-b pb-3 text-foreground">
               Thông tin cơ bản
             </h3>
 
             <Field>
-              <FieldLabel htmlFor="shop-name">
-                <Store className="h-4 w-4 text-violet-500" /> Tên gian hàng *
+              <FieldLabel
+                htmlFor="shop-name"
+                className="text-base font-bold flex items-center gap-2"
+              >
+                <Store className="h-5 w-5 text-violet-500" /> Tên gian hàng *
               </FieldLabel>
               <Input
                 id="shop-name"
                 placeholder="Nhập tên shop..."
                 {...register("name")}
+                className="py-3 text-base rounded-xl"
                 aria-invalid={!!errors.name}
               />
               {errors.name && (
@@ -429,14 +463,18 @@ export default function SellerSettingsPage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="pickup-address">
-                <MapPin className="h-4 w-4 text-violet-500" /> Địa chỉ lấy hàng
+              <FieldLabel
+                htmlFor="pickup-address"
+                className="text-base font-bold flex items-center gap-2"
+              >
+                <MapPin className="h-5 w-5 text-violet-500" /> Địa chỉ lấy hàng
                 *
               </FieldLabel>
               <Input
                 id="pickup-address"
                 placeholder="Ví dụ: 123 Đường ABC, Quận 1, TP.HCM"
                 {...register("pickup_address")}
+                className="py-3 text-base rounded-xl"
                 aria-invalid={!!errors.pickup_address}
               />
               {errors.pickup_address && (
@@ -450,19 +488,22 @@ export default function SellerSettingsPage() {
             </Field>
 
             {/* Thông tin ngân hàng */}
-            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4 text-violet-500" /> Thông tin
+            <div className="space-y-5 pt-5 border-t border-zinc-100 dark:border-zinc-800">
+              <h4 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-violet-500" /> Thông tin
                 ngân hàng rút tiền
               </h4>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="bank-name">Tên ngân hàng *</FieldLabel>
+                  <FieldLabel htmlFor="bank-name" className="text-sm font-bold">
+                    Tên ngân hàng *
+                  </FieldLabel>
                   <Input
                     id="bank-name"
                     placeholder="Ví dụ: Vietcombank, Techcombank..."
                     {...register("bank_name")}
+                    className="py-3 text-base rounded-xl"
                     aria-invalid={!!errors.bank_name}
                   />
                   {errors.bank_name && (
@@ -473,13 +514,17 @@ export default function SellerSettingsPage() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="bank-account-number">
+                  <FieldLabel
+                    htmlFor="bank-account-number"
+                    className="text-sm font-bold"
+                  >
                     Số tài khoản *
                   </FieldLabel>
                   <Input
                     id="bank-account-number"
                     placeholder="Ví dụ: 1903456789..."
                     {...register("bank_account_number")}
+                    className="py-3 text-base rounded-xl"
                     aria-invalid={!!errors.bank_account_number}
                   />
                   {errors.bank_account_number && (
@@ -491,13 +536,17 @@ export default function SellerSettingsPage() {
               </div>
 
               <Field>
-                <FieldLabel htmlFor="bank-account-name">
+                <FieldLabel
+                  htmlFor="bank-account-name"
+                  className="text-sm font-bold"
+                >
                   Tên chủ tài khoản *
                 </FieldLabel>
                 <Input
                   id="bank-account-name"
                   placeholder="Ví dụ: NGUYEN VAN A"
                   {...register("bank_account_name")}
+                  className="py-3 text-base rounded-xl"
                   aria-invalid={!!errors.bank_account_name}
                 />
                 {errors.bank_account_name && (
@@ -505,7 +554,7 @@ export default function SellerSettingsPage() {
                     {errors.bank_account_name.message?.toString()}
                   </FieldError>
                 )}
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-1">
                   Tên viết hoa không dấu. Sử dụng để đối soát và rút doanh thu
                   từ nền tảng.
                 </p>
@@ -513,15 +562,18 @@ export default function SellerSettingsPage() {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="shop-description">
-                <Info className="h-4 w-4 text-violet-500" /> Mô tả cửa hàng
+              <FieldLabel
+                htmlFor="shop-description"
+                className="text-base font-bold flex items-center gap-2"
+              >
+                <Info className="h-5 w-5 text-violet-500" /> Mô tả cửa hàng
               </FieldLabel>
               <Textarea
                 id="shop-description"
                 placeholder="Mô tả các sản phẩm nổi bật hoặc chính sách của shop..."
-                rows={5}
+                rows={6}
                 {...register("description")}
-                className="resize-none"
+                className="resize-none py-3.5 text-base rounded-xl"
                 aria-invalid={!!errors.description}
               />
               {errors.description && (
@@ -533,24 +585,24 @@ export default function SellerSettingsPage() {
           </div>
 
           {/* Gallery Media Section (Right Column) */}
-          <div className="md:col-span-2 space-y-4 rounded-xl border bg-card p-6 shadow-sm flex flex-col">
-            <div className="border-b pb-2">
-              <h3 className="text-lg font-bold text-foreground">
+          <div className="md:col-span-2 space-y-6 rounded-2xl border bg-card p-8 shadow-sm flex flex-col">
+            <div className="border-b pb-3">
+              <h3 className="text-xl font-extrabold text-foreground">
                 Bộ sưu tập cửa hàng
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-1">
                 Hiển thị các hình ảnh chụp gian hàng, showroom hoặc chứng chỉ
                 (Tối đa 3 ảnh).
               </p>
             </div>
 
             {/* Gallery Grid */}
-            <div className="grid grid-cols-3 gap-2 py-2">
+            <div className="grid grid-cols-3 gap-3 py-2">
               {/* Existing Gallery Images */}
               {shop.gallery?.map((asset: any) => (
                 <div
                   key={asset.id}
-                  className="relative aspect-square rounded-lg overflow-hidden border group bg-zinc-100 dark:bg-zinc-900"
+                  className="relative aspect-square rounded-xl overflow-hidden border group bg-zinc-100 dark:bg-zinc-900"
                 >
                   <img
                     src={asset.url}
@@ -560,10 +612,10 @@ export default function SellerSettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteExistingImage(asset.id)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-rose-600/90 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-700 transition duration-150 shadow-sm"
+                    className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-rose-600/90 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-700 transition duration-150 shadow-sm"
                     title="Xóa ảnh này"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
@@ -572,7 +624,7 @@ export default function SellerSettingsPage() {
               {newGalleryPreviews.map((preview, idx) => (
                 <div
                   key={idx}
-                  className="relative aspect-square rounded-lg overflow-hidden border group bg-violet-50 dark:bg-violet-950/20"
+                  className="relative aspect-square rounded-xl overflow-hidden border group bg-violet-50 dark:bg-violet-950/20"
                 >
                   <img
                     src={preview.url}
@@ -580,16 +632,16 @@ export default function SellerSettingsPage() {
                     className="w-full h-full object-cover opacity-70"
                   />
                   <div className="absolute inset-0 bg-violet-600/10 flex items-center justify-center">
-                    <span className="text-[10px] bg-violet-600 text-white font-bold px-1 py-0.5 rounded">
+                    <span className="text-xs bg-violet-600 text-white font-bold px-1.5 py-0.5 rounded">
                       Mới
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveNewImage(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-zinc-800/90 text-white opacity-0 group-hover:opacity-100 hover:bg-zinc-900 transition duration-150 shadow-sm"
+                    className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-zinc-800/90 text-white opacity-0 group-hover:opacity-100 hover:bg-zinc-900 transition duration-150 shadow-sm"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
@@ -598,22 +650,22 @@ export default function SellerSettingsPage() {
               {remainingGallerySlots > 0 && (
                 <div
                   {...getGalleryProps()}
-                  className="aspect-square rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center text-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition duration-200"
+                  className="aspect-square rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center text-center cursor-pointer hover:border-violet-500 hover:bg-violet-50/20 dark:hover:bg-violet-950/10 transition duration-200"
                 >
                   <input {...getGalleryInputProps()} />
-                  <Plus className="h-6 w-6 text-zinc-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">
+                  <Plus className="h-7 w-7 text-zinc-400" />
+                  <span className="text-xs text-muted-foreground font-semibold mt-1">
                     Thêm ({remainingGallerySlots})
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg mt-auto space-y-1">
-              <p className="font-bold flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
+            <div className="text-sm text-muted-foreground bg-muted p-4 rounded-xl mt-auto space-y-1.5">
+              <p className="font-bold flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
                 💡 Hướng dẫn upload:
               </p>
-              <ul className="list-disc pl-4 space-y-0.5">
+              <ul className="list-disc pl-4 space-y-1">
                 <li>Bấm vào khung ảnh tương ứng để chọn ảnh mới thay thế.</li>
                 <li>
                   Hệ thống tự động lưu Logo và Banner mới khi bấm{" "}
@@ -626,26 +678,6 @@ export default function SellerSettingsPage() {
               </ul>
             </div>
           </div>
-        </div>
-
-        {/* Form Submit Row */}
-        <div className="flex justify-end pt-2">
-          <Button
-            type="submit"
-            disabled={isSaving}
-            className="flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 transition duration-150"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Đang lưu thay
-                đổi...
-              </>
-            ) : (
-              <>
-                <Save className="h-4.5 w-4.5" /> Lưu cấu hình shop
-              </>
-            )}
-          </Button>
         </div>
       </form>
     </div>

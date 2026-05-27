@@ -234,48 +234,47 @@ export default function SellerProductsPage() {
 
   // --- GIAO DIỆN CHÍNH CỦA TRANG QUẢN LÝ ---
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       {/* Tiêu đề trang & Nút thêm sản phẩm */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             Quản lý Sản phẩm
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của
-            bạn.
+          <p className="text-muted-foreground text-base mt-2">
+            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của bạn.
           </p>
         </div>
         {/* Đường dẫn chuyển hướng đến trang tạo sản phẩm mới */}
         <Link href="/seller/products/create">
-          <button className="flex items-center text-xs font-semibold px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20">
-            <Plus className="h-4 w-4 mr-1.5" /> Thêm sản phẩm
+          <button className="flex items-center text-sm font-bold px-6 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition shadow-md shadow-violet-500/20">
+            <Plus className="h-5 w-5 mr-2" /> Thêm sản phẩm
           </button>
         </Link>
       </div>
 
       {/* Thanh tìm kiếm và bộ lọc trạng thái tồn kho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-4 rounded-xl border">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-card p-6 rounded-2xl border">
         {/* Ô nhập tìm kiếm */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Tìm kiếm theo tên hoặc SKU..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
+            className="w-full pl-12 pr-6 py-3.5 text-base border rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
           />
         </div>
         {/* Menu thả xuống (Dropdown) để lọc tồn kho */}
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex items-center space-x-3">
+          <Filter className="h-5 w-5 text-muted-foreground shrink-0" />
           <select
             value={stockFilter}
             onChange={(e) =>
               setStockFilter(e.target.value as typeof stockFilter)
             }
-            className="text-xs font-semibold px-3 py-2 border rounded-lg hover:bg-muted transition bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+            className="text-sm font-bold px-4 py-3 border rounded-xl hover:bg-muted transition bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="in_stock">Còn hàng</option>
@@ -306,23 +305,23 @@ export default function SellerProductsPage() {
 
       {/* Bảng danh sách sản phẩm */}
       {products.length > 0 && (
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
+        <div className="rounded-2xl border bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b bg-muted/40 text-xs font-bold text-muted-foreground uppercase">
-                  <th className="p-4 w-[60px]">Ảnh</th>
-                  <th className="p-4">Tên sản phẩm</th>
-                  <th className="p-4">SKU</th>
-                  <th className="p-4">Danh mục</th>
-                  <th className="p-4 text-right">Giá bán</th>
-                  <th className="p-4 text-center">Tồn kho</th>
-                  <th className="p-4 text-center">Trạng thái</th>
-                  <th className="p-4 text-center">Ẩn/Hiện</th>
-                  <th className="p-4 text-center w-[100px]">Thao tác</th>
+                <tr className="border-b bg-muted/40 text-sm font-extrabold text-muted-foreground uppercase">
+                  <th className="p-6 w-[100px]">Ảnh</th>
+                  <th className="p-6">Tên sản phẩm</th>
+                  <th className="p-6">SKU</th>
+                  <th className="p-6">Danh mục</th>
+                  <th className="p-6 text-right">Giá bán</th>
+                  <th className="p-6 text-center">Tồn kho</th>
+                  <th className="p-6 text-center">Trạng thái</th>
+                  <th className="p-6 text-center">Ẩn/Hiện</th>
+                  <th className="p-6 text-center w-[120px]">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y text-sm">
+              <tbody className="divide-y text-base">
                 {products.map((product) => {
                   const totalStock = getTotalStock(product);
                   const isOutOfStock = totalStock === 0;
@@ -334,8 +333,8 @@ export default function SellerProductsPage() {
                       className="hover:bg-muted/30 transition-colors"
                     >
                       {/* Cột 1: Ảnh thumbnail của sản phẩm */}
-                      <td className="p-4">
-                        <div className="h-12 w-12 rounded-lg border bg-zinc-100 dark:bg-zinc-900 overflow-hidden shrink-0">
+                      <td className="p-6">
+                        <div className="h-16 w-16 rounded-xl border bg-zinc-100 dark:bg-zinc-900 overflow-hidden shrink-0">
                           {product.thumbnail_url ? (
                             <img
                               src={product.thumbnail_url as string}
@@ -345,45 +344,45 @@ export default function SellerProductsPage() {
                           ) : (
                             // Hiển thị icon hộp quà mặc định nếu sản phẩm không có ảnh
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-5 w-5 text-zinc-400" />
+                              <Package className="h-7 w-7 text-zinc-400" />
                             </div>
                           )}
                         </div>
                       </td>
 
                       {/* Cột 2: Tên sản phẩm & nhãn thông tin phân loại (biến thể) nếu có */}
-                      <td className="p-4">
-                        <p className="font-semibold text-foreground line-clamp-2 max-w-[200px]">
+                      <td className="p-6">
+                        <p className="font-bold text-foreground line-clamp-2 max-w-[320px] text-base leading-snug">
                           {product.name}
                         </p>
                         {product.has_variants && (
-                          <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-950 px-1.5 py-0.5 rounded-full mt-1 inline-block">
+                          <span className="text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-950 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                             {product.variants.length} biến thể
                           </span>
                         )}
                       </td>
 
                       {/* Cột 3: Mã định danh sản phẩm (SKU) */}
-                      <td className="p-4 font-mono text-xs text-muted-foreground">
+                      <td className="p-6 font-mono text-sm text-muted-foreground">
                         {typeof product.sku === "string" && product.sku
                           ? product.sku
                           : "—"}
                       </td>
 
                       {/* Cột 4: Tên danh mục của sản phẩm */}
-                      <td className="p-4 text-xs text-muted-foreground">
+                      <td className="p-6 text-sm text-muted-foreground">
                         {product.category?.name ?? "—"}
                       </td>
 
                       {/* Cột 5: Giá bán lẻ (Được định dạng sang tiền VND) */}
-                      <td className="p-4 text-right font-semibold text-foreground">
+                      <td className="p-6 text-right font-bold text-foreground">
                         {formatPrice(product.price)}
                       </td>
 
                       {/* Cột 6: Số lượng tồn kho (Đổi màu sắc tùy theo mức độ tồn kho) */}
-                      <td className="p-4 text-center">
+                      <td className="p-6 text-center">
                         <span
-                          className={`font-bold ${
+                          className={`font-black text-lg ${
                             isOutOfStock
                               ? "text-rose-600 dark:text-rose-400" // Đỏ khi hết hàng
                               : totalStock <= 5
@@ -396,9 +395,9 @@ export default function SellerProductsPage() {
                       </td>
 
                       {/* Cột 7: Nhãn trạng thái tồn kho (Hết hàng / Còn hàng) */}
-                      <td className="p-4 text-center">
+                      <td className="p-6 text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                             isOutOfStock
                               ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                               : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
@@ -409,7 +408,7 @@ export default function SellerProductsPage() {
                       </td>
 
                       {/* Cột 8: Nút bật/tắt (Toggle) trạng thái ẩn hoặc hiện sản phẩm ngoài trang chủ cửa hàng */}
-                      <td className="p-4 text-center">
+                      <td className="p-6 text-center">
                         <button
                           onClick={() => handleToggleHidden(product)}
                           disabled={isToggling}
@@ -418,32 +417,32 @@ export default function SellerProductsPage() {
                               ? "Đang ẩn — Nhấn để hiện"
                               : "Đang hiện — Nhấn để ẩn"
                           }
-                          className={`p-1.5 rounded-md transition ${
+                          className={`p-2 rounded-lg transition ${
                             product.is_hidden
                               ? "text-zinc-400 hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-950"
                               : "text-emerald-600 hover:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                           }`}
                         >
                           {isToggling ? (
-                            <Loader2 className="h-4 w-4 animate-spin" /> // Spinner quay khi đang gọi API
+                            <Loader2 className="h-5 w-5 animate-spin" /> // Spinner quay khi đang gọi API
                           ) : product.is_hidden ? (
-                            <EyeOff className="h-4 w-4" /> // Biểu tượng mắt gạch chéo (đang ẩn)
+                            <EyeOff className="h-5 w-5" /> // Biểu tượng mắt gạch chéo (đang ẩn)
                           ) : (
-                            <Eye className="h-4 w-4" /> // Biểu tượng con mắt mở (đang hiện)
+                            <Eye className="h-5 w-5" /> // Biểu tượng con mắt mở (đang hiện)
                           )}
                         </button>
                       </td>
 
                       {/* Cột 9: Các thao tác sửa và xóa sản phẩm */}
-                      <td className="p-4">
-                        <div className="flex items-center justify-center space-x-1">
+                      <td className="p-6">
+                        <div className="flex items-center justify-center space-x-2">
                           {/* Nút sửa dẫn đến trang sửa chi tiết sản phẩm qua ID */}
                           <Link href={`/seller/products/${product.id}/edit`}>
                             <button
-                              className="p-1.5 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
+                              className="p-2 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
                               title="Chỉnh sửa sản phẩm"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-5 w-5" />
                             </button>
                           </Link>
                           {/* Nút xóa sản phẩm, nhấn vào sẽ kích hoạt state deletingProduct để mở Dialog xác nhận */}

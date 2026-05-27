@@ -157,29 +157,29 @@ export default function AdminLayout({
   return (
     <div className="h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-900 flex text-foreground">
       {/* --- DESKTOP SIDEBAR --- */}
-      <aside className="hidden md:flex flex-col w-64 bg-zinc-950 text-zinc-100 border-r border-zinc-800 shadow-xl shrink-0 overflow-y-auto">
+      <aside className="hidden md:flex flex-col w-72 bg-zinc-950 text-zinc-100 border-r border-zinc-800 shadow-xl shrink-0 overflow-y-auto">
         {/* Brand/Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-zinc-800 gap-2">
-          <Shield className="h-6 w-6 text-violet-400" />
+        <div className="h-20 flex items-center px-8 border-b border-zinc-800 gap-3">
+          <Shield className="h-8 w-8 text-violet-400" />
           <div className="flex flex-col">
-            <span className="font-bold text-sm tracking-tight text-white leading-none">
+            <span className="font-extrabold text-base tracking-tight text-white leading-none">
               Giang Kha
             </span>
-            <span className="text-[10px] text-violet-400 font-extrabold uppercase mt-0.5 tracking-wider">
+            <span className="text-xs text-violet-400 font-black uppercase mt-1 tracking-wider">
               Admin Portal
             </span>
           </div>
         </div>
 
         {/* Menu Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1">
+        <nav className="flex-1 px-5 py-8 space-y-2">
           {menuItems.map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 relative group ${
+                className={`flex items-center px-5 py-4 rounded-xl text-base font-bold transition-all duration-200 relative group ${
                   active
                     ? "bg-violet-600/10 text-violet-400"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
@@ -189,9 +189,9 @@ export default function AdminLayout({
                   <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-violet-500 rounded-r-full" />
                 )}
                 <span
-                  className={`mr-3 transition-transform duration-200 group-hover:scale-110 ${active ? "text-violet-400" : "text-zinc-400"}`}
+                  className={`mr-3.5 transition-transform duration-200 group-hover:scale-110 ${active ? "text-violet-400" : "text-zinc-400"}`}
                 >
-                  {item.icon}
+                  {React.cloneElement(item.icon, { className: "h-6 w-6" })}
                 </span>
                 {item.label}
               </Link>
@@ -200,27 +200,27 @@ export default function AdminLayout({
         </nav>
 
         {/* User Card */}
-        <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow">
+        <div className="p-6 border-t border-zinc-800 bg-zinc-900/50">
+          <div className="flex items-center space-x-3.5 mb-4">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md">
               {user?.username?.charAt(0).toUpperCase() || (
-                <User className="h-4 w-4" />
+                <User className="h-5 w-5" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate leading-none mb-1">
+              <p className="text-base font-extrabold text-white truncate leading-none mb-1.5">
                 {user?.username || "Quản trị viên"}
               </p>
-              <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase bg-violet-500/10 text-violet-400 rounded-full border border-violet-500/20">
+              <span className="inline-block px-2 py-0.5 text-xs font-black tracking-wide uppercase bg-violet-500/10 text-violet-400 rounded-full border border-violet-500/20">
                 Admin
               </span>
             </div>
           </div>
           <button
             onClick={() => setIsLogoutConfirmOpen(true)}
-            className="w-full flex items-center justify-center space-x-2 py-2 border border-zinc-700 hover:border-rose-500/30 hover:bg-rose-500/10 rounded-lg text-xs font-semibold text-zinc-400 hover:text-rose-400 transition duration-200"
+            className="w-full flex items-center justify-center space-x-2 py-3 border border-zinc-700 hover:border-rose-500/30 hover:bg-rose-500/10 rounded-xl text-sm font-bold text-zinc-400 hover:text-rose-400 transition duration-200"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-5 w-5" />
             <span>Đăng xuất</span>
           </button>
         </div>
@@ -320,29 +320,29 @@ export default function AdminLayout({
       {/* --- MAIN PAGE AREA --- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER BAR */}
-        <header className="h-16 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-4 sm:px-6 shadow-sm">
+        <header className="h-20 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-6 sm:px-8 shadow-sm">
           {/* Left: Mobile Toggle & Breadcrumbs */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-5">
             <button
               onClick={() => setIsMobileOpen(true)}
-              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border md:hidden transition"
+              className="p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border md:hidden transition"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </button>
 
             {/* Breadcrumbs */}
-            <nav className="hidden sm:flex items-center space-x-1 text-sm font-semibold text-muted-foreground">
+            <nav className="hidden sm:flex items-center space-x-1.5 text-base font-bold text-muted-foreground">
               <Link
                 href="/"
-                className="hover:text-foreground flex items-center gap-1"
+                className="hover:text-foreground flex items-center gap-1.5"
               >
                 <span>Trang chủ</span>
               </Link>
               {getBreadcrumbs().map((crumb, idx) => (
                 <React.Fragment key={crumb.href}>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
+                  <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" />
                   {crumb.isLast ? (
-                    <span className="text-foreground font-bold">
+                    <span className="text-foreground font-black">
                       {crumb.label}
                     </span>
                   ) : (
@@ -356,27 +356,27 @@ export default function AdminLayout({
           </div>
 
           {/* Right: Notifications & User profile dropdown */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
+            <button className="p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
             </button>
 
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-8" />
 
             {/* User Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
+                className="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-sm">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm">
                   {user?.username?.charAt(0).toUpperCase() || (
-                    <User className="h-4 w-4" />
+                    <User className="h-5 w-5" />
                   )}
                 </div>
-                <span className="text-xs font-bold hidden sm:inline-block pr-1">
+                <span className="text-sm font-black hidden sm:inline-block pr-1.5">
                   {user?.username || "Quản trị viên"}
                 </span>
               </button>
@@ -422,7 +422,7 @@ export default function AdminLayout({
 
         {/* PAGE CONTENT CONTAINER */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="w-full">{children}</div>
         </main>
       </div>
 

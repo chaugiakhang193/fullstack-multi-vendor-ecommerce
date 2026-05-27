@@ -72,37 +72,37 @@ export default function SellerDashboardPage() {
   ];
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
           Tổng quan bán hàng
         </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
+        <p className="text-muted-foreground text-base mt-1.5">
           Theo dõi tình hình kinh doanh, doanh số và đơn hàng của shop bạn.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className={`rounded-xl border bg-gradient-to-br ${stat.gradient} p-4 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
+            className={`rounded-2xl border bg-gradient-to-br ${stat.gradient} p-6 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
           >
-            <div className="flex items-center justify-between space-y-0 pb-2">
-              <span className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between space-y-0 pb-3">
+              <span className="text-base font-bold text-muted-foreground">
                 {stat.title}
               </span>
-              <div className="p-2 rounded-lg bg-background/50 backdrop-blur-sm border shadow-sm">
-                {stat.icon}
+              <div className="p-3 rounded-xl bg-background/50 backdrop-blur-sm border shadow-sm">
+                {React.cloneElement(stat.icon, { className: "h-7 w-7" })}
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-2xl font-bold tracking-tight">
+            <div className="mt-3">
+              <span className="text-4xl font-black tracking-tight block text-foreground">
                 {stat.value}
               </span>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground font-medium mt-1.5">
                 {stat.change}
               </p>
             </div>
@@ -111,47 +111,47 @@ export default function SellerDashboardPage() {
       </div>
 
       {/* Detailed Section */}
-      <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-7">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
         {/* Recent Orders Card */}
-        <div className="col-span-4 rounded-xl border bg-card text-card-foreground shadow-sm p-4">
-          <div className="flex items-center justify-between pb-4 border-b">
+        <div className="col-span-4 rounded-2xl border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex items-center justify-between pb-5 border-b">
             <div>
-              <h3 className="font-semibold text-lg leading-none">
+              <h3 className="font-extrabold text-2xl leading-none">
                 Đơn hàng mới nhất
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1.5">
                 Bạn có{" "}
                 {recentOrders.filter((o) => o.status === "Chờ xác nhận").length}{" "}
                 đơn hàng cần xử lý.
               </p>
             </div>
-            <button className="flex items-center text-xs font-semibold text-violet-600 hover:text-violet-700 transition">
-              Xem tất cả <ArrowUpRight className="h-4 w-4 ml-1" />
+            <button className="flex items-center text-sm font-bold text-violet-600 hover:text-violet-700 transition">
+              Xem tất cả <ArrowUpRight className="h-5 w-5 ml-1" />
             </button>
           </div>
-          <div className="mt-4 divide-y">
+          <div className="mt-5 divide-y space-y-2">
             {recentOrders.map((order) => (
               <div
                 key={order.id}
-                className="flex items-center justify-between py-3 hover:bg-muted/50 rounded-lg px-2 transition-colors"
+                className="flex items-center justify-between py-4 hover:bg-muted/50 rounded-xl px-3 transition-colors"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400">
-                    <Activity className="h-4 w-4" />
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400">
+                    <Activity className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">
+                    <p className="text-base font-bold">
                       {order.id} - {order.customer}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {order.date}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold">{order.amount}</p>
+                  <p className="text-base font-black text-foreground mb-1">{order.amount}</p>
                   <span
-                    className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                       order.status === "Đã giao"
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                         : order.status === "Đang giao"
@@ -170,21 +170,21 @@ export default function SellerDashboardPage() {
         </div>
 
         {/* Shop Performance Summary Card */}
-        <div className="col-span-3 rounded-xl border bg-card text-card-foreground shadow-sm p-4 flex flex-col justify-between">
+        <div className="col-span-3 rounded-2xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
           <div>
-            <h3 className="font-semibold text-lg leading-none">
+            <h3 className="font-extrabold text-2xl leading-none">
               Hiệu suất Cửa hàng
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1.5">
               Phân tích hiệu suất bán hàng tổng thể.
             </p>
-            <div className="mt-6 space-y-4">
+            <div className="mt-8 space-y-6">
               <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
+                <div className="flex justify-between text-sm font-bold mb-2">
                   <span>Tỷ lệ hoàn thành đơn</span>
-                  <span className="text-violet-600">92%</span>
+                  <span className="text-violet-600 font-extrabold">92%</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-3.5 w-full bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-violet-500 rounded-full"
                     style={{ width: "92%" }}
@@ -192,11 +192,11 @@ export default function SellerDashboardPage() {
                 </div>
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
+                <div className="flex justify-between text-sm font-bold mb-2">
                   <span>Đánh giá từ khách hàng</span>
-                  <span className="text-amber-500">4.8 / 5.0</span>
+                  <span className="text-amber-500 font-extrabold">4.8 / 5.0</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-3.5 w-full bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-amber-500 rounded-full"
                     style={{ width: "96%" }}
@@ -204,11 +204,11 @@ export default function SellerDashboardPage() {
                 </div>
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
+                <div className="flex justify-between text-sm font-bold mb-2">
                   <span>Tốc độ chuẩn bị hàng</span>
-                  <span className="text-emerald-600">Nhanh (1.2 ngày)</span>
+                  <span className="text-emerald-600 font-extrabold">Nhanh (1.2 ngày)</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-3.5 w-full bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full"
                     style={{ width: "85%" }}
@@ -218,9 +218,9 @@ export default function SellerDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t text-xs text-muted-foreground flex items-center justify-between">
+          <div className="mt-8 pt-5 border-t text-sm font-semibold text-muted-foreground flex items-center justify-between">
             <span>Cập nhật mới nhất: Vừa xong</span>
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
           </div>
         </div>
       </div>

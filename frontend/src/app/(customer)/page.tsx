@@ -1,12 +1,28 @@
-import { Button } from "@/components/ui/button";
+// React & Next
+import React from "react";
+
+// Components
+import HeroBanner from "@/components/hero-banner";
+import CategoriesSection from "@/components/categories-section";
+import ProductsSection from "@/components/products-section";
+
+// Định nghĩa SEO Metadata cho Trang chủ (Next.js Server Component Metadata)
+export const metadata = {
+  title: "Trang chủ | Giang Kha Multi-Vendor",
+  description: "Chào mừng bạn đến với Giang Kha - Sàn thương mại điện tử Multi-Vendor thế hệ mới. Mua sắm thông minh, giá cả tốt nhất, giao hàng siêu tốc và thanh toán bảo mật.",
+};
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      {/* Sử dụng component Button của Shadcn */}
-      <Button variant="default" size="lg">
-        Click tôi đi!
-      </Button>
+    <div className="space-y-16 animate-fade-in pb-12">
+      {/* 1. Hero Banner giới thiệu */}
+      <HeroBanner />
+
+      {/* 2. Danh mục nổi bật */}
+      <CategoriesSection />
+
+      {/* 3. Sản phẩm mới nhất */}
+      <ProductsSection />
     </div>
   );
 }
