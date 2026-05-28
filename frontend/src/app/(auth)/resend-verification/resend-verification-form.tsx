@@ -80,10 +80,10 @@ export function ResendVerificationForm({
 
   return (
     <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
-      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-lg justify-center mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Xác thực tài khoản</CardTitle>
-          <CardDescription>
+      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
+        <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Xác thực tài khoản</CardTitle>
+          <CardDescription className="text-base sm:text-lg">
             Nhập email của bạn để nhận lại mã xác thực tài khoản.
           </CardDescription>
         </CardHeader>
@@ -92,18 +92,19 @@ export function ResendVerificationForm({
             id="resend-verification-form"
             onSubmit={form.handleSubmit(onSubmit)}
           >
-            <FieldGroup>
+            <FieldGroup className="gap-6">
               <Controller
                 name="email"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="email" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="email" className="text-base sm:text-lg font-medium">
                       Email
                     </FieldLabel>
                     <Input
                       {...field}
                       id="email"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Nhập địa chỉ email của bạn"
                       disabled={isLoading}
                     />
@@ -113,10 +114,10 @@ export function ResendVerificationForm({
                   </Field>
                 )}
               />
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="flex flex-col gap-3 pt-4">
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading || cooldown > 0}
                 >
                   {isLoading ? (
@@ -136,7 +137,7 @@ export function ResendVerificationForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading}
                   onClick={() => router.push("/login")}
                 >

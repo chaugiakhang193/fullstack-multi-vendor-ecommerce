@@ -111,26 +111,26 @@ export function LoginForm({
   // 3. Render giao diện bạn yêu cầu, đã được bọc Controller
   return (
     <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
-      <Card className="flex flex-col w-full max-h-full  shadow-lg max-w-lg justify-center mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Đăng nhập</CardTitle>
+      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
+        <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Đăng nhập</CardTitle>
         </CardHeader>
         <CardContent>
           <form id="login-form" onSubmit={form.handleSubmit(onSubmit)}>
-            {/* CẤP ĐỘ 1: Dùng space-y-4 để cả 4 hàng cách đều nhau 1 khoảng 16px */}
-            <FieldGroup>
+            <FieldGroup className="gap-6">
               {/* 1. Field: Username */}
               <Controller
                 name="username"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="username" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="username" className="text-base sm:text-lg font-medium">
                       Email hoặc Tên đăng nhập
                     </FieldLabel>
                     <Input
                       {...field}
                       id="username"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Nhập email hoặc tên đăng nhập"
                       disabled={isLoading}
                     />
@@ -145,14 +145,14 @@ export function LoginForm({
                 name="password"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
                     <div className="flex items-center justify-between">
-                      <FieldLabel htmlFor="password" className="text-sm">
+                      <FieldLabel htmlFor="password" className="text-base sm:text-lg font-medium">
                         Mật khẩu
                       </FieldLabel>
                       <a
                         href="/forgot-password"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm sm:text-base text-primary hover:underline"
                       >
                         Quên mật khẩu?
                       </a>
@@ -161,6 +161,7 @@ export function LoginForm({
                       {...field}
                       id="password"
                       type="password"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       disabled={isLoading}
                     />
                     {fieldState.invalid && (
@@ -169,12 +170,12 @@ export function LoginForm({
                   </Field>
                 )}
               />
-              <div className="flex flex-col gap-2 pt-2">
-                <Button type="submit" className="w-full" disabled={isLoading}>
+              <div className="flex flex-col gap-3 pt-4">
+                <Button type="submit" className="w-full h-12 text-base sm:text-lg font-semibold" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang đănh nhập...
+                      Đang đăng nhập...
                     </>
                   ) : (
                     "Đăng nhập"
@@ -184,7 +185,7 @@ export function LoginForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading}
                   onClick={() => router.push("/register")}
                 >

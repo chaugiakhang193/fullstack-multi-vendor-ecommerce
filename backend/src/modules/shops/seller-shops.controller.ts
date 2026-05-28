@@ -209,7 +209,9 @@ export class SellerShopsController {
   }
 
   @Post('gallery')
-  @UseInterceptors(FilesInterceptor('files', UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES))
+  @UseInterceptors(
+    FilesInterceptor('files', UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES),
+  )
   @ResponseMessage('Thêm ảnh liên quan thành công.')
   @ApiOperation({ summary: 'Seller thêm tối đa 3 ảnh vào gallery' })
   @ApiConsumes('multipart/form-data')

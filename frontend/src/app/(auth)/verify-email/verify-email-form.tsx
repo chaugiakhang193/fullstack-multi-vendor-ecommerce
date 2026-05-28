@@ -77,30 +77,31 @@ export function VerifyEmailForm({
 
   return (
     <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
-      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-lg justify-center mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Xác thực tài khoản</CardTitle>
-          <CardDescription>
+      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
+        <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Xác thực tài khoản</CardTitle>
+          <CardDescription className="text-base sm:text-lg">
             Vui lòng nhập mã xác thực đã được gửi đến email của bạn.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form id="verify-email-form" onSubmit={form.handleSubmit(onSubmit)}>
-            <FieldGroup>
+            <FieldGroup className="gap-6">
               <Controller
                 name="verification_token"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
                     <FieldLabel
                       htmlFor="verification_token"
-                      className="text-sm"
+                      className="text-base sm:text-lg font-medium"
                     >
                       Mã xác thực
                     </FieldLabel>
                     <Input
                       {...field}
                       id="verification_token"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Nhập mã xác thực (Token)"
                       disabled={isLoading}
                     />
@@ -110,8 +111,8 @@ export function VerifyEmailForm({
                   </Field>
                 )}
               />
-              <div className="flex flex-col gap-2 pt-2">
-                <Button type="submit" className="w-full" disabled={isLoading}>
+              <div className="flex flex-col gap-3 pt-4">
+                <Button type="submit" className="w-full h-12 text-base sm:text-lg font-semibold" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -125,7 +126,7 @@ export function VerifyEmailForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading}
                   onClick={() => router.push("/resend-verification")}
                 >

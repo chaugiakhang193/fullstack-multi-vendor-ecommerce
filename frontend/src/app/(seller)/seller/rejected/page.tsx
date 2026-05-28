@@ -138,42 +138,42 @@ export default function SellerRejectedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-xl border bg-card/60 backdrop-blur-md">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto h-16 w-16 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4">
-            <XCircle className="h-8 w-8" />
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-6">
+      <Card className="w-full max-w-2xl shadow-2xl border bg-card/60 backdrop-blur-md p-6 md:p-10">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto h-20 w-20 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6">
+            <XCircle className="h-10 w-10" />
           </div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-3xl md:text-4xl font-extrabold tracking-tight">
             Yêu cầu bị từ chối
           </CardTitle>
-          <CardDescription className="text-sm mt-1">
+          <CardDescription className="text-base md:text-lg mt-3">
             Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đã bị từ
             chối phê duyệt.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-2">
+        <CardContent className="space-y-8 pt-2">
           {isLoadingReason ? (
-            <div className="flex justify-center items-center py-6 text-sm text-muted-foreground gap-2 border rounded-xl bg-zinc-50/30 dark:bg-zinc-950/10">
-              <Loader2 className="h-4 w-4 animate-spin text-rose-500" />
+            <div className="flex justify-center items-center py-8 text-base text-muted-foreground gap-2 border rounded-2xl bg-zinc-50/30 dark:bg-zinc-950/10">
+              <Loader2 className="h-5 w-5 animate-spin text-rose-500" />
               Đang tải lý do từ chối...
             </div>
           ) : rejectReason ? (
-            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-rose-600" />
+            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-6 text-base text-rose-800 dark:text-rose-300 flex gap-4">
+              <AlertCircle className="h-7 w-7 shrink-0 mt-0.5 text-rose-600" />
               <div>
-                <p className="font-bold">Lý do từ chối cụ thể:</p>
-                <p className="mt-1 text-xs opacity-90 whitespace-pre-wrap font-medium leading-relaxed">
+                <p className="text-lg font-bold">Lý do từ chối cụ thể:</p>
+                <p className="mt-2 text-sm opacity-90 whitespace-pre-wrap font-medium leading-relaxed">
                   {rejectReason}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-sm text-rose-800 dark:text-rose-300 flex gap-3">
-              <Mail className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-6 text-base text-rose-800 dark:text-rose-300 flex gap-4">
+              <Mail className="h-7 w-7 shrink-0 mt-0.5 text-rose-600" />
               <div>
-                <p className="font-semibold">Vui lòng kiểm tra hộp thư email</p>
-                <p className="mt-1 text-xs opacity-90">
+                <p className="text-lg font-bold">Vui lòng kiểm tra hộp thư email</p>
+                <p className="mt-2 text-sm opacity-90 leading-relaxed">
                   Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn.
                   Hãy kiểm tra hòm thư chính và thư rác.
                 </p>
@@ -181,23 +181,23 @@ export default function SellerRejectedPage() {
             </div>
           )}
 
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-4">
             <Button
               onClick={() => router.push("/seller/setup")}
-              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold"
+              className="w-full h-14 flex items-center justify-center gap-2.5 bg-violet-600 hover:bg-violet-700 text-white text-base md:text-lg font-bold rounded-xl shadow-md transition"
             >
               <span>Chỉnh sửa & gửi lại yêu cầu</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </Button>
 
             <Button
               onClick={handleCheckStatus}
               variant="outline"
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full h-14 flex items-center justify-center gap-2.5 text-base font-bold rounded-xl"
               disabled={isRefreshing}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
               />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
@@ -205,9 +205,9 @@ export default function SellerRejectedPage() {
             <Button
               variant="destructive"
               onClick={() => setIsLogoutConfirmOpen(true)}
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full h-14 flex items-center justify-center gap-2.5 text-base font-bold rounded-xl"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5" />
               <span>Đăng xuất</span>
             </Button>
           </div>

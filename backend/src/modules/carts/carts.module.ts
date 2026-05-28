@@ -6,10 +6,7 @@ import { CartItem } from '@/modules/carts/entities/cart-item.entity';
 import { ProductsModule } from '@/modules/products/products.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([CartItem]),
-    ProductsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([CartItem]), ProductsModule],
   controllers: [CartsController],
   providers: [CartsService],
   exports: [CartsService],

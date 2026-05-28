@@ -278,10 +278,10 @@ export default function AdminCategoriesPage() {
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             Quản lý Danh mục
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-base md:text-lg mt-2 max-w-4xl">
             Thiết lập cấu trúc cây danh mục sản phẩm (Hỗ trợ tối đa 2 cấp danh
             mục: Gốc và Con).
           </p>
@@ -291,66 +291,66 @@ export default function AdminCategoriesPage() {
             resetCreate();
             setIsCreateOpen(true);
           }}
-          className="flex items-center text-xs font-semibold px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20"
+          className="flex items-center text-sm font-bold px-5 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20"
         >
-          <Plus className="h-4 w-4 mr-1.5" /> Thêm danh mục
+          <Plus className="h-5 w-5 mr-2" /> Thêm danh mục
         </Button>
       </div>
 
       {/* Metrics Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/20 p-6 shadow-sm">
+      <div className="grid gap-6 sm:grid-cols-3">
+        <div className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-violet-500/20 p-6 md:p-8 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-base font-semibold text-muted-foreground">
               Tổng số danh mục
             </span>
-            <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
-              <Layers className="h-5 w-5 text-violet-500" />
+            <div className="p-2.5 rounded-lg bg-background/50 border shadow-sm">
+              <Layers className="h-6 w-6 text-violet-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="text-3xl font-extrabold tracking-tight">
               {stats.total}
             </span>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1.5">
               Bao gồm cả danh mục gốc và con
             </p>
           </div>
         </div>
 
-        <div className="rounded-xl border bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 p-6 shadow-sm">
+        <div className="rounded-xl border bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 p-6 md:p-8 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-base font-semibold text-muted-foreground">
               Danh mục gốc (Level 1)
             </span>
-            <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
-              <Folder className="h-5 w-5 text-blue-500" />
+            <div className="p-2.5 rounded-lg bg-background/50 border shadow-sm">
+              <Folder className="h-6 w-6 text-blue-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="text-3xl font-extrabold tracking-tight">
               {stats.roots}
             </span>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1.5">
               Danh mục cấp cao nhất
             </p>
           </div>
         </div>
 
-        <div className="rounded-xl border bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 p-6 shadow-sm">
+        <div className="rounded-xl border bg-gradient-to-br from-pink-500/10 to-rose-500/10 border-pink-500/20 p-6 md:p-8 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-base font-semibold text-muted-foreground">
               Danh mục con (Level 2)
             </span>
-            <div className="p-2 rounded-lg bg-background/50 border shadow-sm">
-              <Tag className="h-5 w-5 text-pink-500" />
+            <div className="p-2.5 rounded-lg bg-background/50 border shadow-sm">
+              <Tag className="h-6 w-6 text-pink-500" />
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="text-3xl font-extrabold tracking-tight">
               {stats.children}
             </span>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1.5">
               Danh mục phụ thuộc cấp 2
             </p>
           </div>
@@ -360,20 +360,20 @@ export default function AdminCategoriesPage() {
       {/* Main Categories Tree Content */}
       <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-b">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 border-b">
           <div className="relative flex-1 w-full max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-3 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Tìm kiếm danh mục theo tên hoặc slug..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground"
+              className="w-full pl-11 pr-4 py-2.5 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground"
             />
           </div>
           <button
             onClick={fetchCategories}
-            className="flex items-center text-xs font-semibold px-3 py-2 border rounded-lg hover:bg-muted transition shadow-sm bg-background"
+            className="flex items-center text-sm font-bold px-4 py-2.5 border rounded-lg hover:bg-muted transition shadow-sm bg-background"
           >
             Làm mới
           </button>
@@ -384,26 +384,26 @@ export default function AdminCategoriesPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base font-semibold text-muted-foreground">
                 Đang tải danh sách danh mục...
               </p>
             </div>
           ) : filteredAndGrouped.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
+            <div className="text-center py-20 text-base font-semibold text-muted-foreground">
               Không tìm thấy danh mục nào khớp với bộ lọc.
             </div>
           ) : (
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b bg-muted/40 text-xs font-bold text-muted-foreground uppercase">
-                  <th className="p-4 w-[45%]">Tên danh mục</th>
-                  <th className="p-4 w-[25%]">Slug danh mục</th>
-                  <th className="p-4 w-[12%] text-center">Thứ tự hiển thị</th>
-                  <th className="p-4 w-[10%]">Cấp độ</th>
-                  <th className="p-4 w-[8%] text-right">Thao tác</th>
+                <tr className="border-b bg-muted/40 text-sm font-extrabold text-muted-foreground uppercase tracking-wider">
+                  <th className="py-4 px-6 w-[45%]">Tên danh mục</th>
+                  <th className="py-4 px-6 w-[25%]">Slug danh mục</th>
+                  <th className="py-4 px-6 w-[12%] text-center">Thứ tự hiển thị</th>
+                  <th className="py-4 px-6 w-[10%]">Cấp độ</th>
+                  <th className="py-4 px-6 w-[8%] text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y text-sm">
+              <tbody className="divide-y text-base">
                 {filteredAndGrouped.map(({ root, children, forceOpen }) => {
                   const isCollapsed = collapsedRoots[root.id] && !forceOpen;
 
@@ -411,56 +411,56 @@ export default function AdminCategoriesPage() {
                     <React.Fragment key={root.id}>
                       {/* Root Category Row */}
                       <tr className="hover:bg-muted/20 transition-colors group">
-                        <td className="p-4 font-semibold flex items-center gap-2">
+                        <td className="py-5 px-6 font-bold flex items-center gap-2.5">
                           <button
                             onClick={() => toggleRootCollapse(root.id)}
-                            className="p-1 rounded hover:bg-muted transition text-muted-foreground"
+                            className="p-1.5 rounded hover:bg-muted transition text-muted-foreground"
                           >
                             {children.length > 0 ? (
                               isCollapsed ? (
-                                <ChevronRight className="h-4 w-4" />
+                                <ChevronRight className="h-5 w-5" />
                               ) : (
-                                <ChevronDown className="h-4 w-4" />
+                                <ChevronDown className="h-5 w-5" />
                               )
                             ) : (
-                              <span className="w-4 h-4 block" />
+                              <span className="w-5 h-5 block" />
                             )}
                           </button>
                           {children.length > 0 && !isCollapsed ? (
-                            <FolderOpen className="h-4 w-4 text-blue-500 shrink-0" />
+                            <FolderOpen className="h-5.5 w-5.5 text-blue-500 shrink-0" />
                           ) : (
-                            <Folder className="h-4 w-4 text-blue-500 shrink-0" />
+                            <Folder className="h-5.5 w-5.5 text-blue-500 shrink-0" />
                           )}
-                          <span className="text-foreground font-semibold truncate">
+                          <span className="text-foreground font-extrabold text-base md:text-lg truncate">
                             {root.name}
                           </span>
                         </td>
-                        <td className="p-4 font-mono text-xs text-muted-foreground">
+                        <td className="py-5 px-6 font-mono text-sm text-muted-foreground">
                           {root.slug}
                         </td>
-                        <td className="p-4 text-center font-medium">
+                        <td className="py-5 px-6 text-center font-bold">
                           {root.display_order}
                         </td>
-                        <td className="p-4">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        <td className="py-5 px-6">
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                             Danh mục gốc
                           </span>
                         </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-1">
+                        <td className="py-5 px-6 text-right">
+                          <div className="flex justify-end gap-1.5">
                             <button
                               onClick={() => handleOpenEdit(root)}
-                              className="p-1.5 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
+                              className="p-2 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
                               title="Sửa danh mục"
                             >
-                              <Edit2 className="h-4 w-4" />
+                              <Edit2 className="h-5 w-5" />
                             </button>
                             <button
                               onClick={() => handleOpenDelete(root)}
-                              className="p-1.5 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition"
+                              className="p-2 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition"
                               title="Xóa danh mục"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-5 w-5" />
                             </button>
                           </div>
                         </td>
@@ -473,41 +473,41 @@ export default function AdminCategoriesPage() {
                             key={child.id}
                             className="hover:bg-muted/10 transition-colors group/child bg-zinc-50/50 dark:bg-zinc-950/20"
                           >
-                            <td className="p-4 pl-12 flex items-center gap-2 text-muted-foreground group-hover/child:text-foreground">
-                              <span className="text-zinc-300 dark:text-zinc-700 font-mono select-none pr-1">
+                            <td className="py-5 px-6 pl-12 flex items-center gap-2.5 text-muted-foreground group-hover/child:text-foreground">
+                              <span className="text-zinc-300 dark:text-zinc-700 font-mono select-none pr-1.5 text-base">
                                 └─
                               </span>
-                              <Tag className="h-3.5 w-3.5 text-pink-500 shrink-0" />
-                              <span className="font-normal text-foreground truncate">
+                              <Tag className="h-4.5 w-4.5 text-pink-500 shrink-0" />
+                              <span className="font-semibold text-foreground text-sm md:text-base truncate">
                                 {child.name}
                               </span>
                             </td>
-                            <td className="p-4 font-mono text-xs text-muted-foreground">
+                            <td className="py-5 px-6 font-mono text-sm text-muted-foreground">
                               {child.slug}
                             </td>
-                            <td className="p-4 text-center font-medium">
+                            <td className="py-5 px-6 text-center font-bold">
                               {child.display_order}
                             </td>
-                            <td className="p-4">
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                            <td className="py-5 px-6">
+                              <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                                 Danh mục con
                               </span>
                             </td>
-                            <td className="p-4 text-right">
-                              <div className="flex justify-end gap-1">
+                            <td className="py-5 px-6 text-right">
+                              <div className="flex justify-end gap-1.5">
                                 <button
                                   onClick={() => handleOpenEdit(child)}
-                                  className="p-1.5 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
+                                  className="p-2 rounded-md hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
                                   title="Sửa danh mục"
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  <Edit2 className="h-5 w-5" />
                                 </button>
                                 <button
                                   onClick={() => handleOpenDelete(child)}
-                                  className="p-1.5 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition"
+                                  className="p-2 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition"
                                   title="Xóa danh mục"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-5 w-5" />
                                 </button>
                               </div>
                             </td>

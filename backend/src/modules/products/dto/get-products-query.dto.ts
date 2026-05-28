@@ -57,7 +57,8 @@ export class GetSellerProductsQueryDto extends PaginationQueryDto {
   q?: string;
 
   @ApiPropertyOptional({
-    description: 'Lọc theo trạng thái ẩn/hiện của sản phẩm (true: ẩn, false: hiện)',
+    description:
+      'Lọc theo trạng thái ẩn/hiện của sản phẩm (true: ẩn, false: hiện)',
     type: Boolean,
   })
   @IsOptional()
@@ -68,7 +69,8 @@ export class GetSellerProductsQueryDto extends PaginationQueryDto {
   is_hidden?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Lọc theo trạng thái tồn kho (in_stock: còn hàng, out_of_stock: hết hàng, all: tất cả)',
+    description:
+      'Lọc theo trạng thái tồn kho (in_stock: còn hàng, out_of_stock: hết hàng, all: tất cả)',
     enum: ['all', 'in_stock', 'out_of_stock'],
   })
   @IsOptional()

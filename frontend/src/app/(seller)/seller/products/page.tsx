@@ -382,7 +382,7 @@ export default function SellerProductsPage() {
                       {/* Cột 6: Số lượng tồn kho (Đổi màu sắc tùy theo mức độ tồn kho) */}
                       <td className="p-6 text-center">
                         <span
-                          className={`font-black text-lg ${
+                          className={`font-bold text-base ${
                             isOutOfStock
                               ? "text-rose-600 dark:text-rose-400" // Đỏ khi hết hàng
                               : totalStock <= 5

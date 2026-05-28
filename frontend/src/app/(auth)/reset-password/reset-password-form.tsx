@@ -85,28 +85,29 @@ export function ResetPasswordForm({
 
   return (
     <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
-      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-lg justify-center mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Đặt lại mật khẩu mới</CardTitle>
-          <CardDescription>
+      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
+        <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Đặt lại mật khẩu mới</CardTitle>
+          <CardDescription className="text-base sm:text-lg">
             Vui lòng nhập mật khẩu mới của bạn bên dưới.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form id="reset-password-form" onSubmit={form.handleSubmit(onSubmit)}>
-            <FieldGroup>
+            <FieldGroup className="gap-6">
               <Controller
                 name="new_password"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="new_password" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="new_password" className="text-base sm:text-lg font-medium">
                       Mật khẩu mới
                     </FieldLabel>
                     <Input
                       {...field}
                       id="new_password"
                       type="password"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Nhập mật khẩu mới"
                       disabled={isLoading}
                     />
@@ -121,14 +122,15 @@ export function ResetPasswordForm({
                 name="confirmPassword"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="confirmPassword" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="confirmPassword" className="text-base sm:text-lg font-medium">
                       Xác nhận mật khẩu
                     </FieldLabel>
                     <Input
                       {...field}
                       id="confirmPassword"
                       type="password"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Xác nhận lại mật khẩu mới"
                       disabled={isLoading}
                     />
@@ -139,8 +141,8 @@ export function ResetPasswordForm({
                 )}
               />
 
-              <div className="flex flex-col gap-2 pt-2">
-                <Button type="submit" className="w-full" disabled={isLoading}>
+              <div className="pt-4">
+                <Button type="submit" className="w-full h-12 text-base sm:text-lg font-semibold" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

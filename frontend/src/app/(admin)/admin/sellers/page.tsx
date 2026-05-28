@@ -139,10 +139,10 @@ export default function AdminSellersPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             Duyệt Cửa Hàng
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground text-base md:text-lg mt-2 max-w-4xl">
             Xem xét hồ sơ và phê duyệt hoặc từ chối các yêu cầu mở gian hàng mới
             trên sàn.
           </p>
@@ -150,7 +150,7 @@ export default function AdminSellersPage() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Badge
             variant="outline"
-            className="px-3 py-1 bg-violet-50/50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200"
+            className="px-4 py-1.5 text-sm bg-violet-50/50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 border-violet-200"
           >
             Chờ duyệt: {shops.length}
           </Badge>
@@ -219,108 +219,108 @@ export default function AdminSellersPage() {
                   key={shop.id}
                   className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 transition-all"
                 >
-                  <TableCell className="pl-6 py-4">
-                    <div className="flex items-center space-x-3">
+                  <TableCell className="pl-6 py-6">
+                    <div className="flex items-center space-x-4">
                       <img
                         src={
                           shop.logo_url ||
                           "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80"
                         }
                         alt={shop.name}
-                        className="h-10 w-10 rounded-lg object-cover border bg-zinc-100 shadow-sm"
+                        className="h-16 w-16 rounded-xl object-cover border bg-zinc-100 shadow-sm"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
                             "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80";
                         }}
                       />
                       <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                        <p className="font-extrabold text-lg text-foreground truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                           {shop.name}
                         </p>
-                        <span className="inline-flex items-center text-[10px] text-muted-foreground mt-0.5 max-w-[200px] truncate">
-                          <MapPin className="h-3 w-3 mr-1 text-zinc-400 shrink-0" />
+                        <span className="inline-flex items-center text-sm text-muted-foreground mt-1 max-w-[280px] truncate">
+                          <MapPin className="h-4 w-4 mr-1.5 text-zinc-400 shrink-0" />
                           {shop.pickup_address}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4">
-                    <div className="text-sm font-semibold text-foreground">
+                  <TableCell className="py-6">
+                    <div className="text-lg font-bold text-foreground">
                       {shop.seller?.full_name || "Chưa cập nhật"}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                    <div className="text-sm text-muted-foreground truncate max-w-[180px] mt-1">
                       {shop.seller?.username || shop.seller?.email}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                  <TableCell className="py-6">
+                    <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                       {shop.categories && shop.categories.length > 0 ? (
                         shop.categories.slice(0, 2).map((category) => (
                           <Badge
                             key={category.id}
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0 border-zinc-200 bg-zinc-50 dark:bg-zinc-900/50"
+                            className="text-sm px-2.5 py-1 border-zinc-200 bg-zinc-50 dark:bg-zinc-900/50 font-semibold"
                           >
                             {category.name}
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           Không rõ
                         </span>
                       )}
                       {shop.categories && shop.categories.length > 2 && (
                         <Badge
                           variant="outline"
-                          className="text-[10px] px-1.5 py-0 border-zinc-200"
+                          className="text-sm px-2.5 py-1 border-zinc-200 font-semibold"
                         >
                           +{shop.categories.length - 2}
                         </Badge>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 text-xs font-medium text-muted-foreground">
+                  <TableCell className="py-6 text-base font-medium text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                      <Calendar className="h-5 w-5 text-zinc-400" />
                       {formatDate(shop.created_at)}
                     </span>
                   </TableCell>
-                  <TableCell className="pr-6 py-4 text-right">
-                    <div className="flex items-center justify-end space-x-1.5">
+                  <TableCell className="pr-6 py-6 text-right">
+                    <div className="flex items-center justify-end space-x-2">
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="h-8 text-xs font-semibold"
+                        size="default"
+                        className="h-10 text-sm font-semibold px-4"
                         onClick={() => {
                           setSelectedShop(shop);
                           setIsDetailOpen(true);
                         }}
                       >
-                        <Eye className="h-3.5 w-3.5 mr-1" />
-                        Xem chi tiết
+                        <Eye className="h-4.5 w-4.5 mr-2" />
+                        Chi tiết
                       </Button>
                       <Button
                         variant="default"
-                        size="sm"
-                        className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                        size="default"
+                        className="h-10 text-sm font-semibold px-4 bg-emerald-600 hover:bg-emerald-700 text-white border-0"
                         onClick={() => {
                           setSelectedShop(shop);
                           setIsApproveOpen(true);
                         }}
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                        <CheckCircle2 className="h-4.5 w-4.5 mr-2" />
                         Duyệt
                       </Button>
                       <Button
                         variant="destructive"
-                        size="sm"
-                        className="h-8 text-xs font-semibold"
+                        size="default"
+                        className="h-10 text-sm font-semibold px-4"
                         onClick={() => {
                           setSelectedShop(shop);
                           setIsRejectOpen(true);
                         }}
                       >
-                        <XCircle className="h-3.5 w-3.5 mr-1" />
+                        <XCircle className="h-4.5 w-4.5 mr-2" />
                         Từ chối
                       </Button>
                     </div>

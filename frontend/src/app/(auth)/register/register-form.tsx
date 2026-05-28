@@ -91,30 +91,30 @@ export function RegisterForm({
 
   return (
     <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
-      <Card className="flex flex-col w-full max-h-full  shadow-lg max-w-lg justify-center mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
-          <CardDescription>
+      <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
+        <CardHeader className="text-center pb-6 sm:pb-8">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Tạo tài khoản</CardTitle>
+          <CardDescription className="text-base sm:text-lg">
             Chào mừng bạn đến với <b>Giang Kha shop</b>!<br />
             Hãy tạo tài khoản để tiếp tục nhé!
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form id="register-form" onSubmit={form.handleSubmit(onSubmit)}>
-            {/* CẤP ĐỘ 1: Dùng space-y-4 để cả 4 hàng cách đều nhau 1 khoảng 16px */}
-            <FieldGroup>
+            <FieldGroup className="gap-6">
               {/* 1. Field: Username */}
               <Controller
                 name="username"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="username" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="username" className="text-base sm:text-lg font-medium">
                       Tên đăng nhập
                     </FieldLabel>
                     <Input
                       {...field}
                       id="username"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="Nhập tên đăng nhập"
                       disabled={isLoading}
                     />
@@ -130,14 +130,15 @@ export function RegisterForm({
                 name="email"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="email" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="email" className="text-base sm:text-lg font-medium">
                       Email
                     </FieldLabel>
                     <Input
                       {...field}
                       id="email"
                       type="email"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       placeholder="m@example.com"
                       disabled={isLoading}
                     />
@@ -153,14 +154,15 @@ export function RegisterForm({
                 name="password"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="password" className="text-sm">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="password" className="text-base sm:text-lg font-medium">
                       Mật khẩu
                     </FieldLabel>
                     <Input
                       {...field}
                       id="password"
                       type="password"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       disabled={isLoading}
                     />
                     {fieldState.invalid && (
@@ -175,14 +177,15 @@ export function RegisterForm({
                 name="confirmPassword"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="confirm-password">
+                  <Field data-invalid={fieldState.invalid} className="gap-2">
+                    <FieldLabel htmlFor="confirm-password" className="text-base sm:text-lg font-medium">
                       Xác nhận mật khẩu
                     </FieldLabel>
                     <Input
                       {...field}
                       id="confirm-password"
                       type="password"
+                      className="h-12 px-4 text-base sm:text-lg md:text-lg placeholder:text-base sm:placeholder:text-lg md:placeholder:text-lg"
                       disabled={isLoading}
                     />
                     {fieldState.invalid && (
@@ -193,8 +196,8 @@ export function RegisterForm({
               />
 
               {/* Phần mô tả mật khẩu và Nút Submit */}
-              <div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+              <div className="pt-4">
+                <Button type="submit" className="w-full h-12 text-base sm:text-lg font-semibold" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

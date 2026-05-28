@@ -110,62 +110,62 @@ export default function SellerPendingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-xl border bg-card/60 backdrop-blur-md">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 animate-pulse">
-            <Clock className="h-8 w-8" />
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-6">
+      <Card className="w-full max-w-2xl shadow-2xl border bg-card/60 backdrop-blur-md p-6 md:p-10">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-6 animate-pulse">
+            <Clock className="h-10 w-10" />
           </div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-3xl md:text-4xl font-extrabold tracking-tight">
             Cửa hàng đang chờ duyệt
           </CardTitle>
-          <CardDescription className="text-sm mt-1">
+          <CardDescription className="text-base md:text-lg mt-3">
             Chào {user?.username}, yêu cầu đăng ký bán hàng của bạn đang được
             kiểm duyệt.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-2">
-          <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 flex gap-3">
-            <Store className="h-5 w-5 shrink-0 mt-0.5" />
+        <CardContent className="space-y-8 pt-2">
+          <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-6 text-base text-amber-800 dark:text-amber-300 flex gap-4">
+            <Store className="h-7 w-7 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">
+              <p className="text-lg font-bold">
                 Thời gian duyệt dự kiến: 1 - 2 ngày làm việc
               </p>
-              <p className="mt-1 text-xs opacity-90">
+              <p className="mt-2 text-sm opacity-90 leading-relaxed">
                 Hệ thống đang kiểm tra thông tin cửa hàng của bạn. Chúng tôi sẽ
                 gửi email thông báo ngay sau khi admin phê duyệt hoặc từ chối.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-4">
             <Button
               onClick={handleCheckStatus}
-              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white"
+              className="w-full h-14 flex items-center justify-center gap-2.5 bg-violet-600 hover:bg-violet-700 text-white text-base md:text-lg font-bold rounded-xl shadow-md transition"
               disabled={isRefreshing}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
               />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 onClick={() => router.push("/")}
-                className="flex items-center justify-center gap-2"
+                className="h-14 flex items-center justify-center gap-2.5 text-base font-bold rounded-xl"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
                 <span>Trang chủ</span>
               </Button>
 
               <Button
                 variant="destructive"
                 onClick={() => setIsLogoutConfirmOpen(true)}
-                className="flex items-center justify-center gap-2"
+                className="h-14 flex items-center justify-center gap-2.5 text-base font-bold rounded-xl"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-5 w-5" />
                 <span>Đăng xuất</span>
               </Button>
             </div>

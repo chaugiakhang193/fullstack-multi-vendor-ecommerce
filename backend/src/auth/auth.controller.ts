@@ -235,10 +235,16 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth('access-token')
   @ResponseMessage('Lấy thông tin người dùng hiện tại thành công')
-  @ApiOperation({ summary: 'Lấy thông tin người dùng hiện tại từ Access Token' })
-  @ApiGenericResponse(UserResponseDto, 'Trả về thông tin người dùng không bao gồm mật khẩu.', {
-    status: 200,
+  @ApiOperation({
+    summary: 'Lấy thông tin người dùng hiện tại từ Access Token',
   })
+  @ApiGenericResponse(
+    UserResponseDto,
+    'Trả về thông tin người dùng không bao gồm mật khẩu.',
+    {
+      status: 200,
+    },
+  )
   @ApiResponse({
     status: 401,
     description: 'Không có quyền truy cập hoặc Access Token đã hết hạn.',

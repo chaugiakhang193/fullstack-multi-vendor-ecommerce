@@ -28,7 +28,10 @@ import { MailService } from '@/modules/mail/mail.service';
 
 // Enums
 import { AccountStatus, AssetType } from '@/common/enums';
-import { UPLOAD_LIMITS, CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
+import {
+  UPLOAD_LIMITS,
+  CLOUDINARY_FOLDER,
+} from '@/common/constants/upload.constant';
 
 @Injectable()
 export class ShopsService {
@@ -104,7 +107,9 @@ export class ShopsService {
     }
 
     if (files.gallery.length > UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES) {
-      throw new BadRequestException(`Chỉ được upload tối đa ${UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES} ảnh liên quan`);
+      throw new BadRequestException(
+        `Chỉ được upload tối đa ${UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES} ảnh liên quan`,
+      );
     }
 
     // Danh sách cái Assest ID đã upload thành công
@@ -412,7 +417,10 @@ export class ShopsService {
       (asset) => asset.type === AssetType.SHOP_GALLERY,
     );
 
-    if (shopGallery.length + files.length > UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES) {
+    if (
+      shopGallery.length + files.length >
+      UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES
+    ) {
       throw new BadRequestException(
         `Bạn chỉ được upload tối đa ${UPLOAD_LIMITS.SHOP.MAX_GALLERY_IMAGES} ảnh liên quan. Hiện tại bạn đã có ${shopGallery.length} ảnh, không thể upload thêm ${files.length} ảnh.`,
       );
