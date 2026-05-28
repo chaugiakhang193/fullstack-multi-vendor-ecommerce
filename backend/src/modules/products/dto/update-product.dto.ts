@@ -49,7 +49,9 @@ export class UpdateProductVariantDto extends PartialType(
   @IsOptional()
   @Type(() => Number)
   @Min(0)
-  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, { message: `Mỗi biến thể chỉ được phép tải lên tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh mới` })
+  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, {
+    message: `Mỗi biến thể chỉ được phép tải lên tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh mới`,
+  })
   imageCount?: number;
 }
 

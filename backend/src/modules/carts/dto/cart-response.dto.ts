@@ -20,7 +20,8 @@ export class CartItemVariantDto {
 export class CartItemResponseDto {
   @ApiProperty() id: string;
   @ApiProperty({ type: CartItemProductDto }) product: CartItemProductDto;
-  @ApiProperty({ type: CartItemVariantDto, nullable: true }) variant: CartItemVariantDto | null;
+  @ApiProperty({ type: CartItemVariantDto, nullable: true })
+  variant: CartItemVariantDto | null;
   @ApiProperty() quantity: number;
   @ApiProperty({ type: Number }) unit_price: number;
   @ApiProperty({ type: Number }) subtotal: number;

@@ -10,7 +10,10 @@ async function bootstrap() {
   console.log('Testing rejectShop for shop:', shopId);
 
   try {
-    const result = await shopsService.rejectShop(shopId, 'Lý do từ chối thử nghiệm');
+    const result = await shopsService.rejectShop(
+      shopId,
+      'Lý do từ chối thử nghiệm',
+    );
     console.log('Success result:', result);
   } catch (error) {
     console.error('Error occurred:', error);

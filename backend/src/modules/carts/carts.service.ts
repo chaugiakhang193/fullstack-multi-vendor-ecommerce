@@ -37,47 +37,70 @@ export class CartsService {
     userId: string,
     addCartItemDto: AddCartItemDto,
   ): Promise<CartResponseDto> {
-    const product = await this.productsService.getProductForCartValidation(
-      addCartItemDto.product_id,
-    );
+    const productId = addCartItemDto.product_id;
+    const product =
+      await this.productsService.getProductForCartValidation(productId);
 
     if (product.status === ProductStatus.DELETED) {
-      throw new BadRequestException('Sản phẩm không tồn tại hoặc đã bị xóa');
+      const deletedMessage = 'Sản phẩm không tồn tại hoặc đã bị xóa';
+      throw new BadRequestException(deletedMessage);
+    }
+
+    if (product.is_hidden) {
+      const hiddenMessage = 'Sản phẩm đã bị ẩn hoặc ngừng bán';
+      throw new BadRequestException(hiddenMessage);
+    }
+
+    if (product.shop?.status !== AccountStatus.ACTIVE) {
+      const shopInactiveMessage = 'Cửa hàng hiện không hoạt động';
+      throw new BadRequestException(shopInactiveMessage);
     }
 
     if (product.shop?.seller?.id === userId) {
-      throw new BadRequestException('Bạn không thể mua sản phẩm của shop mình');
+      const selfPurchaseMessage = 'Bạn không thể mua sản phẩm của shop mình';
+      throw new BadRequestException(selfPurchaseMessage);
     }
+
+    let availableStock = 0;
+    const variantId = addCartItemDto.variant_id;
 
     if (product.has_variants) {
-      if (!addCartItemDto.variant_id) {
-        throw new BadRequestException(
-          'Sản phẩm này có biến thể, vui lòng chọn một biến thể',
-        );
+      if (!variantId) {
+        const variantRequiredMessage =
+          'Sản phẩm này có biến thể, vui lòng chọn một biến thể';
+        throw new BadRequestException(variantRequiredMessage);
       }
 
-      const variant = product.variants?.find(
-        (v) => v.id === addCartItemDto.variant_id,
-      );
+      const variant = product.variants?.find((v) => v.id === variantId);
 
       if (!variant) {
-        throw new NotFoundException('Biến thể không thuộc sản phẩm này');
+        const variantNotFoundMessage = 'Biến thể không thuộc sản phẩm này';
+        throw new NotFoundException(variantNotFoundMessage);
       }
+
+      availableStock = variant.stock_quantity ?? 0;
     } else {
-      if (addCartItemDto.variant_id) {
-        throw new BadRequestException('Sản phẩm này không có biến thể');
+      if (variantId) {
+        const noVariantMessage = 'Sản phẩm này không có biến thể';
+        throw new BadRequestException(noVariantMessage);
       }
+
+      availableStock = product.stock_quantity ?? 0;
     }
 
-    const existingItem = await this.cartItemRepository.findOne({
+    if (availableStock <= 0) {
+      const outOfStockMessage = 'Sản phẩm hiện đã hết hàng';
+      throw new BadRequestException(outOfStockMessage);
+    }
+
+    const findOptions = {
       where: {
         user: { id: userId },
-        product: { id: addCartItemDto.product_id },
-        variant: addCartItemDto.variant_id
-          ? { id: addCartItemDto.variant_id }
-          : IsNull(),
+        product: { id: productId },
+        variant: variantId ? { id: variantId } : IsNull(),
       },
-    });
+    };
+    const existingItem = await this.cartItemRepository.findOne(findOptions);
 
     const quantityToAdd =
       addCartItemDto.quantity ?? CART_LIMITS.MIN_QUANTITY_PER_ITEM;
@@ -85,31 +108,38 @@ export class CartsService {
     if (existingItem) {
       const newQty = existingItem.quantity + quantityToAdd;
       if (newQty > CART_LIMITS.MAX_QUANTITY_PER_ITEM) {
-        throw new BadRequestException(
-          `Tổng số lượng tối đa cho mỗi sản phẩm trong giỏ hàng là ${CART_LIMITS.MAX_QUANTITY_PER_ITEM}`,
-        );
+        const maxLimitMessage = `Tổng số lượng tối đa cho mỗi sản phẩm trong giỏ hàng là ${CART_LIMITS.MAX_QUANTITY_PER_ITEM}`;
+        throw new BadRequestException(maxLimitMessage);
+      }
+      if (newQty > availableStock) {
+        const stockExceededMessage = `Số lượng vượt quá tồn kho còn lại (${availableStock})`;
+        throw new BadRequestException(stockExceededMessage);
       }
       existingItem.quantity = newQty;
       await this.cartItemRepository.save(existingItem);
     } else {
-      const distinctCount = await this.cartItemRepository.count({
-        where: { user: { id: userId } },
-      });
-
-      if (distinctCount >= CART_LIMITS.MAX_DISTINCT_ITEMS) {
-        throw new BadRequestException(
-          `Giỏ hàng của bạn đã đạt giới hạn tối đa ${CART_LIMITS.MAX_DISTINCT_ITEMS} sản phẩm khác nhau. Vui lòng thanh toán hoặc xóa bớt để thêm mới.`,
-        );
+      if (quantityToAdd > availableStock) {
+        const stockExceededMessage = `Số lượng vượt quá tồn kho còn lại (${availableStock})`;
+        throw new BadRequestException(stockExceededMessage);
       }
 
-      const newItem = this.cartItemRepository.create({
+      const countOptions = {
+        where: { user: { id: userId } },
+      };
+      const distinctCount = await this.cartItemRepository.count(countOptions);
+
+      if (distinctCount >= CART_LIMITS.MAX_DISTINCT_ITEMS) {
+        const maxDistinctMessage = `Giỏ hàng của bạn đã đạt giới hạn tối đa ${CART_LIMITS.MAX_DISTINCT_ITEMS} sản phẩm khác nhau. Vui lòng thanh toán hoặc xóa bớt để thêm mới.`;
+        throw new BadRequestException(maxDistinctMessage);
+      }
+
+      const newItemData = {
         user: { id: userId } as any,
-        product: { id: addCartItemDto.product_id } as any,
-        variant: addCartItemDto.variant_id
-          ? ({ id: addCartItemDto.variant_id } as any)
-          : null,
+        product: { id: productId } as any,
+        variant: variantId ? ({ id: variantId } as any) : null,
         quantity: quantityToAdd,
-      });
+      };
+      const newItem = this.cartItemRepository.create(newItemData);
 
       await this.cartItemRepository.save(newItem);
     }
@@ -236,15 +266,43 @@ export class CartsService {
     cartItemId: string,
     dto: UpdateCartItemDto,
   ): Promise<CartResponseDto> {
-    const item = await this.cartItemRepository.findOne({
+    const findOptions = {
       where: { id: cartItemId, user: { id: userId } },
-    });
+      relations: ['product', 'product.shop', 'variant'],
+    };
+    const item = await this.cartItemRepository.findOne(findOptions);
 
     if (!item) {
-      throw new NotFoundException('Không tìm thấy sản phẩm trong giỏ hàng');
+      const itemNotFoundMessage = 'Không tìm thấy sản phẩm trong giỏ hàng';
+      throw new NotFoundException(itemNotFoundMessage);
     }
 
-    item.quantity = dto.quantity;
+    if (item.product.status === ProductStatus.DELETED) {
+      const deletedMessage = 'Sản phẩm không tồn tại hoặc đã bị xóa';
+      throw new BadRequestException(deletedMessage);
+    }
+
+    if (item.product.is_hidden) {
+      const hiddenMessage = 'Sản phẩm đã bị ẩn hoặc ngừng bán';
+      throw new BadRequestException(hiddenMessage);
+    }
+
+    if (item.product.shop?.status !== AccountStatus.ACTIVE) {
+      const shopInactiveMessage = 'Cửa hàng hiện không hoạt động';
+      throw new BadRequestException(shopInactiveMessage);
+    }
+
+    const availableStock = item.variant
+      ? (item.variant.stock_quantity ?? 0)
+      : (item.product.stock_quantity ?? 0);
+
+    const updateQuantity = dto.quantity;
+    if (updateQuantity > availableStock) {
+      const stockExceededMessage = `Số lượng vượt quá tồn kho còn lại (${availableStock})`;
+      throw new BadRequestException(stockExceededMessage);
+    }
+
+    item.quantity = updateQuantity;
     await this.cartItemRepository.save(item);
 
     return this.getCart(userId);

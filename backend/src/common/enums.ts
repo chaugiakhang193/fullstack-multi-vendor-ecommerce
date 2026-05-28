@@ -72,4 +72,3 @@ export enum CartItemUnavailableReason {
   PRODUCT_DELETED = 'product_deleted',
   SHOP_INACTIVE = 'shop_inactive',
 }
-

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CART_LIMITS } from '@/common/constants/cart.constant';
 
 export class UpdateCartItemDto {
@@ -12,5 +13,6 @@ export class UpdateCartItemDto {
   @IsInt()
   @Min(CART_LIMITS.MIN_QUANTITY_PER_ITEM)
   @Max(CART_LIMITS.MAX_QUANTITY_PER_ITEM)
+  @Type(() => Number)
   quantity: number;
 }

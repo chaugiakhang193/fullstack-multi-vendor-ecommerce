@@ -13,7 +13,7 @@ import {
   compareHashedDataHelper,
   isDataExist,
 } from '@/common/helpers/utils';
-import { UserRole, AccountStatus } from '@/common/enums';
+import { UserRole } from '@/common/enums';
 @Injectable()
 export class UsersService {
   constructor(
@@ -132,7 +132,7 @@ export class UsersService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number, _updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }
 

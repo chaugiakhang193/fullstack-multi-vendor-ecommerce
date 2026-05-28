@@ -72,10 +72,7 @@ export class AdminShopsController {
   @ApiGenericResponse(ShopResponseDto, 'Từ chối gian hàng thành công.')
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập.' })
   @ApiForbiddenResponse({ description: 'Yêu cầu quyền ADMIN.' })
-  rejectShop(
-    @Param('id') id: string,
-    @Body() rejectShopDto: RejectShopDto,
-  ) {
+  rejectShop(@Param('id') id: string, @Body() rejectShopDto: RejectShopDto) {
     return this.shopsService.rejectShop(id, rejectShopDto.reason);
   }
 }

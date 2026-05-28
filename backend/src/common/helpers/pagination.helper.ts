@@ -1,5 +1,10 @@
 // Libraries
-import { Repository, SelectQueryBuilder, FindManyOptions, ObjectLiteral } from 'typeorm';
+import {
+  Repository,
+  SelectQueryBuilder,
+  FindManyOptions,
+  ObjectLiteral,
+} from 'typeorm';
 
 // DTOs
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
@@ -32,7 +37,8 @@ export async function paginate<T extends ObjectLiteral>(
       take: size,
     };
 
-    const [items, totalItems] = await repositoryOrQueryBuilder.findAndCount(findOptions);
+    const [items, totalItems] =
+      await repositoryOrQueryBuilder.findAndCount(findOptions);
 
     // Tính tổng số trang
     const ratio = totalItems / limit;

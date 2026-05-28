@@ -40,7 +40,10 @@ import { GetSellerProductsQueryDto } from '@/modules/products/dto/get-products-q
 // Guards & Decorators
 import { Roles } from '@/decorator/roles.decorator';
 import { User } from '@/decorator/user.decorator';
-import { ApiGenericResponse, ApiPaginatedResponse } from '@/decorator/api-response.decorator';
+import {
+  ApiGenericResponse,
+  ApiPaginatedResponse,
+} from '@/decorator/api-response.decorator';
 import { ResponseMessage } from '@/decorator/customize';
 
 // Enums & Interfaces
@@ -59,8 +62,14 @@ export class SellerProductsController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'thumbnail', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_THUMBNAILS },
-      { name: 'general_gallery', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES },
-      { name: 'variant_images', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH },
+      {
+        name: 'general_gallery',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES,
+      },
+      {
+        name: 'variant_images',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
+      },
     ]),
   )
   @ApiOperation({ summary: 'Seller tạo sản phẩm mới' })
@@ -112,8 +121,14 @@ export class SellerProductsController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'thumbnail', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_THUMBNAILS },
-      { name: 'general_gallery', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES },
-      { name: 'variant_images', maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH },
+      {
+        name: 'general_gallery',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_GALLERY_IMAGES,
+      },
+      {
+        name: 'variant_images',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
+      },
     ]),
   )
   @ApiOperation({ summary: 'Seller cập nhật sản phẩm' })
