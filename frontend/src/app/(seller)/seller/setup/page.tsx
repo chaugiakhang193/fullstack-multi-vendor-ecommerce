@@ -15,8 +15,8 @@ import {
   X,
 } from "lucide-react";
 
-import sellerApiRequest from "@/apiRequests/seller";
-import categoriesApiRequest from "@/apiRequests/categories";
+import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
+import categoriesApiRequest from "@/apiRequests/products/categories";
 import {
   CreateShopBody,
   CreateShopBodyType,
@@ -145,7 +145,7 @@ export default function SellerSetupPage() {
       const fetchShop = async () => {
         setIsLoadingShop(true);
         try {
-          const res = await sellerApiRequest.getMyShop();
+          const res = await sellerShopsApiRequest.getMyShop();
           const shop = res.data;
           setExistingShop(shop);
           setExistingGallery(shop.gallery || []);
@@ -201,7 +201,7 @@ export default function SellerSetupPage() {
   // Xóa ảnh gallery đã tồn tại
   const handleDeleteExistingGalleryImage = async (assetId: string) => {
     try {
-      await sellerApiRequest.deleteGalleryImage(assetId);
+      await sellerShopsApiRequest.deleteGalleryImage(assetId);
       setExistingGallery((prev) => prev.filter((item) => item.id !== assetId));
       toast.success("Xóa ảnh thành công");
     } catch (error) {
@@ -269,11 +269,10 @@ export default function SellerSetupPage() {
         formData.append("gallery", file);
       });
 
-      // Call API dựa trên trạng thái
       if (isRejected) {
-        await sellerApiRequest.reApplyShop(formData);
+        await sellerShopsApiRequest.reApplyShop(formData);
       } else {
-        await sellerApiRequest.setupInitialShop(formData);
+        await sellerShopsApiRequest.setupInitialShop(formData);
       }
 
       // Refresh token to update the cookies/state to 'pending_approval'

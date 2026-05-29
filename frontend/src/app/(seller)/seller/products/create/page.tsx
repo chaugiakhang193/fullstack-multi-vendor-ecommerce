@@ -14,8 +14,8 @@ import {
   X,
 } from "lucide-react";
 
-import productsApiRequest from "@/apiRequests/products";
-import categoriesApiRequest from "@/apiRequests/categories";
+import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
+import categoriesApiRequest from "@/apiRequests/products/categories";
 import { CategoryResponseType } from "@/schemaValidations/categories.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -471,7 +471,7 @@ export default function CreateProductPage() {
         });
       }
 
-      await productsApiRequest.createProduct(formData);
+      await sellerProductsApiRequest.createProduct(formData);
       toast.success("Tạo sản phẩm thành công!");
       router.push("/seller/products");
     } catch (error: any) {

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import authApiRequest from "@/apiRequests/auth";
+import authApiRequest from "@/apiRequests/auth/auth";
 
 import {
   Card,

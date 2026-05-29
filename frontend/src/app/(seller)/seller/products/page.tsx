@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner"; // Thư viện dùng để hiển thị thông báo (toast notification) dạng pop-up
 
-import productsApiRequest from "@/apiRequests/products"; // File định nghĩa các hàm gọi API đến backend cho sản phẩm
+import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // File định nghĩa các hàm gọi API đến backend cho seller
 import { ProductResponseType } from "@/schemaValidations/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
 import { Button } from "@/components/ui/button"; // Component nút bấm dùng chung từ Shadcn UI
 import {
@@ -114,7 +114,7 @@ export default function SellerProductsPage() {
     setIsLoading(true);
     try {
       // Gọi API lấy kho hàng của Seller hiện tại kèm các tham số phân trang & lọc
-      const res = await productsApiRequest.getSellerInventory({
+      const res = await sellerProductsApiRequest.getSellerInventory({
         page: currentPage,
         limit,
         q: search ? search.trim() : undefined,
@@ -153,7 +153,7 @@ export default function SellerProductsPage() {
       formData.append("is_hidden", String(newIsHidden));
 
       // Gọi API cập nhật
-      await productsApiRequest.updateProduct(productId, formData);
+      await sellerProductsApiRequest.updateProduct(productId, formData);
 
       // Cập nhật ngay lập tức trạng thái ẩn/hiện trong state cục bộ để UI thay đổi mượt mà mà không cần fetch lại toàn bộ danh sách
       setProducts((prev) =>
@@ -181,7 +181,7 @@ export default function SellerProductsPage() {
     setIsDeleting(true);
     try {
       // Gọi API xóa sản phẩm theo ID
-      await productsApiRequest.deleteProduct(deletingProduct.id);
+      await sellerProductsApiRequest.deleteProduct(deletingProduct.id);
       toast.success(`Đã xóa sản phẩm "${deletingProduct.name}".`);
       setDeletingProduct(null); // Đóng Dialog xác nhận xóa
       fetchProducts(page, debouncedSearchQuery, stockFilter); // Tải lại danh sách sản phẩm mới từ server để cập nhật bảng

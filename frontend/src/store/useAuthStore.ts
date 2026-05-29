@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AccountType } from "@/schemaValidations/auth.schema";
-import authApiRequest from "@/apiRequests/auth";
+import authApiRequest from "@/apiRequests/auth/auth";
 import Cookies from "js-cookie";
 
 // Cấu hình cookie đồng bộ, an toàn cho cả Client và Middleware Server

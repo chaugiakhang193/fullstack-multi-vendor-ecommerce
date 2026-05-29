@@ -18,8 +18,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth";
-import sellerApiRequest from "@/apiRequests/seller";
+import authApiRequest from "@/apiRequests/auth/auth";
+import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
@@ -88,7 +88,7 @@ export default function SellerLayout({
       // Check shop status cho tất cả seller (bao gồm cả /seller/pending)
       if (user) {
         try {
-          const res = await sellerApiRequest.getMyShop();
+          const res = await sellerShopsApiRequest.getMyShop();
           const shop = res.data;
 
           //  Nếu user pending_approval VÀ đã có shop → redirect /seller/pending

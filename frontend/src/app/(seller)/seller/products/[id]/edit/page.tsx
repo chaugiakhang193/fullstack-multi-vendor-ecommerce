@@ -15,8 +15,8 @@ import {
   Save,
 } from "lucide-react"; // Bộ biểu tượng SVG
 
-import productsApiRequest from "@/apiRequests/products"; // API liên quan đến sản phẩm
-import categoriesApiRequest from "@/apiRequests/categories"; // API liên quan đến danh mục
+import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // API liên quan đến seller
+import categoriesApiRequest from "@/apiRequests/products/categories"; // API liên quan đến danh mục
 import { CategoryResponseType } from "@/schemaValidations/categories.schema";
 import { ProductResponseType } from "@/schemaValidations/products.schema";
 import { Button } from "@/components/ui/button";
@@ -245,7 +245,7 @@ export default function EditProductPage() {
       try {
         const [categoriesRes, productRes] = await Promise.all([
           categoriesApiRequest.getAll(),
-          productsApiRequest.getProductDetail(productId),
+          sellerProductsApiRequest.getProductDetail(productId),
         ]);
 
         const allCategories = categoriesRes.data ?? [];
@@ -647,7 +647,7 @@ export default function EditProductPage() {
       }
 
       // Gọi API gửi yêu cầu cập nhật sản phẩm
-      await productsApiRequest.updateProduct(productId, formData);
+      await sellerProductsApiRequest.updateProduct(productId, formData);
       toast.success("Cập nhật sản phẩm thành công!");
       router.push("/seller/products"); // Chuyển về trang danh sách quản lý
     } catch (error: any) {
