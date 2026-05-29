@@ -21,6 +21,16 @@ const formatPrice = (val: number) => {
   return priceFormatter.format(val);
 };
 
+interface LocalCartItem {
+  productId: string;
+  variantId: string | null;
+  quantity: number;
+  name: string;
+  price: number;
+  thumbnailUrl: string;
+  shopName: string;
+}
+
 export default function ProductCard({ product }: ProductCardProps) {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,7 +45,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     const cartKey = "cart";
     const existingCart = localStorage.getItem(cartKey);
-    let cartItems = [];
+    let cartItems: LocalCartItem[] = [];
     if (existingCart) {
       try {
         cartItems = JSON.parse(existingCart);
@@ -62,7 +72,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         ? targetVariant.images[0]
         : (product.thumbnail_url || "/placeholder-product.png");
 
-    const findItemFn = (item: any) => {
+    const findItemFn = (item: LocalCartItem) => {
       const isSameProduct = item.productId === product.id;
       const isSameVariant = item.variantId === variantId;
       return isSameProduct && isSameVariant;
@@ -79,7 +89,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       }
       existingItem.quantity = newQty;
     } else {
-      const newItem = {
+      const newItem: LocalCartItem = {
         productId: product.id,
         variantId: variantId,
         quantity: 1,

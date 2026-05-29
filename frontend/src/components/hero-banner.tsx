@@ -22,7 +22,7 @@ export default function HeroBanner() {
         </div>
 
         {/* Title */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight drop-shadow-sm">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight drop-shadow-sm">
           Mua sắm thông minh, <br className="hidden sm:inline" />
           giá cả <span className="text-amber-300">tốt nhất</span>
         </h1>

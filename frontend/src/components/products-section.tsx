@@ -16,14 +16,14 @@ import SkeletonProductCard from "@/components/skeleton-product-card";
 import { EmptyProducts } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 
-export default function ProductsSection() {
-  // Gán tham số truy vấn vào biến tường minh (Không truyền trực tiếp đối số inline)
-  const productsQueryParams = {
-    sort: "created_at",
-    order: "DESC" as const,
-    limit: 8,
-  };
+// Gán tham số truy vấn vào biến tường minh bên ngoài component (Tránh định nghĩa lại mỗi lần render)
+const productsQueryParams = {
+  sort: "created_at",
+  order: "DESC" as const,
+  limit: 8,
+};
 
+export default function ProductsSection() {
   // Gọi hook lấy danh sách sản phẩm mới nhất
   const productsQuery = useProducts(productsQueryParams);
   const { data: productsRes, isLoading, isError, refetch } = productsQuery;
