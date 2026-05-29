@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import categoriesApiRequest from "@/apiRequests/categories";
+import categoriesApiRequest from "@/apiRequests/products/categories";
 import {
   CreateCategoryBody,
   UpdateCategoryBody,

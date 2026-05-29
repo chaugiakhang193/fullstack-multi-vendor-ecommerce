@@ -17,7 +17,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth";
+import authApiRequest from "@/apiRequests/auth/auth";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";

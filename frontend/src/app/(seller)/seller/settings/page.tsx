@@ -22,7 +22,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-import sellerApiRequest from "@/apiRequests/seller";
+import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { ShopResponseType } from "@/schemaValidations/seller.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,7 +119,7 @@ export default function SellerSettingsPage() {
   const fetchShopData = async () => {
     setIsLoading(true);
     try {
-      const res = await sellerApiRequest.getMyShop();
+      const res = await sellerShopsApiRequest.getMyShop();
       const shopData = res.data;
       setShop(shopData);
 
@@ -231,7 +231,7 @@ export default function SellerSettingsPage() {
   // Delete existing gallery image (API call)
   const handleDeleteExistingImage = async (assetId: string) => {
     try {
-      await sellerApiRequest.deleteGalleryImage(assetId);
+      await sellerShopsApiRequest.deleteGalleryImage(assetId);
       toast.success("Xóa ảnh khỏi bộ sưu tập thành công!");
       fetchShopData();
     } catch (error: any) {
@@ -277,7 +277,7 @@ export default function SellerSettingsPage() {
     }
 
     try {
-      await sellerApiRequest.updateMyShop(formData);
+      await sellerShopsApiRequest.updateMyShop(formData);
       toast.success("Cập nhật thông tin cửa hàng thành công!");
       // Reset file upload states
       setLogoFile(null);

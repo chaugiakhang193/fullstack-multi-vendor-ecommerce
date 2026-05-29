@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import productsApiRequest from "@/apiRequests/products";
+import productsApiRequest from "@/apiRequests/products/products";
+import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
 
 /**
  * Hook mẫu truy vấn danh sách sản phẩm của Seller (Inventory) sử dụng TanStack Query.
@@ -8,7 +9,7 @@ export const useSellerInventory = () => {
   return useQuery({
     queryKey: ["seller-inventory"],
     queryFn: async () => {
-      const response = await productsApiRequest.getSellerInventory();
+      const response = await sellerProductsApiRequest.getSellerInventory();
       return response; // Trả về dạng ProductListResponseType
     },
     // Các tùy chọn nâng cao cấu hình trực tiếp (hoặc dùng mặc định từ query-client)

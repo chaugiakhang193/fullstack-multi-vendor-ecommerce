@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import categoriesApiRequest from "@/apiRequests/categories";
+import categoriesApiRequest from "@/apiRequests/products/categories";
 
 /**
  * Hook truy vấn tất cả danh mục sản phẩm (Public) của khách hàng.

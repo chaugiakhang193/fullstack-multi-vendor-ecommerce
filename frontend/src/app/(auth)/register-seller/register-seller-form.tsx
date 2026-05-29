@@ -29,7 +29,7 @@ import {
   RegisterBody,
   RegisterBodyType,
 } from "@/schemaValidations/auth.schema";
-import authApiRequest from "@/apiRequests/auth";
+import authApiRequest from "@/apiRequests/auth/auth";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 

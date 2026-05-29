@@ -19,8 +19,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth";
-import sellerApiRequest from "@/apiRequests/seller";
+import authApiRequest from "@/apiRequests/auth/auth";
+import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -46,7 +46,7 @@ export default function SellerRejectedPage() {
     const fetchShopInfo = async () => {
       setIsLoadingReason(true);
       try {
-        const res = await sellerApiRequest.getMyShop();
+        const res = await sellerShopsApiRequest.getMyShop();
         if (res.data && res.data.reject_reason) {
           setRejectReason(res.data.reject_reason);
         }

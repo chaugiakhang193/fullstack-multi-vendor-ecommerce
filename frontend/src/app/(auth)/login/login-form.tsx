@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 //API fetch heplers
-import authApiRequest from "@/apiRequests/auth";
+import authApiRequest from "@/apiRequests/auth/auth";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 import { tabId } from "@/lib/utils";
