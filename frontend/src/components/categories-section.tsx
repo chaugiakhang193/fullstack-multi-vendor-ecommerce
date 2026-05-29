@@ -21,12 +21,13 @@ import {
 
 // Hooks & Services
 import { useCategories } from "@/hooks/useCategories";
+import { CategoryResponseType } from "@/schemaValidations/categories.schema";
 
 // Components
 import { Button } from "@/components/ui/button";
 
 // Bản đồ ánh xạ slug của Category sang Lucide Icon tương ứng
-const CATEGORY_ICON_MAP: Record<string, React.ComponentType<any>> = {
+const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   "dien-thoai-may-tinh-bang": Smartphone,
   "laptop-thiet-bi-it": Laptop,
   "thoi-trang-phu-kien": Shirt,
@@ -48,7 +49,7 @@ export default function CategoriesSection() {
   const categoriesData = categoriesRes?.data || [];
 
   // Lọc chỉ lấy các danh mục gốc (không có parent) để hiển thị trên Homepage
-  const filterRootCategories = (cat: any) => {
+  const filterRootCategories = (cat: CategoryResponseType) => {
     const parentCategory = cat.parent;
     return !parentCategory;
   };
@@ -70,7 +71,7 @@ export default function CategoriesSection() {
             Danh mục nổi bật
           </h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {Array.from({ length: 6 }).map((_, idx) => {
             const keyVal = `skeleton-cat-${idx}`;
             return (
@@ -125,7 +126,7 @@ export default function CategoriesSection() {
 
       {rootCategories.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {rootCategories.map((cat: any) => {
+          {rootCategories.map((cat: CategoryResponseType) => {
             // Lấy icon tương ứng từ map, nếu không có thì dùng Package làm fallback
             const IconComponent = CATEGORY_ICON_MAP[cat.slug] || Package;
             const currentCategoryId = cat.id;

@@ -3577,6 +3577,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID */
                 id: string;
             };
             cookie?: never;
@@ -3626,6 +3627,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID */
                 id: string;
             };
             cookie?: never;
