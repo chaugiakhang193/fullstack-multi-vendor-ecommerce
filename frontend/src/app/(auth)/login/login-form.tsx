@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
-import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema";
+import { LoginBody, LoginBodyType } from "@/schemaValidations/auth/auth.schema";
 
 export function LoginForm({
   className,

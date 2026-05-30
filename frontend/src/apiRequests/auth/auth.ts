@@ -14,7 +14,7 @@ import {
   VerifyEmailBodyType,
   VerifyEmailResType,
   AccountResType,
-} from "@/schemaValidations/auth.schema";
+} from "@/schemaValidations/auth/auth.schema";
 import http from "@/lib/http";
 
 const authApiRequest = {

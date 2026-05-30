@@ -1,4 +1,5 @@
 import z from "zod";
+import { PRODUCT_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
 
 // Trích xuất backend types để đảm bảo đồng bộ compile-time
@@ -7,34 +8,6 @@ type UpdateProductVariantDto = components["schemas"]["UpdateProductVariantDto"];
 type CreateProductSwaggerDto = components["schemas"]["CreateProductSwaggerDto"];
 type UpdateProductSwaggerDto = components["schemas"]["UpdateProductSwaggerDto"];
 
-// Schema biến thể khi tạo mới sản phẩm
-export const CreateProductVariantBody = z
-  .object({
-    name: z
-      .string()
-      .min(1, "Tên biến thể không được để trống.")
-      .max(100, "Tên biến thể không quá 100 ký tự."),
-    additional_price: z
-      .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Giá thêm không được âm.")
-      .default(0),
-    sku: z.string().default(""),
-    stock_quantity: z
-      .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .int("Tồn kho phải là số nguyên.")
-      .min(0, "Tồn kho không được âm."),
-    imageCount: z
-      .number()
-      .int("Số lượng ảnh phải là số nguyên.")
-      .min(1, "Biến thể cần ít nhất 1 ảnh.")
-      .max(3, "Biến thể tối đa 3 ảnh."),
-  })
-  .strict() satisfies z.ZodType<CreateProductVariantDto, any, any>;
-
-// Schema biến thể khi cập nhật sản phẩm
-// Mở rộng UpdateProductVariantDto (chỉ có id?, existingImages?, imageCount)
-// thêm các trường form cần thiết cho UI
-
 export type UpdateProductVariantFormType = UpdateProductVariantDto & {
   name: string;
   additional_price: number;
@@ -42,6 +15,45 @@ export type UpdateProductVariantFormType = UpdateProductVariantDto & {
   stock_quantity: number;
 };
 
+type CleanCreateProductDto = Omit<
+  CreateProductSwaggerDto,
+  "thumbnail" | "general_gallery" | "variant_images"
+>;
+
+type CleanUpdateProductDto = Omit<
+  UpdateProductSwaggerDto,
+  "thumbnail" | "general_gallery" | "variant_images"
+>;
+
+type UpdateProductFormType = Omit<CleanUpdateProductDto, "variants"> & {
+  variants?: UpdateProductVariantFormType[];
+};
+
+// Schema biến thể khi tạo mới sản phẩm
+export const CreateProductVariantBody = z
+  .object({
+    name: z
+      .string()
+      .min(PRODUCT_LIMITS.NAME_MIN_LENGTH, "Tên biến thể không được để trống.")
+      .max(PRODUCT_LIMITS.VARIANT.NAME_MAX_LENGTH, "Tên biến thể không quá 100 ký tự."),
+    additional_price: z
+      .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
+      .min(PRODUCT_LIMITS.VARIANT.MIN_PRICE, "Giá thêm không được âm.")
+      .default(0),
+    sku: z.string().default(""),
+    stock_quantity: z
+      .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
+      .int("Tồn kho phải là số nguyên.")
+      .min(PRODUCT_LIMITS.VARIANT.MIN_STOCK, "Tồn kho không được âm."),
+    imageCount: z
+      .number()
+      .int("Số lượng ảnh phải là số nguyên.")
+      .min(PRODUCT_LIMITS.VARIANT.MIN_IMAGES, "Biến thể cần ít nhất 1 ảnh.")
+      .max(PRODUCT_LIMITS.VARIANT.MAX_IMAGES, "Biến thể tối đa 3 ảnh."),
+  })
+  .strict() satisfies z.ZodType<CreateProductVariantDto, any, any>;
+
+// Schema biến thể khi cập nhật sản phẩm
 export const UpdateProductVariantBody = z
   .object({
     id: z.string().uuid("ID biến thể không hợp lệ.").optional(),
@@ -49,120 +61,103 @@ export const UpdateProductVariantBody = z
     imageCount: z
       .number()
       .int("Số lượng ảnh phải là số nguyên.")
-      .min(0, "Số lượng ảnh không được âm.")
+      .min(PRODUCT_LIMITS.MIN_STOCK, "Số lượng ảnh không được âm.")
       .default(0),
     // Các trường UI bổ sung (không có trong UpdateProductVariantDto swagger)
     name: z
       .string()
-      .min(1, "Tên biến thể không được để trống.")
-      .max(100, "Tên biến thể không quá 100 ký tự."),
+      .min(PRODUCT_LIMITS.NAME_MIN_LENGTH, "Tên biến thể không được để trống.")
+      .max(PRODUCT_LIMITS.VARIANT.NAME_MAX_LENGTH, "Tên biến thể không quá 100 ký tự."),
     additional_price: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Giá thêm không được âm.")
+      .min(PRODUCT_LIMITS.VARIANT.MIN_PRICE, "Giá thêm không được âm.")
       .default(0),
     sku: z.string().optional(),
     stock_quantity: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
       .int("Tồn kho phải là số nguyên.")
-      .min(0, "Tồn kho không được âm."),
+      .min(PRODUCT_LIMITS.VARIANT.MIN_STOCK, "Tồn kho không được âm."),
   })
   .strict() satisfies z.ZodType<UpdateProductVariantFormType, any, any>;
 
 // Schema tạo sản phẩm mới (không bao gồm các trường file binary)
-// Khớp với CreateProductSwaggerDto (bỏ thumbnail, general_gallery, variant_images)
-type CleanCreateProductDto = Omit<
-  CreateProductSwaggerDto,
-  "thumbnail" | "general_gallery" | "variant_images"
->;
 export const CreateProductBody = z
   .object({
     name: z
       .string()
-      .min(1, "Tên sản phẩm không được để trống.")
-      .max(200, "Tên sản phẩm không quá 200 ký tự."),
+      .min(PRODUCT_LIMITS.NAME_MIN_LENGTH, "Tên sản phẩm không được để trống.")
+      .max(PRODUCT_LIMITS.NAME_MAX_LENGTH, "Tên sản phẩm không quá 200 ký tự."),
     description: z.string().optional(),
     price: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Giá sản phẩm không được âm."),
+      .min(PRODUCT_LIMITS.MIN_PRICE, "Giá sản phẩm không được âm."),
     sku: z.string().default(""),
     weight: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(1, "Trọng lượng phải ít nhất 1 gram."),
+      .min(PRODUCT_LIMITS.MIN_WEIGHT, "Trọng lượng phải ít nhất 1 gram."),
     length: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều dài không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều dài phải ít nhất 1 cm.")
       .optional(),
     width: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều rộng không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều rộng phải ít nhất 1 cm.")
       .optional(),
     height: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều cao không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều cao phải ít nhất 1 cm.")
       .optional(),
     category_id: z.string().min(1, "Vui lòng chọn danh mục."),
     stock_quantity: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
       .int("Tồn kho phải là số nguyên.")
-      .min(0, "Tồn kho không được âm.")
+      .min(PRODUCT_LIMITS.MIN_STOCK, "Tồn kho không được âm.")
       .optional(),
     has_variants: z.boolean(),
-    variants: z.array(CreateProductVariantBody).optional(),
+    variants: z.array(CreateProductVariantBody).max(PRODUCT_LIMITS.MAX_VARIANTS, "Sản phẩm chỉ được phép có tối đa 30 biến thể.").optional(),
   })
   .strict() satisfies z.ZodType<CleanCreateProductDto, any, any>;
 
 // Schema cập nhật sản phẩm (không bao gồm các trường file binary)
-// Khớp với UpdateProductSwaggerDto (bỏ thumbnail, general_gallery, variant_images)
-
-type CleanUpdateProductDto = Omit<
-  UpdateProductSwaggerDto,
-  "thumbnail" | "general_gallery" | "variant_images"
->;
-
-// SỬA: Định nghĩa kiểu dữ liệu kết hợp cho Form Cập nhật vì mảng variants chứa các trường UI nâng cao
-type UpdateProductFormType = Omit<CleanUpdateProductDto, "variants"> & {
-  variants?: UpdateProductVariantFormType[];
-};
-
 export const UpdateProductBody = z
   .object({
     name: z
       .string()
-      .min(1, "Tên sản phẩm không được để trống.")
-      .max(200, "Tên sản phẩm không quá 200 ký tự.")
+      .min(PRODUCT_LIMITS.NAME_MIN_LENGTH, "Tên sản phẩm không được để trống.")
+      .max(PRODUCT_LIMITS.NAME_MAX_LENGTH, "Tên sản phẩm không quá 200 ký tự.")
       .optional(),
     description: z.string().optional(),
     price: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Giá sản phẩm không được âm.")
+      .min(PRODUCT_LIMITS.MIN_PRICE, "Giá sản phẩm không được âm.")
       .optional(),
     sku: z.string().optional(),
     weight: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(1, "Trọng lượng phải ít nhất 1 gram.")
+      .min(PRODUCT_LIMITS.MIN_WEIGHT, "Trọng lượng phải ít nhất 1 gram.")
       .optional(),
     length: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều dài không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều dài phải ít nhất 1 cm.")
       .optional(),
     width: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều rộng không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều rộng phải ít nhất 1 cm.")
       .optional(),
     height: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
-      .min(0, "Chiều cao không được âm.")
+      .min(PRODUCT_LIMITS.MIN_DIMENSION, "Chiều cao phải ít nhất 1 cm.")
       .optional(),
     category_id: z.string().min(1, "Vui lòng chọn danh mục.").optional(),
     stock_quantity: z
       .number({ invalid_type_error: "Vui lòng nhập số hợp lệ." })
       .int("Tồn kho phải là số nguyên.")
-      .min(0, "Tồn kho không được âm.")
+      .min(PRODUCT_LIMITS.MIN_STOCK, "Tồn kho không được âm.")
       .optional(),
     has_variants: z.boolean().optional(),
     status: z.enum(["active", "deleted"]).optional(),
     is_hidden: z.boolean().optional(),
-    variants: z.array(UpdateProductVariantBody).optional(),
+    variants: z.array(UpdateProductVariantBody).max(PRODUCT_LIMITS.MAX_VARIANTS, "Sản phẩm chỉ được phép có tối đa 30 biến thể.").optional(),
     existingGalleryImages: z.array(z.string()).optional(),
   })
   .strict() satisfies z.ZodType<UpdateProductFormType, any, any>;
@@ -228,6 +223,9 @@ export const SingleProductResponse = z.object({
   data: ProductResponse,
 });
 
+// ==========================================
+// Types
+// ==========================================
 export type CreateProductVariantBodyType = z.TypeOf<
   typeof CreateProductVariantBody
 >;

@@ -1,5 +1,5 @@
 import http from "@/lib/http";
-import { ShopResponseResType } from "@/schemaValidations/seller.schema";
+import { ShopResponseResType } from "@/schemaValidations/shops/shops.schema";
 
 const sellerShopsApiRequest = {
   // === C: Create / Register ===

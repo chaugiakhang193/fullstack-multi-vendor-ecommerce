@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import {
   RegisterBody,
   RegisterBodyType,
-} from "@/schemaValidations/auth.schema";
+} from "@/schemaValidations/auth/auth.schema";
 import authApiRequest from "@/apiRequests/auth/auth";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";

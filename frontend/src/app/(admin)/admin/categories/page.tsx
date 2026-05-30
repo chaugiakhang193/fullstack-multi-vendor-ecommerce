@@ -26,7 +26,7 @@ import {
   CreateCategoryBodyType,
   UpdateCategoryBodyType,
   CategoryResponseType,
-} from "@/schemaValidations/categories.schema";
+} from "@/schemaValidations/products/categories.schema";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
