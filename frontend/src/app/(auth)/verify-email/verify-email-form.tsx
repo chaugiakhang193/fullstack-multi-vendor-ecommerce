@@ -29,7 +29,7 @@ import { Loader2 } from "lucide-react";
 import {
   VerifyEmailBody,
   VerifyEmailBodyType,
-} from "@/schemaValidations/auth.schema";
+} from "@/schemaValidations/auth/auth.schema";
 
 export function VerifyEmailForm({
   className,

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import { ShopResponseType } from "@/schemaValidations/seller.schema";
+import { ShopResponseType } from "@/schemaValidations/shops/shops.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

@@ -28,7 +28,7 @@ import { Loader2 } from "lucide-react";
 import {
   ResetPasswordBody,
   ResetPasswordBodyType,
-} from "@/schemaValidations/auth.schema";
+} from "@/schemaValidations/auth/auth.schema";
 
 export function ResetPasswordForm({
   className,

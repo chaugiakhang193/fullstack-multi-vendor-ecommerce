@@ -1,5 +1,6 @@
 import z from "zod";
 import { UserRole, AccountStatus } from "@/constants/enum";
+import { AUTH_LIMITS } from "@/constants/limits";
 
 // Định nghĩa User
 export const UserSchema = z.object({
@@ -20,8 +21,8 @@ export const LoginBody = z
   .object({
     username: z
       .string()
-      .min(3, "Vui lòng nhập ít nhất 3 ký tự.")
-      .max(32, "Tên đăng nhập tối đa 32 ký tự.")
+      .min(AUTH_LIMITS.USERNAME_MIN_LENGTH, "Vui lòng nhập ít nhất 3 ký tự.")
+      .max(AUTH_LIMITS.USERNAME_MAX_LENGTH, "Tên đăng nhập tối đa 32 ký tự.")
       .refine(
         (val) => !val.includes(" "),
         "Email hoặc Tên đăng nhập không được chứa khoảng trắng.",
@@ -41,8 +42,8 @@ export const RegisterBody = z
   .object({
     username: z
       .string()
-      .min(3, "Tên đăng nhập phải có ít nhất 3 ký tự.")
-      .max(32, "Tên đăng nhập tối đa 32 ký tự.")
+      .min(AUTH_LIMITS.USERNAME_MIN_LENGTH, "Tên đăng nhập phải có ít nhất 3 ký tự.")
+      .max(AUTH_LIMITS.USERNAME_MAX_LENGTH, "Tên đăng nhập tối đa 32 ký tự.")
       .regex(
         /.*[a-zA-Z].*/,
         "Tên đăng nhập không hợp lệ. Phải chứa ít nhất một chữ cái, không được để toàn số.",
@@ -61,7 +62,7 @@ export const RegisterBody = z
       ),
     password: z
       .string()
-      .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+      .min(AUTH_LIMITS.PASSWORD_MIN_LENGTH, "Mật khẩu phải có ít nhất 8 ký tự.")
       .regex(/[A-Z]/, "Mật khẩu phải chứa ít nhất 1 chữ hoa.")
       .regex(/[a-z]/, "Mật khẩu phải chứa ít nhất 1 chữ thường.")
       .regex(/[0-9]/, "Mật khẩu phải chứa ít nhất 1 chữ số.")
@@ -91,7 +92,7 @@ export const ResetPasswordBody = z
     token: z.string().min(1, "Token không hợp lệ"),
     new_password: z
       .string()
-      .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+      .min(AUTH_LIMITS.PASSWORD_MIN_LENGTH, "Mật khẩu phải có ít nhất 8 ký tự.")
       .regex(/[A-Z]/, "Mật khẩu phải chứa ít nhất 1 chữ hoa.")
       .regex(/[a-z]/, "Mật khẩu phải chứa ít nhất 1 chữ thường.")
       .regex(/[0-9]/, "Mật khẩu phải chứa ít nhất 1 chữ số.")
@@ -118,7 +119,7 @@ export const ChangePasswordBody = z
       ),
     new_password: z
       .string()
-      .min(8, "Mật khẩu phải có ít nhất 8 ký tự.")
+      .min(AUTH_LIMITS.PASSWORD_MIN_LENGTH, "Mật khẩu phải có ít nhất 8 ký tự.")
       .regex(/[A-Z]/, "Mật khẩu phải chứa ít nhất 1 chữ hoa.")
       .regex(/[a-z]/, "Mật khẩu phải chứa ít nhất 1 chữ thường.")
       .regex(/[0-9]/, "Mật khẩu phải chứa ít nhất 1 chữ số.")
@@ -161,6 +162,9 @@ export const AccountRes = z.object({
   message: z.string(),
 });
 
+// ==========================================
+// Types
+// ==========================================
 export type AccountType = z.infer<typeof UserSchema>;
 
 export type RegisterBodyType = z.TypeOf<typeof RegisterBody>;

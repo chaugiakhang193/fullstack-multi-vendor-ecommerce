@@ -28,7 +28,7 @@ import { Loader2 } from "lucide-react";
 import {
   ForgotPasswordBody,
   ForgotPasswordBodyType,
-} from "@/schemaValidations/auth.schema";
+} from "@/schemaValidations/auth/auth.schema";
 
 export function ForgotPasswordForm({
   className,

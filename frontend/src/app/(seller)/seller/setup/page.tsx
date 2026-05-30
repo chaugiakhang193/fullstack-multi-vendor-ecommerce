@@ -21,8 +21,8 @@ import {
   CreateShopBody,
   CreateShopBodyType,
   ShopResponseType,
-} from "@/schemaValidations/seller.schema";
-import { CategoryResponseType } from "@/schemaValidations/categories.schema";
+} from "@/schemaValidations/shops/shops.schema";
+import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

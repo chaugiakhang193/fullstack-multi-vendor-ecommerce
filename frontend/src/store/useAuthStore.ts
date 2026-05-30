@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { AccountType } from "@/schemaValidations/auth.schema";
+import { AccountType } from "@/schemaValidations/auth/auth.schema";
 import authApiRequest from "@/apiRequests/auth/auth";
 import Cookies from "js-cookie";
 

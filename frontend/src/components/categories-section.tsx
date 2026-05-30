@@ -21,7 +21,7 @@ import {
 
 // Hooks & Services
 import { useCategories } from "@/hooks/useCategories";
-import { CategoryResponseType } from "@/schemaValidations/categories.schema";
+import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
 
 // Components
 import { Button } from "@/components/ui/button";

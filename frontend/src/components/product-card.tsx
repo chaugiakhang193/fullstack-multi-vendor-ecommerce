@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ProductResponseType } from "@/schemaValidations/products.schema";
+import { ProductResponseType } from "@/schemaValidations/products/products.schema";
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
 

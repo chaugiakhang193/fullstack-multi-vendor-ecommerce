@@ -16,7 +16,7 @@ import {
 
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
 import categoriesApiRequest from "@/apiRequests/products/categories";
-import { CategoryResponseType } from "@/schemaValidations/categories.schema";
+import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

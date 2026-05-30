@@ -3,7 +3,7 @@ import {
   RejectShopBodyType,
   GetPendingShopsResType,
   ActionShopResType,
-} from "@/schemaValidations/admin.schema";
+} from "@/schemaValidations/shops/shops.schema";
 
 const adminShopsApiRequest = {
   // === R: Read ===

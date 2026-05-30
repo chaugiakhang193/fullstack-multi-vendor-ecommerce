@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner"; // Thư viện dùng để hiển thị thông báo (toast notification) dạng pop-up
 
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // File định nghĩa các hàm gọi API đến backend cho seller
-import { ProductResponseType } from "@/schemaValidations/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
+import { ProductResponseType } from "@/schemaValidations/products/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
 import { Button } from "@/components/ui/button"; // Component nút bấm dùng chung từ Shadcn UI
 import {
   Dialog,

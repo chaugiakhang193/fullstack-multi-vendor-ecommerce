@@ -1,18 +1,19 @@
 import http from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
+import {
+  AddCartItemBodyType,
+  UpdateCartItemBodyType,
+  MergeCartBodyType,
+} from "@/schemaValidations/carts/carts.schema";
 
-// Trích xuất các DTO chính xác từ backend schema
-type AddCartItemDto = components["schemas"]["AddCartItemDto"];
-type UpdateCartItemDto = components["schemas"]["UpdateCartItemDto"];
-type MergeCartDto = components["schemas"]["MergeCartDto"];
 type CartResponseDto = components["schemas"]["CartResponseDto"];
 
 const cartApiRequest = {
   // === C: Create / Add / Merge ===
-  add: (body: AddCartItemDto) => 
+  add: (body: AddCartItemBodyType) => 
     http.post<CartResponseDto>("/cart/items", body),
 
-  merge: (body: MergeCartDto) => 
+  merge: (body: MergeCartBodyType) => 
     http.post<CartResponseDto>("/cart/merge", body),
 
   // === R: Read ===
@@ -20,7 +21,7 @@ const cartApiRequest = {
     http.get<CartResponseDto>("/cart"),
 
   // === U: Update ===
-  updateQuantity: (id: string, body: UpdateCartItemDto) => 
+  updateQuantity: (id: string, body: UpdateCartItemBodyType) => 
     http.patch<CartResponseDto>(`/cart/items/${id}`, body),
 
   // === D: Delete ===

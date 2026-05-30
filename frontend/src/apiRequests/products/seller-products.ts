@@ -2,7 +2,7 @@ import http from "@/lib/http";
 import {
   ProductListResponseType,
   SingleProductResponseType,
-} from "@/schemaValidations/products.schema";
+} from "@/schemaValidations/products/products.schema";
 
 const sellerProductsApiRequest = {
   // === C: Create ===

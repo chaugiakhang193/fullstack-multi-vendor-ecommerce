@@ -16,7 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import adminApiRequest from "@/apiRequests/shops/admin-shops";
-import { RejectShopBody, ShopType } from "@/schemaValidations/admin.schema";
+import { RejectShopBody, ShopType } from "@/schemaValidations/shops/shops.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

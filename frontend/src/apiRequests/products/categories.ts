@@ -4,7 +4,7 @@ import {
   UpdateCategoryBodyType,
   CategoryListResponseType,
   SingleCategoryResponseType,
-} from "@/schemaValidations/categories.schema";
+} from "@/schemaValidations/products/categories.schema";
 
 const categoriesApiRequest = {
   // === C: Create ===

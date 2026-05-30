@@ -17,8 +17,8 @@ import {
 
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // API liên quan đến seller
 import categoriesApiRequest from "@/apiRequests/products/categories"; // API liên quan đến danh mục
-import { CategoryResponseType } from "@/schemaValidations/categories.schema";
-import { ProductResponseType } from "@/schemaValidations/products.schema";
+import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
+import { ProductResponseType } from "@/schemaValidations/products/products.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
