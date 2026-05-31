@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -11,6 +11,10 @@ import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+
+// Cart Store & Drawer Component
+import { useCartStore } from "@/store/useCartStore";
+import CartDrawer from "@/components/cart/CartDrawer";
 import {
   Dialog,
   DialogContent,
@@ -57,46 +61,16 @@ export default function CustomerLayout({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartCount, setCartCount] = useState(0);
+  const cartItems = useCartStore((state) => state.items);
+  const setIsCartOpen = useCartStore((state) => state.setIsOpen);
+
+  const cartCount = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cartItems]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Đọc giỏ hàng khách từ localStorage để hiển thị số lượng badge
-  useEffect(() => {
-    const loadCartCount = () => {
-      const cartKey = "cart";
-      const cartData = localStorage.getItem(cartKey);
-      if (cartData) {
-        try {
-          const items = JSON.parse(cartData);
-          if (Array.isArray(items)) {
-            const totalItemsCount = items.reduce(
-              (sum: number, item: any) => sum + (item.quantity || 0),
-              0
-            );
-            setCartCount(totalItemsCount);
-          }
-        } catch (error) {
-          const logTitle = "Lỗi đọc giỏ hàng tạm thời:";
-          console.error(logTitle, error);
-        }
-      } else {
-        setCartCount(0);
-      }
-    };
-
-    if (isClient) {
-      loadCartCount();
-      
-      const cartUpdateEventName = "cart-updated";
-      window.addEventListener(cartUpdateEventName, loadCartCount);
-      return () => {
-        window.removeEventListener(cartUpdateEventName, loadCartCount);
-      };
-    }
-  }, [isClient]);
 
   // Gọi API lấy danh mục sản phẩm qua React Query
   const fetchCategoriesFn = () => categoriesApiRequest.getAll();
@@ -259,16 +233,18 @@ export default function CustomerLayout({
             )}
 
             {/* Cart Button */}
-            <Link href="/cart">
-              <button className="h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm">
-                <ShoppingCart className="h-6 w-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-rose-500 text-xs font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-zinc-950">
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </span>
-                )}
-              </button>
-            </Link>
+            <button
+              id="header-cart-btn"
+              onClick={() => setIsCartOpen(true)}
+              className="h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm cursor-pointer"
+            >
+              <ShoppingCart className="h-6 w-6" />
+              {isClient && cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-rose-500 text-xs font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-zinc-950">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
 
             <Separator orientation="vertical" className="h-12" />
 
@@ -667,6 +643,7 @@ export default function CustomerLayout({
           </div>
         </DialogContent>
       </Dialog>
+      <CartDrawer />
     </div>
   );
 }

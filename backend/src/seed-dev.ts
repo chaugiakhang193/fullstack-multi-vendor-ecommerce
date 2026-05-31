@@ -9,6 +9,55 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 import { AccountStatus, ProductStatus, UserRole } from '@/common/enums';
 import { hashDataHelper } from '@/common/helpers/utils';
 
+function parseVariantAttributes(name: string): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  const parts = name.split(' - ').map((p) => p.trim());
+
+  const parsePart = (part: string) => {
+    const lowerPart = part.toLowerCase();
+    if (lowerPart.includes('ram')) {
+      const ramVal = part.replace(/ram/i, '').trim();
+      attrs['ram'] = ramVal;
+      return;
+    }
+    if (lowerPart.includes('intel') || lowerPart.includes('core')) {
+      attrs['cpu'] = part;
+      return;
+    }
+    if (/^\d+gb$/i.test(part)) {
+      const storageVal = part.toUpperCase();
+      attrs['storage'] = storageVal;
+      return;
+    }
+    if (lowerPart.startsWith('size')) {
+      const sizeVal = part.replace(/size/i, '').trim();
+      attrs['size'] = sizeVal;
+      return;
+    }
+    if (lowerPart.startsWith('kích thước')) {
+      const sizeVal = part.replace(/kích thước/i, '').trim();
+      attrs['size'] = sizeVal;
+      return;
+    }
+    if (lowerPart.startsWith('màu ')) {
+      let colorVal = part.replace(/màu /i, '').trim();
+      colorVal = colorVal.replace(/ cá tính/i, '').replace(/ thanh lịch/i, '').trim();
+      attrs['color'] = colorVal;
+      return;
+    }
+    if (lowerPart.includes('nhám') || lowerPart.includes('tự nhiên') || lowerPart.includes('titan')) {
+      attrs['color'] = part;
+      return;
+    }
+  };
+
+  for (const part of parts) {
+    parsePart(part);
+  }
+
+  return attrs;
+}
+
 async function seed() {
   console.log(
     '====== BẮT ĐẦU GIEO HẠT DỮ LIỆU PHÁT TRIỂN (DEV SEEDER - 80 PRODUCTS) ======',
@@ -640,9 +689,12 @@ async function seed() {
       if (temp.hasVariants && temp.variants) {
         const variantsToSave = temp.variants.map((v) => {
           variantCount++;
+          const variantName = v.name;
+          const attributes = parseVariantAttributes(variantName);
           return variantRepository.create({
             product: savedProduct,
-            name: v.name,
+            name: variantName,
+            attributes: attributes,
             sku: `${baseSku}-${v.skuSuffix}`,
             additional_price: v.priceDiff,
             stock_quantity: v.stock,

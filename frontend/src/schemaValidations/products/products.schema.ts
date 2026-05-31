@@ -170,6 +170,7 @@ export const ProductVariantResponse = z.object({
   additional_price: z.number(),
   stock_quantity: z.number(),
   images: z.array(z.string()),
+  attributes: z.record(z.string()).nullable().optional(),
 });
 
 // Schema response cho 1 sản phẩm

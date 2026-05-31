@@ -1213,6 +1213,11 @@ export interface components {
              */
             name: string;
             /**
+             * @description Các thuộc tính chi tiết của biến thể (Màu sắc, Kích thước...)
+             * @example {"color": "Đỏ", "size": "L"}
+             */
+            attributes?: Record<string, string>;
+            /**
              * @description Mã định danh kho hàng của biến thể
              * @example SKU-RED-L
              */
