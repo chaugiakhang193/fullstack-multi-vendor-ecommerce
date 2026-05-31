@@ -54,6 +54,14 @@ export class CreateProductVariantDto {
     message: `Mỗi biến thể chỉ được phép có tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} hình ảnh`,
   })
   imageCount: number;
+
+  @ApiProperty({
+    example: { color: 'Đỏ', size: 'L' },
+    description: 'Các thuộc tính chi tiết cấu trúc của biến thể (Màu sắc, Kích cỡ...)',
+    required: false,
+  })
+  @IsOptional()
+  attributes?: Record<string, string>;
 }
 
 export class CreateProductDto {

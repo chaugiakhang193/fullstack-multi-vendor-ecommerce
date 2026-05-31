@@ -21,6 +21,9 @@ export class ProductVariant {
   @Column({ nullable: true })
   name: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  attributes: Record<string, string>;
+
   @Column({ nullable: true })
   sku: string;
 
