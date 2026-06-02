@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ProductResponseType } from "@/schemaValidations/products/products.schema";
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
+import { queryClient } from "@/lib/query-client";
+import productsApiRequest from "@/apiRequests/products/products";
 
 interface ProductCardProps {
   product: ProductResponseType;
@@ -25,6 +27,51 @@ const formatPrice = (val: number) => {
 export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
   const setIsOpen = useCartStore((state) => state.setIsOpen);
+
+  const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    // 1. Kiểm tra xem cache đã có sẵn dữ liệu chưa
+    const targetId = product.id;
+    const queryKey = ["product-detail", targetId];
+    const cachedData = queryClient.getQueryData(queryKey);
+    if (cachedData) return;
+
+    // 2. Thiết lập debounce prefetch sau 150ms để tránh spam khi lướt chuột nhanh
+    const delayTime = 150;
+    prefetchTimeoutRef.current = setTimeout(() => {
+      const queryFn = () => {
+        const detailPromise = productsApiRequest.getProductDetail(targetId);
+        return detailPromise;
+      };
+      const prefetchConfig = {
+        queryKey: queryKey,
+        queryFn: queryFn,
+        staleTime: 1000 * 60 * 5,
+      };
+      queryClient.prefetchQuery(prefetchConfig);
+    }, delayTime);
+  };
+
+  const handleMouseLeave = () => {
+    // Hủy prefetch nếu chuột rời đi trước khi hết thời gian debounce
+    const currentRef = prefetchTimeoutRef.current;
+    if (currentRef) {
+      clearTimeout(currentRef);
+      prefetchTimeoutRef.current = null;
+    }
+  };
+
+  // Dọn dẹp timeout khi unmount
+  useEffect(() => {
+    const cleanupFn = () => {
+      const currentRef = prefetchTimeoutRef.current;
+      if (currentRef) {
+        clearTimeout(currentRef);
+      }
+    };
+    return cleanupFn;
+  }, []);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -77,7 +124,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isOutOfStock = product.stock_quantity === 0;
 
   return (
-    <Link href={detailUrl} className="block group">
+    <Link
+      href={detailUrl}
+      className="block group"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="relative rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden hover:scale-[1.02] hover:shadow-md transition-all duration-300 flex flex-col h-full">
         {/* Thumbnail Image Wrapper */}
         <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
