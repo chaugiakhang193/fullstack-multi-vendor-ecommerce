@@ -62,25 +62,11 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @Redirect()
   @ResponseMessage('Lấy chi tiết sản phẩm thành công')
   @ApiOperation({ summary: 'Khách hàng lấy chi tiết sản phẩm (Public)' })
   @ApiGenericResponse(ProductResponseDto, 'Lấy chi tiết sản phẩm thành công')
   @ApiResponse({ status: 404, description: 'Không tìm thấy sản phẩm' })
   async findOne(@Param('id') idWithSlug: string) {
-    const product = await this.productsService.findOne(idWithSlug, true);
-
-    // Logic SEO Redirect 301
-    // Nếu URL không chứa '-i.' hoặc slug không khớp với slug hiện tại trong DB
-    const canonicalPart = `${product.slug}-i.${product.id}`;
-
-    if (idWithSlug !== canonicalPart) {
-      return {
-        url: `/api/v1/products/${canonicalPart}`,
-        statusCode: 301,
-      };
-    }
-
-    return product;
+    return await this.productsService.findOne(idWithSlug, true);
   }
 }
