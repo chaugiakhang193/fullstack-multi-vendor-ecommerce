@@ -18,7 +18,7 @@ export interface CartItem {
   variants: ProductVariantResponseType[];
   basePrice: number;
   hasVariants: boolean;
-  productStock: number;
+  baseStock: number;
 }
 
 interface CartState {
@@ -58,7 +58,7 @@ export const useCartStore = create<CartState>()(
           const targetVariant = existingItem.variantId
             ? existingItem.variants.find((v) => v.id === existingItem.variantId)
             : null;
-          const maxStock = targetVariant ? targetVariant.stock_quantity : existingItem.productStock;
+          const maxStock = targetVariant ? targetVariant.stock_quantity : existingItem.baseStock;
 
           const updatedQuantity = existingItem.quantity + quantity;
 
@@ -77,6 +77,8 @@ export const useCartStore = create<CartState>()(
         } else {
           const itemToAdd: CartItem = {
             ...newItem,
+            price: Number(newItem.price),
+            basePrice: Number(newItem.basePrice),
             quantity,
           };
           const updatedItems = [...items, itemToAdd];
@@ -107,7 +109,7 @@ export const useCartStore = create<CartState>()(
         const targetVariant = variantId
           ? targetItem.variants.find((v) => v.id === variantId)
           : null;
-        const maxStock = targetVariant ? targetVariant.stock_quantity : targetItem.productStock;
+        const maxStock = targetVariant ? targetVariant.stock_quantity : targetItem.baseStock;
 
         if (quantity > maxStock) {
           const limitMsg = `Rất tiếc, sản phẩm này chỉ còn ${maxStock} sản phẩm trong kho!`;
@@ -172,7 +174,7 @@ export const useCartStore = create<CartState>()(
         if (!newVariant) return;
 
         // 3. Tính toán giá mới và thumbnail mới
-        const finalPrice = oldItem.basePrice + newVariant.additional_price;
+        const finalPrice = Number(oldItem.basePrice) + Number(newVariant.additional_price);
         const finalThumbnailUrl =
           newVariant.images && newVariant.images.length > 0
             ? newVariant.images[0]

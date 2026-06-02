@@ -80,9 +80,9 @@ export function FilterSidebar({
     let updatedIds: string[];
 
     if (isSelected) {
-      updatedIds = filters.categoryIds.filter((cid) => cid !== id);
+      updatedIds = [];
     } else {
-      updatedIds = [...filters.categoryIds, id];
+      updatedIds = [id];
     }
 
     const updatedFilters = {

@@ -136,8 +136,8 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   // Price calculations based on variant
   const finalPrice = selectedVariant
-    ? product.price + selectedVariant.additional_price
-    : product.price;
+    ? Number(product.price) + Number(selectedVariant.additional_price)
+    : Number(product.price);
 
   // Max stock limit check
   const maxStock = selectedVariant
@@ -232,15 +232,15 @@ export default function ProductDetailPage({ params }: PageProps) {
       productId: product.id,
       variantId: selectedVariant ? selectedVariant.id : null,
       name: product.name,
-      price: finalPrice,
+      price: Number(finalPrice),
       thumbnailUrl: activeImageUrl || product.thumbnail_url || "/placeholder-product.png",
       shopId: product.shop?.id || "default-shop",
       shopName: product.shop?.name || "Cửa hàng",
       productSlug: rawSlug,
       variants: product.variants || [],
-      basePrice: product.price,
+      basePrice: Number(product.price),
       hasVariants: product.has_variants,
-      productStock: product.stock_quantity,
+      baseStock: product.stock_quantity,
       quantity,
     });
 
@@ -365,9 +365,9 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className="text-3xl font-black text-violet-600 dark:text-violet-400">
               {formatPrice(finalPrice)}
             </div>
-            {selectedVariant && selectedVariant.additional_price > 0 && (
+            {selectedVariant && Number(selectedVariant.additional_price) > 0 && (
               <span className="text-[10px] text-muted-foreground font-semibold">
-                (Đã gồm {formatPrice(selectedVariant.additional_price)} phụ phí phiên bản)
+                (Đã gồm {formatPrice(Number(selectedVariant.additional_price))} phụ phí phiên bản)
               </span>
             )}
           </div>

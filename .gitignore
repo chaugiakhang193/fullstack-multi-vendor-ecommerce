@@ -1,2 +1,9 @@
 # Backups
 .backup/
+
+# Markdown files
+*.md
+
+# Cursor configurations
+.cursorrules
+.cursor/

@@ -94,7 +94,7 @@ export default function ProductsSection() {
 
       {/* Hiển thị danh sách sản phẩm dạng Grid hoặc Empty State */}
       {productsList.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-[360px]:gap-3">
           {productsList.map((product) => {
             const productKey = product.id;
             return <ProductCard key={productKey} product={product} />;

@@ -1,16 +1,29 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
 import categoriesApiRequest from "@/apiRequests/products/categories";
+import productsApiRequest from "@/apiRequests/products/products";
+import useDebounce from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+
+// Khai báo price formatter ngoài component để tránh re-creation và tuân thủ rule
+const priceFormatterObj = new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
+});
+
+const formatPriceVal = (val: number) => {
+  return priceFormatterObj.format(val);
+};
 
 // Cart Store & Drawer Component
 import { useCartStore } from "@/store/useCartStore";
@@ -61,6 +74,172 @@ export default function CustomerLayout({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const searchMobileWrapperRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Gọi gợi ý tìm kiếm qua React Query khi gõ từ 2 ký tự trở lên
+  const isSuggestionsEnabled = debouncedSearchQuery.trim().length >= 2;
+  
+  const suggestionsQuery = useQuery({
+    queryKey: ["product-suggestions", debouncedSearchQuery],
+    queryFn: async () => {
+      const getParams = { q: debouncedSearchQuery, limit: 5 };
+      const response = await productsApiRequest.getPublicProducts(getParams);
+      return response;
+    },
+    enabled: isSuggestionsEnabled,
+    staleTime: 1000 * 60 * 1, // Cache gợi ý trong 1 phút
+  });
+
+  const suggestions = suggestionsQuery.data?.data?.items || [];
+  const isSuggestionsLoading = suggestionsQuery.isLoading;
+
+  // Lắng nghe click outside để ẩn gợi ý tìm kiếm
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const isOutsideDesktop = !searchWrapperRef.current || !searchWrapperRef.current.contains(event.target as Node);
+      const isOutsideMobile = !searchMobileWrapperRef.current || !searchMobileWrapperRef.current.contains(event.target as Node);
+      if (isOutsideDesktop && isOutsideMobile) {
+        setIsSuggestionsOpen(false);
+        setActiveIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSuggestionClick = (product: any) => {
+    const slugId = `${product.slug}-i.${product.id}`;
+    const detailUrl = `/products/${slugId}`;
+    router.push(detailUrl);
+    setSearchQuery("");
+    setIsSuggestionsOpen(false);
+    setIsMobileSearchOpen(false);
+    setActiveIndex(-1);
+  };
+
+  // Helper tô đậm từ khóa tìm kiếm trùng khớp
+  const highlightText = (text: string, query: string) => {
+    if (!query) return <span>{text}</span>;
+    const regexPattern = new RegExp(`(${query})`, "gi");
+    const parts = text.split(regexPattern);
+    return (
+      <span>
+        {parts.map((part, index) => {
+          const keyVal = `highlight-part-${index}`;
+          const isMatch = part.toLowerCase() === query.toLowerCase();
+          return isMatch ? (
+            <span key={keyVal} className="font-extrabold text-violet-600 dark:text-violet-400">
+              {part}
+            </span>
+          ) : (
+            <span key={keyVal}>{part}</span>
+          );
+        })}
+      </span>
+    );
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        setActiveIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+      }
+    } else if (e.key === "Enter") {
+      if (activeIndex >= 0 && activeIndex < suggestions.length) {
+        e.preventDefault();
+        const selectedProduct = suggestions[activeIndex];
+        handleSuggestionClick(selectedProduct);
+      } else {
+        handleSearchSubmit();
+      }
+    } else if (e.key === "Escape") {
+      setIsSuggestionsOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  const renderSuggestionsList = () => {
+    if (!isSuggestionsOpen) return null;
+    
+    // Chỉ hiển thị gợi ý khi có từ 2 ký tự trở lên
+    const hasMinLength = searchQuery.trim().length >= 2;
+    if (!hasMinLength) return null;
+
+    return (
+      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-950 border dark:border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-900 animate-fade-in max-h-96 overflow-y-auto">
+        {isSuggestionsLoading ? (
+          <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+            <span>Đang tìm kiếm gợi ý...</span>
+          </div>
+        ) : suggestions.length > 0 ? (
+          <>
+            <div className="px-4 py-2 bg-zinc-50 dark:bg-zinc-900/50 shrink-0 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gợi ý sản phẩm</span>
+              <span className="text-[9px] text-muted-foreground font-semibold">Dùng ↑↓ Enter để chọn</span>
+            </div>
+            {suggestions.map((product: any, index: number) => {
+              const isActive = index === activeIndex;
+              const productKey = `suggestion-${product.id}`;
+              const priceText = formatPriceVal(product.price);
+              
+              return (
+                <div
+                  key={productKey}
+                  onClick={() => handleSuggestionClick(product)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${
+                    isActive
+                      ? "bg-violet-500/10 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400 font-medium"
+                      : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  }`}
+                >
+                  <div className="relative h-12 w-12 rounded-lg overflow-hidden shrink-0 bg-zinc-100 dark:bg-zinc-800">
+                    <Image
+                      src={product.thumbnail_url || "/placeholder-product.png"}
+                      alt={product.name}
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="text-sm font-bold text-foreground truncate group-hover:text-violet-600">
+                      {highlightText(product.name, searchQuery)}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {product.shop?.name || "Cửa hàng"}
+                    </div>
+                  </div>
+                  <div className="text-sm font-black text-violet-600 dark:text-violet-400">
+                    {priceText}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <div className="p-6 text-center text-sm text-muted-foreground italic flex flex-col items-center justify-center gap-2">
+            <AlertCircle className="h-5 w-5 text-zinc-400" />
+            <span>Không tìm thấy gợi ý phù hợp cho "<strong className="text-foreground not-italic">{searchQuery}</strong>"</span>
+          </div>
+        )}
+      </div>
+    );
+  };
   const cartItems = useCartStore((state) => state.items);
   const setIsCartOpen = useCartStore((state) => state.setIsOpen);
 
@@ -91,9 +270,12 @@ export default function CustomerLayout({
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.trim();
-      const targetUrl = `/search?q=${encodeURIComponent(query)}`;
+      const encodedQuery = encodeURIComponent(query);
+      const targetUrl = `/products?q=${encodedQuery}`;
       router.push(targetUrl);
       setIsMobileSearchOpen(false);
+      setIsSuggestionsOpen(false);
+      setActiveIndex(-1);
     }
   };
 
@@ -199,7 +381,7 @@ export default function CustomerLayout({
           </div>
 
           {/* Search Bar (Middle - Desktop) */}
-          <div className="relative flex-1 max-w-4xl mx-auto hidden md:block">
+          <div ref={searchWrapperRef} className="relative flex-1 max-w-4xl mx-auto hidden md:block">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
             <input
               type="text"
@@ -209,9 +391,12 @@ export default function CustomerLayout({
               onChange={(e) => {
                 const val = e.target.value;
                 setSearchQuery(val);
+                setIsSuggestionsOpen(true);
               }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+              onFocus={() => setIsSuggestionsOpen(true)}
+              onKeyDown={handleKeyDown}
             />
+            {renderSuggestionsList()}
           </div>
 
           {/* Right Actions Section */}
@@ -351,7 +536,7 @@ export default function CustomerLayout({
 
           {/* Slide-down Mobile Search Bar Overlay */}
           {isMobileSearchOpen && (
-            <div className="absolute inset-0 bg-white dark:bg-zinc-950 z-50 flex items-center px-4 gap-2 animate-fade-in border-b">
+            <div ref={searchMobileWrapperRef} className="absolute inset-0 bg-white dark:bg-zinc-950 z-50 flex items-center px-4 gap-2 animate-fade-in border-b">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
@@ -361,16 +546,23 @@ export default function CustomerLayout({
                 onChange={(e) => {
                   const val = e.target.value;
                   setSearchQuery(val);
+                  setIsSuggestionsOpen(true);
                 }}
-                onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+                onFocus={() => setIsSuggestionsOpen(true)}
+                onKeyDown={handleKeyDown}
                 autoFocus
               />
               <button
-                onClick={() => setIsMobileSearchOpen(false)}
+                onClick={() => {
+                  setIsMobileSearchOpen(false);
+                  setIsSuggestionsOpen(false);
+                  setActiveIndex(-1);
+                }}
                 className="text-xs font-bold text-muted-foreground hover:text-foreground px-2 py-1"
               >
                 Hủy
               </button>
+              {renderSuggestionsList()}
             </div>
           )}
         </div>

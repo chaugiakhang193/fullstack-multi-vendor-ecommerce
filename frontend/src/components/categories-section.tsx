@@ -125,7 +125,7 @@ export default function CategoriesSection() {
       </div>
 
       {rootCategories.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 max-[360px]:gap-3">
           {rootCategories.map((cat: CategoryResponseType) => {
             // Lấy icon tương ứng từ map, nếu không có thì dùng Package làm fallback
             const IconComponent = CATEGORY_ICON_MAP[cat.slug] || Package;
@@ -135,14 +135,14 @@ export default function CategoriesSection() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(currentCategoryId)}
-                className="flex flex-col items-center justify-center p-6 rounded-2xl border bg-card text-card-foreground shadow-sm hover:scale-[1.03] hover:shadow-md hover:border-violet-500/50 dark:hover:border-violet-500/30 transition-all duration-300 gap-4 group text-center"
+                className="flex flex-col items-center justify-center p-6 max-[360px]:p-3 rounded-2xl border bg-card text-card-foreground shadow-sm hover:scale-[1.03] hover:shadow-md hover:border-violet-500/50 dark:hover:border-violet-500/30 transition-all duration-300 gap-4 max-[360px]:gap-2 group text-center"
               >
                 {/* Wrapper cho Icon */}
-                <div className="p-4 rounded-full bg-zinc-100 dark:bg-zinc-900 group-hover:bg-violet-100 dark:group-hover:bg-violet-950/50 group-hover:text-violet-600 dark:group-hover:text-violet-400 text-muted-foreground transition-all duration-300">
-                  <IconComponent className="h-8 w-8 shrink-0" />
+                <div className="p-4 max-[360px]:p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 group-hover:bg-violet-100 dark:group-hover:bg-violet-950/50 group-hover:text-violet-600 dark:group-hover:text-violet-400 text-muted-foreground transition-all duration-300">
+                  <IconComponent className="h-8 w-8 max-[360px]:h-6 max-[360px]:w-6 shrink-0" />
                 </div>
                 {/* Tên danh mục */}
-                <span className="text-base font-extrabold leading-snug truncate w-full group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                <span className="text-base max-[360px]:text-xs font-extrabold leading-snug truncate w-full group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                   {cat.name}
                 </span>
               </button>

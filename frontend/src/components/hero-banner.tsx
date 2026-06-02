@@ -13,7 +13,7 @@ export default function HeroBanner() {
       <div className="absolute bottom-0 left-0 translate-y-12 -translate-x-12 w-80 h-80 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
 
       {/* Main Content Container */}
-      <div className="relative px-6 py-16 md:py-24 sm:px-12 max-w-6xl mx-auto text-center flex flex-col items-center justify-center gap-6 animate-fade-in z-10">
+      <div className="relative px-6 py-16 md:py-24 sm:px-12 max-w-6xl mx-auto text-center flex flex-col items-center justify-center gap-6 animate-fade-in-up z-10">
         
         {/* Special Tagline Badge */}
         <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-extrabold tracking-wide uppercase select-none">
@@ -38,7 +38,7 @@ export default function HeroBanner() {
           <Link href="/products">
             <Button
               size="lg"
-              className="font-bold text-lg h-16 px-12 rounded-full bg-white hover:bg-zinc-100 text-indigo-700 hover:text-indigo-800 shadow-lg shadow-black/15 transition-all duration-300"
+              className="font-bold text-lg h-16 px-12 rounded-full bg-white hover:bg-zinc-100 text-indigo-700 hover:text-indigo-800 shadow-lg shadow-indigo-500/10 hover:scale-105 active:scale-95 transition-all duration-300"
             >
               <span>Khám phá ngay</span>
               <ArrowRight className="ml-1.5 h-5 w-5" />
@@ -48,7 +48,7 @@ export default function HeroBanner() {
             <Button
               size="lg"
               variant="ghost"
-              className="font-bold text-lg h-16 px-12 rounded-full border border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white transition-all duration-300"
+              className="font-bold text-lg h-16 px-12 rounded-full border border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white hover:scale-105 active:scale-95 transition-all duration-300"
             >
               Bán hàng cùng chúng tôi
             </Button>
