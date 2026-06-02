@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ProductResponseType } from "@/schemaValidations/products/products.schema";
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
+import { useCartStore } from "@/store/useCartStore";
 
 interface ProductCardProps {
   product: ProductResponseType;
@@ -21,17 +22,10 @@ const formatPrice = (val: number) => {
   return priceFormatter.format(val);
 };
 
-interface LocalCartItem {
-  productId: string;
-  variantId: string | null;
-  quantity: number;
-  name: string;
-  price: number;
-  thumbnailUrl: string;
-  shopName: string;
-}
-
 export default function ProductCard({ product }: ProductCardProps) {
+  const addItem = useCartStore((state) => state.addItem);
+  const setIsOpen = useCartStore((state) => state.setIsOpen);
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -43,78 +37,40 @@ export default function ProductCard({ product }: ProductCardProps) {
       return;
     }
 
-    const cartKey = "cart";
-    const existingCart = localStorage.getItem(cartKey);
-    let cartItems: LocalCartItem[] = [];
-    if (existingCart) {
-      try {
-        cartItems = JSON.parse(existingCart);
-      } catch (error) {
-        const logTitle = "Lỗi phân tích giỏ hàng:";
-        console.error(logTitle, error);
-      }
-    }
-
-    if (!Array.isArray(cartItems)) {
-      cartItems = [];
-    }
-
     // Chọn biến thể đầu tiên của sản phẩm nếu có, ngược lại lấy sản phẩm gốc
     const targetVariant = product.variants?.[0];
     const variantId = targetVariant ? targetVariant.id : null;
 
     // Xác định đúng giá tiền và hình ảnh theo biến thể được chọn
     const finalPrice = targetVariant
-      ? product.price + targetVariant.additional_price
-      : product.price;
+      ? Number(product.price) + Number(targetVariant.additional_price)
+      : Number(product.price);
     const finalThumbnailUrl =
       targetVariant && targetVariant.images && targetVariant.images.length > 0
         ? targetVariant.images[0]
         : (product.thumbnail_url || "/placeholder-product.png");
 
-    const findItemFn = (item: LocalCartItem) => {
-      const isSameProduct = item.productId === product.id;
-      const isSameVariant = item.variantId === variantId;
-      return isSameProduct && isSameVariant;
-    };
-    const existingItem = cartItems.find(findItemFn);
+    addItem({
+      productId: product.id,
+      variantId: variantId,
+      name: product.name,
+      price: Number(finalPrice),
+      thumbnailUrl: finalThumbnailUrl,
+      shopId: product.shop?.id || "default-shop",
+      shopName: product.shop?.name || "Cửa hàng",
+      productSlug: `${product.slug}-i.${product.id}`,
+      variants: product.variants || [],
+      basePrice: Number(product.price),
+      hasVariants: product.has_variants,
+      baseStock: product.stock_quantity,
+    });
 
-    if (existingItem) {
-      const maxQuantity = targetVariant ? targetVariant.stock_quantity : product.stock_quantity;
-      const newQty = existingItem.quantity + 1;
-      if (newQty > maxQuantity) {
-        const limitMsg = "Số lượng trong giỏ hàng đã đạt giới hạn tồn kho!";
-        toast.error(limitMsg);
-        return;
-      }
-      existingItem.quantity = newQty;
-    } else {
-      const newItem: LocalCartItem = {
-        productId: product.id,
-        variantId: variantId,
-        quantity: 1,
-        name: product.name,
-        price: finalPrice,
-        thumbnailUrl: finalThumbnailUrl,
-        shopName: product.shop?.name || "Cửa hàng",
-      };
-      cartItems.push(newItem);
-    }
-
-    const stringifiedCart = JSON.stringify(cartItems);
-    localStorage.setItem(cartKey, stringifiedCart);
-
-    const successMsg = `Đã thêm ${product.name} vào giỏ hàng!`;
-    toast.success(successMsg);
-
-    // Phát sự kiện để cập nhật Badge giỏ hàng trên Header trong thời gian thực
-    const cartUpdateEventName = "cart-updated";
-    const customEvent = new CustomEvent(cartUpdateEventName);
-    window.dispatchEvent(customEvent);
+    // Mở giỏ hàng để khách hàng nhìn thấy sản phẩm đã được thêm thành công
+    setIsOpen(true);
   };
 
   const detailUrl = `/products/${product.slug}-i.${product.id}`;
-  const priceVal = product.price;
+  const priceVal = Number(product.price);
   const priceText = formatPrice(priceVal);
 
   const isFeatured = product.is_featured;

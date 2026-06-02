@@ -68,7 +68,11 @@ export default function CartDrawer() {
 
   // Compute subtotal
   const subtotal = useMemo(() => {
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = items.reduce((sum, item) => {
+      const price = Number(item.price);
+      const quantity = Number(item.quantity);
+      return sum + (Number.isNaN(price) ? 0 : price) * (Number.isNaN(quantity) ? 0 : quantity);
+    }, 0);
     return total;
   }, [items]);
 

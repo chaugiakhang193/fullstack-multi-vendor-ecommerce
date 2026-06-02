@@ -1,2 +1,5 @@
 # Backups
 .backup/
+
+# Markdown files
+*.md

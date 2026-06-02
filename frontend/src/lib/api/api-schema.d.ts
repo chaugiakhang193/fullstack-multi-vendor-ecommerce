@@ -1214,9 +1214,12 @@ export interface components {
             name: string;
             /**
              * @description Các thuộc tính chi tiết của biến thể (Màu sắc, Kích thước...)
-             * @example {"color": "Đỏ", "size": "L"}
+             * @example {
+             *       "color": "Đỏ",
+             *       "size": "L"
+             *     }
              */
-            attributes?: Record<string, string>;
+            attributes?: Record<string, never>;
             /**
              * @description Mã định danh kho hàng của biến thể
              * @example SKU-RED-L
@@ -1377,6 +1380,14 @@ export interface components {
              * @example 1
              */
             imageCount: number;
+            /**
+             * @description Các thuộc tính chi tiết cấu trúc của biến thể (Màu sắc, Kích cỡ...)
+             * @example {
+             *       "color": "Đỏ",
+             *       "size": "L"
+             *     }
+             */
+            attributes?: Record<string, never>;
         };
         CreateProductSwaggerDto: {
             /**
@@ -1473,6 +1484,14 @@ export interface components {
              * @example 1
              */
             imageCount: number;
+            /**
+             * @description Các thuộc tính chi tiết cấu trúc của biến thể (Màu sắc, Kích cỡ...)
+             * @example {
+             *       "color": "Đỏ",
+             *       "size": "L"
+             *     }
+             */
+            attributes?: Record<string, never>;
             /** @description ID của biến thể (nếu là cập nhật) */
             id?: string;
             /** @description Danh sách URL ảnh cũ giữ lại */
