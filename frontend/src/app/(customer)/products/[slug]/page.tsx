@@ -82,6 +82,16 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
   }, [product]);
 
+  // Redirect SEO URL
+  useEffect(() => {
+    if (product) {
+      const canonicalSlug = `${product.slug}-i.${product.id}`;
+      if (rawSlug !== canonicalSlug) {
+        router.replace(`/products/${canonicalSlug}`);
+      }
+    }
+  }, [product, rawSlug, router]);
+
   // When variant changes, update active main image to variant's first image (if available)
   useEffect(() => {
     if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
