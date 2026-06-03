@@ -79,9 +79,13 @@ export default function AppProvider({
       } else if (data.type === "logout_success") {
         logout();
         toast.info("Đã đăng xuất tài khoản từ tab khác!");
+        
+        // Thêm /profile và /orders vào danh sách các trang yêu cầu đăng nhập
         if (
           currentPath.startsWith("/admin") ||
-          currentPath.startsWith("/seller")
+          currentPath.startsWith("/seller") ||
+          currentPath.startsWith("/profile") ||
+          currentPath.startsWith("/orders")
         ) {
           router.push("/login");
         }

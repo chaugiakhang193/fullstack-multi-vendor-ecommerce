@@ -139,22 +139,11 @@ export default function VariantSelector({
   // 7. Hàm kiểm tra xem một thuộc tính cụ thể có bị vô hiệu hóa (hết hàng hoàn toàn hoặc không khớp tổ hợp nào còn hàng)
   const isOptionDisabled = (key: string, value: string) => {
     // Để kiểm tra xem tùy chọn `value` của thuộc tính `key` có khả dụng hay không:
-    // Ta xem xét nếu thay `key` thành `value` trong lựa chọn hiện tại,
-    // liệu có tồn tại biến thể nào thỏa mãn tổ hợp này và còn hàng (stock > 0) hay không.
+    // Chỉ cần kiểm tra xem có ít nhất một biến thể nào chứa thuộc tính này và còn hàng hay không.
     return !variants.some((v) => {
       if (!v.attributes) return false;
       if (v.stock_quantity <= 0) return false;
-
-      // Khớp thuộc tính đang check
-      if (v.attributes[key] !== value) return false;
-
-      // Khớp toàn bộ các thuộc tính KHÁC đã chọn
-      return allAttrKeys.every((k) => {
-        if (k === key) return true;
-        const currentSelectedVal = selectedAttributes[k];
-        if (!currentSelectedVal) return true; // chưa chọn thì coi như khớp
-        return v.attributes?.[k] === currentSelectedVal;
-      });
+      return v.attributes[key] === value;
     });
   };
 
