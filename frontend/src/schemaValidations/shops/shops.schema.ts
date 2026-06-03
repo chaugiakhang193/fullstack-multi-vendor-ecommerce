@@ -4,13 +4,11 @@ import type { components } from "@/lib/api/api-schema";
 
 type UpdateShopSwaggerDto = components["schemas"]["UpdateShopSwaggerDto"];
 type RejectShopDto = components["schemas"]["RejectShopDto"];
-
 export interface BaseResponse<T> {
-  statusCode: number;
+  // statusCode: number;
   message: string;
   data: T;
 }
-
 // Schema cho form tạo gian hàng lần đầu (Setup Shop)
 // Frontend có 3 input riêng cho thông tin ngân hàng, sẽ merge thành bank_account_info khi gửi API
 export const CreateShopBody = z
@@ -111,13 +109,11 @@ export const ShopResponse = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
-
 export const ShopResponseRes = z.object({
-  statusCode: z.number().optional(),
+  // statusCode: z.number().optional(),
   message: z.string().optional(),
   data: ShopResponse,
 });
-
 // ==========================================
 // Types
 // ==========================================

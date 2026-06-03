@@ -206,10 +206,9 @@ export const PaginationMetaSchema = z.object({
   totalItems: z.number(),
   totalPages: z.number(),
 });
-
 // Schema response danh sách sản phẩm
 export const ProductListResponse = z.object({
-  statusCode: z.number().optional(),
+  // statusCode: z.number().optional(),
   message: z.string().optional(),
   data: z.object({
     items: z.array(ProductResponse),
@@ -219,11 +218,10 @@ export const ProductListResponse = z.object({
 
 // Schema response 1 sản phẩm
 export const SingleProductResponse = z.object({
-  statusCode: z.number().optional(),
+  // statusCode: z.number().optional(),
   message: z.string().optional(),
   data: ProductResponse,
 });
-
 // ==========================================
 // Types
 // ==========================================
