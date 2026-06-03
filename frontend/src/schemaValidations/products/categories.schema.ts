@@ -71,19 +71,17 @@ export const CategoryResponse = z.object({
   children: z.array(z.any()).optional(),
   created_at: z.string(),
 });
-
 export const CategoryListResponse = z.object({
-  statusCode: z.number().optional(),
+  // statusCode: z.number().optional(),
   message: z.string().optional(),
   data: z.array(CategoryResponse),
 });
 
 export const SingleCategoryResponse = z.object({
-  statusCode: z.number().optional(),
+  // statusCode: z.number().optional(),
   message: z.string().optional(),
   data: CategoryResponse,
 });
-
 // ==========================================
 // Types
 // ==========================================
