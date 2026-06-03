@@ -98,6 +98,16 @@ export const ShopResponse = z.object({
   status: z.string(),
   categories: z.array(z.any()),
   gallery: z.array(z.any()),
+  seller: z
+    .object({
+      id: z.string(),
+      username: z.string(),
+      email: z.string(),
+      full_name: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });

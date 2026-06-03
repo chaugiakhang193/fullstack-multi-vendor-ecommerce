@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { AccountType } from "@/schemaValidations/auth/auth.schema";
 import authApiRequest from "@/apiRequests/auth/auth";
 import Cookies from "js-cookie";
+import { useCartStore } from "@/store/useCartStore";
+import { queryClient } from "@/lib/query-client";
 
 // Cấu hình cookie đồng bộ, an toàn cho cả Client và Middleware Server
 const setAuthCookies = (role: string, status: string) => {
@@ -120,6 +122,12 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, accessToken: null, isAuthenticated: false });
         clearAuthCookies();
+
+        // Dọn dẹp cache Client-side để tránh rò rỉ dữ liệu và đồng bộ giỏ hàng
+        if (typeof window !== "undefined") {
+          queryClient.clear();
+          useCartStore.getState().clearCart();
+        }
       },
     }),
     {
