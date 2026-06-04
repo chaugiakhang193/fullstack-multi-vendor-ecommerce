@@ -156,10 +156,8 @@ const request = async <Response>(
       // Refresh thất bại -> Đá văng ra login
       useAuthStore.getState().logout();
 
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
+      const isAuthPage = typeof window !== "undefined" && ["/login", "/register"].includes(window.location.pathname);
+      if (typeof window !== "undefined" && !isAuthPage) {
         const redirectPath = encodeURIComponent(
           window.location.pathname + window.location.search,
         );

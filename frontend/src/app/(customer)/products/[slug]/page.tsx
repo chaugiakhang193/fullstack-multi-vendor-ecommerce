@@ -29,7 +29,10 @@ import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 
 // Components
 import VariantSelector from "@/components/products/VariantSelector";
-import RecentlyViewedCarousel from "@/components/products/recently-viewed-carousel";
+import dynamic from "next/dynamic";
+const RecentlyViewedCarousel = dynamic(() => import("@/components/products/recently-viewed-carousel"), {
+  ssr: false,
+});
 import { Button } from "@/components/ui/button";
 
 // Types

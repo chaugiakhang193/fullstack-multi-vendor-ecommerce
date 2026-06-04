@@ -48,3 +48,13 @@ export enum VerificationTokenType {
   VERIFY_EMAIL = "verify_email",
   RESET_PASSWORD = "reset_password",
 }
+
+export enum CartConflictReason {
+  PRICE_CHANGED = "price_changed",
+  OUT_OF_STOCK = "out_of_stock",
+  INSUFFICIENT_STOCK = "insufficient_stock",
+  PRODUCT_HIDDEN = "product_hidden",
+  PRODUCT_DELETED = "product_deleted",
+  SHOP_INACTIVE = "shop_inactive",
+}
+
