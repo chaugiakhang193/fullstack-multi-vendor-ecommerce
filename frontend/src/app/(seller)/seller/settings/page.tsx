@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import z from "zod";
+import { getErrorMessage } from "@/lib/http";
 
 const updateSettingsSchema = z.object({
   name: z
@@ -161,11 +162,8 @@ export default function SellerSettingsPage() {
         bank_account_name,
       });
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể tải thông tin cửa hàng.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -235,9 +233,8 @@ export default function SellerSettingsPage() {
       toast.success("Xóa ảnh khỏi bộ sưu tập thành công!");
       fetchShopData();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message || error?.message || "Không thể xóa ảnh.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     }
   };
 
@@ -285,11 +282,8 @@ export default function SellerSettingsPage() {
       setNewGalleryFiles([]);
       fetchShopData();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Đã xảy ra lỗi khi lưu cài đặt.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setIsSaving(false);
     }

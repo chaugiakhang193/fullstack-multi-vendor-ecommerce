@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import authApiRequest from "@/apiRequests/auth/auth";
+import { getErrorMessage } from "@/lib/http";
 
 import {
   Card,
@@ -64,11 +65,10 @@ export function VerifyEmailForm({
       // Tự động refresh trang và chuyển hướng về trang chủ
       window.location.href = "/";
     } catch (error) {
-      const httpError = error as { payload?: { message?: string } };
-      toast.error("Xác thực thất bại", {
-        description:
-          httpError.payload?.message ||
-          "Mã xác thực không hợp lệ hoặc đã hết hạn.",
+      const errMsg = getErrorMessage(error);
+      const failTitle = "Xác thực thất bại";
+      toast.error(failTitle, {
+        description: errMsg,
       });
     } finally {
       setIsLoading(false);

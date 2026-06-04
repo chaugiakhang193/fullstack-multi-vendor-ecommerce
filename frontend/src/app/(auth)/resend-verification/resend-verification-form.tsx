@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import authApiRequest from "@/apiRequests/auth/auth";
+import { getErrorMessage } from "@/lib/http";
 
 import {
   Card,
@@ -67,11 +68,10 @@ export function ResendVerificationForm({
       setCooldown(60);
       router.push("/verify-email");
     } catch (error) {
-      const httpError = error as { payload?: { message?: string } };
-      toast.error("Thất bại", {
-        description:
-          httpError.payload?.message ||
-          "Có lỗi xảy ra khi gửi lại email xác thực.",
+      const errMsg = getErrorMessage(error);
+      const failTitle = "Thất bại";
+      toast.error(failTitle, {
+        description: errMsg,
       });
     } finally {
       setIsLoading(false);

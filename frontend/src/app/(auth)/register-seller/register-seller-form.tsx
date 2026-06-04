@@ -30,6 +30,7 @@ import {
   RegisterBodyType,
 } from "@/schemaValidations/auth/auth.schema";
 import authApiRequest from "@/apiRequests/auth/auth";
+import { getErrorMessage } from "@/lib/http";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -73,11 +74,10 @@ export function RegisterSellerForm({
       });
       router.push("/verify-email");
     } catch (error) {
-      const httpError = error as { payload?: { message?: string } };
-      toast.error("Đăng ký thất bại", {
-        description:
-          httpError.payload?.message ||
-          "Đã có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
+      const errMsg = getErrorMessage(error);
+      const failTitle = "Đăng ký thất bại";
+      toast.error(failTitle, {
+        description: errMsg,
       });
     } finally {
       setIsLoading(false);

@@ -19,6 +19,7 @@ import { toast } from "sonner"; // Thư viện dùng để hiển thị thông b
 
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // File định nghĩa các hàm gọi API đến backend cho seller
 import { ProductResponseType } from "@/schemaValidations/products/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
+import { getErrorMessage } from "@/lib/http";
 import { Button } from "@/components/ui/button"; // Component nút bấm dùng chung từ Shadcn UI
 import {
   Dialog,
@@ -126,11 +127,8 @@ export default function SellerProductsPage() {
       setMeta(res.data?.meta ?? null);
     } catch (error: any) {
       // Xử lý lỗi: lấy thông báo lỗi từ payload hoặc từ message hệ thống
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể tải danh sách sản phẩm.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       // Kết thúc trạng thái tải
       setIsLoading(false);
@@ -164,11 +162,8 @@ export default function SellerProductsPage() {
       // Hiển thị thông báo thành công tương ứng
       toast.success(newIsHidden ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể cập nhật trạng thái ẩn/hiện.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       setTogglingId(null); // // Giải phóng trạng thái xử lý ẩn/hiện
     }
@@ -186,9 +181,8 @@ export default function SellerProductsPage() {
       setDeletingProduct(null); // Đóng Dialog xác nhận xóa
       fetchProducts(page, debouncedSearchQuery, stockFilter); // Tải lại danh sách sản phẩm mới từ server để cập nhật bảng
     } catch (error: any) {
-      const msg =
-        error?.payload?.message || error?.message || "Không thể xóa sản phẩm.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       setIsDeleting(false);
     }

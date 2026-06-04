@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { getErrorMessage } from "@/lib/http";
 import {
   Card,
   CardContent,
@@ -290,11 +291,8 @@ export default function SellerSetupPage() {
       router.push("/seller/pending");
       router.refresh();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể tạo cửa hàng. Vui lòng thử lại.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
