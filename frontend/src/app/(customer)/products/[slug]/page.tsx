@@ -19,11 +19,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Services & Store
+// Services, Stores & Hooks
 import productsApiRequest from "@/apiRequests/products/products";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
+import { useActiveCart } from "@/hooks/useActiveCart";
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 
 // Components
@@ -67,7 +68,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   const mainImageRef = useRef<HTMLImageElement>(null);
-  const addItem = useCartStore((state) => state.addItem);
+  const { addItem } = useActiveCart();
   const setIsOpen = useCartStore((state) => state.setIsOpen);
   const user = useAuthStore((state) => state.user);
 
