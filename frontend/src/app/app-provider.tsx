@@ -8,6 +8,7 @@ import { tabId } from "@/lib/utils";
 import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@/lib/query-client";
+import { GUEST_ONLY_PATHS, REQUIRED_AUTH_PATH_PREFIXES } from "@/constants/routes";
 
 export default function AppProvider({
   children,
@@ -66,7 +67,8 @@ export default function AppProvider({
         const isSuccess = await silentRefresh(router);
         if (isSuccess) {
           toast.info("Đã đăng nhập thành công từ tab khác!");
-          if (currentPath === "/login" || currentPath === "/register") {
+          const isGuestPath = GUEST_ONLY_PATHS.includes(currentPath as any);
+          if (isGuestPath) {
             const redirectUrl =
               user?.role === "seller"
                 ? "/seller"
@@ -81,13 +83,12 @@ export default function AppProvider({
         toast.info("Đã đăng xuất tài khoản từ tab khác!");
         
         // Thêm /profile và /orders vào danh sách các trang yêu cầu đăng nhập
-        if (
-          currentPath.startsWith("/admin") ||
-          currentPath.startsWith("/seller") ||
-          currentPath.startsWith("/profile") ||
-          currentPath.startsWith("/orders")
-        ) {
-          router.push("/login");
+        const isAuthRequired = REQUIRED_AUTH_PATH_PREFIXES.some((prefix) =>
+          currentPath.startsWith(prefix)
+        );
+        if (isAuthRequired) {
+          const loginUrl = "/login";
+          router.push(loginUrl);
         }
       }
     };

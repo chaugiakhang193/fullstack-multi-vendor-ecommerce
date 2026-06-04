@@ -18,6 +18,7 @@ import {
 import adminApiRequest from "@/apiRequests/shops/admin-shops";
 import { RejectShopBody, ShopType } from "@/schemaValidations/shops/shops.schema";
 import { Badge } from "@/components/ui/badge";
+import { getErrorMessage } from "@/lib/http";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -55,9 +56,8 @@ export default function AdminSellersPage() {
       setShops(response.data || []);
     } catch (error: any) {
       console.error("Lỗi khi tải danh sách cửa hàng:", error);
-      toast.error(
-        error?.payload?.message || "Không thể tải danh sách cửa hàng chờ duyệt",
-      );
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,8 @@ export default function AdminSellersPage() {
       setIsDetailOpen(false);
     } catch (error: any) {
       console.error("Lỗi phê duyệt cửa hàng:", error);
-      toast.error(error?.payload?.message || "Phê duyệt cửa hàng thất bại");
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setActionLoading(false);
     }
@@ -114,7 +115,8 @@ export default function AdminSellersPage() {
       setRejectError(null);
     } catch (error: any) {
       console.error("Lỗi từ chối cửa hàng:", error);
-      toast.error(error?.payload?.message || "Từ chối cửa hàng thất bại");
+      const errMsg = getErrorMessage(error);
+      toast.error(errMsg);
     } finally {
       setActionLoading(false);
     }

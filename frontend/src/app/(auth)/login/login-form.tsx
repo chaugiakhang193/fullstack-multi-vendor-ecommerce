@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 //API fetch heplers
 import authApiRequest from "@/apiRequests/auth/auth";
+import { getErrorMessage } from "@/lib/http";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 import { tabId } from "@/lib/utils";
@@ -93,16 +94,15 @@ export function LoginForm({
 
       router.push(getRedirectUrl(UserInfo));
     } catch (error) {
-      const httpError = error as { payload?: { message?: string } };
-
-      toast.error("Đăng nhập thất bại", {
-        description:
-          httpError.payload?.message ||
-          "Thông tin không hợp lệ. Vui lòng thử lại.",
+      const errMsg = getErrorMessage(error);
+      const failTitle = "Đăng nhập thất bại";
+      toast.error(failTitle, {
+        description: errMsg,
       });
 
-      if (httpError.payload?.message?.includes("chưa được xác thực")) {
-        router.push("/verify-email");
+      if (errMsg.includes("chưa được xác thực")) {
+        const verifyEmailUrl = "/verify-email";
+        router.push(verifyEmailUrl);
       }
       setIsLoading(false);
     }

@@ -1,6 +1,6 @@
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HttpError } from "@/lib/http";
+import { HttpError, getErrorMessage } from "@/lib/http";
 
 declare module "@tanstack/react-query" {
   interface Register {
@@ -12,19 +12,6 @@ declare module "@tanstack/react-query" {
       showToastOnError?: boolean; // Ép buộc hiện toast kể cả lỗi 400/422 (cho nút bấm không có form)
     };
   }
-}
-
-// Helper trích xuất thông báo lỗi linh hoạt và có khả năng phục hồi
-function getErrorMessage(error: any): string {
-  if (error instanceof HttpError) {
-    const payload = error.payload;
-    if (payload) {
-      if (typeof payload.message === "string") return payload.message;
-      if (Array.isArray(payload.message)) return payload.message.join(", ");
-      if (payload.error && typeof payload.error === "string") return payload.error;
-    }
-  }
-  return error?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!";
 }
 
 // Hàm xử lý lỗi toàn cục

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { GUEST_ONLY_PATHS } from "@/constants/routes";
 
 // Danh sách các đường dẫn chỉ dành cho KHÁCH (chưa đăng nhập)
-const guestOnlyPaths = ["/login", "/register"];
+const guestOnlyPaths: readonly string[] = GUEST_ONLY_PATHS;
 
 export type SellerTypeStatus =
   | "NEW_SELLER"

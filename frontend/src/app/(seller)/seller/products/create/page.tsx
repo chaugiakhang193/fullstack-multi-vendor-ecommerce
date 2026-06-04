@@ -17,6 +17,7 @@ import {
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
 import categoriesApiRequest from "@/apiRequests/products/categories";
 import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
+import { getErrorMessage } from "@/lib/http";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -475,11 +476,8 @@ export default function CreateProductPage() {
       toast.success("Tạo sản phẩm thành công!");
       router.push("/seller/products");
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Đã xảy ra lỗi khi tạo sản phẩm.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

@@ -18,6 +18,7 @@ import {
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // API liên quan đến seller
 import categoriesApiRequest from "@/apiRequests/products/categories"; // API liên quan đến danh mục
 import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
+import { getErrorMessage } from "@/lib/http";
 import { ProductResponseType } from "@/schemaValidations/products/products.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -254,11 +255,8 @@ export default function EditProductPage() {
         const product = productRes.data;
         prefillForm(product, allCategories); // Đổ dữ liệu cũ vào form nhập liệu
       } catch (error: any) {
-        const msg =
-          error?.payload?.message ||
-          error?.message ||
-          "Không thể tải thông tin sản phẩm.";
-        toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+        const msg = getErrorMessage(error);
+        toast.error(msg);
         router.push("/seller/products"); // Gặp lỗi thì đẩy người dùng về trang danh sách
       } finally {
         setIsLoadingProduct(false);
@@ -651,11 +649,8 @@ export default function EditProductPage() {
       toast.success("Cập nhật sản phẩm thành công!");
       router.push("/seller/products"); // Chuyển về trang danh sách quản lý
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Đã xảy ra lỗi khi cập nhật sản phẩm.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

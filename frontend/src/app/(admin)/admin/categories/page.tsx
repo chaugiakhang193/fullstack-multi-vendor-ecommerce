@@ -27,6 +27,7 @@ import {
   UpdateCategoryBodyType,
   CategoryResponseType,
 } from "@/schemaValidations/products/categories.schema";
+import { getErrorMessage } from "@/lib/http";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,11 +101,8 @@ export default function AdminCategoriesPage() {
       const res = await categoriesApiRequest.getAll();
       setCategories(res.data || []);
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể tải danh sách danh mục.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -199,9 +197,8 @@ export default function AdminCategoriesPage() {
       setIsCreateOpen(false);
       fetchCategories();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message || error?.message || "Không thể thêm danh mục.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     }
   };
 
@@ -220,11 +217,8 @@ export default function AdminCategoriesPage() {
       setSelectedCategory(null);
       fetchCategories();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message ||
-        error?.message ||
-        "Không thể cập nhật danh mục.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     }
   };
 
@@ -238,9 +232,8 @@ export default function AdminCategoriesPage() {
       setCategoryToDelete(null);
       fetchCategories();
     } catch (error: any) {
-      const msg =
-        error?.payload?.message || error?.message || "Không thể xóa danh mục.";
-      toast.error(Array.isArray(msg) ? msg.join(", ") : msg);
+      const msg = getErrorMessage(error);
+      toast.error(msg);
     }
   };
 
