@@ -35,6 +35,8 @@ import { AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
 import { tabId } from "@/lib/utils";
+import { UserRole } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 
 export function Navbar() {
   const [isClient, setIsClient] = useState(false);
@@ -58,8 +60,8 @@ export function Navbar() {
       logout();
 
       // Đồng bộ đăng xuất sang các tab khác
-      const channel = new BroadcastChannel("auth-channel");
-      channel.postMessage({ type: "logout_success", senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      channel.postMessage({ type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId });
       channel.close();
 
       toast.success("Đăng xuất thành công");
@@ -114,7 +116,7 @@ export function Navbar() {
                   </Link>
                 </NavigationMenuItem>
 
-                {user?.role !== "seller" && user?.role !== "admin" && (
+                {user?.role !== UserRole.SELLER && user?.role !== UserRole.ADMIN && (
                   <NavigationMenuItem>
                     <Link href="/register-seller" legacyBehavior passHref>
                       <NavigationMenuLink
@@ -175,7 +177,7 @@ export function Navbar() {
                         </div>
 
                         {/* Link tới Seller Portal (chỉ hiện nếu là Seller) */}
-                        {user.role === "seller" && (
+                        {user.role === UserRole.SELLER && (
                           <div className="py-1.5">
                             <Link
                               href="/seller"
@@ -189,7 +191,7 @@ export function Navbar() {
                         )}
 
                         {/* Link tới Admin Portal (chỉ hiện nếu là Admin) */}
-                        {user.role === "admin" && (
+                        {user.role === UserRole.ADMIN && (
                           <div className="py-1.5">
                             <Link
                               href="/admin"

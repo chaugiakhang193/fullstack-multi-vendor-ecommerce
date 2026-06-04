@@ -1,6 +1,7 @@
 import { normalizePath } from "./utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { AUTH_API_ENDPOINTS } from "@/constants/routes";
+import { HTTP_STATUS } from "@/constants/http-status";
 
 // Custom phần báo lỗi
 export class HttpError extends Error {
@@ -14,7 +15,7 @@ export class HttpError extends Error {
 }
 
 export class EntityError extends HttpError {
-  constructor({ status, payload }: { status: 422 | 400; payload: any }) {
+  constructor({ status, payload }: { status: typeof HTTP_STATUS.UNPROCESSABLE_ENTITY | typeof HTTP_STATUS.BAD_REQUEST; payload: any }) {
     super({ status, payload });
   }
 }
@@ -38,8 +39,8 @@ type CustomOptions = Omit<RequestInit, "method"> & {
 export function getErrorMessage(error: any): string {
   if (error instanceof HttpError) {
     const status = error.status;
-    const rateLimitCode = 429;
-    const timeoutCode = 408;
+    const rateLimitCode = HTTP_STATUS.TOO_MANY_REQUESTS;
+    const timeoutCode = HTTP_STATUS.REQUEST_TIMEOUT;
 
     if (status === rateLimitCode) {
       const rateLimitMsg = "Bạn đang thao tác quá nhanh. Vui lòng đợi một lát và thử lại!";
@@ -132,7 +133,7 @@ const request = async <Response>(
     });
   } catch (error: any) {
     if (error.name === "AbortError") {
-      const errStatus = 408;
+      const errStatus = HTTP_STATUS.REQUEST_TIMEOUT;
       const errPayload = { message: "Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!" };
       throw new HttpError({
         status: errStatus,
@@ -152,7 +153,7 @@ const request = async <Response>(
   });
 
   // REFRESH TOKEN TỰ ĐỘNG (Lỗi 401) - Chỉ áp dụng cho các API cần xác thực
-  if (res.status === 401 && isClient() && !isAuthPublicEndpoint) {
+  if (res.status === HTTP_STATUS.UNAUTHORIZED && isClient() && !isAuthPublicEndpoint) {
     if (!isRefreshing) {
       isRefreshing = true;
       // Trình duyệt tự mang HttpOnly Cookie (RefreshToken) đi xin token mới
@@ -165,13 +166,13 @@ const request = async <Response>(
       })
         .then(async (refreshRes) => {
           // Xử lý 403 (Session hết hạn - bình thường)
-          if (refreshRes.status === 403) {
+          if (refreshRes.status === HTTP_STATUS.FORBIDDEN) {
             const expErr = new Error("SESSION_EXPIRED");
             throw expErr;
           }
 
           // Xử lý 401 (Token không hợp lệ - nguy hiểm)
-          if (refreshRes.status === 401) {
+          if (refreshRes.status === HTTP_STATUS.UNAUTHORIZED) {
             const invErr = new Error("INVALID_TOKEN");
             throw invErr;
           }
@@ -227,7 +228,7 @@ const request = async <Response>(
         });
       } catch (error: any) {
         if (error.name === "AbortError") {
-          const errStatus = 408;
+          const errStatus = HTTP_STATUS.REQUEST_TIMEOUT;
           const errPayload = { message: "Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!" };
           throw new HttpError({
             status: errStatus,
@@ -265,7 +266,7 @@ const request = async <Response>(
 
       const isExpired = errorMessage === "SESSION_EXPIRED";
       const userErrMessage = isExpired ? "Phiên đăng nhập đã hết hạn" : "Phiên đăng nhập không hợp lệ";
-      const errStatus = 401;
+      const errStatus = HTTP_STATUS.UNAUTHORIZED;
       const errPayload = { message: userErrMessage };
       throw new HttpError({
         status: errStatus,
@@ -280,11 +281,11 @@ const request = async <Response>(
   if (!res.ok) {
     const errorStatus = res.status;
     // Nếu là lỗi Validation từ NestJS (Class Validator thường trả 400, một số trường hợp là 422)
-    if (res.status === 422 || res.status === 400) {
-      const formErrStatus = res.status as 422 | 400;
+    if (res.status === HTTP_STATUS.UNPROCESSABLE_ENTITY || res.status === HTTP_STATUS.BAD_REQUEST) {
+      const formErrStatus = res.status as typeof HTTP_STATUS.UNPROCESSABLE_ENTITY | typeof HTTP_STATUS.BAD_REQUEST;
       throw new EntityError({ status: formErrStatus, payload });
     }
-    if (res.status === 401) {
+    if (res.status === HTTP_STATUS.UNAUTHORIZED) {
       // Auth public endpoints (login, register, v.v.) -> Trả nguyên message gốc từ backend
       if (isAuthPublicEndpoint) {
         throw new HttpError({ status: errorStatus, payload });

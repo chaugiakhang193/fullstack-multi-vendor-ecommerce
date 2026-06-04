@@ -15,6 +15,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
+import { AccountStatus } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 import {
   Dialog,
   DialogContent,
@@ -40,8 +42,8 @@ export default function SellerPendingPage() {
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
-      const channel = new BroadcastChannel("auth-channel");
-      channel.postMessage({ type: "logout_success", senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      channel.postMessage({ type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId });
       channel.close();
 
       toast.success("Đăng xuất thành công");
@@ -67,14 +69,14 @@ export default function SellerPendingPage() {
           // Trạng thái đã thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
           await useAuthStore.getState().silentRefresh();
           
-          if (newStatus === "active") {
+          if (newStatus === AccountStatus.ACTIVE) {
             const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
             toast.success(successMsg);
             const targetPath = "/seller";
             router.push(targetPath);
             router.refresh();
             return;
-          } else if (newStatus === "rejected") {
+          } else if (newStatus === AccountStatus.REJECTED) {
             const errorMsg = "Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.";
             toast.error(errorMsg);
             const targetPath = "/seller/rejected";
@@ -84,12 +86,12 @@ export default function SellerPendingPage() {
           }
         } else {
           // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
-          if (newStatus === "active") {
+          if (newStatus === AccountStatus.ACTIVE) {
             const targetPath = "/seller";
             router.push(targetPath);
             router.refresh();
             return;
-          } else if (newStatus === "rejected") {
+          } else if (newStatus === AccountStatus.REJECTED) {
             const targetPath = "/seller/rejected";
             router.push(targetPath);
             router.refresh();

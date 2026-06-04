@@ -21,6 +21,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { tabId } from "@/lib/utils";
+import { UserRole, AccountStatus } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -93,7 +95,7 @@ export default function SellerLayout({
 
           //  Nếu user pending_approval VÀ đã có shop → redirect /seller/pending
           if (
-            user.status === "pending_approval" &&
+            user.status === AccountStatus.PENDING_APPROVAL &&
             shop &&
             pathname !== "/seller/pending"
           ) {
@@ -160,8 +162,8 @@ export default function SellerLayout({
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
-      const channel = new BroadcastChannel("auth-channel");
-      channel.postMessage({ type: "logout_success", senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      channel.postMessage({ type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId });
       channel.close();
 
       toast.success("Đăng xuất thành công");
@@ -335,7 +337,7 @@ export default function SellerLayout({
                 {user?.username || "Người bán"}
               </p>
               <span className="inline-block px-2 py-0.5 text-xs font-black tracking-wide uppercase bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
-                {user?.status === "active" ? "Đã duyệt" : "Chờ duyệt"}
+                {user?.status === AccountStatus.ACTIVE ? "Đã duyệt" : "Chờ duyệt"}
               </span>
             </div>
           </div>
@@ -421,7 +423,7 @@ export default function SellerLayout({
                     {user?.username || "Người bán"}
                   </p>
                   <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
-                    {user?.status === "active" ? "Đã duyệt" : "Chờ duyệt"}
+                    {user?.status === AccountStatus.ACTIVE ? "Đã duyệt" : "Chờ duyệt"}
                   </span>
                 </div>
               </div>
