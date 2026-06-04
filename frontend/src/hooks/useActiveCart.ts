@@ -1,6 +1,7 @@
 import { useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { QUERY_KEYS } from "@/constants/query-keys";
 
 // Stores
 import { useCartStore, CartItem } from "@/store/useCartStore";
@@ -116,7 +117,7 @@ export function useActiveCart() {
 
   // Database Cart query
   const cartQueryConfig = {
-    queryKey: ["cart"],
+    queryKey: [QUERY_KEYS.CART],
     queryFn: () => cartApiRequest.getCart(),
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
@@ -205,7 +206,7 @@ export function useActiveCart() {
         toast.success(successMsg);
 
         // Invalidate cache
-        const queryKeyObj = { queryKey: ["cart"] };
+        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
         await queryClient.invalidateQueries(queryKeyObj);
       } catch (error) {
         const errorMsg = "Không thể thêm sản phẩm vào giỏ hàng!";
@@ -248,9 +249,9 @@ export function useActiveCart() {
       }
 
       // 2. Cancel query and modify cache immediately
-      const queryKeyObj = { queryKey: ["cart"] };
+      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>(["cart"]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>([QUERY_KEYS.CART]);
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -295,7 +296,7 @@ export function useActiveCart() {
           },
         };
 
-        queryClient.setQueryData<CartGenericResponseType>(["cart"], newCartPayloadObj);
+        queryClient.setQueryData<CartGenericResponseType>([QUERY_KEYS.CART], newCartPayloadObj);
       }
 
       // 3. Debounce execution
@@ -305,12 +306,12 @@ export function useActiveCart() {
           const bodyObj = { quantity: newQty };
           await cartApiRequest.updateQuantity(cartItemId, bodyObj);
           
-          const queryKeyObj = { queryKey: ["cart"] };
+          const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
           queryClient.invalidateQueries(queryKeyObj);
         } catch (error) {
           // Rollback on error
           if (previousCart) {
-            queryClient.setQueryData(["cart"], previousCart);
+            queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
           }
           const errorMsg = "Không thể cập nhật số lượng!";
           toast.error(errorMsg);
@@ -339,9 +340,9 @@ export function useActiveCart() {
         return;
       }
 
-      const queryKeyObj = { queryKey: ["cart"] };
+      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>(["cart"]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>([QUERY_KEYS.CART]);
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -379,7 +380,7 @@ export function useActiveCart() {
           },
         };
 
-        queryClient.setQueryData<CartGenericResponseType>(["cart"], newCartPayloadObj);
+        queryClient.setQueryData<CartGenericResponseType>([QUERY_KEYS.CART], newCartPayloadObj);
       }
 
       try {
@@ -388,12 +389,12 @@ export function useActiveCart() {
         const successMsg = "Đã xóa sản phẩm khỏi giỏ hàng!";
         toast.success(successMsg);
 
-        const queryKeyObj = { queryKey: ["cart"] };
+        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
         queryClient.invalidateQueries(queryKeyObj);
       } catch (error) {
         // Rollback
         if (previousCart) {
-          queryClient.setQueryData(["cart"], previousCart);
+          queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
         }
         const errorMsg = "Không thể xóa sản phẩm khỏi giỏ hàng!";
         toast.error(errorMsg);
@@ -417,7 +418,7 @@ export function useActiveCart() {
       const successMsg = "Đã làm trống giỏ hàng!";
       toast.success(successMsg);
 
-      const queryKeyObj = { queryKey: ["cart"] };
+      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
       queryClient.invalidateQueries(queryKeyObj);
     } catch (error) {
       const errorMsg = "Không thể làm trống giỏ hàng!";
@@ -452,7 +453,7 @@ export function useActiveCart() {
         };
         await cartApiRequest.add(bodyObj);
 
-        const queryKeyObj = { queryKey: ["cart"] };
+        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
         await queryClient.invalidateQueries(queryKeyObj);
 
         const successMsg = "Đã cập nhật phiên bản sản phẩm!";

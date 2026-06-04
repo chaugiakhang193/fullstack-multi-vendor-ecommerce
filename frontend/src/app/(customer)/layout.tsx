@@ -12,6 +12,9 @@ import useDebounce from "@/hooks/useDebounce";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
+import { UserRole } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
+import { QUERY_KEYS } from "@/constants/query-keys";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -90,7 +93,7 @@ export default function CustomerLayout({
   const isSuggestionsEnabled = debouncedSearchQuery.trim().length >= 2;
   
   const suggestionsQuery = useQuery({
-    queryKey: ["product-suggestions", debouncedSearchQuery],
+    queryKey: [QUERY_KEYS.PRODUCT_SUGGESTIONS, debouncedSearchQuery],
     queryFn: async () => {
       const getParams = { q: debouncedSearchQuery, limit: 5 };
       const response = await productsApiRequest.getPublicProducts(getParams);
@@ -272,7 +275,7 @@ export default function CustomerLayout({
           await cartApiRequest.merge(mergePayload);
           clearLocalCart();
 
-          const queryKeyObj = { queryKey: ["cart"] };
+          const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
           await queryClient.invalidateQueries(queryKeyObj);
 
           const syncSuccessMsg = "Giỏ hàng của bạn đã được đồng bộ hóa thành công!";
@@ -295,7 +298,7 @@ export default function CustomerLayout({
   // Gọi API lấy danh mục sản phẩm qua React Query
   const fetchCategoriesFn = () => categoriesApiRequest.getAll();
   const queryConfig = {
-    queryKey: ["categories"],
+    queryKey: [QUERY_KEYS.CATEGORIES],
     queryFn: fetchCategoriesFn,
   };
   const { data: categoriesRes } = useQuery(queryConfig);
@@ -330,9 +333,8 @@ export default function CustomerLayout({
     } finally {
       logout();
       
-      const authChannelName = "auth-channel";
-      const channel = new BroadcastChannel(authChannelName);
-      const postMsgObj = { type: "logout_success", senderTabId: tabId };
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      const postMsgObj = { type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId };
       channel.postMessage(postMsgObj);
       channel.close();
 
@@ -522,7 +524,7 @@ export default function CustomerLayout({
                           <span>Đơn mua</span>
                         </button>
 
-                        {user.role === "seller" && (
+                        {user.role === UserRole.SELLER && (
                           <button
                             onClick={() => navigateTo("/seller")}
                             className="w-full flex items-center space-x-2.5 px-4 py-3 text-sm md:text-base font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-left"
@@ -532,7 +534,7 @@ export default function CustomerLayout({
                           </button>
                         )}
 
-                        {user.role === "admin" && (
+                        {user.role === UserRole.ADMIN && (
                           <button
                             onClick={() => navigateTo("/admin")}
                             className="w-full flex items-center space-x-2.5 px-4 py-3 text-sm md:text-base font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-left"

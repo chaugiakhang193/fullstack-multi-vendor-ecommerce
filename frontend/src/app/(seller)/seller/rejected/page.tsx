@@ -23,6 +23,8 @@ import authApiRequest from "@/apiRequests/auth/auth";
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
+import { AccountStatus } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 import {
   Dialog,
   DialogContent,
@@ -68,8 +70,8 @@ export default function SellerRejectedPage() {
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
-      const channel = new BroadcastChannel("auth-channel");
-      channel.postMessage({ type: "logout_success", senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      channel.postMessage({ type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId });
       channel.close();
 
       toast.success("Đăng xuất thành công");
@@ -95,14 +97,14 @@ export default function SellerRejectedPage() {
           // Trạng thái thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
           await useAuthStore.getState().silentRefresh();
           
-          if (newStatus === "active") {
+          if (newStatus === AccountStatus.ACTIVE) {
             const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
             toast.success(successMsg);
             const targetPath = "/seller";
             router.push(targetPath);
             router.refresh();
             return;
-          } else if (newStatus === "pending_approval") {
+          } else if (newStatus === AccountStatus.PENDING_APPROVAL) {
             const pendingMsg = "Cửa hàng của bạn đang chờ phê duyệt.";
             toast.success(pendingMsg);
             const targetPath = "/seller/pending";
@@ -112,12 +114,12 @@ export default function SellerRejectedPage() {
           }
         } else {
           // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
-          if (newStatus === "active") {
+          if (newStatus === AccountStatus.ACTIVE) {
             const targetPath = "/seller";
             router.push(targetPath);
             router.refresh();
             return;
-          } else if (newStatus === "pending_approval") {
+          } else if (newStatus === AccountStatus.PENDING_APPROVAL) {
             const targetPath = "/seller/pending";
             router.push(targetPath);
             router.refresh();

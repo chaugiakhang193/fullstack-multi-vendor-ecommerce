@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import categoriesApiRequest from "@/apiRequests/products/categories";
+import { QUERY_KEYS } from "@/constants/query-keys";
 
 /**
  * Hook truy vấn tất cả danh mục sản phẩm (Public) của khách hàng.
  */
 export const useCategories = () => {
   return useQuery({
-    queryKey: ["categories"],
+    queryKey: [QUERY_KEYS.CATEGORIES],
     queryFn: async () => {
       const response = await categoriesApiRequest.getAll();
       return response; // Trả về dạng CategoryListResponseType

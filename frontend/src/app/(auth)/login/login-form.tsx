@@ -13,6 +13,8 @@ import { getErrorMessage } from "@/lib/http";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 import { tabId } from "@/lib/utils";
+import { UserRole } from "@/constants/enum";
+import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 
 //Components
 import {
@@ -51,8 +53,8 @@ export function LoginForm({
   const getRedirectUrl = React.useCallback(
     (currentUser: typeof user) => {
       if (redirect) return redirect;
-      if (currentUser?.role === "admin") return "/admin";
-      if (currentUser?.role === "seller") return "/seller";
+      if (currentUser?.role === UserRole.ADMIN) return "/admin";
+      if (currentUser?.role === UserRole.SELLER) return "/seller";
       return "/";
     },
     [redirect],
@@ -88,8 +90,8 @@ export function LoginForm({
       });
 
       //Khi đăng nhập xong tạo một message để báo cho các tab khác
-      const channel = new BroadcastChannel("auth-channel");
-      channel.postMessage({ type: "login_success", senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+      channel.postMessage({ type: AUTH_EVENTS.LOGIN_SUCCESS, senderTabId: tabId });
       channel.close();
 
       router.push(getRedirectUrl(UserInfo));

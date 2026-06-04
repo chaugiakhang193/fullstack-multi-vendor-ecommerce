@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { GUEST_ONLY_PATHS } from "@/constants/routes";
+import { UserRole, AccountStatus } from "@/constants/enum";
 
 // Danh sách các đường dẫn chỉ dành cho KHÁCH (chưa đăng nhập)
 const guestOnlyPaths: readonly string[] = GUEST_ONLY_PATHS;
@@ -56,10 +57,10 @@ export function middleware(request: NextRequest) {
 
   // Nếu ĐÃ CÓ token và thông tin vai trò hợp lệ VÀ đang cố truy cập vào các trang của Khách (/login, /register)
   if (hasToken && userRole && guestOnlyPaths.includes(pathname)) {
-    if (userRole === "seller") {
+    if (userRole === UserRole.SELLER) {
       return NextResponse.redirect(new URL("/seller", request.url));
     }
-    if (userRole === "admin") {
+    if (userRole === UserRole.ADMIN) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
     // Chuyển hướng người dùng về trang chủ
@@ -81,32 +82,32 @@ export function middleware(request: NextRequest) {
   if (hasToken && userRole) {
     // Bảo vệ trang Admin
     if (pathname.startsWith("/admin")) {
-      if (userRole === "seller") {
+      if (userRole === UserRole.SELLER) {
         return NextResponse.redirect(new URL("/seller", request.url));
       }
-      if (userRole !== "admin") {
+      if (userRole !== UserRole.ADMIN) {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }
 
     // Bảo vệ trang Seller
     if (pathname.startsWith("/seller")) {
-      if (userRole === "admin") {
+      if (userRole === UserRole.ADMIN) {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
-      if (userRole !== "seller") {
+      if (userRole !== UserRole.SELLER) {
         return NextResponse.redirect(new URL("/register-seller", request.url));
       }
 
       // Kiểm soát đường dẫn dựa trên trạng thái của Seller (State-to-Allowed-Routes Mapping)
       const statusMap: Record<string, SellerTypeStatus> = {
-        new_seller: "NEW_SELLER",
-        pending_approval: "PENDING_APPROVAL",
-        rejected: "REJECTED",
-        active: "APPROVED",
+        [AccountStatus.NEW_SELLER]: "NEW_SELLER",
+        [AccountStatus.PENDING_APPROVAL]: "PENDING_APPROVAL",
+        [AccountStatus.REJECTED]: "REJECTED",
+        [AccountStatus.ACTIVE]: "APPROVED",
       };
 
-      const rawStatus = userStatus || "new_seller";
+      const rawStatus = userStatus || AccountStatus.NEW_SELLER;
       const status = statusMap[rawStatus] || "NEW_SELLER";
       const permissions = SELLER_PERMISSIONS[status];
 
