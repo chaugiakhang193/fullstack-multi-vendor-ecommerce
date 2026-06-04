@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCartStore, CartItem } from "@/store/useCartStore";
+import { useActiveCart } from "@/hooks/useActiveCart";
 
 // Currency formatter
 const priceFormatter = new Intl.NumberFormat("vi-VN", {
@@ -35,7 +36,8 @@ const FREE_SHIPPING_TARGET = 500000;
 
 export default function CartDrawer() {
   const router = useRouter();
-  const { isOpen, setIsOpen, items, updateQuantity, removeItem, updateVariant } = useCartStore();
+  const { isOpen, setIsOpen } = useCartStore();
+  const { items, updateQuantity, removeItem, updateVariant } = useActiveCart();
 
   // State to track which item is currently toggled for variant quick swap
   // Key format: productId-variantId

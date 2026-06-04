@@ -7,6 +7,7 @@ import { ProductResponseType } from "@/schemaValidations/products/products.schem
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
+import { useActiveCart } from "@/hooks/useActiveCart";
 import { queryClient } from "@/lib/query-client";
 import productsApiRequest from "@/apiRequests/products/products";
 
@@ -25,7 +26,7 @@ const formatPrice = (val: number) => {
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const addItem = useCartStore((state) => state.addItem);
+  const { addItem } = useActiveCart();
   const setIsOpen = useCartStore((state) => state.setIsOpen);
 
   const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);

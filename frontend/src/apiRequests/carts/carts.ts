@@ -4,32 +4,31 @@ import {
   AddCartItemBodyType,
   UpdateCartItemBodyType,
   MergeCartBodyType,
+  CartGenericResponseType,
 } from "@/schemaValidations/carts/carts.schema";
-
-type CartResponseDto = components["schemas"]["CartResponseDto"];
 
 const cartApiRequest = {
   // === C: Create / Add / Merge ===
   add: (body: AddCartItemBodyType) => 
-    http.post<CartResponseDto>("/cart/items", body),
+    http.post<CartGenericResponseType>("/cart/items", body),
 
   merge: (body: MergeCartBodyType) => 
-    http.post<CartResponseDto>("/cart/merge", body),
+    http.post<CartGenericResponseType>("/cart/merge", body),
 
   // === R: Read ===
   getCart: () => 
-    http.get<CartResponseDto>("/cart"),
+    http.get<CartGenericResponseType>("/cart"),
 
   // === U: Update ===
   updateQuantity: (id: string, body: UpdateCartItemBodyType) => 
-    http.patch<CartResponseDto>(`/cart/items/${id}`, body),
+    http.patch<CartGenericResponseType>(`/cart/items/${id}`, body),
 
   // === D: Delete ===
   removeItem: (id: string) => 
-    http.delete<CartResponseDto>(`/cart/items/${id}`),
+    http.delete<CartGenericResponseType>(`/cart/items/${id}`),
 
   clearCart: () => 
-    http.delete<CartResponseDto>("/cart"),
+    http.delete<CartGenericResponseType>("/cart"),
 };
 
 export default cartApiRequest;

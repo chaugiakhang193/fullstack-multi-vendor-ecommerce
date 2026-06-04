@@ -9,7 +9,7 @@ import authApiRequest from "@/apiRequests/auth/auth";
 import categoriesApiRequest from "@/apiRequests/products/categories";
 import productsApiRequest from "@/apiRequests/products/products";
 import useDebounce from "@/hooks/useDebounce";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,10 @@ const formatPriceVal = (val: number) => {
   return priceFormatterObj.format(val);
 };
 
-// Cart Store & Drawer Component
+// Cart Store, Custom Hook & Drawer Component
 import { useCartStore } from "@/store/useCartStore";
+import { useActiveCart } from "@/hooks/useActiveCart";
+import cartApiRequest from "@/apiRequests/carts/carts";
 import CartDrawer from "@/components/cart/CartDrawer";
 import {
   Dialog,
@@ -240,12 +242,48 @@ export default function CustomerLayout({
       </div>
     );
   };
-  const cartItems = useCartStore((state) => state.items);
+  const queryClient = useQueryClient();
+  const { cart } = useActiveCart();
   const setIsCartOpen = useCartStore((state) => state.setIsOpen);
+  const localCartItems = useCartStore((state) => state.items);
+  const clearLocalCart = useCartStore((state) => state.clearCart);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const cartCount = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cartItems]);
+  // Sync / Merge guest cart items into user cart database upon login
+  useEffect(() => {
+    const hasLocalItems = localCartItems.length > 0;
+    if (isAuthenticated && hasLocalItems) {
+      const syncCart = async () => {
+        try {
+          const guestItemsMapped = localCartItems.map((item) => {
+            const mappedObj = {
+              product_id: item.productId,
+              variant_id: item.variantId || undefined,
+              quantity: item.quantity,
+            };
+            return mappedObj;
+          });
+          const mergePayload = {
+            items: guestItemsMapped,
+          };
+          await cartApiRequest.merge(mergePayload);
+          clearLocalCart();
+
+          const queryKeyObj = { queryKey: ["cart"] };
+          await queryClient.invalidateQueries(queryKeyObj);
+
+          const syncSuccessMsg = "Giỏ hàng của bạn đã được đồng bộ hóa thành công!";
+          toast.success(syncSuccessMsg);
+        } catch (error) {
+          const logMsg = "Lỗi đồng bộ giỏ hàng:";
+          console.error(logMsg, error);
+        }
+      };
+      syncCart();
+    }
+  }, [isAuthenticated, localCartItems, clearLocalCart, queryClient]);
+
+  const cartCount = cart?.total_quantity || 0;
 
   useEffect(() => {
     setIsClient(true);
