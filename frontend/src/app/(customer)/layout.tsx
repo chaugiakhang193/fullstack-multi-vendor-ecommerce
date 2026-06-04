@@ -29,7 +29,10 @@ const formatPriceVal = (val: number) => {
 import { useCartStore } from "@/store/useCartStore";
 import { useActiveCart } from "@/hooks/useActiveCart";
 import cartApiRequest from "@/apiRequests/carts/carts";
-import CartDrawer from "@/components/cart/CartDrawer";
+import dynamic from "next/dynamic";
+const CartDrawer = dynamic(() => import("@/components/cart/CartDrawer"), {
+  ssr: false,
+});
 import {
   Dialog,
   DialogContent,

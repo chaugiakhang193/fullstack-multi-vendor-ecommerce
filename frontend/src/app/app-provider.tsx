@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@/lib/query-client";
 
@@ -100,7 +100,9 @@ export default function AppProvider({
   // Trả về giao diện bọc trong QueryClientProvider và Devtools
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <QueryErrorResetBoundary>
+        {children}
+      </QueryErrorResetBoundary>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
