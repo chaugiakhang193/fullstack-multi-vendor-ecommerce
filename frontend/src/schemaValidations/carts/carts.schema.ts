@@ -64,6 +64,7 @@ export const CartItemVariant = z.object({
   id: z.string(),
   name: z.string(),
   additional_price: z.number(),
+  images: z.array(z.string()).nullable().optional(),
 });
 
 export const CartItemResponse = z.object({

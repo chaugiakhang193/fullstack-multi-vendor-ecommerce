@@ -207,6 +207,7 @@ export class CartsService {
               id: item.variant.id,
               name: item.variant.name,
               additional_price: Number(item.variant.additional_price),
+              images: item.variant.images || [],
             }
           : null,
         quantity: item.quantity,

@@ -15,6 +15,7 @@ export class CartItemVariantDto {
   @ApiProperty() id: string;
   @ApiProperty() name: string;
   @ApiProperty({ type: Number }) additional_price: number;
+  @ApiProperty({ type: [String], nullable: true }) images: string[] | null;
 }
 
 export class CartItemResponseDto {
