@@ -9,12 +9,14 @@ import authApiRequest from "@/apiRequests/auth/auth";
 import categoriesApiRequest from "@/apiRequests/products/categories";
 import productsApiRequest from "@/apiRequests/products/products";
 import useDebounce from "@/hooks/useDebounce";
+import useHydrated from "@/hooks/useHydrated";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tabId } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/http";
 import { UserRole } from "@/constants/enum";
-import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
 import { QUERY_KEYS } from "@/constants/query-keys";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -72,7 +74,7 @@ export default function CustomerLayout({
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useHydrated();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
@@ -124,7 +126,7 @@ export default function CustomerLayout({
 
   const handleSuggestionClick = (product: any) => {
     const slugId = `${product.slug}-i.${product.id}`;
-    const detailUrl = `/products/${slugId}`;
+    const detailUrl = `/products/${slugId}?entry=catalog`;
     router.push(detailUrl);
     setSearchQuery("");
     setIsSuggestionsOpen(false);
@@ -255,10 +257,13 @@ export default function CustomerLayout({
   const clearLocalCart = useCartStore((state) => state.clearCart);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
+  const isSyncingRef = useRef(false);
+
   // Sync / Merge guest cart items into user cart database upon login
   useEffect(() => {
     const hasLocalItems = localCartItems.length > 0;
-    if (isAuthenticated && hasLocalItems) {
+    if (isAuthenticated && hasLocalItems && !isSyncingRef.current) {
+      isSyncingRef.current = true;
       const syncCart = async () => {
         try {
           const guestItemsMapped = localCartItems.map((item) => {
@@ -278,22 +283,31 @@ export default function CustomerLayout({
           const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
           await queryClient.invalidateQueries(queryKeyObj);
 
+          // Broadcast to other tabs
+          try {
+            const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
+            channel.postMessage(BROADCAST_EVENTS.CART_UPDATED);
+            channel.close();
+          } catch (e) {
+            console.error("Failed to broadcast cart update:", e);
+          }
+
           const syncSuccessMsg = "Giỏ hàng của bạn đã được đồng bộ hóa thành công!";
           toast.success(syncSuccessMsg);
         } catch (error) {
           const logMsg = "Lỗi đồng bộ giỏ hàng:";
           console.error(logMsg, error);
+          const errorMsg = getErrorMessage(error);
+          toast.error(errorMsg);
+        } finally {
+          isSyncingRef.current = false;
         }
       };
       syncCart();
     }
   }, [isAuthenticated, localCartItems, clearLocalCart, queryClient]);
 
-  const cartCount = cart?.total_quantity || 0;
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const cartCount = cart?.total_items || 0;
 
   // Gọi API lấy danh mục sản phẩm qua React Query
   const fetchCategoriesFn = () => categoriesApiRequest.getAll();
@@ -333,8 +347,8 @@ export default function CustomerLayout({
     } finally {
       logout();
       
-      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
-      const postMsgObj = { type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId };
+      const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
+      const postMsgObj = { type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId };
       channel.postMessage(postMsgObj);
       channel.close();
 

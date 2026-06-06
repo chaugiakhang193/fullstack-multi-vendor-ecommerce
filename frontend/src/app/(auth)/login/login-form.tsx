@@ -14,7 +14,7 @@ import { getErrorMessage } from "@/lib/http";
 import { useAuthStore } from "@/store/useAuthStore";
 import { tabId } from "@/lib/utils";
 import { UserRole } from "@/constants/enum";
-import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 
 //Components
 import {
@@ -90,8 +90,8 @@ export function LoginForm({
       });
 
       //Khi đăng nhập xong tạo một message để báo cho các tab khác
-      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
-      channel.postMessage({ type: AUTH_EVENTS.LOGIN_SUCCESS, senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
+      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGIN_SUCCESS, senderTabId: tabId });
       channel.close();
 
       router.push(getRedirectUrl(UserInfo));

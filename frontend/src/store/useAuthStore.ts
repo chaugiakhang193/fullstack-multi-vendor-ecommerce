@@ -99,12 +99,18 @@ export const useAuthStore = create<AuthState>()(
             // Phân biệt loại lỗi
             const status = error?.status;
 
-            // Khi refresh thất bại (Cookie hết hạn / Session bị xóa ở DB), dọn dẹp sạch sẽ
-            get().logout();
+            // Chỉ thực hiện dọn dẹp/logout nếu trước đó người dùng đang ở trạng thái đã đăng nhập
+            const wasAuthenticated = get().isAuthenticated;
+            if (wasAuthenticated) {
+              get().logout();
 
-            // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
-            if (status === 401 && typeof window !== "undefined") {
-              sessionStorage.setItem("auth_security_warning", "true");
+              // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
+              if (status === 401 && typeof window !== "undefined") {
+                sessionStorage.setItem("auth_security_warning", "true");
+              }
+            } else {
+              // Khách vãng lai: chỉ dọn dẹp cookies phụ nếu có mà không động vào cache queryClient
+              clearAuthCookies();
             }
 
             return false;

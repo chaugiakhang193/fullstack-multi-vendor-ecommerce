@@ -19,6 +19,7 @@ export interface CartItem {
   basePrice: number;
   hasVariants: boolean;
   baseStock: number;
+  variantName?: string;
 }
 
 interface CartState {
