@@ -9,7 +9,7 @@ import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-qu
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@/lib/query-client";
 import { GUEST_ONLY_PATHS, REQUIRED_AUTH_PATH_PREFIXES } from "@/constants/routes";
-import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 import { UserRole } from "@/constants/enum";
 
 export default function AppProvider({
@@ -55,7 +55,7 @@ export default function AppProvider({
 
   // Đồng bộ hóa trạng thái đăng nhập/đăng xuất giữa các tab
   useEffect(() => {
-    const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
+    const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
 
     channel.onmessage = async (event) => {
       const currentPath = pathnameRef.current;
@@ -64,7 +64,7 @@ export default function AppProvider({
       // Bỏ qua nếu tin nhắn gửi từ chính tab này hoặc dữ liệu không hợp lệ
       if (!data || data.senderTabId === tabId) return;
 
-      if (data.type === AUTH_EVENTS.LOGIN_SUCCESS) {
+      if (data.type === BROADCAST_EVENTS.AUTH_LOGIN_SUCCESS) {
         // Gọi silentRefresh để lấy accessToken mới cập nhật vào Zustand
         const isSuccess = await silentRefresh(router);
         if (isSuccess) {
@@ -80,7 +80,7 @@ export default function AppProvider({
             router.push(redirectUrl);
           }
         }
-      } else if (data.type === AUTH_EVENTS.LOGOUT_SUCCESS) {
+      } else if (data.type === BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS) {
         logout();
         toast.info("Đã đăng xuất tài khoản từ tab khác!");
         

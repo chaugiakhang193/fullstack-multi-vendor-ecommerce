@@ -1,7 +1,8 @@
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "@/constants/query-keys";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 
 // Stores
 import { useCartStore, CartItem } from "@/store/useCartStore";
@@ -10,6 +11,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 // API requests
 import cartApiRequest from "@/apiRequests/carts/carts";
 import { CartGenericResponseType } from "@/schemaValidations/carts/carts.schema";
+import { getErrorMessage } from "@/lib/http";
 
 // Types
 import type { components } from "@/lib/api/api-schema";
@@ -110,19 +112,69 @@ const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
 export function useActiveCart() {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
 
   // Zustand guest cart state
   const guestItems = useCartStore((state) => state.items);
   const guestAddItem = useCartStore((state) => state.addItem);
 
-  // Database Cart query
+  // Database Cart query - Only query if user is logged in AND is not an admin (admins do not have a cart)
+  const isAuthorizedToCart = isAuthenticated && user?.role !== "admin";
   const cartQueryConfig = {
     queryKey: [QUERY_KEYS.CART],
     queryFn: () => cartApiRequest.getCart(),
-    enabled: isAuthenticated,
+    enabled: isAuthorizedToCart,
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
   };
   const { data: dbCartPayload, isLoading: isDbLoading, refetch } = useQuery(cartQueryConfig);
+
+  // Synchronize guest cart (Zustand) across tabs via storage event
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "cart") {
+        useCartStore.persist.rehydrate();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  // Synchronize database cart (React Query) across tabs using BroadcastChannel
+  useEffect(() => {
+    if (typeof window === "undefined" || !isAuthenticated) return;
+
+    const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === BROADCAST_EVENTS.CART_UPDATED) {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
+      }
+    };
+
+    channel.addEventListener("message", handleMessage);
+
+    return () => {
+      channel.removeEventListener("message", handleMessage);
+      channel.close();
+    };
+  }, [isAuthenticated, queryClient]);
+
+  // Helper to broadcast cart updates to other tabs
+  const broadcastCartUpdate = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
+      channel.postMessage(BROADCAST_EVENTS.CART_UPDATED);
+      channel.close();
+    } catch (error) {
+      console.error("Failed to broadcast cart update:", error);
+    }
+  }, []);
 
   // Normalized items: unified format representing both guest items and database items
   const items: CartItem[] = useMemo(() => {
@@ -136,20 +188,42 @@ export function useActiveCart() {
 
     return dbCartPayload.data.items_by_shop.flatMap((shopGroup) => {
       return shopGroup.items.map((dbItem) => {
+        const rawImages = dbItem.variant && (dbItem.variant as any).images;
+        let variantImages: string[] = [];
+        if (Array.isArray(rawImages)) {
+          variantImages = rawImages;
+        } else if (typeof rawImages === "string" && rawImages.trim() !== "") {
+          if (rawImages.startsWith("[") && rawImages.endsWith("]")) {
+            try {
+              variantImages = JSON.parse(rawImages);
+            } catch (e) {
+              variantImages = rawImages.split(",").map((img: string) => img.trim());
+            }
+          } else {
+            variantImages = rawImages.split(",").map((img: string) => img.trim());
+          }
+        }
+
+        const finalThumbnailUrl =
+          variantImages.length > 0
+            ? variantImages[0]
+            : ((dbItem.product.thumbnail_url as any) || "/placeholder-product.png");
+
         const item: CartItem = {
           productId: dbItem.product.id,
           variantId: dbItem.variant?.id || null,
           quantity: dbItem.quantity,
           name: dbItem.product.name,
           price: dbItem.unit_price,
-          thumbnailUrl: (dbItem.product.thumbnail_url as any) || "/placeholder-product.png",
+          thumbnailUrl: finalThumbnailUrl,
           shopId: shopGroup.shop.id,
           shopName: shopGroup.shop.name,
-          productSlug: dbItem.product.slug,
+          productSlug: `${dbItem.product.slug}-i.${dbItem.product.id}`,
           variants: [], // Empty for DB items, swap handles dynamically
           basePrice: dbItem.product.price,
           hasVariants: dbItem.variant !== null,
           baseStock: dbItem.available_stock,
+          variantName: dbItem.variant?.name || undefined,
         };
 
         // Attach DB specific values as extra properties
@@ -208,12 +282,15 @@ export function useActiveCart() {
         // Invalidate cache
         const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
         await queryClient.invalidateQueries(queryKeyObj);
+
+        // Broadcast to other tabs
+        broadcastCartUpdate();
       } catch (error) {
-        const errorMsg = "Không thể thêm sản phẩm vào giỏ hàng!";
+        const errorMsg = getErrorMessage(error);
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, guestAddItem, queryClient]
+    [isAuthenticated, guestAddItem, queryClient, broadcastCartUpdate]
   );
 
   // Debounce timers for quantity updates to avoid race conditions
@@ -307,20 +384,23 @@ export function useActiveCart() {
           await cartApiRequest.updateQuantity(cartItemId, bodyObj);
           
           const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
-          queryClient.invalidateQueries(queryKeyObj);
+          await queryClient.invalidateQueries(queryKeyObj);
+
+          // Broadcast to other tabs
+          broadcastCartUpdate();
         } catch (error) {
           // Rollback on error
           if (previousCart) {
             queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
           }
-          const errorMsg = "Không thể cập nhật số lượng!";
+          const errorMsg = getErrorMessage(error);
           toast.error(errorMsg);
         }
       }, 500);
 
       pendingUpdatesRef.current[cartItemId] = { timer, quantity: newQty };
     },
-    [isAuthenticated, queryClient, items]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate]
   );
 
   // Remove Item operation
@@ -390,17 +470,20 @@ export function useActiveCart() {
         toast.success(successMsg);
 
         const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
-        queryClient.invalidateQueries(queryKeyObj);
+        await queryClient.invalidateQueries(queryKeyObj);
+
+        // Broadcast to other tabs
+        broadcastCartUpdate();
       } catch (error) {
         // Rollback
         if (previousCart) {
           queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
         }
-        const errorMsg = "Không thể xóa sản phẩm khỏi giỏ hàng!";
+        const errorMsg = getErrorMessage(error);
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, queryClient, items]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate]
   );
 
   // Clear Cart operation
@@ -419,12 +502,15 @@ export function useActiveCart() {
       toast.success(successMsg);
 
       const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
-      queryClient.invalidateQueries(queryKeyObj);
+      await queryClient.invalidateQueries(queryKeyObj);
+
+      // Broadcast to other tabs
+      broadcastCartUpdate();
     } catch (error) {
-      const errorMsg = "Không thể làm trống giỏ hàng!";
+      const errorMsg = getErrorMessage(error);
       toast.error(errorMsg);
     }
-  }, [isAuthenticated, queryClient]);
+  }, [isAuthenticated, queryClient, broadcastCartUpdate]);
 
   // Update Variant operation
   const updateVariant = useCallback(
@@ -456,14 +542,17 @@ export function useActiveCart() {
         const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
         await queryClient.invalidateQueries(queryKeyObj);
 
+        // Broadcast to other tabs
+        broadcastCartUpdate();
+
         const successMsg = "Đã cập nhật phiên bản sản phẩm!";
         toast.success(successMsg);
       } catch (error) {
-        const errorMsg = "Không thể cập nhật phiên bản sản phẩm!";
+        const errorMsg = getErrorMessage(error);
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, queryClient, items]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate]
   );
 
   const useActiveCartResult = {
