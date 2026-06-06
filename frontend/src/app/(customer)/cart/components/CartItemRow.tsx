@@ -239,7 +239,7 @@ export default function CartItemRow({
         {/* Text Details */}
         <div className="flex-1 min-w-0 space-y-1">
           <Link
-            href={`/products/${item.productSlug}`}
+            href={item.variantId ? `/products/${item.productSlug}?variant=${item.variantId}` : `/products/${item.productSlug}`}
             className="block text-sm font-extrabold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-snug truncate"
             title={item.name}
           >
@@ -258,17 +258,23 @@ export default function CartItemRow({
           {/* Selected Variant Attributes display */}
           {item.variantId && (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              {Object.entries(itemAttributes).map(([k, v]) => {
-                const badgeKey = `${k}-${v}`;
-                return (
-                  <span
-                    key={badgeKey}
-                    className="inline-block px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 text-[10px] font-bold text-muted-foreground uppercase"
-                  >
-                    {v}
-                  </span>
-                );
-              })}
+              {item.variantName ? (
+                <span className="inline-block px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 text-[10px] font-bold text-muted-foreground uppercase">
+                  {item.variantName}
+                </span>
+              ) : (
+                Object.entries(itemAttributes).map(([k, v]) => {
+                  const badgeKey = `${k}-${v}`;
+                  return (
+                    <span
+                      key={badgeKey}
+                      className="inline-block px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 text-[10px] font-bold text-muted-foreground uppercase"
+                    >
+                      {v}
+                    </span>
+                  );
+                })
+              )}
 
               {/* Quick Swap Trigger (Only for Guest Zustand items with variant list) */}
               {item.variants.length > 0 && isAvailable && (

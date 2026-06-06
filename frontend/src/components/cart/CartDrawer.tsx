@@ -298,7 +298,7 @@ export default function CartDrawer() {
                           {/* Info */}
                           <div className="flex-1 min-w-0 space-y-1">
                             <Link
-                              href={`/products/${item.productSlug}`}
+                              href={item.variantId ? `/products/${item.productSlug}?variant=${item.variantId}` : `/products/${item.productSlug}`}
                               onClick={() => setIsOpen(false)}
                               className="block text-xs font-bold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-normal truncate"
                               title={item.name}
@@ -307,30 +307,38 @@ export default function CartDrawer() {
                             </Link>
 
                             {/* Attributes display */}
-                            {item.variantId && item.variants.length > 0 && (
+                            {item.variantId && (item.variantName || item.variants.length > 0) && (
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {Object.entries(itemAttributes).map(([k, v]) => (
-                                  <span
-                                    key={k}
-                                    className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase"
-                                  >
-                                    {v}
+                                {item.variantName ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase">
+                                    {item.variantName}
                                   </span>
-                                ))}
+                                ) : (
+                                  Object.entries(itemAttributes).map(([k, v]) => (
+                                    <span
+                                      key={k}
+                                      className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase"
+                                    >
+                                      {v}
+                                    </span>
+                                  ))
+                                )}
                                 {/* Quick Swap Trigger */}
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingItemId(isEditing ? null : itemKey)}
-                                  className="text-[9px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
-                                >
-                                  <span>Đổi</span>
-                                  <ChevronDown
-                                    className={cn(
-                                      "h-2.5 w-2.5 transition-transform",
-                                      isEditing && "rotate-180"
-                                    )}
-                                  />
-                                </button>
+                                {item.variants.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItemId(isEditing ? null : itemKey)}
+                                    className="text-[9px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
+                                  >
+                                    <span>Đổi</span>
+                                    <ChevronDown
+                                      className={cn(
+                                        "h-2.5 w-2.5 transition-transform",
+                                        isEditing && "rotate-180"
+                                      )}
+                                    />
+                                  </button>
+                                )}
                               </div>
                             )}
 

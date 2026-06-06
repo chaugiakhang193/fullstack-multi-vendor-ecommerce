@@ -2,14 +2,21 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, ShieldCheck, ShoppingBag, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Trash2, ShieldCheck, ShoppingBag, ArrowRight, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 // Hooks & Components
 import { useActiveCart } from "@/hooks/useActiveCart";
+import useHydrated from "@/hooks/useHydrated";
 import CartShopGroup from "./components/CartShopGroup";
-import EmptyCartState from "./components/EmptyCartState";
-import StickyCheckoutBar from "./components/StickyCheckoutBar";
+import { EmptyCart } from "@/components/shared/empty-state";
+import StickyCheckoutBar from "@/components/cart/StickyCheckoutBar";
+import ProductCard from "@/components/products/product-card";
+
+// API
+import productsApiRequest from "@/apiRequests/products/products";
 
 // Helpers & Types
 import { cn } from "@/lib/utils";
@@ -34,8 +41,66 @@ const getItemKey = (item: CartItem) => {
   return compositeKey;
 };
 
+// Component con hiển thị giỏ hàng trống kết hợp danh sách sản phẩm gợi ý
+function EmptyCartWithRecommend() {
+  const recommendQueryConfig = {
+    queryKey: ["recommend-products"],
+    queryFn: () => {
+      const getParamsObj = { limit: 4 };
+      return productsApiRequest.getPublicProducts(getParamsObj);
+    },
+    staleTime: 1000 * 60 * 10, // Cache trong 10 phút
+  };
+  const { data: productsRes, isLoading } = useQuery(recommendQueryConfig);
+  const recommendProducts = productsRes?.data?.items || [];
+
+  return (
+    <div className="space-y-16 py-12 animate-fade-in">
+      <EmptyCart />
+
+      {/* Recommended Products Section */}
+      <div className="border-t border-zinc-100 dark:border-zinc-800/80 pt-16 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xl font-black text-foreground flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-500 fill-current" /> Có thể bạn sẽ thích
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Những sản phẩm đang thịnh hành và được yêu thích nhất
+            </p>
+          </div>
+          <Link
+            href="/products"
+            className="text-xs font-black text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+          >
+            Xem thêm <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 text-violet-500 animate-spin" />
+          </div>
+        ) : recommendProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {recommendProducts.map((product) => {
+              const cardKey = `recommend-${product.id}`;
+              return <ProductCard key={cardKey} product={product} />;
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-sm text-muted-foreground italic">
+            Không tải được gợi ý sản phẩm.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CartPage() {
   const router = useRouter();
+  const isHydrated = useHydrated();
   const {
     items,
     isLoading,
@@ -259,7 +324,7 @@ export default function CartPage() {
   };
 
   // Skeleton Loader for Cart Page
-  if (isLoading) {
+  if (!isHydrated || isLoading) {
     return (
       <div className="space-y-8 animate-pulse max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10">
         <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-xl" />
@@ -278,7 +343,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10">
-        <EmptyCartState />
+        <EmptyCartWithRecommend />
       </div>
     );
   }
