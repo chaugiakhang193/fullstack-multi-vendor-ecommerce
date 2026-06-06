@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Home, Search, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Home, Search } from "lucide-react";
 
 export default function CustomerNotFound() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,54 +21,58 @@ export default function CustomerNotFound() {
   return (
     <>
       <title>Không tìm thấy trang | Giang Kha Multi-Vendor</title>
-      <div className="min-h-[65vh] flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in">
-        <div className="max-w-md w-full text-center space-y-8 p-8 rounded-2xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
+      <div className="min-h-[75vh] flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in">
+        <div className="max-w-lg w-full text-center space-y-8 p-10 md:p-12 rounded-3xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient background decoration */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-indigo-500" />
+          
+          {/* Ambient glows inside the card */}
+          <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-violet-500/10 dark:bg-violet-500/5 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-20 w-72 h-72 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl pointer-events-none" />
 
           {/* Large illustrated 404 */}
-          <div className="space-y-3">
-            <h1 className="text-8xl font-black tracking-widest text-zinc-200 dark:text-zinc-800 select-none animate-pulse">
+          <div className="space-y-4 relative z-10">
+            <h1 className="text-9xl md:text-[10rem] font-black tracking-tighter bg-gradient-to-b from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent select-none animate-pulse">
               404
             </h1>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
+            <h2 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
               Không tìm thấy trang yêu cầu
             </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ, hoặc đường dẫn URL đã thay đổi.
+            <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+              Trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ, hoặc đường dẫn URL đã thay đổi. Vui lòng kiểm tra lại địa chỉ hoặc tìm kiếm sản phẩm khác dưới đây.
             </p>
           </div>
 
           {/* Quick Product Search Input */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full max-w-sm mx-auto">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md mx-auto z-10">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Tìm kiếm sản phẩm khác..."
-              className="w-full h-11 pl-10 pr-4 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
+              className="w-full h-12 pl-11 pr-20 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <button
               type="submit"
-              className="absolute right-1.5 top-1.5 h-8 px-3 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-[10px] font-bold hover:bg-zinc-800 transition"
+              className="absolute right-1.5 top-1.5 h-9 px-4 rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 text-xs font-bold transition active:scale-[0.97]"
             >
-              Tìm
+              Tìm kiếm
             </button>
           </form>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2 relative z-10">
             <button
               onClick={() => router.back()}
-              className="flex-1 flex items-center justify-center space-x-1.5 py-2.5 px-4 border rounded-lg text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer bg-background"
+              className="flex-1 flex items-center justify-center space-x-2 py-3 px-6 border rounded-xl text-sm font-bold hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer bg-background"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Quay lại</span>
             </button>
 
             <Link href="/" className="flex-1">
-              <button className="w-full flex items-center justify-center space-x-1.5 py-2.5 px-4 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold shadow-md shadow-violet-500/10 active:scale-[0.98] transition cursor-pointer">
+              <button className="w-full flex items-center justify-center space-x-2 py-3 px-6 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold shadow-md shadow-violet-500/10 active:scale-[0.98] transition cursor-pointer">
                 <Home className="h-4 w-4" />
                 <span>Trang chủ</span>
               </button>

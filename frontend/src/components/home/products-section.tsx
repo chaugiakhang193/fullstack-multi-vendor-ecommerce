@@ -94,11 +94,26 @@ export default function ProductsSection() {
 
       {/* Hiển thị danh sách sản phẩm dạng Grid hoặc Empty State */}
       {productsList.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-[360px]:gap-3">
-          {productsList.map((product) => {
-            const productKey = product.id;
-            return <ProductCard key={productKey} product={product} />;
-          })}
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-[360px]:gap-3">
+            {productsList.map((product) => {
+              const productKey = product.id;
+              return <ProductCard key={productKey} product={product} />;
+            })}
+          </div>
+          
+          {/* Centered responsive See More button */}
+          <div className="flex justify-center pt-2">
+            <Link href="/products" className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto px-8 py-5 h-auto rounded-xl border-violet-200 dark:border-violet-900/50 hover:border-violet-500 text-violet-600 dark:text-violet-400 text-sm font-bold gap-2 hover:bg-violet-500/5 transition duration-300 group cursor-pointer"
+              >
+                <span>Xem thêm sản phẩm</span>
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="py-6">
