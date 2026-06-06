@@ -16,7 +16,7 @@ import authApiRequest from "@/apiRequests/auth/auth";
 import { tabId } from "@/lib/utils";
 import { toast } from "sonner";
 import { AccountStatus } from "@/constants/enum";
-import { BROADCAST_CHANNEL, AUTH_EVENTS } from "@/constants/auth";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 import {
   Dialog,
   DialogContent,
@@ -42,8 +42,8 @@ export default function SellerPendingPage() {
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
-      const channel = new BroadcastChannel(BROADCAST_CHANNEL.AUTH);
-      channel.postMessage({ type: AUTH_EVENTS.LOGOUT_SUCCESS, senderTabId: tabId });
+      const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
+      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
       channel.close();
 
       toast.success("Đăng xuất thành công");

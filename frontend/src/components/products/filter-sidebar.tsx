@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { StarRating } from "@/components/star-rating";
+import { StarRating } from "@/components/shared/star-rating";
 import { cn } from "@/lib/utils";
 
 // Định nghĩa types cho Filter

@@ -8,7 +8,7 @@ import { Trash2, ChevronLeft, ChevronRight, History } from "lucide-react";
 
 // Stores & Components
 import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
-import ProductCard from "@/components/product-card";
+import ProductCard from "@/components/products/product-card";
 
 interface RecentlyViewedCarouselProps {
   currentProductId: string;

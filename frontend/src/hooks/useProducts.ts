@@ -20,16 +20,21 @@ export const useSellerInventory = () => {
 /**
  * Hook truy vấn danh sách sản phẩm công khai (Public) của khách hàng.
  */
-export const useProducts = (params?: {
-  page?: number;
-  limit?: number;
-  q?: string;
-  category_id?: string;
-  min_price?: number;
-  max_price?: number;
-  sort?: string;
-  order?: "ASC" | "DESC";
-}) => {
+export const useProducts = (
+  params?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    category_id?: string;
+    min_price?: number;
+    max_price?: number;
+    sort?: string;
+    order?: "ASC" | "DESC";
+  },
+  options?: {
+    placeholderData?: (previousData: any) => any;
+  }
+) => {
   return useQuery({
     queryKey: ["products", params],
     queryFn: async () => {
@@ -37,5 +42,6 @@ export const useProducts = (params?: {
       return response;
     },
     staleTime: 1000 * 60 * 2, // Coi data là mới trong 2 phút
+    placeholderData: options?.placeholderData,
   });
 };

@@ -84,24 +84,45 @@ export default function VariantSelector({
     return match || null;
   }, [variants, selectedAttributes, allAttrKeys]);
 
-  // Truyền variant được chọn lên component cha
+  // Truyền variant được chọn lên component cha và cập nhật param variant tương ứng
   useEffect(() => {
     onVariantSelect(activeVariant);
-  }, [activeVariant, onVariantSelect]);
-
-  // 5. Thiết lập lựa chọn mặc định khi tải trang nếu URL chưa có params
-  useEffect(() => {
-    const hasAnyParam = allAttrKeys.some((key) => searchParams.has(key));
-    if (!hasAnyParam && variants.length > 0) {
-      // Ưu tiên chọn variant đầu tiên còn hàng, nếu không thì lấy variant đầu tiên
-      const defaultVariant = variants.find((v) => v.stock_quantity > 0) || variants[0];
-      if (defaultVariant.attributes) {
+    if (typeof window !== "undefined") {
+      if (activeVariant) {
         const params = new URLSearchParams(window.location.search);
-        Object.entries(defaultVariant.attributes).forEach(([k, v]) => {
-          params.set(k, v);
-        });
-        const newUrl = `${pathname}?${params.toString()}`;
-        router.replace(newUrl, { scroll: false });
+        if (params.get("variant") !== activeVariant.id) {
+          params.set("variant", activeVariant.id);
+          const newUrl = `${pathname}?${params.toString()}`;
+          router.replace(newUrl, { scroll: false });
+        }
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("variant")) {
+          params.delete("variant");
+          const newUrl = `${pathname}?${params.toString()}`;
+          router.replace(newUrl, { scroll: false });
+        }
+      }
+    }
+  }, [activeVariant, onVariantSelect, pathname, router]);
+
+  // 5. Thiết lập lựa chọn mặc định khi tải trang nếu có param variant
+  useEffect(() => {
+    const variantIdFromQuery = searchParams.get("variant");
+
+    if (variantIdFromQuery && variants.length > 0) {
+      // Nếu có variant id trong URL, đồng bộ hóa các attributes của variant đó vào URL search params
+      const matchedVariant = variants.find((v) => v.id === variantIdFromQuery);
+      if (matchedVariant?.attributes) {
+        const hasAllAttrs = allAttrKeys.every((key) => searchParams.has(key));
+        if (!hasAllAttrs) {
+          const params = new URLSearchParams(window.location.search);
+          Object.entries(matchedVariant.attributes).forEach(([k, v]) => {
+            params.set(k, v);
+          });
+          const newUrl = `${pathname}?${params.toString()}`;
+          router.replace(newUrl, { scroll: false });
+        }
       }
     }
   }, [variants, allAttrKeys, searchParams, pathname, router]);

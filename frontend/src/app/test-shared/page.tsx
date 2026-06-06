@@ -25,17 +25,17 @@ import {
 } from "@/components/ui/table";
 
 // Newly created components
-import SkeletonProductCard from "@/components/skeleton-product-card";
-import SkeletonTableRows from "@/components/skeleton-table-rows";
+import SkeletonProductCard from "@/components/products/skeleton-product-card";
+import SkeletonTableRows from "@/components/shared/skeleton-table-rows";
 import {
   EmptyState,
   EmptyProducts,
   EmptyCart,
   EmptyOrders,
-} from "@/components/empty-state";
-import { StarRating } from "@/components/star-rating";
-import { SortDropdown, SortOption } from "@/components/sort-dropdown";
-import { FilterSidebar, FilterState } from "@/components/filter-sidebar";
+} from "@/components/shared/empty-state";
+import { StarRating } from "@/components/shared/star-rating";
+import { SortDropdown, SortOption } from "@/components/products/sort-dropdown";
+import { FilterSidebar, FilterState } from "@/components/products/filter-sidebar";
 
 const mockCategories = [
   {

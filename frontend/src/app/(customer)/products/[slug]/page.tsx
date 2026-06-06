@@ -6,6 +6,7 @@ import ProductDetailClient from "./ProductDetailClient";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ variant?: string; entry?: string }>;
 }
 
 // Helper to extract UUID from the SEO slug (e.g. "ao-thun-premium-i.uuid")
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function ProductDetailPage({ params }: PageProps) {
+export default async function ProductDetailPage({ params, searchParams }: PageProps) {
   const resolvedParams = await params;
   const rawSlug = resolvedParams.slug;
   const productId = extractProductId(rawSlug);
@@ -74,5 +75,5 @@ export default async function ProductDetailPage({ params }: PageProps) {
     redirect(redirectUrl);
   }
 
-  return <ProductDetailClient params={params} />;
+  return <ProductDetailClient params={params} searchParams={searchParams} />;
 }

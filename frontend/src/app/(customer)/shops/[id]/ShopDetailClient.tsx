@@ -21,10 +21,12 @@ import { toast } from "sonner";
 // Services & Components
 import shopsApiRequest from "@/apiRequests/shops/shops";
 import productsApiRequest from "@/apiRequests/products/products";
-import ProductCard from "@/components/product-card";
-import SortDropdown, { SortOption } from "@/components/sort-dropdown";
+import ProductCard from "@/components/products/product-card";
+import SortDropdown, { SortOption } from "@/components/products/sort-dropdown";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/shared/pagination";
+import { cn } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -83,19 +85,20 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
   const urlOrder = resolvedSearchParams.order || "DESC";
   const urlQ = resolvedSearchParams.q || "";
 
-  // Local state for debounced search and pagination limits
+  // Local state for debounced search and expansion
   const [searchInput, setSearchInput] = useState(urlQ);
-  const [limit, setLimit] = useState(20);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Sync search input with URL search query
   useEffect(() => {
     setSearchInput(urlQ);
   }, [urlQ]);
 
-  // Reset pagination limit when search term or sort order changes
+  // Reset expansion state whenever page or filters/search/sort change
   useEffect(() => {
-    setLimit(20);
-  }, [urlQ, urlSort, urlOrder]);
+    setIsExpanded(false);
+  }, [urlPage, urlQ, urlSort, urlOrder]);
+
 
   // Fetch shop detail using React Query (staleTime 5 minutes)
   const { data: shopRes, isLoading: isShopLoading, error: shopError } = useQuery({
@@ -106,31 +109,42 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
   });
   const shop = shopRes?.data;
 
-  // Build products query object (with accumulative limit pagination)
+  // Map logical page and expansion to API params
+  const apiPage = isExpanded ? urlPage : 2 * urlPage - 1;
+  const apiLimit = isExpanded ? 48 : 24;
+
+  // Build products query object
   const productsQuery = {
-    limit,
-    page: 1, // Always query from page 1 to load cumulative items
+    page: apiPage,
+    limit: apiLimit,
     q: urlQ,
     sort: urlSort,
     order: urlOrder as "ASC" | "DESC",
   };
 
   // Fetch shop catalog using React Query
-  const { data: productsRes, isLoading: isProductsLoading } = useQuery({
+  const productsQueryResult = useQuery({
     queryKey: ["public-shop-catalog", shopId, productsQuery],
     queryFn: () => productsApiRequest.getPublicCatalogByShop(shopId, productsQuery),
     retry: 1,
     staleTime: 1000 * 60 * 2,
+    placeholderData: (prev) => prev,
   });
-  const products = productsRes?.data?.items || [];
-  const meta = productsRes?.data?.meta;
+  const isProductsLoading = productsQueryResult.isLoading;
+  const products = productsQueryResult.data?.data?.items || [];
+  const meta = productsQueryResult.data?.data?.meta;
   const totalProducts = meta?.totalItems || 0;
+
+  // Load more conditions
+  const showLoadMore = !isExpanded && totalProducts > (urlPage - 1) * 48 + 24;
+  const isExpanding = isExpanded && productsQueryResult.isFetching && products.length <= 24;
+  const isFilterFetching = productsQueryResult.isFetching && !isExpanding;
 
   // Debounced search trigger after 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput !== urlQ) {
-        updateQueryParams({ q: searchInput });
+        updateQueryParams({ q: searchInput, page: "" }); // Reset page to 1
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -154,16 +168,21 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
     updateQueryParams({
       sort: params.sort,
       order: params.order,
+      page: "", // Reset page to 1
     });
   };
 
   const handleLoadMore = () => {
-    const currentCount = products.length;
-    if (currentCount < totalProducts) {
-      const nextLimit = Math.min(limit + 20, 50); // Increment limit up to 50 max
-      setLimit(nextLimit);
+    if (showLoadMore) {
+      setIsExpanded(true);
     }
   };
+
+  const handlePageChange = (page: number) => {
+    updateQueryParams({ page: String(page) });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -393,26 +412,48 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
         ) : (
           /* Products catalog grid list */
           <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className={cn(
+              "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-300",
+              isFilterFetching && "opacity-50 pointer-events-none"
+            )}>
               {products.map((prod) => (
                 <ProductCard key={prod.id} product={prod} />
               ))}
             </div>
 
             {/* Load more accumulative pagination */}
-            {products.length < totalProducts && (
+            {(showLoadMore || isExpanding) && (
               <div className="text-center pt-4">
-                <button
+                <Button
                   type="button"
                   onClick={handleLoadMore}
-                  className="text-xs font-semibold px-5 py-2.5 border rounded-lg hover:bg-muted bg-background transition shadow-sm"
+                  disabled={isExpanding}
+                  variant="outline"
+                  className="font-semibold px-8 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition-all duration-300 gap-2 text-xs"
                 >
-                  Tải thêm sản phẩm ({products.length}/{totalProducts})
-                </button>
+                  {isExpanding ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <span>Đang tải...</span>
+                    </>
+                  ) : (
+                    <span>Xem thêm sản phẩm</span>
+                  )}
+                </Button>
               </div>
+            )}
+
+            {/* Pagination Component */}
+            {isExpanded && (
+              <Pagination
+                currentPage={urlPage}
+                totalPages={Math.ceil(totalProducts / 48)}
+                onPageChange={handlePageChange}
+              />
             )}
           </div>
         )}
+
       </div>
     </div>
   );
