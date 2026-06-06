@@ -178,10 +178,25 @@ export default function SellerSettingsPage() {
     useDropzone({
       accept: { "image/*": [] },
       multiple: false,
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         if (acceptedFiles?.[0]) {
           setLogoFile(acceptedFiles[0]);
         }
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh logo "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 
@@ -190,10 +205,25 @@ export default function SellerSettingsPage() {
     useDropzone({
       accept: { "image/*": [] },
       multiple: false,
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         if (acceptedFiles?.[0]) {
           setBannerFile(acceptedFiles[0]);
         }
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh banner "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 
@@ -210,6 +240,7 @@ export default function SellerSettingsPage() {
       multiple: true,
       maxFiles: remainingGallerySlots,
       disabled: remainingGallerySlots <= 0,
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         if (acceptedFiles.length > remainingGallerySlots) {
           toast.error(
@@ -223,6 +254,22 @@ export default function SellerSettingsPage() {
             3 - (shop?.gallery?.length || 0),
           ),
         );
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else if (err.code === "too-many-files") {
+              toast.error(`Bạn vượt quá số lượng ảnh cho phép của bộ sưu tập.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 
