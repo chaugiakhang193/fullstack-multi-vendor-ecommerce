@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"; // Component Dialog (Hộp thoại xác nhận) từ Shadcn UI
-import { Pagination } from "@/components/pagination"; // Component phân trang dùng chung
+import { Pagination } from "@/components/shared/pagination"; // Component phân trang dùng chung
 
 /**
  * Hàm hỗ trợ tính tổng lượng tồn kho của một sản phẩm.

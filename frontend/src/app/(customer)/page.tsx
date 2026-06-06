@@ -2,9 +2,9 @@
 import React from "react";
 
 // Components
-import HeroBanner from "@/components/hero-banner";
-import CategoriesSection from "@/components/categories-section";
-import ProductsSection from "@/components/products-section";
+import HeroBanner from "@/components/home/hero-banner";
+import CategoriesSection from "@/components/home/categories-section";
+import ProductsSection from "@/components/home/products-section";
 
 // Định nghĩa SEO Metadata cho Trang chủ (Next.js Server Component Metadata)
 export const metadata = {

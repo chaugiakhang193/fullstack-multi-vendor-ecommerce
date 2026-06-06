@@ -11,9 +11,9 @@ import { AlertCircle, RefreshCw, ChevronRight } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 
 // Components
-import ProductCard from "@/components/product-card";
-import SkeletonProductCard from "@/components/skeleton-product-card";
-import { EmptyProducts } from "@/components/empty-state";
+import ProductCard from "@/components/products/product-card";
+import SkeletonProductCard from "@/components/products/skeleton-product-card";
+import { EmptyProducts } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 
 // Gán tham số truy vấn vào biến tường minh bên ngoài component (Tránh định nghĩa lại mỗi lần render)

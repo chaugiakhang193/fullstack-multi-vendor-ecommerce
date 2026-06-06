@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Layers, Eye, Smartphone, Monitor } from "lucide-react";
 
 // Components
-import { Pagination } from "@/components/pagination";
+import { Pagination } from "@/components/shared/pagination";
 import { Button } from "@/components/ui/button";
 
 export default function TestPaginationPage() {

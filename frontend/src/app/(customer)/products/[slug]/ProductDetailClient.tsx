@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ShoppingCart,
@@ -40,6 +40,7 @@ import type { ProductVariantResponseType } from "@/schemaValidations/products/pr
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ variant?: string; entry?: string }>;
 }
 
 const priceFormatter = new Intl.NumberFormat("vi-VN", {
@@ -59,9 +60,12 @@ const extractProductId = (slug: string): string => {
   return match ? match[1] : slug;
 };
 
-export default function ProductDetailClient({ params }: PageProps) {
+export default function ProductDetailClient({ params, searchParams }: PageProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const resolvedParams = use(params);
+  const resolvedSearchParams = searchParams ? use(searchParams) : {};
+  const variantIdFromQuery = resolvedSearchParams.variant;
   const rawSlug = resolvedParams.slug;
   const productId = extractProductId(rawSlug);
 
@@ -71,6 +75,7 @@ export default function ProductDetailClient({ params }: PageProps) {
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   const mainImageRef = useRef<HTMLImageElement>(null);
+  const initialCheckRef = useRef(false);
   const { addItem } = useActiveCart();
   const setIsOpen = useCartStore((state) => state.setIsOpen);
   const user = useAuthStore((state) => state.user);
@@ -136,6 +141,16 @@ export default function ProductDetailClient({ params }: PageProps) {
     }
   }, [product]);
 
+  // Auto-select variant from URL search query parameter
+  useEffect(() => {
+    if (product && product.variants && variantIdFromQuery) {
+      const match = product.variants.find((v) => v.id === variantIdFromQuery);
+      if (match) {
+        setSelectedVariant(match);
+      }
+    }
+  }, [product, variantIdFromQuery]);
+
   // Redirect SEO URL
   useEffect(() => {
     if (product) {
@@ -146,6 +161,55 @@ export default function ProductDetailClient({ params }: PageProps) {
       }
     }
   }, [product, rawSlug, router]);
+
+  // Restore last selected variant from localStorage if not coming from catalog (entry=catalog)
+  useEffect(() => {
+    if (typeof window !== "undefined" && product && !initialCheckRef.current) {
+      initialCheckRef.current = true;
+
+      const comingFromCatalog = resolvedSearchParams.entry === "catalog";
+
+      if (comingFromCatalog) {
+        // Strip entry=catalog from URL immediately to keep address bar clean
+        const params = new URLSearchParams(window.location.search);
+        params.delete("entry");
+        const cleanedQuery = params.toString();
+        const newUrl = `${pathname}${cleanedQuery ? `?${cleanedQuery}` : ""}`;
+        router.replace(newUrl, { scroll: false });
+        return;
+      }
+
+      // Check if there are any variant / attribute parameters in the current URL
+      const params = new URLSearchParams(window.location.search);
+      const hasAnyParams =
+        params.has("variant") ||
+        params.has("color") ||
+        params.has("size") ||
+        params.has("cpu") ||
+        params.has("ram") ||
+        params.has("storage");
+
+      // If no query parameters, check localStorage and restore the last selection
+      if (!hasAnyParams) {
+        const savedQuery = localStorage.getItem(`last_variant_${product.id}`);
+        if (savedQuery) {
+          router.replace(`${pathname}${savedQuery}`, { scroll: false });
+        }
+      }
+    }
+  }, [product, resolvedSearchParams, pathname, router]);
+
+  // Save selected variant to localStorage
+  useEffect(() => {
+    if (product && selectedVariant && typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("entry");
+      const queryString = params.toString();
+      if (queryString) {
+        localStorage.setItem(`last_variant_${product.id}`, `?${queryString}`);
+      }
+    }
+  }, [product, selectedVariant, resolvedSearchParams]);
 
   // When variant changes, update active main image to variant's first image (if available)
   useEffect(() => {
@@ -284,7 +348,7 @@ export default function ProductDetailClient({ params }: PageProps) {
       setIsOpen(true);
     }
   };
-
+  
   const handleAddToCart = () => {
     if (isOwnProduct) {
       const ownProductMsg = "Bạn không thể mua sản phẩm của chính shop mình!";
@@ -304,7 +368,6 @@ export default function ProductDetailClient({ params }: PageProps) {
       return;
     }
 
-    // Add to Zustand Cart Store (Tuân thủ No Inline Arguments)
     const cartItem = {
       productId: product.id,
       variantId: selectedVariant ? selectedVariant.id : null,
@@ -319,6 +382,7 @@ export default function ProductDetailClient({ params }: PageProps) {
       hasVariants: product.has_variants,
       baseStock: product.stock_quantity,
       quantity,
+      variantName: selectedVariant ? selectedVariant.name : undefined,
     };
     addItem(cartItem);
 

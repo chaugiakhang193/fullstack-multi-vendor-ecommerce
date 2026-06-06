@@ -111,13 +111,14 @@ export default function ProductCard({ product }: ProductCardProps) {
       basePrice: Number(product.price),
       hasVariants: product.has_variants,
       baseStock: product.stock_quantity,
+      variantName: targetVariant ? targetVariant.name : undefined,
     });
 
     // Mở giỏ hàng để khách hàng nhìn thấy sản phẩm đã được thêm thành công
     setIsOpen(true);
   };
 
-  const detailUrl = `/products/${product.slug}-i.${product.id}`;
+  const detailUrl = `/products/${product.slug}-i.${product.id}?entry=catalog`;
   const priceVal = Number(product.price);
   const priceText = formatPrice(priceVal);
 
