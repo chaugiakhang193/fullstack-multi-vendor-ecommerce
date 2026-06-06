@@ -33,4 +33,16 @@ export class OrderItem {
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   price_at_purchase: number;
+
+  @Column({ type: 'varchar', nullable: false })
+  product_name: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  variant_name: string;
+
+  @Column({ type: 'text', nullable: true })
+  product_thumbnail: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  variant_attributes: any;
 }

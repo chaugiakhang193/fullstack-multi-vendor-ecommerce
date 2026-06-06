@@ -72,3 +72,8 @@ export enum CartItemUnavailableReason {
   PRODUCT_DELETED = 'product_deleted',
   SHOP_INACTIVE = 'shop_inactive',
 }
+
+export enum IdempotencyStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+}

@@ -4,14 +4,20 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  OneToOne,
   JoinColumn,
   CreateDateColumn,
+  UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
+import { OrderStatus } from '@/common/enums';
+import { Payment } from '@/modules/payments/entities/payment.entity';
 
 @Entity()
+@Index(['customer', 'status'])
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -27,12 +33,31 @@ export class Order {
   @OneToMany(() => SubOrder, (subOrder) => subOrder.order, { cascade: true })
   sub_orders: SubOrder[];
 
+  @OneToOne(() => Payment, (payment) => payment.order)
+  payment: Payment;
+
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   total_amount: number;
 
-  @Column({ type: 'text', nullable: true })
-  shipping_address: string;
+  @Column({ type: 'jsonb', nullable: true })
+  shipping_address: any;
+
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.PENDING,
+  })
+  status: OrderStatus;
+
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  idempotency_key: string;
+
+  @Column({ type: 'varchar', unique: true })
+  order_number: string;
 
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }
