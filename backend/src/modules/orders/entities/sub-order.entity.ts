@@ -7,6 +7,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { OrderStatus } from '@/common/enums';
 import { Shop } from '@/modules/shops/entities/shop.entity';
@@ -15,6 +16,7 @@ import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { OrderItem } from './order-item.entity';
 
 @Entity()
+@Index(['shop', 'status'])
 export class SubOrder {
   @PrimaryGeneratedColumn('uuid')
   id: string;

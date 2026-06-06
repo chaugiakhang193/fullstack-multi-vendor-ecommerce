@@ -27,4 +27,10 @@ export class Address {
 
   @Column({ default: false })
   is_default: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  recipient_name: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  phone: string;
 }

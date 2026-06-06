@@ -4,10 +4,12 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Check,
 } from 'typeorm';
 import { Product } from '@/modules/products/entities/product.entity';
 
 @Entity()
+@Check('stock_quantity >= 0')
 export class ProductVariant {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -30,7 +32,7 @@ export class ProductVariant {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   additional_price: number;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: false, default: 0 })
   stock_quantity: number;
 
   @Column({ type: 'simple-array', nullable: true })

@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransformInterceptor } from '@/interceptor/transform.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 
 //modules
 import { AuthModule } from '@/auth/auth.module';
@@ -33,6 +34,7 @@ import { CartItem } from '@/modules/carts/entities/cart-item.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
+import { Idempotency } from '@/modules/orders/entities/idempotency.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { UserCoupon } from '@/modules/promotions/entities/user-coupon.entity';
 import { Payment } from '@/modules/payments/entities/payment.entity';
@@ -60,6 +62,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
         limit: 100,
       },
     ]),
+    ScheduleModule.forRoot(),
     UsersModule,
     AuthModule,
     ShopsModule,
@@ -98,6 +101,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           Order,
           SubOrder,
           OrderItem,
+          Idempotency,
           Coupon,
           UserCoupon,
           Payment,
@@ -105,7 +109,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           Notification,
           MediaAsset,
         ],
-        synchronize: true,
+        synchronize: false,
       }),
     }),
   ],

@@ -42,6 +42,15 @@ export class Shop {
   @Column({ type: 'text', nullable: true })
   pickup_address: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  lat: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  lng: number;
+
+  @Column({ type: 'boolean', default: true })
+  is_coordinates_verified: boolean;
+
   @Column({ type: 'text', nullable: true })
   reject_reason: string | null;
 
