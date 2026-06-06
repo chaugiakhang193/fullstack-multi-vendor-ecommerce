@@ -79,9 +79,24 @@ function VariantImageDropzone({
     multiple: true,
     maxFiles: remainingSlots,
     disabled: remainingSlots <= 0,
+    maxSize: 10 * 1024 * 1024,
     onDrop: (acceptedFiles) => {
       const filesToAdd = acceptedFiles.slice(0, remainingSlots);
       onAddImages(variantIndex, filesToAdd);
+    },
+    onDropRejected: (fileRejections) => {
+      fileRejections.forEach((rejection) => {
+        const { file, errors } = rejection;
+        errors.forEach((err) => {
+          if (err.code === "file-too-large") {
+            toast.error(`Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+          } else if (err.code === "file-invalid-type") {
+            toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+          } else {
+            toast.error(`Lỗi tải file: ${err.message}`);
+          }
+        });
+      });
     },
   });
 
@@ -255,6 +270,7 @@ export default function CreateProductPage() {
     useDropzone({
       accept: { "image/*": [] },
       multiple: false,
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (!file) return;
@@ -265,6 +281,20 @@ export default function CreateProductPage() {
           setErrors((prev) => ({ ...prev, thumbnail: undefined }));
         }
       },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
+      },
     });
 
   // Dropzone gallery (tối đa 5 ảnh)
@@ -274,6 +304,7 @@ export default function CreateProductPage() {
       accept: { "image/*": [] },
       multiple: true,
       disabled: remainingGallerySlots <= 0,
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
         const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
@@ -282,6 +313,20 @@ export default function CreateProductPage() {
         if (errors.general_gallery) {
           setErrors((prev) => ({ ...prev, general_gallery: undefined }));
         }
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 

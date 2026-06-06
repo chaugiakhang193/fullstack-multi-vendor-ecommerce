@@ -47,6 +47,8 @@ export default function SellerSetupPage() {
   const [existingShop, setExistingShop] = useState<ShopResponseType | null>(
     null,
   );
+  const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null);
+  const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
   const [existingGallery, setExistingGallery] = useState<
     { id: string; url: string }[]
   >([]);
@@ -63,13 +65,13 @@ export default function SellerSetupPage() {
   // Preview URLs
   const logoPreview = useMemo(() => {
     if (logoFile) return URL.createObjectURL(logoFile);
-    return existingShop?.logo_url || null;
-  }, [logoFile, existingShop]);
+    return existingLogoUrl;
+  }, [logoFile, existingLogoUrl]);
 
   const bannerPreview = useMemo(() => {
     if (bannerFile) return URL.createObjectURL(bannerFile);
-    return existingShop?.banner_url || null;
-  }, [bannerFile, existingShop]);
+    return existingBannerUrl;
+  }, [bannerFile, existingBannerUrl]);
 
   const galleryPreviews = useMemo(() => {
     return galleryFiles.map((file) => URL.createObjectURL(file));
@@ -149,6 +151,8 @@ export default function SellerSetupPage() {
           const res = await sellerShopsApiRequest.getMyShop();
           const shop = res.data;
           setExistingShop(shop);
+          setExistingLogoUrl(shop.logo_url || null);
+          setExistingBannerUrl(shop.banner_url || null);
           setExistingGallery(shop.gallery || []);
 
           // Prefill values
@@ -213,8 +217,8 @@ export default function SellerSetupPage() {
   // Handle form submission
   const onSubmit = async (values: CreateShopBodyType) => {
     // Validate file uploads
-    const hasLogo = logoFile || existingShop?.logo_url;
-    const hasBanner = bannerFile || existingShop?.banner_url;
+    const hasLogo = logoFile || existingLogoUrl;
+    const hasBanner = bannerFile || existingBannerUrl;
     const totalGalleryCount = existingGallery.length + galleryFiles.length;
 
     if (!hasLogo) {
@@ -568,7 +572,10 @@ export default function SellerSetupPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => setLogoFile(null)}
+                          onClick={() => {
+                            setLogoFile(null);
+                            setExistingLogoUrl(null);
+                          }}
                           className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition"
                         >
                           <X className="h-3 w-3" />
@@ -608,7 +615,10 @@ export default function SellerSetupPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => setBannerFile(null)}
+                          onClick={() => {
+                            setBannerFile(null);
+                            setExistingBannerUrl(null);
+                          }}
                           className="absolute top-2 right-2 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition"
                         >
                           <X className="h-3 w-3" />

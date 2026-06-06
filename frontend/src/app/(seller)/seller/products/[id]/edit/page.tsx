@@ -90,10 +90,25 @@ function EditVariantImageDropzone({
     accept: { "image/*": [] }, // Chỉ nhận các file ảnh
     multiple: true, // Cho phép chọn nhiều ảnh cùng lúc
     disabled: remainingSlots <= 0, // Vô hiệu hóa kéo thả nếu đã đủ 3 ảnh
+    maxSize: 10 * 1024 * 1024,
     onDrop: (acceptedFiles) => {
       // Giới hạn số file nhận vào vừa đúng số slot còn lại
       const filesToAdd = acceptedFiles.slice(0, remainingSlots);
       onAddNewImages(variantIndex, filesToAdd);
+    },
+    onDropRejected: (fileRejections) => {
+      fileRejections.forEach((rejection) => {
+        const { file, errors } = rejection;
+        errors.forEach((err) => {
+          if (err.code === "file-too-large") {
+            toast.error(`Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+          } else if (err.code === "file-invalid-type") {
+            toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+          } else {
+            toast.error(`Lỗi tải file: ${err.message}`);
+          }
+        });
+      });
     },
   });
 
@@ -376,6 +391,7 @@ export default function EditProductPage() {
     useDropzone({
       accept: { "image/*": [] },
       multiple: false, // Chỉ cho chọn 1 ảnh đại diện duy nhất
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (!file) return;
@@ -383,6 +399,20 @@ export default function EditProductPage() {
         if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
         setNewThumbnailFile(file);
         setNewThumbnailPreview(URL.createObjectURL(file)); // Tạo link xem trước ảnh mới chọn
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 
@@ -396,11 +426,26 @@ export default function EditProductPage() {
       accept: { "image/*": [] },
       multiple: true,
       disabled: remainingGallerySlots <= 0, // Đầy slot thì khóa tính năng
+      maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
         const filesToAdd = acceptedFiles.slice(0, remainingGallerySlots);
         const newPreviews = filesToAdd.map((f) => URL.createObjectURL(f));
         setNewGalleryFiles((prev) => [...prev, ...filesToAdd]);
         setNewGalleryPreviews((prev) => [...prev, ...newPreviews]);
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          const { file, errors } = rejection;
+          errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
+            } else if (err.code === "file-invalid-type") {
+              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
       },
     });
 
