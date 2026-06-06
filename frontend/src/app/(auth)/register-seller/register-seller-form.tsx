@@ -31,6 +31,8 @@ import {
 } from "@/schemaValidations/auth/auth.schema";
 import authApiRequest from "@/apiRequests/auth/auth";
 import { getErrorMessage } from "@/lib/http";
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
+import { tabId } from "@/lib/utils";
 //Store
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -40,16 +42,48 @@ export function RegisterSellerForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
   //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
-  //Nếu có accessToken trong RAM qua Zustand thì redirect
+  const logoutStore = useAuthStore((state) => state.logout);
+
+  //Nếu có accessToken trong RAM qua Zustand và là seller/admin thì redirect
   useEffect(() => {
-    if (accessToken) {
-      router.push(user?.role === "seller" ? "/seller" : "/");
+    if (accessToken && user) {
+      if (user.role === "seller") {
+        router.push("/seller");
+      } else if (user.role === "admin") {
+        router.push("/admin");
+      }
     }
   }, [accessToken, user, router]);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await authApiRequest.logout();
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+    } finally {
+      logoutStore();
+
+      // Đồng bộ đăng xuất sang các tab khác
+      if (typeof window !== "undefined") {
+        try {
+          const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
+          channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+          channel.close();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      toast.success("Đăng xuất thành công. Bây giờ bạn có thể đăng ký tài khoản Người bán!");
+      setIsLoggingOut(false);
+    }
+  };
 
   //Khởi tạo Form
   const form = useForm<RegisterBodyType>({
@@ -82,6 +116,50 @@ export function RegisterSellerForm({
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Nếu đã đăng nhập dưới quyền Customer, hiển thị màn hình yêu cầu đăng xuất để tiếp tục
+  if (accessToken && user?.role === "customer") {
+    return (
+      <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
+        <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10 animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-indigo-500" />
+          <CardHeader className="text-center pb-6 sm:pb-8">
+            <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              Bạn đang đăng nhập dưới quyền Khách hàng
+            </CardTitle>
+            <CardDescription className="text-base sm:text-lg mt-2">
+              Tài khoản hiện tại của bạn là <b>{user.username}</b> (vai trò: Khách hàng).
+              Đăng ký trở thành Người bán yêu cầu một tài khoản riêng biệt. Bạn cần đăng xuất tài khoản này trước khi tạo tài khoản Người bán mới.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+            <Button
+              onClick={() => router.push("/")}
+              variant="outline"
+              className="flex-1 h-12 text-sm font-semibold rounded-xl"
+              disabled={isLoggingOut}
+            >
+              Quay lại Trang chủ
+            </Button>
+            <Button
+              onClick={handleLogout}
+              className="flex-1 h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl"
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang đăng xuất...
+                </>
+              ) : (
+                "Đăng xuất & Đăng ký"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
