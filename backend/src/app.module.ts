@@ -36,6 +36,7 @@ import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 import { Idempotency } from '@/modules/orders/entities/idempotency.entity';
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { UserCoupon } from '@/modules/promotions/entities/user-coupon.entity';
 import { Payment } from '@/modules/payments/entities/payment.entity';
@@ -104,6 +105,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           SubOrder,
           OrderItem,
           Idempotency,
+          OutboxEvent,
           Coupon,
           UserCoupon,
           Payment,

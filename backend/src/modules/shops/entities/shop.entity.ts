@@ -48,7 +48,7 @@ export class Shop {
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
   lng: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: false })
   is_coordinates_verified: boolean;
 
   @Column({ type: 'text', nullable: true })

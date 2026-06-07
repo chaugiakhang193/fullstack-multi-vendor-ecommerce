@@ -7,6 +7,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Check,
 } from 'typeorm';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Category } from '@/modules/products/entities/category.entity';
@@ -14,6 +15,7 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 import { ProductStatus } from '@/common/enums';
 
 @Entity()
+@Check('stock_quantity >= 0')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;

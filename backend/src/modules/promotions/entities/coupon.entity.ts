@@ -43,4 +43,7 @@ export class Coupon {
 
   @Column({ type: 'int', nullable: true })
   usage_limit: number;
+
+  @Column({ type: 'int', default: 0 })
+  used_count: number;
 }
