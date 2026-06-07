@@ -44,4 +44,34 @@ export const SHIPPING_CONSTANTS = {
    * Fallback is 30,000 VND.
    */
   FALLBACK_FEE: 30000,
+
+  /**
+   * Earth's mean radius in kilometers.
+   */
+  EARTH_RADIUS_KM: 6371,
+
+  /**
+   * Minimum valid latitude value.
+   */
+  MIN_LATITUDE: -90,
+
+  /**
+   * Maximum valid latitude value.
+   */
+  MAX_LATITUDE: 90,
+
+  /**
+   * Minimum valid longitude value.
+   */
+  MIN_LONGITUDE: -180,
+
+  /**
+   * Maximum valid longitude value.
+   */
+  MAX_LONGITUDE: 180,
+
+  /**
+   * Rounding factor for shipping fee in VND.
+   */
+  ROUNDING_FACTOR: 1000,
 };

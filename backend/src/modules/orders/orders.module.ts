@@ -7,6 +7,7 @@ import { Order } from './entities/order.entity';
 import { SubOrder } from './entities/sub-order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Idempotency } from './entities/idempotency.entity';
+import { HaversineShippingCalculator } from './haversine-shipping.calculator';
 
 @Module({
   imports: [
@@ -19,7 +20,13 @@ import { Idempotency } from './entities/idempotency.entity';
     ]),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
-  exports: [OrdersService],
+  providers: [
+    OrdersService,
+    {
+      provide: 'IShippingCalculator',
+      useClass: HaversineShippingCalculator,
+    },
+  ],
+  exports: [OrdersService, 'IShippingCalculator'],
 })
 export class OrdersModule {}
