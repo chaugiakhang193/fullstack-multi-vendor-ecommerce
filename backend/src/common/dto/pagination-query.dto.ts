@@ -18,7 +18,9 @@ export class PaginationQueryDto {
     return val;
   })
   @IsInt({ message: 'Trang phải là số nguyên' })
-  @Min(PAGINATION_LIMITS.DEFAULT_PAGE, { message: 'Trang phải lớn hơn hoặc bằng 1' })
+  @Min(PAGINATION_LIMITS.DEFAULT_PAGE, {
+    message: 'Trang phải lớn hơn hoặc bằng 1',
+  })
   page?: number = PAGINATION_LIMITS.DEFAULT_PAGE;
 
   @ApiPropertyOptional({
@@ -35,8 +37,12 @@ export class PaginationQueryDto {
     return Math.min(val, PAGINATION_LIMITS.MAX_LIMIT);
   })
   @IsInt({ message: 'Giới hạn phải là số nguyên' })
-  @Min(PAGINATION_LIMITS.DEFAULT_PAGE, { message: 'Giới hạn phải lớn hơn hoặc bằng 1' })
-  @Max(PAGINATION_LIMITS.MAX_LIMIT, { message: 'Giới hạn tối đa là 100 phần tử trên mỗi trang' })
+  @Min(PAGINATION_LIMITS.DEFAULT_PAGE, {
+    message: 'Giới hạn phải lớn hơn hoặc bằng 1',
+  })
+  @Max(PAGINATION_LIMITS.MAX_LIMIT, {
+    message: 'Giới hạn tối đa là 100 phần tử trên mỗi trang',
+  })
   limit?: number = PAGINATION_LIMITS.DEFAULT_LIMIT;
 
   @ApiPropertyOptional({

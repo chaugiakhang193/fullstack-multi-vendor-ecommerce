@@ -4,6 +4,8 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 
@@ -20,10 +22,10 @@ export class Address {
   address_line: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lat: number;
+  lat: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lng: number;
+  lng: string;
 
   @Column({ default: false })
   is_default: boolean;
@@ -33,4 +35,10 @@ export class Address {
 
   @Column({ type: 'varchar', nullable: true })
   phone: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }
