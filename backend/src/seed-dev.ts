@@ -41,11 +41,18 @@ function parseVariantAttributes(name: string): Record<string, string> {
     }
     if (lowerPart.startsWith('màu ')) {
       let colorVal = part.replace(/màu /i, '').trim();
-      colorVal = colorVal.replace(/ cá tính/i, '').replace(/ thanh lịch/i, '').trim();
+      colorVal = colorVal
+        .replace(/ cá tính/i, '')
+        .replace(/ thanh lịch/i, '')
+        .trim();
       attrs['color'] = colorVal;
       return;
     }
-    if (lowerPart.includes('nhám') || lowerPart.includes('tự nhiên') || lowerPart.includes('titan')) {
+    if (
+      lowerPart.includes('nhám') ||
+      lowerPart.includes('tự nhiên') ||
+      lowerPart.includes('titan')
+    ) {
       attrs['color'] = part;
       return;
     }

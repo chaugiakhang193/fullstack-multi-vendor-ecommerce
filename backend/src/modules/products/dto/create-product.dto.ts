@@ -57,7 +57,8 @@ export class CreateProductVariantDto {
 
   @ApiProperty({
     example: { color: 'Đỏ', size: 'L' },
-    description: 'Các thuộc tính chi tiết cấu trúc của biến thể (Màu sắc, Kích cỡ...)',
+    description:
+      'Các thuộc tính chi tiết cấu trúc của biến thể (Màu sắc, Kích cỡ...)',
     required: false,
   })
   @IsOptional()

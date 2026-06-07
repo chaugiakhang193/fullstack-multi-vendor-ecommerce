@@ -18,7 +18,8 @@ export class ProductVariantResponseDto {
 
   @ApiProperty({
     example: { color: 'Đỏ', size: 'L' },
-    description: 'Các thuộc tính chi tiết của biến thể (Màu sắc, Kích thước...)',
+    description:
+      'Các thuộc tính chi tiết của biến thể (Màu sắc, Kích thước...)',
     required: false,
   })
   attributes: Record<string, string>;

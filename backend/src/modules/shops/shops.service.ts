@@ -629,4 +629,26 @@ export class ShopsService {
     });
     return shops;
   }
+
+  async findUnverifiedShops(): Promise<Shop[]> {
+    const findOptions = {
+      where: { is_coordinates_verified: false },
+    };
+    const shops = await this.shopsRepository.find(findOptions);
+    return shops;
+  }
+
+  async updateShopCoordinates(
+    shopId: string,
+    lat: string,
+    lng: string,
+  ): Promise<void> {
+    const targetId = shopId;
+    const updatePayload = {
+      lat: lat,
+      lng: lng,
+      is_coordinates_verified: true,
+    };
+    await this.shopsRepository.update(targetId, updatePayload);
+  }
 }

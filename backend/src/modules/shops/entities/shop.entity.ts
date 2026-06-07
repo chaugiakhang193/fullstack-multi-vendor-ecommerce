@@ -43,10 +43,10 @@ export class Shop {
   pickup_address: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lat: number;
+  lat: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lng: number;
+  lng: string;
 
   @Column({ type: 'boolean', default: true })
   is_coordinates_verified: boolean;

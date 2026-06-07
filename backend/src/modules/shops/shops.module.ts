@@ -16,6 +16,7 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { ProductsModule } from '@/modules/products/products.module';
+import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ProductsModule } from '@/modules/products/products.module';
     CloudinaryModule,
     UsersModule,
     forwardRef(() => ProductsModule),
+    forwardRef(() => GeocodingModule),
   ],
   controllers: [ShopsController, SellerShopsController, AdminShopsController],
   providers: [ShopsService],

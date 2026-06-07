@@ -231,9 +231,11 @@ export class ProductsService {
           const variantUrls = variantAssets.map(mapAssetUrlFn);
 
           const variantName = variantDto.name;
-          const attributes = variantDto.attributes && Object.keys(variantDto.attributes).length > 0
-            ? variantDto.attributes
-            : this.parseVariantAttributes(variantName);
+          const attributes =
+            variantDto.attributes &&
+            Object.keys(variantDto.attributes).length > 0
+              ? variantDto.attributes
+              : this.parseVariantAttributes(variantName);
 
           const variant = queryRunner.manager.create(ProductVariant, {
             name: variantName,
@@ -1047,9 +1049,11 @@ export class ProductsService {
             if (variantDto.name !== undefined) {
               const variantName = variantDto.name;
               oldVariant.name = variantName;
-              oldVariant.attributes = variantDto.attributes && Object.keys(variantDto.attributes).length > 0
-                ? variantDto.attributes
-                : this.parseVariantAttributes(variantName);
+              oldVariant.attributes =
+                variantDto.attributes &&
+                Object.keys(variantDto.attributes).length > 0
+                  ? variantDto.attributes
+                  : this.parseVariantAttributes(variantName);
             } else if (variantDto.attributes !== undefined) {
               oldVariant.attributes = variantDto.attributes;
             }
@@ -1093,9 +1097,11 @@ export class ProductsService {
             }
 
             const variantName = variantDto.name || '';
-            const attributes = variantDto.attributes && Object.keys(variantDto.attributes).length > 0
-              ? variantDto.attributes
-              : this.parseVariantAttributes(variantName);
+            const attributes =
+              variantDto.attributes &&
+              Object.keys(variantDto.attributes).length > 0
+                ? variantDto.attributes
+                : this.parseVariantAttributes(variantName);
 
             const newVariant = queryRunner.manager.create(ProductVariant, {
               name: variantName,
@@ -1416,18 +1422,61 @@ export class ProductsService {
 
     // Tách các thuộc tính bằng các ký tự phân tách phổ biến: '-', ',', '/', '|'
     const separatorPattern = /\s*[\-\,\/\|]\s*/;
-    const parts = name.split(separatorPattern).map((p) => p.trim()).filter(Boolean);
+    const parts = name
+      .split(separatorPattern)
+      .map((p) => p.trim())
+      .filter(Boolean);
 
     // Danh sách từ điển các màu sắc phổ biến bằng tiếng Việt và tiếng Anh
     const colors = [
-      'đen', 'trắng', 'đỏ', 'xanh', 'vàng', 'lục', 'lam', 'chàm', 'tím', 
-      'hồng', 'xám', 'cam', 'nâu', 'bạc', 'titan', 'gold', 'silver', 'black', 
-      'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'grey', 
-      'gray', 'bạch kim', 'be', 'kem', 'rêu', 'rêu nhạt', 'nhám', 'tự nhiên'
+      'đen',
+      'trắng',
+      'đỏ',
+      'xanh',
+      'vàng',
+      'lục',
+      'lam',
+      'chàm',
+      'tím',
+      'hồng',
+      'xám',
+      'cam',
+      'nâu',
+      'bạc',
+      'titan',
+      'gold',
+      'silver',
+      'black',
+      'white',
+      'red',
+      'blue',
+      'green',
+      'yellow',
+      'pink',
+      'purple',
+      'grey',
+      'gray',
+      'bạch kim',
+      'be',
+      'kem',
+      'rêu',
+      'rêu nhạt',
+      'nhám',
+      'tự nhiên',
     ];
 
     // Danh sách các chuẩn kích thước size chữ phổ biến
-    const sizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl', 'xs', 'free size', 'freesize'];
+    const sizes = [
+      's',
+      'm',
+      'l',
+      'xl',
+      'xxl',
+      'xxxl',
+      'xs',
+      'free size',
+      'freesize',
+    ];
 
     const parsePart = (part: string) => {
       const lowerPart = part.toLowerCase();
@@ -1443,7 +1492,11 @@ export class ProductsService {
       }
 
       // 2. Nhận diện CPU / Vi xử lý
-      const hasCpu = lowerPart.includes('intel') || lowerPart.includes('core') || lowerPart.includes('amd') || lowerPart.includes('ryzen');
+      const hasCpu =
+        lowerPart.includes('intel') ||
+        lowerPart.includes('core') ||
+        lowerPart.includes('amd') ||
+        lowerPart.includes('ryzen');
       if (hasCpu) {
         attrs['cpu'] = part;
         return;
@@ -1455,7 +1508,9 @@ export class ProductsService {
       if (isStorage) {
         const spacePattern = /\s+/g;
         const emptyStringFallback = '';
-        const storageVal = part.toUpperCase().replace(spacePattern, emptyStringFallback);
+        const storageVal = part
+          .toUpperCase()
+          .replace(spacePattern, emptyStringFallback);
         attrs['storage'] = storageVal;
         return;
       }
@@ -1469,7 +1524,8 @@ export class ProductsService {
         attrs['size'] = sizeVal;
         return;
       }
-      const isSizeViPrefix = lowerPart.startsWith('kích thước') || lowerPart.startsWith('kích cỡ');
+      const isSizeViPrefix =
+        lowerPart.startsWith('kích thước') || lowerPart.startsWith('kích cỡ');
       if (isSizeViPrefix) {
         const sizeViPattern = /kích thước|kích cỡ/i;
         const emptyStringFallback = '';
@@ -1501,20 +1557,23 @@ export class ProductsService {
       if (isColorPrefix) {
         const colorPrefixPattern = /màu /i;
         const emptyStringFallback = '';
-        let colorVal = part.replace(colorPrefixPattern, emptyStringFallback).trim();
-        
+        let colorVal = part
+          .replace(colorPrefixPattern, emptyStringFallback)
+          .trim();
+
         // Loại bỏ các từ hậu tố mô tả đi kèm
         const descriptive1 = / cá tính/i;
         const descriptive2 = / thanh lịch/i;
         const descriptive3 = / sang trọng/i;
-        colorVal = colorVal.replace(descriptive1, emptyStringFallback)
-                           .replace(descriptive2, emptyStringFallback)
-                           .replace(descriptive3, emptyStringFallback)
-                           .trim();
+        colorVal = colorVal
+          .replace(descriptive1, emptyStringFallback)
+          .replace(descriptive2, emptyStringFallback)
+          .replace(descriptive3, emptyStringFallback)
+          .trim();
         attrs['color'] = colorVal;
         return;
       }
-      
+
       // Đối chiếu kiểm tra với từ điển màu sắc
       const colorMatchFn = (c: string) => lowerPart.includes(c);
       const matchedColor = colors.find(colorMatchFn);
@@ -1524,7 +1583,9 @@ export class ProductsService {
         if (startsWithColorVi) {
           const colorPrefixPattern = /màu /i;
           const emptyStringFallback = '';
-          colorVal = colorVal.replace(colorPrefixPattern, emptyStringFallback).trim();
+          colorVal = colorVal
+            .replace(colorPrefixPattern, emptyStringFallback)
+            .trim();
         }
         attrs['color'] = colorVal;
         return;

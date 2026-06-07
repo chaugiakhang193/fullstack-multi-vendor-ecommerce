@@ -91,7 +91,8 @@ export class CartsController {
   })
   @ApiParam({
     name: 'id',
-    description: 'ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID',
+    description:
+      'ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID',
     example: 'd1b85fb4-3449-45cf-a407-d26b808a55b8',
   })
   updateItem(
@@ -116,7 +117,8 @@ export class CartsController {
   })
   @ApiParam({
     name: 'id',
-    description: 'ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID',
+    description:
+      'ID của bản ghi giỏ hàng (Cart Item ID - lấy từ trường "id" ở cấp ngoài cùng của response GET /cart), KHÔNG phải Product ID',
     example: 'd1b85fb4-3449-45cf-a407-d26b808a55b8',
   })
   removeItem(@User() user: IUser, @Param('id', ParseUUIDPipe) id: string) {
