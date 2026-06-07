@@ -77,3 +77,9 @@ export enum IdempotencyStatus {
   PENDING = 'pending',
   COMPLETED = 'completed',
 }
+
+export enum OutboxEventStatus {
+  PENDING = 'pending',
+  PROCESSED = 'processed',
+  FAILED = 'failed',
+}
