@@ -23,6 +23,7 @@ import { OrdersService } from '@/modules/orders/orders.service';
 
 // DTOs
 import { CreateOrderDto } from '@/modules/orders/dto/create-order.dto';
+import { CheckoutResponseDto } from '@/modules/orders/dto/checkout-response.dto';
 
 // Decorators
 import { Roles } from '@/decorator/roles.decorator';
@@ -59,7 +60,7 @@ export class OrdersController {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ResponseMessage('Đặt hàng thành công')
-  @ApiResponse({ status: 201, description: 'Tạo đơn hàng thành công' })
+  @ApiResponse({ status: 201, type: CheckoutResponseDto, description: 'Tạo đơn hàng thành công' })
   @ApiBadRequestResponse({
     description:
       'Dữ liệu không hợp lệ (thiếu/sai Idempotency-Key, sản phẩm hết hàng, coupon không hợp lệ, ...)',

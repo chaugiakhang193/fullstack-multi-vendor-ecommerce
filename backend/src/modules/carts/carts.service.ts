@@ -41,20 +41,7 @@ export class CartsService {
     const product =
       await this.productsService.getProductForCartValidation(productId);
 
-    if (product.status === ProductStatus.DELETED) {
-      const deletedMessage = 'Sản phẩm không tồn tại hoặc đã bị xóa';
-      throw new BadRequestException(deletedMessage);
-    }
-
-    if (product.is_hidden) {
-      const hiddenMessage = 'Sản phẩm đã bị ẩn hoặc ngừng bán';
-      throw new BadRequestException(hiddenMessage);
-    }
-
-    if (product.shop?.status !== AccountStatus.ACTIVE) {
-      const shopInactiveMessage = 'Cửa hàng hiện không hoạt động';
-      throw new BadRequestException(shopInactiveMessage);
-    }
+    this.validateProductPurchasable(product);
 
     if (product.shop?.seller?.id === userId) {
       const selfPurchaseMessage = 'Bạn không thể mua sản phẩm của shop mình';
@@ -267,31 +254,12 @@ export class CartsService {
     cartItemId: string,
     dto: UpdateCartItemDto,
   ): Promise<CartResponseDto> {
-    const findOptions = {
-      where: { id: cartItemId, user: { id: userId } },
-      relations: ['product', 'product.shop', 'variant'],
-    };
-    const item = await this.cartItemRepository.findOne(findOptions);
-
-    if (!item) {
-      const itemNotFoundMessage = 'Không tìm thấy sản phẩm trong giỏ hàng';
-      throw new NotFoundException(itemNotFoundMessage);
-    }
-
-    if (item.product.status === ProductStatus.DELETED) {
-      const deletedMessage = 'Sản phẩm không tồn tại hoặc đã bị xóa';
-      throw new BadRequestException(deletedMessage);
-    }
-
-    if (item.product.is_hidden) {
-      const hiddenMessage = 'Sản phẩm đã bị ẩn hoặc ngừng bán';
-      throw new BadRequestException(hiddenMessage);
-    }
-
-    if (item.product.shop?.status !== AccountStatus.ACTIVE) {
-      const shopInactiveMessage = 'Cửa hàng hiện không hoạt động';
-      throw new BadRequestException(shopInactiveMessage);
-    }
+    const item = await this.findOwnedCartItemOrFail(userId, cartItemId, [
+      'product',
+      'product.shop',
+      'variant',
+    ]);
+    this.validateProductPurchasable(item.product);
 
     const availableStock = item.variant
       ? (item.variant.stock_quantity ?? 0)
@@ -313,14 +281,7 @@ export class CartsService {
     userId: string,
     cartItemId: string,
   ): Promise<CartResponseDto> {
-    const item = await this.cartItemRepository.findOne({
-      where: { id: cartItemId, user: { id: userId } },
-    });
-
-    if (!item) {
-      throw new NotFoundException('Không tìm thấy sản phẩm trong giỏ hàng');
-    }
-
+    const item = await this.findOwnedCartItemOrFail(userId, cartItemId);
     await this.cartItemRepository.remove(item);
     return this.getCart(userId);
   }
@@ -423,6 +384,37 @@ export class CartsService {
     });
 
     return this.getCart(userId);
+  }
+
+  // ==========================================
+  // PRIVATE HELPERS
+  // ==========================================
+
+  private async findOwnedCartItemOrFail(
+    userId: string,
+    cartItemId: string,
+    relations?: string[],
+  ): Promise<CartItem> {
+    const item = await this.cartItemRepository.findOne({
+      where: { id: cartItemId, user: { id: userId } },
+      ...(relations ? { relations } : {}),
+    });
+    if (!item) {
+      throw new NotFoundException('Không tìm thấy sản phẩm trong giỏ hàng');
+    }
+    return item;
+  }
+
+  private validateProductPurchasable(product: Product): void {
+    if (product.status === ProductStatus.DELETED) {
+      throw new BadRequestException('Sản phẩm không tồn tại hoặc đã bị xóa');
+    }
+    if (product.is_hidden) {
+      throw new BadRequestException('Sản phẩm đã bị ẩn hoặc ngừng bán');
+    }
+    if (product.shop?.status !== AccountStatus.ACTIVE) {
+      throw new BadRequestException('Cửa hàng hiện không hoạt động');
+    }
   }
 
   // ==========================================
