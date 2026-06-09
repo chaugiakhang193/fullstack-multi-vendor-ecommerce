@@ -74,23 +74,8 @@ export class ShopsService {
 
     // Kiểm tra danh mục có tồn tại không
     let categories: Category[] = [];
-    // Convert categoryIds to array if it's sent as a string (from multipart/form-data)
-    let parsedCategoryIds = categoryIds;
-    if (typeof categoryIds === 'string') {
-      try {
-        parsedCategoryIds = JSON.parse(categoryIds);
-      } catch (e) {
-        parsedCategoryIds = [categoryIds];
-      }
-    }
-
-    //Ép kiểu an toàn phòng trường họp frontend gửi CategoryIds là một chuỗi số
-    //Không xử lý là sập server do lỗi kiểu dữ liệu, ép thành mảng 1 phần tử để xử lý tiếp
-    if (!Array.isArray(parsedCategoryIds)) {
-      parsedCategoryIds = [parsedCategoryIds];
-    }
-
-    if (parsedCategoryIds && parsedCategoryIds.length > 0) {
+    const parsedCategoryIds = this.parseCategoryIds(categoryIds);
+    if (parsedCategoryIds.length > 0) {
       categories =
         await this.categoriesService.validateRootCategories(parsedCategoryIds);
     }
@@ -267,12 +252,7 @@ export class ShopsService {
     });
     if (!shop) throw new NotFoundException('Không tìm thấy gian hàng');
 
-    if (shop.gallery) {
-      shop.gallery = shop.gallery.filter(
-        (asset) => asset.type === AssetType.SHOP_GALLERY,
-      );
-    }
-
+    this.filterShopGallery(shop);
     return shop;
   }
 
@@ -283,12 +263,7 @@ export class ShopsService {
     });
     if (!shop) throw new NotFoundException('Không tìm thấy gian hàng của bạn');
 
-    if (shop.gallery) {
-      shop.gallery = shop.gallery.filter(
-        (asset) => asset.type === AssetType.SHOP_GALLERY,
-      );
-    }
-
+    this.filterShopGallery(shop);
     return shop;
   }
 
@@ -302,20 +277,10 @@ export class ShopsService {
     Object.assign(shop, shopInfo);
 
     if (categoryIds) {
-      let parsedCategoryIds = categoryIds;
-      if (typeof categoryIds === 'string') {
-        try {
-          parsedCategoryIds = JSON.parse(categoryIds);
-        } catch (e) {
-          parsedCategoryIds = [categoryIds];
-        }
-      }
-
-      if (parsedCategoryIds && parsedCategoryIds.length > 0) {
+      const parsedCategoryIds = this.parseCategoryIds(categoryIds);
+      if (parsedCategoryIds.length > 0) {
         shop.categories =
-          await this.categoriesService.validateRootCategories(
-            parsedCategoryIds,
-          );
+          await this.categoriesService.validateRootCategories(parsedCategoryIds);
       }
     }
 
@@ -323,83 +288,25 @@ export class ShopsService {
   }
 
   async updateLogo(userId: string, file: Express.Multer.File) {
-    const shop = await this.findOneByUserId(userId);
-    let newAssetResult: any = null;
-
-    try {
-      newAssetResult = await this.cloudinaryService.uploadFile(
-        file,
-        CLOUDINARY_FOLDER.SHOP_LOGOS,
-        userId,
-        AssetType.SHOP_LOGO,
-        shop.id,
-      );
-
-      await this.shopsRepository.update(shop.id, {
-        logo_url: newAssetResult.url,
-      });
-
-      if (shop.logo_url) {
-        const oldAsset = await this.cloudinaryService.findAssetByUrl(
-          shop.logo_url,
-        );
-        if (oldAsset) {
-          await this.cloudinaryService
-            .deleteAsset(oldAsset.id, userId)
-            .catch((e) => console.error(e));
-        }
-      }
-
-      return await this.findOneByUserId(userId);
-    } catch (error) {
-      if (newAssetResult) {
-        await this.cloudinaryService
-          .deleteAsset(newAssetResult.id, userId)
-          .catch((e) => console.error(e));
-      }
-      throw new InternalServerErrorException('Có lỗi xảy ra khi cập nhật logo');
-    }
+    return this.replaceShopAsset({
+      userId,
+      file,
+      folder: CLOUDINARY_FOLDER.SHOP_LOGOS,
+      assetType: AssetType.SHOP_LOGO,
+      urlField: 'logo_url',
+      errorMsg: 'Có lỗi xảy ra khi cập nhật logo',
+    });
   }
 
   async updateBanner(userId: string, file: Express.Multer.File) {
-    const shop = await this.findOneByUserId(userId);
-    let newAssetResult: any = null;
-
-    try {
-      newAssetResult = await this.cloudinaryService.uploadFile(
-        file,
-        CLOUDINARY_FOLDER.SHOP_BANNERS,
-        userId,
-        AssetType.SHOP_BANNER,
-        shop.id,
-      );
-
-      await this.shopsRepository.update(shop.id, {
-        banner_url: newAssetResult.url,
-      });
-
-      if (shop.banner_url) {
-        const oldAsset = await this.cloudinaryService.findAssetByUrl(
-          shop.banner_url,
-        );
-        if (oldAsset) {
-          await this.cloudinaryService
-            .deleteAsset(oldAsset.id, userId)
-            .catch((e) => console.error(e));
-        }
-      }
-
-      return await this.findOneByUserId(userId);
-    } catch (error) {
-      if (newAssetResult) {
-        await this.cloudinaryService
-          .deleteAsset(newAssetResult.id, userId)
-          .catch((e) => console.error(e));
-      }
-      throw new InternalServerErrorException(
-        'Có lỗi xảy ra khi cập nhật banner',
-      );
-    }
+    return this.replaceShopAsset({
+      userId,
+      file,
+      folder: CLOUDINARY_FOLDER.SHOP_BANNERS,
+      assetType: AssetType.SHOP_BANNER,
+      urlField: 'banner_url',
+      errorMsg: 'Có lỗi xảy ra khi cập nhật banner',
+    });
   }
 
   async addGalleryImages(userId: string, files: Express.Multer.File[]) {
@@ -620,13 +527,7 @@ export class ShopsService {
       where: { status: AccountStatus.PENDING_APPROVAL },
       relations: ['seller', 'categories', 'gallery'],
     });
-    shops.forEach((shop) => {
-      if (shop.gallery) {
-        shop.gallery = shop.gallery.filter(
-          (asset) => asset.type === AssetType.SHOP_GALLERY,
-        );
-      }
-    });
+    shops.forEach((shop) => this.filterShopGallery(shop));
     return shops;
   }
 
@@ -650,5 +551,79 @@ export class ShopsService {
       is_coordinates_verified: true,
     };
     await this.shopsRepository.update(targetId, updatePayload);
+  }
+
+  // ==========================================
+  // PRIVATE HELPERS
+  // ==========================================
+
+  private filterShopGallery(shop: Shop): void {
+    if (shop.gallery) {
+      shop.gallery = shop.gallery.filter(
+        (asset) => asset.type === AssetType.SHOP_GALLERY,
+      );
+    }
+  }
+
+  private parseCategoryIds(raw: any): string[] {
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        parsed = [raw];
+      }
+    }
+    if (!Array.isArray(parsed)) {
+      parsed = [parsed];
+    }
+    return parsed as string[];
+  }
+
+  private async replaceShopAsset(params: {
+    userId: string;
+    file: Express.Multer.File;
+    folder: string;
+    assetType: AssetType;
+    urlField: 'logo_url' | 'banner_url';
+    errorMsg: string;
+  }): Promise<Shop> {
+    const { userId, file, folder, assetType, urlField, errorMsg } = params;
+    const shop = await this.findOneByUserId(userId);
+    let newAssetResult: any = null;
+
+    try {
+      newAssetResult = await this.cloudinaryService.uploadFile(
+        file,
+        folder,
+        userId,
+        assetType,
+        shop.id,
+      );
+
+      await this.shopsRepository.update(
+        shop.id,
+        { [urlField]: newAssetResult.url } as any,
+      );
+
+      const oldUrl = shop[urlField];
+      if (oldUrl) {
+        const oldAsset = await this.cloudinaryService.findAssetByUrl(oldUrl);
+        if (oldAsset) {
+          await this.cloudinaryService
+            .deleteAsset(oldAsset.id, userId)
+            .catch((e) => console.error(e));
+        }
+      }
+
+      return await this.findOneByUserId(userId);
+    } catch (error) {
+      if (newAssetResult) {
+        await this.cloudinaryService
+          .deleteAsset(newAssetResult.id, userId)
+          .catch((e) => console.error(e));
+      }
+      throw new InternalServerErrorException(errorMsg);
+    }
   }
 }
