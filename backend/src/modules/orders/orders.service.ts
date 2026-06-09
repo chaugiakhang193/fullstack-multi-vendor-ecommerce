@@ -27,10 +27,15 @@ import { User } from '@/modules/users/entities/user.entity';
 
 // DTOs
 import { CreateOrderDto } from '@/modules/orders/dto/create-order.dto';
+import {
+  CheckoutResponseDto,
+  CheckoutResponseItemDto,
+  CheckoutResponseSubOrderDto,
+} from '@/modules/orders/dto/checkout-response.dto';
 
 // Services
 import { CartsService } from '@/modules/carts/carts.service';
-import { ProductsService } from '@/modules/products/products.service';
+import { ProductStockService } from '@/modules/products/product-stock.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
@@ -85,41 +90,7 @@ interface SubOrderPlan {
   savedSubOrder?: SubOrder;
 }
 
-interface CheckoutResponseItem {
-  product_id: string;
-  product_name: string;
-  variant_id: string | null;
-  variant_name: string | null;
-  quantity: number;
-  price_at_purchase: number;
-}
-
-interface CheckoutResponseSubOrder {
-  sub_order_id: string;
-  shop_id: string;
-  shop_name: string;
-  sub_total: number;
-  shipping_fee: number;
-  discount_amount: number;
-  total_amount: number;
-  items: CheckoutResponseItem[];
-}
-
-export interface CheckoutResponse {
-  order_id: string;
-  order_number: string;
-  total_amount: number;
-  payment_method: PaymentMethod;
-  shipping_address: {
-    recipient_name: string;
-    phone: string;
-    address_line: string;
-    lat: number | null;
-    lng: number | null;
-  };
-  sub_orders: CheckoutResponseSubOrder[];
-  created_at: Date;
-}
+export { CheckoutResponseDto };
 
 @Injectable()
 export class OrdersService {
@@ -133,7 +104,7 @@ export class OrdersService {
     @InjectRepository(Idempotency)
     private readonly idempotencyRepository: Repository<Idempotency>,
     private readonly cartsService: CartsService,
-    private readonly productsService: ProductsService,
+    private readonly productStockService: ProductStockService,
     private readonly promotionsService: PromotionsService,
     private readonly usersService: UsersService,
     private readonly paymentsService: PaymentsService,
@@ -162,7 +133,7 @@ export class OrdersService {
     userId: string,
     dto: CreateOrderDto,
     idempotencyKey: string,
-  ): Promise<CheckoutResponse> {
+  ): Promise<CheckoutResponseDto> {
     // PHASE 1: claim hoặc replay
     const claimResult = await this.claimIdempotencyKey(userId, idempotencyKey);
     if (claimResult.replay) {
@@ -170,7 +141,7 @@ export class OrdersService {
     }
 
     // PHASE 2: business transaction
-    let response: CheckoutResponse;
+    let response: CheckoutResponseDto;
     try {
       response = await this.runCheckoutTransaction(
         userId,
@@ -195,7 +166,7 @@ export class OrdersService {
   private async claimIdempotencyKey(
     userId: string,
     idempotencyKey: string,
-  ): Promise<{ replay?: CheckoutResponse }> {
+  ): Promise<{ replay?: CheckoutResponseDto }> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -246,7 +217,7 @@ export class OrdersService {
       }
 
       // COMPLETED → replay nguyên vẹn body đã cache
-      const cachedBody = existing.response_body as CheckoutResponse | null;
+      const cachedBody = existing.response_body as CheckoutResponseDto | null;
       const hasCachedBody = !!cachedBody;
       if (!hasCachedBody) {
         const noCacheMsg =
@@ -267,7 +238,7 @@ export class OrdersService {
     userId: string,
     dto: CreateOrderDto,
     idempotencyKey: string,
-  ): Promise<CheckoutResponse> {
+  ): Promise<CheckoutResponseDto> {
     // Đọc & check ownership địa chỉ giao hàng (ngoài transaction — read thuần)
     const address = await this.usersService.findOwnedAddressOrFail(
       userId,
@@ -305,7 +276,7 @@ export class OrdersService {
         variant_id: item.variant?.id ?? null,
         quantity: item.quantity,
       }));
-      await this.productsService.lockAndDeductStockForCheckout(
+      await this.productStockService.lockAndDeductStockForCheckout(
         lockTargets,
         queryRunner.manager,
       );
@@ -523,7 +494,7 @@ export class OrdersService {
   private async markKeyCompleted(
     idempotencyKey: string,
     responseCode: number,
-    responseBody: CheckoutResponse,
+    responseBody: CheckoutResponseDto,
   ): Promise<void> {
     try {
       const updateCriteria = { key: idempotencyKey };
@@ -566,7 +537,7 @@ export class OrdersService {
    */
   private async recoverResponseFromExistingOrder(
     idempotencyKey: string,
-  ): Promise<CheckoutResponse> {
+  ): Promise<CheckoutResponseDto> {
     const findCriteria = {
       where: { idempotency_key: idempotencyKey },
       relations: [
@@ -761,10 +732,10 @@ export class OrdersService {
     };
     paymentMethod: PaymentMethod;
     grandTotal: number;
-  }): CheckoutResponse {
-    const subOrdersResponse: CheckoutResponseSubOrder[] = [];
+  }): CheckoutResponseDto {
+    const subOrdersResponse: CheckoutResponseSubOrderDto[] = [];
     for (const plan of params.subOrderPlans) {
-      const itemsResponse: CheckoutResponseItem[] = plan.items.map((ci) => {
+      const itemsResponse: CheckoutResponseItemDto[] = plan.items.map((ci) => {
         const productPrice = Number(ci.product.price);
         const variantAddPrice = Number(ci.variant?.additional_price ?? 0);
         const priceAtPurchase = round2(productPrice + variantAddPrice);
@@ -801,12 +772,12 @@ export class OrdersService {
     };
   }
 
-  private buildCheckoutResponseFromOrder(order: Order): CheckoutResponse {
-    const subOrdersResponse: CheckoutResponseSubOrder[] = [];
+  private buildCheckoutResponseFromOrder(order: Order): CheckoutResponseDto {
+    const subOrdersResponse: CheckoutResponseSubOrderDto[] = [];
     const orderSubOrders = order.sub_orders ?? [];
 
     for (const subOrder of orderSubOrders) {
-      const itemsResponse: CheckoutResponseItem[] = (subOrder.items ?? []).map(
+      const itemsResponse: CheckoutResponseItemDto[] = (subOrder.items ?? []).map(
         (orderItem) => ({
           product_id: orderItem.product?.id ?? '',
           product_name: orderItem.product_name,
