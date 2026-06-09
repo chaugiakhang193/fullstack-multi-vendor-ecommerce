@@ -15,4 +15,4 @@ import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
   ],
   exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule { }

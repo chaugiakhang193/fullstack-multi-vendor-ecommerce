@@ -1,13 +1,31 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OrdersService } from './orders.service';
-import { OrdersController } from './orders.controller';
-import { OutboxEvent } from './entities/outbox-event.entity';
-import { Order } from './entities/order.entity';
-import { SubOrder } from './entities/sub-order.entity';
-import { OrderItem } from './entities/order-item.entity';
-import { Idempotency } from './entities/idempotency.entity';
-import { HaversineShippingCalculator } from './haversine-shipping.calculator';
+
+// Services
+import { OrdersService } from '@/modules/orders/orders.service';
+
+// Controllers
+import { OrdersController } from '@/modules/orders/orders.controller';
+
+// Crons
+import { IdempotencyCleanupCron } from '@/modules/orders/idempotency-cleanup.cron';
+
+// Entities
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
+import { OrderItem } from '@/modules/orders/entities/order-item.entity';
+import { Idempotency } from '@/modules/orders/entities/idempotency.entity';
+
+// Cross-module dependencies — tuân theo Rule II.11 (không tiêm chéo Repository)
+import { ProductsModule } from '@/modules/products/products.module';
+import { PromotionsModule } from '@/modules/promotions/promotions.module';
+import { UsersModule } from '@/modules/users/users.module';
+import { CartsModule } from '@/modules/carts/carts.module';
+import { PaymentsModule } from '@/modules/payments/payments.module';
+
+// Calculators
+import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping.calculator';
 
 @Module({
   imports: [
@@ -18,10 +36,16 @@ import { HaversineShippingCalculator } from './haversine-shipping.calculator';
       OrderItem,
       Idempotency,
     ]),
+    ProductsModule,
+    PromotionsModule,
+    UsersModule,
+    CartsModule,
+    PaymentsModule,
   ],
   controllers: [OrdersController],
   providers: [
     OrdersService,
+    IdempotencyCleanupCron,
     {
       provide: 'IShippingCalculator',
       useClass: HaversineShippingCalculator,

@@ -238,14 +238,7 @@ export class UsersService {
     const { address_line, lat, lng, recipient_name, phone, is_default } = dto;
 
     // 1. Tìm địa chỉ bằng where để chống IDOR và ném 404
-    const findCriteria = {
-      where: { id: addressId, user: { id: userId } },
-    };
-    const address = await this.addressRepository.findOne(findCriteria);
-
-    if (!address) {
-      throw new NotFoundException('Không tìm thấy địa chỉ');
-    }
+    const address = await this.findOwnedAddressOrFail(userId, addressId);
 
     // 2. Validate cặp tọa độ
     const hasLat = lat !== undefined && lat !== null && lat !== '';
@@ -308,15 +301,7 @@ export class UsersService {
   }
 
   async deleteAddress(userId: string, addressId: string): Promise<void> {
-    const findCriteria = {
-      where: { id: addressId, user: { id: userId } },
-    };
-    const address = await this.addressRepository.findOne(findCriteria);
-
-    if (!address) {
-      throw new NotFoundException('Không tìm thấy địa chỉ');
-    }
-
+    const address = await this.findOwnedAddressOrFail(userId, addressId);
     const wasDefault = address.is_default;
 
     await this.dataSource.transaction(async (manager) => {
@@ -339,15 +324,31 @@ export class UsersService {
     });
   }
 
-  async setDefaultAddress(userId: string, addressId: string): Promise<Address> {
+  /**
+   * Tìm địa chỉ thuộc sở hữu của user — phục vụ luồng Checkout snapshot.
+   *
+   * Trả về thẳng Address kèm chống IDOR ở tầng where: nếu user_id không khớp,
+   * findOne trả null và ném 404 thay vì lộ thông tin tồn tại của bản ghi.
+   * Không cần transaction vì đây là đọc thuần.
+   */
+  async findOwnedAddressOrFail(
+    userId: string,
+    addressId: string,
+  ): Promise<Address> {
     const findCriteria = {
       where: { id: addressId, user: { id: userId } },
     };
     const address = await this.addressRepository.findOne(findCriteria);
-
-    if (!address) {
-      throw new NotFoundException('Không tìm thấy địa chỉ');
+    const isAddressMissing = !address;
+    if (isAddressMissing) {
+      const notFoundMsg = 'Không tìm thấy địa chỉ giao hàng';
+      throw new NotFoundException(notFoundMsg);
     }
+    return address;
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<Address> {
+    const address = await this.findOwnedAddressOrFail(userId, addressId);
 
     return await this.dataSource.transaction(async (manager) => {
       const updateCriteria = { user: { id: userId }, is_default: true };
