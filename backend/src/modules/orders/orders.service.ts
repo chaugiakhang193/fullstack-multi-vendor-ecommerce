@@ -17,6 +17,7 @@ import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 import { Idempotency } from '@/modules/orders/entities/idempotency.entity';
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Address } from '@/modules/users/entities/address.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { CartItem } from '@/modules/carts/entities/cart-item.entity';
@@ -49,14 +50,16 @@ import {
   DiscountType,
   IdempotencyStatus,
   OrderStatus,
+  OutboxEventStatus,
   PaymentMethod,
 } from '@/common/enums';
 
-// Tên constraint UNIQUE trên cột orders.idempotency_key (sinh bởi migration Sprint2)
-const UQ_ORDER_IDEMPOTENCY_KEY = 'UQ_84cba07199e5bb9fbc3261d50d7';
-
-// Số lần thử lại khi sinh order_number trùng (cực hiếm nhưng có thể xảy ra)
-const ORDER_NUMBER_MAX_RETRIES = 5;
+// Constants
+import {
+  UQ_ORDER_IDEMPOTENCY_KEY,
+  ORDER_NUMBER_MAX_RETRIES,
+} from '@/modules/orders/orders.constants';
+import { OUTBOX_EVENT_TYPES } from '@/common/constants/outbox.constants';
 
 // Round helper — giữ 2 chữ số thập phân cho mọi con số tiền
 function round2(value: number): number {
@@ -270,6 +273,25 @@ export class OrdersService {
         throw new BadRequestException(emptyMsg);
       }
 
+      // Cart đã chặn nhưng payload checkout có thể bị bypass từ phía client — không tin frontend.
+      // getActiveCartItemsForCheckout không load product.shop.seller để tránh JOIN thừa,
+      // nên dùng QueryBuilder check thẳng cột FK seller_id trên bảng shop thay vì truy cập relation.
+      const shopIdList = [
+        ...new Set(validItems.map((item) => item.product.shop.id)),
+      ];
+      const shopIdListCondition = 'shop.id IN (:...shopIdList)';
+      const sellerOwnershipCondition = 'shop.seller_id = :userId';
+      const ownedShopCount = await queryRunner.manager
+        .createQueryBuilder(Shop, 'shop')
+        .where(shopIdListCondition, { shopIdList })
+        .andWhere(sellerOwnershipCondition, { userId })
+        .getCount();
+      const isSellerBuyingOwnShop = ownedShopCount > 0;
+      if (isSellerBuyingOwnShop) {
+        const selfPurchaseMsg = 'Bạn không thể mua sản phẩm của shop mình';
+        throw new BadRequestException(selfPurchaseMsg);
+      }
+
       // 2. Khoá + trừ kho atomically (Product ASC → Variant ASC)
       const lockTargets = validItems.map((item) => ({
         product_id: item.product.id,
@@ -463,6 +485,24 @@ export class OrdersService {
 
       // 12. Dọn giỏ hàng (xóa toàn bộ CartItem)
       await this.cartsService.clearActiveCart(userId, queryRunner.manager);
+
+      // Ghi Outbox Event atomically trong cùng transaction — nguyên tử với đơn hàng.
+      // Nếu transaction rollback thì event cũng không tồn tại, tránh thông báo ảo.
+      // Worker quét bảng outbox_events và phát WebSocket + lưu Notification.
+      const shopIdPayload = subOrderPlans.map((plan) => plan.shop.id);
+      const outboxPayload = {
+        orderId: savedOrder.id,
+        orderNumber: savedOrder.order_number,
+        shopIds: shopIdPayload,
+        userId,
+        totalAmount: grandTotal,
+      };
+      const outboxEvent = queryRunner.manager.create(OutboxEvent, {
+        event_type: OUTBOX_EVENT_TYPES.ORDER_CREATED,
+        payload: outboxPayload,
+        status: OutboxEventStatus.PENDING,
+      });
+      await queryRunner.manager.save(OutboxEvent, outboxEvent);
 
       await queryRunner.commitTransaction();
 
