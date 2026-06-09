@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Services
 import { ProductsService } from '@/modules/products/products.service';
+import { ProductStockService } from '@/modules/products/product-stock.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 
 // Controllers
@@ -30,7 +31,7 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     SellerProductsController,
     CategoriesController,
   ],
-  providers: [ProductsService, CategoriesService],
-  exports: [ProductsService, CategoriesService],
+  providers: [ProductsService, ProductStockService, CategoriesService],
+  exports: [ProductsService, ProductStockService, CategoriesService],
 })
-export class ProductsModule {}
+export class ProductsModule { }

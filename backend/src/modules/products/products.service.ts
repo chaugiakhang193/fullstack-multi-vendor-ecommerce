@@ -13,9 +13,13 @@ import {
   In,
   Brackets,
   SelectQueryBuilder,
-  EntityManager,
 } from 'typeorm';
-import slugify from 'slugify';
+import {
+  generateSlug,
+  extractId,
+  normalizePriceRange,
+  parseVariantAttributes,
+} from '@/modules/products/product.utils';
 
 // DTOs
 import { CreateProductDto } from '@/modules/products/dto/create-product.dto';
@@ -176,7 +180,7 @@ export class ProductsService {
       const mapAssetUrlFn = (asset: { url: string }) => asset.url;
       const galleryUrls = galleryAssets.map(mapAssetUrlFn);
 
-      const productSlug = this.generateSlug(createProductDto.name);
+      const productSlug = generateSlug(createProductDto.name);
       const initialStock = createProductDto.stock_quantity || 0;
 
       // Tạo Product
@@ -236,7 +240,7 @@ export class ProductsService {
             variantDto.attributes &&
             Object.keys(variantDto.attributes).length > 0
               ? variantDto.attributes
-              : this.parseVariantAttributes(variantName);
+              : parseVariantAttributes(variantName);
 
           const variant = queryRunner.manager.create(ProductVariant, {
             name: variantName,
@@ -318,14 +322,7 @@ export class ProductsService {
     let { min_price, max_price, q, category_id, sort, order = 'DESC' } = query;
 
     // 1. Chốt chặn bảo mật tự động đảo ngược khoảng giá (Graceful Fallback)
-    if (min_price !== undefined && max_price !== undefined) {
-      const isMinGreaterThanMax = min_price > max_price;
-      if (isMinGreaterThanMax) {
-        const temp = min_price;
-        min_price = max_price;
-        max_price = temp;
-      }
-    }
+    [min_price, max_price] = normalizePriceRange(min_price, max_price);
 
     // Tối ưu: Dùng innerJoin với shop vì product bắt buộc phải thuộc về một shop cố định
     const productAlias = 'product';
@@ -389,25 +386,9 @@ export class ProductsService {
     const result = await paginate<Product>(queryBuilder, query);
 
     // Giai đoạn 2 (Hydration): Nạp đầy đủ mảng biến thể, ảnh cho mảng items thu gọn (10-20 sản phẩm)
-    const hasItems = result.items.length > 0;
-    if (hasItems) {
-      const productIds = result.items.map((p) => p.id);
-
-      const findConditions = {
-        where: { id: In(productIds) },
-        relations: ['shop', 'category', 'variants'],
-        select: {
-          shop: { id: true, name: true, logo_url: true }, // Ngăn chặn hoàn toàn việc phơi bày cột số dư, email chủ shop...
-        },
-      };
-
-      const detailedItems = await this.productsRepository.find(findConditions);
-
-      // Ép mảng dữ liệu chi tiết phải xếp đúng theo thứ tự ID gốc mà phân trang (QueryBuilder) đã cắt ra
-      result.items = productIds
-        .map((id) => detailedItems.find((item) => item.id === id))
-        .filter((item): item is Product => !!item);
-    }
+    await this.hydrateProductPage(result, ['shop', 'category', 'variants'], {
+      shop: { id: true, name: true, logo_url: true },
+    });
 
     return result;
   }
@@ -423,14 +404,7 @@ export class ProductsService {
     let { min_price, max_price, q, category_id, sort, order = 'DESC' } = query;
 
     // 1. Chốt chặn bảo mật tự động đảo ngược khoảng giá (Graceful Fallback)
-    if (min_price !== undefined && max_price !== undefined) {
-      const isMinGreaterThanMax = min_price > max_price;
-      if (isMinGreaterThanMax) {
-        const temp = min_price;
-        min_price = max_price;
-        max_price = temp;
-      }
-    }
+    [min_price, max_price] = normalizePriceRange(min_price, max_price);
 
     // Tối ưu: Dùng innerJoin với shop vì catalog bắt buộc phải thuộc về chính shop này
     const productAlias = 'product';
@@ -495,24 +469,9 @@ export class ProductsService {
     const result = await paginate<Product>(queryBuilder, query);
 
     // Giai đoạn 2 (Hydration): Nạp đầy đủ mảng variants và thông tin UI an toàn của shop
-    const hasItems = result.items.length > 0;
-    if (hasItems) {
-      const productIds = result.items.map((p) => p.id);
-
-      const findConditions = {
-        where: { id: In(productIds) },
-        relations: ['shop', 'category', 'variants'],
-        select: {
-          shop: { id: true, name: true, logo_url: true },
-        },
-      };
-
-      const detailedItems = await this.productsRepository.find(findConditions);
-
-      result.items = productIds
-        .map((id) => detailedItems.find((item) => item.id === id))
-        .filter((item): item is Product => !!item);
-    }
+    await this.hydrateProductPage(result, ['shop', 'category', 'variants'], {
+      shop: { id: true, name: true, logo_url: true },
+    });
 
     return result;
   }
@@ -587,26 +546,13 @@ export class ProductsService {
     const result = await paginate<Product>(queryBuilder, query);
 
     // Giai đoạn 2 (Hydration): Nạp đầy đủ mảng variants và category cho tập kết quả rút gọn (10 - 20 items)
-    const hasItems = result.items.length > 0;
-    if (hasItems) {
-      const productIds = result.items.map((p) => p.id);
-
-      const detailedItems = await this.productsRepository.find({
-        where: { id: In(productIds) },
-        relations: ['category', 'variants'], // Dashboard seller được xem trọn vẹn, không cần che shop relation
-      });
-
-      // Ép mảng dữ liệu chi tiết phải sắp xếp chuẩn theo thứ tự ID gốc mà phân trang cắt ra
-      result.items = productIds
-        .map((id) => detailedItems.find((item) => item.id === id))
-        .filter((item): item is Product => !!item);
-    }
+    await this.hydrateProductPage(result, ['category', 'variants']);
 
     return result;
   }
 
   async findOne(id: string, isPublic?: boolean) {
-    const realId = this.extractId(id);
+    const realId = extractId(id);
     const whereCondition: any = { id: realId };
 
     if (isPublic) {
@@ -625,10 +571,8 @@ export class ProductsService {
 
     const product = await this.productsRepository.findOne(findConditions);
 
-    const isProductNull = !product;
-    if (isProductNull) {
-      const notFoundMsg = 'Không tìm thấy sản phẩm';
-      throw new NotFoundException(notFoundMsg);
+    if (!product) {
+      throw new NotFoundException('Không tìm thấy sản phẩm');
     }
 
     // Tạo Aggregated Gallery (Bộ sưu tập ảnh tổng hợp)
@@ -690,22 +634,10 @@ export class ProductsService {
     },
     user: IUser,
   ) {
-    const realId = this.extractId(id);
+    const realId = extractId(id);
 
     // Tìm sản phẩm và kiểm tra quyền sở hữu
-    const findProductConditions = {
-      where: { id: realId },
-      relations: ['shop', 'variants'],
-    };
-    const product = await this.productsRepository.findOne(
-      findProductConditions,
-    );
-
-    const isProductNull = !product;
-    if (isProductNull) {
-      const notFoundMsg = 'Không tìm thấy sản phẩm';
-      throw new NotFoundException(notFoundMsg);
-    }
+    const product = await this.findProductEntityOrFail(realId, ['shop', 'variants']);
 
     // Kiểm tra shop của user yêu cầu cập nhật sản phẩm còn đang ở trạng thái ACTIVE không
     const shop = await this.shopsService.findOneByUserId(user.sub);
@@ -827,7 +759,7 @@ export class ProductsService {
       // Cập nhật các trường cơ bản
       if (updateProductDto.name) {
         product.name = updateProductDto.name;
-        product.slug = this.generateSlug(updateProductDto.name);
+        product.slug = generateSlug(updateProductDto.name);
       }
       if (updateProductDto.description !== undefined) {
         product.description = updateProductDto.description;
@@ -1054,7 +986,7 @@ export class ProductsService {
                 variantDto.attributes &&
                 Object.keys(variantDto.attributes).length > 0
                   ? variantDto.attributes
-                  : this.parseVariantAttributes(variantName);
+                  : parseVariantAttributes(variantName);
             } else if (variantDto.attributes !== undefined) {
               oldVariant.attributes = variantDto.attributes;
             }
@@ -1102,7 +1034,7 @@ export class ProductsService {
               variantDto.attributes &&
               Object.keys(variantDto.attributes).length > 0
                 ? variantDto.attributes
-                : this.parseVariantAttributes(variantName);
+                : parseVariantAttributes(variantName);
 
             const newVariant = queryRunner.manager.create(ProductVariant, {
               name: variantName,
@@ -1206,7 +1138,7 @@ export class ProductsService {
   // ==========================================
 
   async remove(id: string, user: IUser) {
-    const realId = this.extractId(id);
+    const realId = extractId(id);
 
     // Lấy thông tin sản phẩm (bao gồm aggregated_gallery và variants)
     const productData = await this.findOne(realId);
@@ -1408,413 +1340,43 @@ export class ProductsService {
     }
   }
 
-  private generateSlug(name: string): string {
-    const slugifyOptions = { lower: true, locale: 'vi' };
-    const result = slugify(name, slugifyOptions);
-    return result;
-  }
+  // Giai đoạn 2 Hydration: Nạp chi tiết cho tập kết quả phân trang và giữ đúng thứ tự gốc.
+  private async hydrateProductPage(
+    result: PaginatedResponseDto<Product>,
+    relations: string[],
+    select?: Record<string, any>,
+  ): Promise<void> {
+    if (result.items.length === 0) return;
 
-  private parseVariantAttributes(name: string): Record<string, string> {
-    const attrs: Record<string, string> = {};
-    const hasNoName = !name;
-    if (hasNoName) {
-      return attrs;
-    }
+    const productIds = result.items.map((p) => p.id);
+    const detailedItems = await this.productsRepository.find({
+      where: { id: In(productIds) },
+      relations,
+      ...(select && { select }),
+    });
 
-    // Tách các thuộc tính bằng các ký tự phân tách phổ biến: '-', ',', '/', '|'
-    const separatorPattern = /\s*[\-\,\/\|]\s*/;
-    const parts = name
-      .split(separatorPattern)
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    // Danh sách từ điển các màu sắc phổ biến bằng tiếng Việt và tiếng Anh
-    const colors = [
-      'đen',
-      'trắng',
-      'đỏ',
-      'xanh',
-      'vàng',
-      'lục',
-      'lam',
-      'chàm',
-      'tím',
-      'hồng',
-      'xám',
-      'cam',
-      'nâu',
-      'bạc',
-      'titan',
-      'gold',
-      'silver',
-      'black',
-      'white',
-      'red',
-      'blue',
-      'green',
-      'yellow',
-      'pink',
-      'purple',
-      'grey',
-      'gray',
-      'bạch kim',
-      'be',
-      'kem',
-      'rêu',
-      'rêu nhạt',
-      'nhám',
-      'tự nhiên',
-    ];
-
-    // Danh sách các chuẩn kích thước size chữ phổ biến
-    const sizes = [
-      's',
-      'm',
-      'l',
-      'xl',
-      'xxl',
-      'xxxl',
-      'xs',
-      'free size',
-      'freesize',
-    ];
-
-    const parsePart = (part: string) => {
-      const lowerPart = part.toLowerCase();
-
-      // 1. Nhận diện RAM
-      const ramPattern = /ram/i;
-      const hasRam = lowerPart.includes('ram');
-      if (hasRam) {
-        const emptyStringFallback = '';
-        const ramVal = part.replace(ramPattern, emptyStringFallback).trim();
-        attrs['ram'] = ramVal;
-        return;
-      }
-
-      // 2. Nhận diện CPU / Vi xử lý
-      const hasCpu =
-        lowerPart.includes('intel') ||
-        lowerPart.includes('core') ||
-        lowerPart.includes('amd') ||
-        lowerPart.includes('ryzen');
-      if (hasCpu) {
-        attrs['cpu'] = part;
-        return;
-      }
-
-      // 3. Nhận diện Dung lượng lưu trữ (Storage - GB, TB)
-      const storagePattern = /^\d+\s*(gb|tb)$/i;
-      const isStorage = storagePattern.test(part);
-      if (isStorage) {
-        const spacePattern = /\s+/g;
-        const emptyStringFallback = '';
-        const storageVal = part
-          .toUpperCase()
-          .replace(spacePattern, emptyStringFallback);
-        attrs['storage'] = storageVal;
-        return;
-      }
-
-      // 4. Nhận diện Kích thước (Size)
-      const isSizePrefix = lowerPart.startsWith('size');
-      if (isSizePrefix) {
-        const sizePattern = /size/i;
-        const emptyStringFallback = '';
-        const sizeVal = part.replace(sizePattern, emptyStringFallback).trim();
-        attrs['size'] = sizeVal;
-        return;
-      }
-      const isSizeViPrefix =
-        lowerPart.startsWith('kích thước') || lowerPart.startsWith('kích cỡ');
-      if (isSizeViPrefix) {
-        const sizeViPattern = /kích thước|kích cỡ/i;
-        const emptyStringFallback = '';
-        const sizeVal = part.replace(sizeViPattern, emptyStringFallback).trim();
-        attrs['size'] = sizeVal;
-        return;
-      }
-      const isStandardSizeWord = sizes.includes(lowerPart);
-      if (isStandardSizeWord) {
-        const normalizedSizeVal = part.toUpperCase();
-        attrs['size'] = normalizedSizeVal;
-        return;
-      }
-      // Nhận dạng size số (ví dụ size giày hoặc quần áo chuẩn Việt Nam từ 28 đến 48)
-      const numberPattern = /^\d+$/;
-      const isNumberOnly = numberPattern.test(part);
-      if (isNumberOnly) {
-        const radixVal = 10;
-        const num = parseInt(part, radixVal);
-        const isShoeSize = num >= 28 && num <= 48;
-        if (isShoeSize) {
-          attrs['size'] = part;
-          return;
-        }
-      }
-
-      // 5. Nhận diện Màu sắc (Color)
-      const isColorPrefix = lowerPart.startsWith('màu ');
-      if (isColorPrefix) {
-        const colorPrefixPattern = /màu /i;
-        const emptyStringFallback = '';
-        let colorVal = part
-          .replace(colorPrefixPattern, emptyStringFallback)
-          .trim();
-
-        // Loại bỏ các từ hậu tố mô tả đi kèm
-        const descriptive1 = / cá tính/i;
-        const descriptive2 = / thanh lịch/i;
-        const descriptive3 = / sang trọng/i;
-        colorVal = colorVal
-          .replace(descriptive1, emptyStringFallback)
-          .replace(descriptive2, emptyStringFallback)
-          .replace(descriptive3, emptyStringFallback)
-          .trim();
-        attrs['color'] = colorVal;
-        return;
-      }
-
-      // Đối chiếu kiểm tra với từ điển màu sắc
-      const colorMatchFn = (c: string) => lowerPart.includes(c);
-      const matchedColor = colors.find(colorMatchFn);
-      if (matchedColor) {
-        let colorVal = part;
-        const startsWithColorVi = colorVal.toLowerCase().startsWith('màu ');
-        if (startsWithColorVi) {
-          const colorPrefixPattern = /màu /i;
-          const emptyStringFallback = '';
-          colorVal = colorVal
-            .replace(colorPrefixPattern, emptyStringFallback)
-            .trim();
-        }
-        attrs['color'] = colorVal;
-        return;
-      }
-    };
-
-    for (const part of parts) {
-      parsePart(part);
-    }
-
-    return attrs;
+    // Ép mảng kết quả phải xếp đúng thứ tự ID gốc mà phân trang đã cắt ra
+    result.items = productIds
+      .map((id) => detailedItems.find((item) => item.id === id))
+      .filter((item): item is Product => !!item);
   }
 
   async getProductForCartValidation(id: string): Promise<Product> {
-    const realId = this.extractId(id);
+    const realId = extractId(id);
+    return this.findProductEntityOrFail(realId, ['shop', 'shop.seller', 'variants']);
+  }
+
+  private async findProductEntityOrFail(
+    id: string,
+    relations: string[],
+  ): Promise<Product> {
     const product = await this.productsRepository.findOne({
-      where: { id: realId },
-      relations: ['shop', 'shop.seller', 'variants'],
+      where: { id },
+      relations,
     });
     if (!product) {
       throw new NotFoundException('Không tìm thấy sản phẩm');
     }
     return product;
-  }
-
-  // ==========================================
-  // VI. CHECKOUT SUPPORT (Cross-module Helpers)
-  // ==========================================
-
-  /**
-   * Khoá và trừ kho atomically cho luồng Checkout, đồng bộ cha-con.
-   *
-   * Để triệt deadlock giữa 2 bảng, mọi transaction phải đụng vào Product TRƯỚC
-   * rồi mới đến ProductVariant. Bên trong từng bảng, dedupe + sort ID ASC.
-   *
-   * TOCTOU: KHÔNG tin tồn kho từ snapshot giỏ hàng. Sau khi khoá pessimistic_write
-   * sẽ đọc lại stock_quantity từ row đã khoá rồi mới kiểm tra điều kiện đủ kho.
-   * Nếu thiếu kho ở bất kỳ item nào → ném BadRequest kèm danh sách chi tiết để
-   * OrdersService gộp vào lỗi all-or-nothing.
-   *
-   * Đồng bộ cha-con: với item có variant trừ cả variant.stock_quantity và
-   * product.stock_quantity (cộng dồn theo product_id). Bảng có @Check(stock>=0)
-   * làm chốt chặn cuối cùng ở DB.
-   *
-   * @returns Map theo key `${product_id}|${variant_id ?? 'null'}` → entity đã khoá
-   *          để OrdersService snapshot vào OrderItem.
-   */
-  async lockAndDeductStockForCheckout(
-    items: Array<{
-      product_id: string;
-      variant_id: string | null;
-      quantity: number;
-    }>,
-    manager: EntityManager,
-  ): Promise<
-    Map<string, { product: Product; variant: ProductVariant | null }>
-  > {
-    // Tổng số lượng yêu cầu theo từng product_id (parent) và variant_id (child)
-    const totalQtyByProductId = new Map<string, number>();
-    const totalQtyByVariantId = new Map<string, number>();
-    for (const item of items) {
-      const prevProductQty = totalQtyByProductId.get(item.product_id) ?? 0;
-      totalQtyByProductId.set(item.product_id, prevProductQty + item.quantity);
-      if (item.variant_id) {
-        const prevVariantQty = totalQtyByVariantId.get(item.variant_id) ?? 0;
-        totalQtyByVariantId.set(item.variant_id, prevVariantQty + item.quantity);
-      }
-    }
-
-    // Sort ASC trong từng tập + cố định thứ tự bảng (Product → Variant) chống deadlock
-    const sortedProductIds = [...totalQtyByProductId.keys()].sort();
-    const sortedVariantIds = [...totalQtyByVariantId.keys()].sort();
-
-    // Khoá row cha Product trước
-    const lockedProducts =
-      sortedProductIds.length > 0
-        ? await manager.find(Product, {
-            where: { id: In(sortedProductIds) },
-            lock: { mode: 'pessimistic_write' },
-            order: { id: 'ASC' },
-          })
-        : [];
-
-    // Sau đó mới khoá variant con
-    const lockedVariants =
-      sortedVariantIds.length > 0
-        ? await manager.find(ProductVariant, {
-            where: { id: In(sortedVariantIds) },
-            lock: { mode: 'pessimistic_write' },
-            order: { id: 'ASC' },
-          })
-        : [];
-
-    const productById = new Map<string, Product>();
-    for (const product of lockedProducts) {
-      productById.set(product.id, product);
-    }
-    const variantById = new Map<string, ProductVariant>();
-    for (const variant of lockedVariants) {
-      variantById.set(variant.id, variant);
-    }
-
-    // Kiểm tra tồn tại entity (có thể đã bị xoá giữa lúc đọc giỏ và lúc khoá)
-    type Insufficient = {
-      product_id: string;
-      product_name: string | null;
-      variant_id: string | null;
-      variant_name: string | null;
-      requested: number;
-      available: number;
-    };
-    const insufficient: Insufficient[] = [];
-
-    for (const item of items) {
-      const product = productById.get(item.product_id);
-      if (!product) {
-        insufficient.push({
-          product_id: item.product_id,
-          product_name: null,
-          variant_id: item.variant_id,
-          variant_name: null,
-          requested: item.quantity,
-          available: 0,
-        });
-        continue;
-      }
-
-      if (item.variant_id) {
-        const variant = variantById.get(item.variant_id);
-        if (!variant) {
-          insufficient.push({
-            product_id: item.product_id,
-            product_name: product.name,
-            variant_id: item.variant_id,
-            variant_name: null,
-            requested: item.quantity,
-            available: 0,
-          });
-          continue;
-        }
-        const requiredVariantQty =
-          totalQtyByVariantId.get(item.variant_id) ?? 0;
-        const isVariantInsufficient =
-          variant.stock_quantity < requiredVariantQty;
-        if (isVariantInsufficient) {
-          insufficient.push({
-            product_id: item.product_id,
-            product_name: product.name,
-            variant_id: item.variant_id,
-            variant_name: variant.name,
-            requested: requiredVariantQty,
-            available: variant.stock_quantity,
-          });
-        }
-      } else {
-        const requiredProductQty =
-          totalQtyByProductId.get(item.product_id) ?? 0;
-        const isProductInsufficient =
-          product.stock_quantity < requiredProductQty;
-        if (isProductInsufficient) {
-          insufficient.push({
-            product_id: item.product_id,
-            product_name: product.name,
-            variant_id: null,
-            variant_name: null,
-            requested: requiredProductQty,
-            available: product.stock_quantity,
-          });
-        }
-      }
-    }
-
-    const hasInsufficient = insufficient.length > 0;
-    if (hasInsufficient) {
-      const insufficientMsg = 'Một số sản phẩm không đủ tồn kho để đặt hàng';
-      throw new BadRequestException({
-        message: insufficientMsg,
-        insufficient,
-      });
-    }
-
-    // Trừ kho variant con
-    for (const [variantId, qty] of totalQtyByVariantId) {
-      const variant = variantById.get(variantId)!;
-      variant.stock_quantity = variant.stock_quantity - qty;
-    }
-
-    // Trừ kho product cha (cộng dồn theo product_id, gồm cả item có variant)
-    for (const [productId, qty] of totalQtyByProductId) {
-      const product = productById.get(productId)!;
-      product.stock_quantity = product.stock_quantity - qty;
-    }
-
-    // Lưu lại tất cả entity đã khoá. Bảng có @Check(stock>=0) là chốt chặn cuối.
-    const hasLockedVariants = lockedVariants.length > 0;
-    if (hasLockedVariants) {
-      await manager.save(ProductVariant, lockedVariants);
-    }
-    const hasLockedProducts = lockedProducts.length > 0;
-    if (hasLockedProducts) {
-      await manager.save(Product, lockedProducts);
-    }
-
-    // Bản đồ tra cứu cho snapshot OrderItem ở OrdersService
-    const resolved = new Map<
-      string,
-      { product: Product; variant: ProductVariant | null }
-    >();
-    for (const item of items) {
-      const product = productById.get(item.product_id)!;
-      const variant = item.variant_id
-        ? (variantById.get(item.variant_id) ?? null)
-        : null;
-      const variantKey = item.variant_id ?? 'null';
-      const key = `${item.product_id}|${variantKey}`;
-      resolved.set(key, { product, variant });
-    }
-    return resolved;
-  }
-
-  private extractId(idOrSlugWithId: string): string {
-    const matchRegex =
-      /-i\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-    const match = idOrSlugWithId.match(matchRegex);
-    if (match) {
-      const matchedUuid = match[1];
-      return matchedUuid;
-    }
-    return idOrSlugWithId; // Trả về nguyên bản nếu là ID thuần túy
   }
 }
