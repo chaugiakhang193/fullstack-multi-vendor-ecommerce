@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { getErrorMessage } from "@/lib/http";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import {
   Card,
   CardContent,
@@ -49,6 +50,7 @@ export default function SellerSetupPage() {
   );
   const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null);
   const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [existingGallery, setExistingGallery] = useState<
     { id: string; url: string }[]
   >([]);
@@ -192,6 +194,9 @@ export default function SellerSetupPage() {
             bank_account_name,
             categoryIds: shop.categories?.map((c: any) => c.id) || [],
           });
+          if (shop.lat && shop.lng) {
+            setSelectedCoords({ lat: parseFloat(shop.lat), lng: parseFloat(shop.lng) });
+          }
         } catch (error) {
           console.error("Lỗi lấy thông tin cửa hàng:", error);
           toast.error("Không thể lấy thông tin cửa hàng cũ.");
@@ -237,6 +242,10 @@ export default function SellerSetupPage() {
       toast.error("Tối đa 3 ảnh bộ sưu tập");
       return;
     }
+    if (!selectedCoords) {
+      toast.error("Vui lòng chọn địa chỉ lấy hàng từ danh sách gợi ý");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -245,6 +254,8 @@ export default function SellerSetupPage() {
       // Append text fields
       formData.append("name", values.name);
       formData.append("pickup_address", values.pickup_address);
+      formData.append("lat", String(selectedCoords.lat));
+      formData.append("lng", String(selectedCoords.lng));
       if (values.description) {
         formData.append("description", values.description);
       }
@@ -427,14 +438,17 @@ export default function SellerSetupPage() {
                   <FieldLabel>
                     Địa chỉ lấy hàng <span className="text-rose-500">*</span>
                   </FieldLabel>
-                  <Input
-                    {...register("pickup_address")}
+                  <AddressAutocomplete
+                    value={watch("pickup_address")}
+                    onSelect={(coords) => {
+                      setValue("pickup_address", coords.display_name, { shouldValidate: true });
+                      setSelectedCoords({ lat: coords.lat, lng: coords.lng });
+                    }}
+                    onQueryChange={() => setSelectedCoords(null)}
                     placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                    error={errors.pickup_address?.message}
                     disabled={isSubmitting}
                   />
-                  {errors.pickup_address && (
-                    <FieldError>{errors.pickup_address.message}</FieldError>
-                  )}
                 </Field>
               </div>
 

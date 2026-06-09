@@ -7,7 +7,9 @@ import {
   MinLength,
   ArrayNotEmpty,
   IsUrl,
+  IsNumber,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateShopDto {
@@ -36,6 +38,32 @@ export class CreateShopDto {
   @IsNotEmpty({ message: 'Địa chỉ lấy hàng không được để trống' })
   @IsString({ message: 'Địa chỉ phải là chuỗi ký tự' })
   pickup_address: string;
+
+  @ApiProperty({
+    example: 10.7769,
+    description: 'Vĩ độ (frontend điền sau khi chọn autocomplete)',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? parseFloat(value) : null,
+  )
+  @IsNumber({}, { message: 'Vĩ độ phải là số hợp lệ' })
+  lat?: number | null;
+
+  @ApiProperty({
+    example: 106.6978,
+    description: 'Kinh độ (frontend điền sau khi chọn autocomplete)',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? parseFloat(value) : null,
+  )
+  @IsNumber({}, { message: 'Kinh độ phải là số hợp lệ' })
+  lng?: number | null;
 
   @ApiProperty({
     example: 'https://cloudinary.com/logo.png',

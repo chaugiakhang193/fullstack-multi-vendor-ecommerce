@@ -25,6 +25,7 @@ import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { UsersService } from '@/modules/users/users.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 import { MailService } from '@/modules/mail/mail.service';
+import { NominatimService } from '@/modules/geocoding/nominatim.service';
 
 // Enums
 import { AccountStatus, AssetType } from '@/common/enums';
@@ -45,6 +46,7 @@ export class ShopsService {
     private readonly userService: UsersService,
     @InjectDataSource() private dataSource: DataSource,
     private readonly mailService: MailService,
+    private readonly nominatimService: NominatimService,
   ) {}
 
   async setupInitialShop(
@@ -60,7 +62,8 @@ export class ShopsService {
     if (!sellCreateShop) {
       throw new NotFoundException('Người dùng không tồn tại');
     }
-    const { categoryIds, ...shopInfo } = createShopDto;
+    // Tách lat/lng ra để không truyền thẳng vào entity — resolved coords được set riêng sau geocoding
+    const { categoryIds, lat, lng, ...shopInfo } = createShopDto;
 
     // Kiểm tra xem seller này đã có Shop chưa
     // Vì mỗi tài khoản seller chỉ được phép tạo 1 Shop trên hệ thống
@@ -78,6 +81,39 @@ export class ShopsService {
     if (parsedCategoryIds.length > 0) {
       categories =
         await this.categoriesService.validateRootCategories(parsedCategoryIds);
+    }
+
+    // Geocoding resolution: ưu tiên tọa độ frontend → fallback backend → graceful null
+    // Chạy trước upload ảnh để tránh giữ kết nối HTTP upload trong khi chờ geocoding
+    let resolvedLat: string | null = null;
+    let resolvedLng: string | null = null;
+    let isCoordinatesVerified = false;
+
+    const frontendLat = createShopDto.lat != null ? Number(createShopDto.lat) : NaN;
+    const frontendLng = createShopDto.lng != null ? Number(createShopDto.lng) : NaN;
+
+    if (!isNaN(frontendLat) && !isNaN(frontendLng)) {
+      // Frontend đã lấy tọa độ từ autocomplete — dùng trực tiếp (Trap #9)
+      resolvedLat = String(frontendLat);
+      resolvedLng = String(frontendLng);
+      isCoordinatesVerified = true;
+    } else {
+      // Frontend không gửi coords — backend tự geocode làm fallback
+      const pickupAddress = createShopDto.pickup_address;
+      const geocodeResult = await this.nominatimService.geocode(pickupAddress);
+
+      if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+        resolvedLat = String(geocodeResult.lat);
+        resolvedLng = String(geocodeResult.lng);
+        isCoordinatesVerified = true;
+      } else {
+        // API sập hoặc không tìm thấy địa chỉ → graceful degradation (Trap #6)
+        // Trap #12: đặt false tường minh, không dựa vào default entity
+        isCoordinatesVerified = false;
+        this.logger.warn(
+          `[setupInitialShop] Geocoding không thành công cho "${pickupAddress}". Shop sẽ tạo với tọa độ null, cron retry sẽ cập nhật sau.`,
+        );
+      }
     }
 
     // Kiểm tra logo và banner
@@ -129,6 +165,9 @@ export class ShopsService {
       // Tạo mới Shop (chưa gán gallery)
       const newShop = this.shopsRepository.create({
         ...shopInfo,
+        lat: resolvedLat,
+        lng: resolvedLng,
+        is_coordinates_verified: isCoordinatesVerified, // Trap #12: luôn set tường minh
         logo_url: logoResult.url,
         banner_url: bannerResult.url,
         seller: sellCreateShop,
@@ -272,15 +311,55 @@ export class ShopsService {
     if (!updateShopDto || Object.keys(updateShopDto).length === 0) {
       throw new BadRequestException('Dữ liệu cập nhật không được để trống');
     }
-    const { categoryIds, ...shopInfo } = updateShopDto;
 
+    // Tách lat/lng ra để xử lý geocoding riêng, không truyền thẳng qua Object.assign
+    const { categoryIds, lat, lng, ...shopInfo } = updateShopDto;
+
+    // Xác định xem địa chỉ hay tọa độ có thay đổi không
+    const isAddressChanging = shopInfo.pickup_address !== undefined;
+    const isCoordsProvided = lat != null || lng != null;
+
+    // Ghi các trường text vào entity trước
     Object.assign(shop, shopInfo);
+
+    // Geocoding chỉ chạy khi địa chỉ hoặc tọa độ thực sự thay đổi — tránh gọi API thừa
+    if (isAddressChanging || isCoordsProvided) {
+      const frontendLat = lat != null ? Number(lat) : NaN;
+      const frontendLng = lng != null ? Number(lng) : NaN;
+
+      if (!isNaN(frontendLat) && !isNaN(frontendLng)) {
+        // Frontend gửi tọa độ hợp lệ từ autocomplete (Trap #9)
+        shop.lat = String(frontendLat);
+        shop.lng = String(frontendLng);
+        shop.is_coordinates_verified = true;
+      } else if (isAddressChanging) {
+        // Địa chỉ thay đổi nhưng không có coords → fallback geocode từ backend
+        // shop.pickup_address đã được cập nhật bởi Object.assign phía trên
+        const targetAddress = shop.pickup_address;
+        const geocodeResult = await this.nominatimService.geocode(targetAddress);
+
+        if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+          shop.lat = String(geocodeResult.lat);
+          shop.lng = String(geocodeResult.lng);
+          shop.is_coordinates_verified = true;
+        } else {
+          // Graceful degradation — cron retry sẽ nhặt và cập nhật sau (Trap #6, #12)
+          shop.lat = null;
+          shop.lng = null;
+          shop.is_coordinates_verified = false;
+          this.logger.warn(
+            `[updateMyShop] Geocoding không thành công cho "${targetAddress}". Cron retry sẽ cập nhật.`,
+          );
+        }
+      }
+    }
 
     if (categoryIds) {
       const parsedCategoryIds = this.parseCategoryIds(categoryIds);
       if (parsedCategoryIds.length > 0) {
-        shop.categories =
+        const validatedCategories =
           await this.categoriesService.validateRootCategories(parsedCategoryIds);
+        shop.categories = validatedCategories;
       }
     }
 
@@ -531,9 +610,11 @@ export class ShopsService {
     return shops;
   }
 
-  async findUnverifiedShops(): Promise<Shop[]> {
+  async findUnverifiedShops(limit = 20): Promise<Shop[]> {
     const findOptions = {
       where: { is_coordinates_verified: false },
+      take: limit,
+      order: { created_at: 'ASC' as const }, // Ưu tiên shop cũ hơn để retry theo thứ tự tạo
     };
     const shops = await this.shopsRepository.find(findOptions);
     return shops;
