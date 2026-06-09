@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, DataSource } from 'typeorm';
+import { Repository, IsNull, DataSource, EntityManager } from 'typeorm';
 import { CartItem } from '@/modules/carts/entities/cart-item.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
@@ -423,5 +423,114 @@ export class CartsService {
     });
 
     return this.getCart(userId);
+  }
+
+  // ==========================================
+  // CHECKOUT SUPPORT (Cross-module Helpers)
+  // ==========================================
+
+  /**
+   * Đánh giá tính khả dụng "tĩnh" của một CartItem (không bao gồm tồn kho).
+   *
+   * Tĩnh = các điều kiện không phụ thuộc khoá DB: sản phẩm bị xoá mềm, đã ẩn,
+   * hoặc shop ngừng hoạt động. Tồn kho được kiểm tra sau khi đã pessimistic_write
+   * lock ở tầng ProductsService để tránh TOCTOU.
+   */
+  evaluateItemStaticAvailability(item: CartItem): {
+    isAvailable: boolean;
+    reason?: CartItemUnavailableReason;
+  } {
+    if (!item.product) {
+      return {
+        isAvailable: false,
+        reason: CartItemUnavailableReason.PRODUCT_DELETED,
+      };
+    }
+    if (item.product.status === ProductStatus.DELETED) {
+      return {
+        isAvailable: false,
+        reason: CartItemUnavailableReason.PRODUCT_DELETED,
+      };
+    }
+    if (item.product.is_hidden) {
+      return {
+        isAvailable: false,
+        reason: CartItemUnavailableReason.PRODUCT_HIDDEN,
+      };
+    }
+    const shop = item.product.shop;
+    const isShopInactive = shop?.status !== AccountStatus.ACTIVE;
+    if (isShopInactive) {
+      return {
+        isAvailable: false,
+        reason: CartItemUnavailableReason.SHOP_INACTIVE,
+      };
+    }
+    return { isAvailable: true };
+  }
+
+  /**
+   * Tải toàn bộ CartItem đang active của user cho luồng Checkout, tách thành 2 nhóm:
+   *   - validItems: tĩnh khả dụng, sẵn sàng vào pha lock & deduct kho.
+   *   - unavailableItems: tĩnh không khả dụng (xoá/ẩn/shop inactive) kèm lý do
+   *     để OrdersService gom thành một thông báo lỗi chi tiết.
+   *
+   * Dùng manager nếu được truyền (đang trong transaction) để đọc consistent
+   * snapshot, ngược lại dùng repository mặc định.
+   */
+  async getActiveCartItemsForCheckout(
+    userId: string,
+    manager?: EntityManager,
+  ): Promise<{
+    validItems: CartItem[];
+    unavailableItems: {
+      cart_item_id: string;
+      product_id: string | null;
+      product_name: string | null;
+      reason: CartItemUnavailableReason;
+    }[];
+  }> {
+    const findCriteria = {
+      where: { user: { id: userId } },
+      relations: ['product', 'product.shop', 'variant'],
+      order: { added_at: 'DESC' as const },
+    };
+    const items = manager
+      ? await manager.find(CartItem, findCriteria)
+      : await this.cartItemRepository.find(findCriteria);
+
+    const validItems: CartItem[] = [];
+    const unavailableItems: {
+      cart_item_id: string;
+      product_id: string | null;
+      product_name: string | null;
+      reason: CartItemUnavailableReason;
+    }[] = [];
+
+    for (const item of items) {
+      const evaluation = this.evaluateItemStaticAvailability(item);
+      if (evaluation.isAvailable) {
+        validItems.push(item);
+      } else {
+        unavailableItems.push({
+          cart_item_id: item.id,
+          product_id: item.product?.id ?? null,
+          product_name: item.product?.name ?? null,
+          reason: evaluation.reason!,
+        });
+      }
+    }
+
+    return { validItems, unavailableItems };
+  }
+
+  /**
+   * Xoá toàn bộ CartItem của user trong cùng transaction checkout.
+   * Phải dùng manager đang chạy để bảo đảm việc xoá rollback cùng với đơn nếu
+   * có lỗi xảy ra ở bước sau.
+   */
+  async clearActiveCart(userId: string, manager: EntityManager): Promise<void> {
+    const deleteCriteria = { user: { id: userId } };
+    await manager.delete(CartItem, deleteCriteria);
   }
 }

@@ -22,7 +22,7 @@ import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
   imports: [
     TypeOrmModule.forFeature([Shop]),
     CloudinaryModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
     forwardRef(() => ProductsModule),
     forwardRef(() => GeocodingModule),
   ],
