@@ -7,6 +7,8 @@ import { NominatimService } from './nominatim.service';
 @Injectable()
 export class GeocodingRetryCron {
   private readonly logger = new Logger(GeocodingRetryCron.name);
+  private readonly BATCH_SIZE = 20;     // Tối đa 20 shop/lần để tránh bị Nominatim ban IP (Trap #10)
+  private readonly THROTTLE_MS = 1100;  // >= 1000ms để tuân thủ giới hạn 1 req/s của Nominatim
 
   constructor(
     @Inject(forwardRef(() => ShopsService))
@@ -20,7 +22,8 @@ export class GeocodingRetryCron {
       'Đang chạy tác vụ nền cập nhật lại tọa độ geocoding lỗi...';
     this.logger.log(startLogMsg);
 
-    const shopsToRetry = await this.shopsService.findUnverifiedShops();
+    const batchSize = this.BATCH_SIZE;
+    const shopsToRetry = await this.shopsService.findUnverifiedShops(batchSize);
     const shopsCount = shopsToRetry.length;
 
     if (shopsCount === 0) {
@@ -60,6 +63,9 @@ export class GeocodingRetryCron {
         const failLogMsg = `Thử lại vẫn thất bại cho shop: ${shopName}`;
         this.logger.warn(failLogMsg);
       }
+
+      // Trap #10: luôn delay dù thành công hay thất bại để tôn trọng rate limit của Nominatim
+      await new Promise((r) => setTimeout(r, this.THROTTLE_MS));
     }
   }
 }

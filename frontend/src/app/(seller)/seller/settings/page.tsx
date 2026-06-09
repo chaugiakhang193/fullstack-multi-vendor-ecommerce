@@ -24,6 +24,7 @@ import {
 
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import { ShopResponseType } from "@/schemaValidations/shops/shops.schema";
+import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +68,7 @@ export default function SellerSettingsPage() {
   const [shop, setShop] = useState<ShopResponseType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Upload file states
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -103,6 +105,8 @@ export default function SellerSettingsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<UpdateSettingsFormType>({
     resolver: zodResolver(updateSettingsSchema),
@@ -161,6 +165,9 @@ export default function SellerSettingsPage() {
         bank_account_number,
         bank_account_name,
       });
+      if (shopData.lat && shopData.lng) {
+        setSelectedCoords({ lat: parseFloat(shopData.lat), lng: parseFloat(shopData.lng) });
+      }
     } catch (error: any) {
       const errMsg = getErrorMessage(error);
       toast.error(errMsg);
@@ -292,6 +299,12 @@ export default function SellerSettingsPage() {
 
   // Submit profile changes (including Multipart files)
   const onSubmit = async (data: UpdateSettingsFormType) => {
+    const addressChanged = data.pickup_address !== (shop?.pickup_address ?? "");
+    if (addressChanged && !selectedCoords) {
+      toast.error("Vui lòng chọn địa chỉ lấy hàng từ danh sách gợi ý");
+      return;
+    }
+
     setIsSaving(true);
     const formData = new FormData();
 
@@ -299,6 +312,10 @@ export default function SellerSettingsPage() {
     formData.append("name", data.name);
     formData.append("description", data.description || "");
     formData.append("pickup_address", data.pickup_address);
+    if (selectedCoords) {
+      formData.append("lat", String(selectedCoords.lat));
+      formData.append("lng", String(selectedCoords.lng));
+    }
 
     const bankAccountInfo = JSON.stringify({
       bank_name: data.bank_name,
@@ -511,18 +528,17 @@ export default function SellerSettingsPage() {
                 <MapPin className="h-5 w-5 text-violet-500" /> Địa chỉ lấy hàng
                 *
               </FieldLabel>
-              <Input
-                id="pickup-address"
+              <AddressAutocomplete
+                value={watch("pickup_address")}
+                onSelect={(coords) => {
+                  setValue("pickup_address", coords.display_name, { shouldValidate: true });
+                  setSelectedCoords({ lat: coords.lat, lng: coords.lng });
+                }}
+                onQueryChange={() => setSelectedCoords(null)}
                 placeholder="Ví dụ: 123 Đường ABC, Quận 1, TP.HCM"
-                {...register("pickup_address")}
-                className="py-3 text-base rounded-xl"
-                aria-invalid={!!errors.pickup_address}
+                error={errors.pickup_address?.message?.toString()}
+                disabled={isSaving}
               />
-              {errors.pickup_address && (
-                <FieldError>
-                  {errors.pickup_address.message?.toString()}
-                </FieldError>
-              )}
               <p className="text-[11px] text-muted-foreground">
                 Địa chỉ nhân viên giao vận tới lấy hàng khi có đơn.
               </p>
