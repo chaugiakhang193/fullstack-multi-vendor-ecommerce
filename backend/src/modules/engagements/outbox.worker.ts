@@ -22,6 +22,11 @@ import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
 import { WS_EVENTS, OrderNewWsPayload } from './notification.events';
 
+// Tham số tuning của OutboxWorker. Để module-level const (không class field) vì
+// @Interval() là decorator — đối số phải là hằng compile-time, không dùng được `this`.
+const OUTBOX_POLL_INTERVAL_MS = 8000; // 8s — cân bằng độ trễ thông báo vs tải DB do poll
+const OUTBOX_BATCH_SIZE = 10; // trần số event xử lý mỗi lần quét
+
 @Injectable()
 export class OutboxWorker {
   private readonly logger = new Logger(OutboxWorker.name);
@@ -29,8 +34,6 @@ export class OutboxWorker {
   // Guard chống concurrent invocation trong cùng một process.
   // Nếu lần xử lý trước chưa xong khi @Interval fire tiếp, bỏ qua lần này.
   private isProcessing = false;
-
-  private readonly BATCH_SIZE = 10;
 
   constructor(
     @InjectRepository(OutboxEvent)
@@ -44,7 +47,7 @@ export class OutboxWorker {
     private readonly dataSource: DataSource,
   ) {}
 
-  @Interval(8000)
+  @Interval(OUTBOX_POLL_INTERVAL_MS)
   async processOutbox(): Promise<void> {
     if (this.isProcessing) {
       return;
@@ -61,7 +64,7 @@ export class OutboxWorker {
         .where('e.status = :status', { status: pendingStatus })
         .andWhere('e.event_type = :type', { type: pendingEventType })
         .orderBy('e.created_at', 'ASC')
-        .limit(this.BATCH_SIZE)
+        .limit(OUTBOX_BATCH_SIZE)
         .setLock('pessimistic_write_or_fail')
         .getMany()
         .catch(() => [] as OutboxEvent[]);
