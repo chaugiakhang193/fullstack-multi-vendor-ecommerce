@@ -8,6 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EngagementsService } from './engagements.service';
 import { EngagementsController } from './engagements.controller';
 import { NotificationGateway } from './notification.gateway';
+import { NotificationService } from './notification.service';
+import { OutboxWorker } from './outbox.worker';
 
 // Entities
 import { Shop } from '@/modules/shops/entities/shop.entity';
@@ -29,6 +31,8 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
   providers: [
     EngagementsService,
     NotificationGateway,
+    NotificationService,
+    OutboxWorker,
   ],
 })
 export class EngagementsModule { }
