@@ -227,7 +227,7 @@ export class OrdersService {
       }
 
       // COMPLETED → replay nguyên vẹn body đã cache
-      const cachedBody = existing.response_body as CheckoutResponseDto | null;
+      const cachedBody = existing.response_body;
       const hasCachedBody = !!cachedBody;
       if (!hasCachedBody) {
         const noCacheMsg =
@@ -548,7 +548,7 @@ export class OrdersService {
       const updateFields = {
         status: IdempotencyStatus.COMPLETED,
         response_code: responseCode,
-        response_body: responseBody as unknown as Record<string, any>,
+        response_body: responseBody,
       };
       await this.idempotencyRepository.update(updateCriteria, updateFields);
     } catch (error) {

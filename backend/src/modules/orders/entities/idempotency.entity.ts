@@ -6,6 +6,7 @@ import {
   Index,
 } from 'typeorm';
 import { IdempotencyStatus } from '@/common/enums';
+import { CheckoutResponseDto } from '@/modules/orders/dto/checkout-response.dto';
 
 /**
  * Idempotency Entity
@@ -40,8 +41,11 @@ export class Idempotency {
   @Column({ type: 'int', nullable: true })
   response_code: number;
 
+  // Cache body HTTP đã COMPLETED để replay (hiện chỉ Checkout dùng idempotency).
+  // Type cụ thể CheckoutResponseDto: bỏ được double-cast khi ghi + cast khi đọc,
+  // và tương thích QueryDeepPartialEntity của TypeORM (khác 'unknown'/'any').
   @Column({ type: 'jsonb', nullable: true })
-  response_body: any;
+  response_body: CheckoutResponseDto | null;
 
   @Column({ type: 'uuid', nullable: false })
   user_id: string;

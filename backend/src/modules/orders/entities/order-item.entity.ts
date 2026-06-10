@@ -43,6 +43,8 @@ export class OrderItem {
   @Column({ type: 'text', nullable: true })
   product_thumbnail: string;
 
+  // Snapshot thuộc tính biến thể tại thời điểm mua (vd { "Size": "M", "Màu": "Đen" }).
+  // Khớp kiểu nguồn ProductVariant.attributes — Record<string, string>.
   @Column({ type: 'jsonb', nullable: true })
-  variant_attributes: any;
+  variant_attributes: Record<string, string> | null;
 }
