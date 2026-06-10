@@ -20,6 +20,7 @@ import {
 // Internal
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
+import { WS_EVENTS, OrderNewWsPayload } from './notification.events';
 
 @Injectable()
 export class OutboxWorker {
@@ -138,13 +139,12 @@ export class OutboxWorker {
 
         // WebSocket fire-and-forget: Seller online nhận real-time,
         // Seller offline vẫn có notification trong DB để đọc sau qua Notification Bell.
-        const wsEventName = 'order.new';
-        const wsPayload = {
+        const wsPayload: OrderNewWsPayload = {
           orderId: payload.orderId,
           orderNumber: payload.orderNumber,
           message: `Đơn hàng mới ${payload.orderNumber}`,
         };
-        this.notificationGateway.sendToShop(shopId, wsEventName, wsPayload);
+        this.notificationGateway.sendToShop(shopId, WS_EVENTS.ORDER_NEW, wsPayload);
       }
 
       // Mark PROCESSED chỉ sau khi toàn bộ notifications đã lưu thành công trong transaction.

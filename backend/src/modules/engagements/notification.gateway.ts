@@ -21,6 +21,9 @@ import { parse } from 'cookie';
 // Entities
 import { Shop } from '@/modules/shops/entities/shop.entity';
 
+// WS contract
+import { WsEventName, WsPayloadMap } from './notification.events';
+
 // Không truyền port → Socket.io chia sẻ cùng HTTP port với REST API.
 // cors.credentials: true → browser gửi httpOnly cookie trong WebSocket handshake.
 @WebSocketGateway({
@@ -145,7 +148,11 @@ export class NotificationGateway
    * Gửi event đến TẤT CẢ socket của 1 user.
    * Hoạt động đúng khi user mở nhiều tab (nhiều socket cùng 1 room).
    */
-  sendToUser(userId: string, event: string, payload: unknown): void {
+  sendToUser<E extends WsEventName>(
+    userId: string,
+    event: E,
+    payload: WsPayloadMap[E],
+  ): void {
     const userRoom = `room:${userId}`;
     this.server.to(userRoom).emit(event, payload);
   }
@@ -154,7 +161,11 @@ export class NotificationGateway
    * Gửi event đến TẤT CẢ socket đang theo dõi 1 shop.
    * Dùng để báo Seller khi có đơn hàng mới.
    */
-  sendToShop(shopId: string, event: string, payload: unknown): void {
+  sendToShop<E extends WsEventName>(
+    shopId: string,
+    event: E,
+    payload: WsPayloadMap[E],
+  ): void {
     const shopRoom = `room:${shopId}`;
     this.server.to(shopRoom).emit(event, payload);
   }
