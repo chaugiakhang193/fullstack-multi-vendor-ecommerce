@@ -59,7 +59,10 @@ import {
   UQ_ORDER_IDEMPOTENCY_KEY,
   ORDER_NUMBER_MAX_RETRIES,
 } from '@/modules/orders/orders.constants';
-import { OUTBOX_EVENT_TYPES } from '@/common/constants/outbox.constants';
+import {
+  OUTBOX_EVENT_TYPES,
+  OrderCreatedPayload,
+} from '@/common/constants/outbox.constants';
 
 // Round helper — giữ 2 chữ số thập phân cho mọi con số tiền
 function round2(value: number): number {
@@ -491,7 +494,7 @@ export class OrdersService {
       // Nếu transaction rollback thì event cũng không tồn tại, tránh thông báo ảo.
       // Worker quét bảng outbox_events và phát WebSocket + lưu Notification.
       const shopIdPayload = subOrderPlans.map((plan) => plan.shop.id);
-      const outboxPayload = {
+      const outboxPayload: OrderCreatedPayload = {
         orderId: savedOrder.id,
         orderNumber: savedOrder.order_number,
         shopIds: shopIdPayload,

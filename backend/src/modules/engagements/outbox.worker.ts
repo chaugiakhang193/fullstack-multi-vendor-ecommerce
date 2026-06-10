@@ -12,20 +12,14 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // Enums & Constants
 import { OutboxEventStatus, NotificationType } from '@/common/enums';
-import { OUTBOX_EVENT_TYPES } from '@/common/constants/outbox.constants';
+import {
+  OUTBOX_EVENT_TYPES,
+  OrderCreatedPayload,
+} from '@/common/constants/outbox.constants';
 
 // Internal
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
-
-// Phải khớp với payload orders.service.ts ghi vào outbox_event.payload khi checkout.
-interface OrderCreatedPayload {
-  orderId: string;
-  orderNumber: string;
-  shopIds: string[];
-  userId: string;
-  totalAmount: number;
-}
 
 @Injectable()
 export class OutboxWorker {
