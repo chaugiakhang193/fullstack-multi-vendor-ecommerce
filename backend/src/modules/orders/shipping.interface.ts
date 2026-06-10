@@ -18,3 +18,15 @@ export interface CalculateShippingFeeParams {
 export interface IShippingCalculator {
   calculateShippingFee(params: CalculateShippingFeeParams): number;
 }
+
+// Snapshot địa chỉ giao hàng lưu vào order.shipping_address (jsonb) tại thời điểm checkout.
+// Một nguồn sự thật cho shape này: cột entity, snapshotAddress(), buildCheckoutResponse(),
+// createOrderWithRetry() và ShippingAddressSnapshotDto đều trỏ về đây thay vì khai báo inline.
+// lat/lng đã parse sang number (Address lưu dạng string) — null nếu thiếu/không hợp lệ.
+export interface ShippingAddressSnapshot {
+  recipient_name: string;
+  phone: string;
+  address_line: string;
+  lat: number | null;
+  lng: number | null;
+}

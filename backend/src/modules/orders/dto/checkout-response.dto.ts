@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaymentMethod } from '@/common/enums';
+import { ShippingAddressSnapshot } from '@/modules/orders/shipping.interface';
 
 export class CheckoutResponseItemDto {
   @ApiProperty({ example: 'd1b85fb4-3449-45cf-a407-d26b808a55b8', description: 'ID sản phẩm' })
@@ -21,7 +22,7 @@ export class CheckoutResponseItemDto {
   price_at_purchase: number;
 }
 
-export class ShippingAddressSnapshotDto {
+export class ShippingAddressSnapshotDto implements ShippingAddressSnapshot {
   @ApiProperty({ example: 'Nguyễn Văn A', description: 'Tên người nhận' })
   recipient_name: string;
 
