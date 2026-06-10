@@ -83,3 +83,8 @@ export enum OutboxEventStatus {
   PROCESSED = 'processed',
   FAILED = 'failed',
 }
+
+export enum NotificationType {
+  ORDER_CREATED = 'order.created',
+  ORDER_STATUS_CHANGED = 'order.status_changed',
+}
