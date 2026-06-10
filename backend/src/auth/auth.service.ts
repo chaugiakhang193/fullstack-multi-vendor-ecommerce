@@ -40,6 +40,13 @@ import { JwtService } from '@nestjs/jwt';
 import { REFRESH_TOKEN_SERVICE } from '@/auth/auth.constants';
 import { ACCESS_TOKEN_SERVICE } from '@/auth/auth.constants';
 
+//Auth types
+import {
+  UserWithoutPassword,
+  SessionUser,
+  RefreshTokenPayload,
+} from '@/auth/auth.types';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -179,7 +186,10 @@ export class AuthService {
   }
 
   // được gọi trong LocalStrategy để xác thực tài khoản khi đăng nhập
-  async validateUser(username: string, password: string): Promise<any> {
+  async validateUser(
+    username: string,
+    password: string,
+  ): Promise<UserWithoutPassword | null> {
     let isLoginByEmail = false;
     let user = await this.usersService.findByUsername(username);
 
@@ -220,13 +230,14 @@ export class AuthService {
   }
 
   // [POST] auth/login
-  async handleLogin(user: any, oldRefreshToken: string) {
+  async handleLogin(user: UserWithoutPassword, oldRefreshToken: string) {
     //nếu user có sẵn session ở thiết bị hiện tại thì xóa và cấp session mới, tránh rác database
     if (oldRefreshToken) {
       try {
         //lấy sessionID từ payload trong refreshtoken user gửi lên
-        const refreshTokenPayload: any =
-          this.refreshTokenService.decode(oldRefreshToken);
+        const refreshTokenPayload = this.refreshTokenService.decode(
+          oldRefreshToken,
+        ) as RefreshTokenPayload | null;
 
         //token hợp lệ thì xóa session cũ trước khi chạy vào hàm tạo session mới
         if (refreshTokenPayload && refreshTokenPayload.sessionId) {
@@ -360,7 +371,10 @@ export class AuthService {
   }
 
   // [POST] auth/refresh
-  async handleRefreshToken(userPayload: any, originalRefreshToken: string) {
+  async handleRefreshToken(
+    userPayload: RefreshTokenPayload,
+    originalRefreshToken: string,
+  ) {
     // Tìm Session trực tiếp dựa vào payload, sub là user id
     const session = await this.sessionRepository.findOne({
       where: { id: userPayload.sessionId, user: { id: userPayload.sub } },
@@ -498,7 +512,7 @@ export class AuthService {
 
   //Helpers
   // Tạo AccessToken & RefreshToken
-  private async createTokens(user: any, sessionId: string) {
+  private async createTokens(user: SessionUser, sessionId: string) {
     // Access Token: Cần Role để làm Guard phân quyền
     const { id, username, role, status } = user;
     const atPayload = {
@@ -538,7 +552,10 @@ export class AuthService {
     await this.mailService.sendVerifacationEmail(user, token);
   }
 
-  private async generateAndSaveSession(user: any, manager?: EntityManager) {
+  private async generateAndSaveSession(
+    user: UserWithoutPassword,
+    manager?: EntityManager,
+  ) {
     //chuẩn bị payload và session ID để tạo AccessToken và RefreshToken
     const payload = {
       username: user.username,
@@ -564,7 +581,9 @@ export class AuthService {
 
     const session = new Session();
     session.id = sessionId;
-    session.user = user;
+    // user là UserWithoutPassword; Session.user yêu cầu User — cast giữ nguyên object,
+    // TypeORM chỉ cần user.id cho FK khi save (hành vi không đổi).
+    session.user = user as User;
     session.refresh_token = hashedRefreshToken;
     session.expires_at = expiresAt;
 
@@ -575,7 +594,9 @@ export class AuthService {
       await this.sessionRepository.save(session);
     }
 
-    const { password, ...userWithoutPassword } = user;
+    // Strip phòng thủ: caller verify-email truyền full User (có password) → phải loại
+    // trước khi trả về; caller login truyền sẵn UserWithoutPassword (password đã rỗng).
+    const { password, ...userWithoutPassword } = user as User;
 
     return {
       access_token: accessToken,

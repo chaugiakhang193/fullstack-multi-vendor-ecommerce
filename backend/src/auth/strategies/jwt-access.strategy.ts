@@ -2,6 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { IUser } from '@/interface/user.interface';
 
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(
@@ -16,7 +17,8 @@ export class AccessTokenStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: any) {
+  // payload giải mã từ access token = IUser. Trả nguyên → req.user là IUser.
+  async validate(payload: IUser): Promise<IUser> {
     return payload;
   }
 }

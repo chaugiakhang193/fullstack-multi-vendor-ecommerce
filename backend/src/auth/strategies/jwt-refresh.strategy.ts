@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { RefreshTokenPayload, RefreshRequestUser } from '@/auth/auth.types';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
@@ -23,7 +24,10 @@ export class RefreshTokenStrategy extends PassportStrategy(
     });
   }
 
-  async validate(req: Request, payload: any) {
+  async validate(
+    req: Request,
+    payload: RefreshTokenPayload,
+  ): Promise<RefreshRequestUser> {
     const refreshToken = req.cookies['refresh_token'];
 
     if (!refreshToken) {
@@ -31,7 +35,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
     }
 
     return {
-      ...payload, // user_id, session_id...
+      ...payload, // sub, sessionId...
       refreshToken: refreshToken,
     };
   }
