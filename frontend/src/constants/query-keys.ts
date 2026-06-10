@@ -4,4 +4,5 @@ export const QUERY_KEYS = {
   PRODUCTS: "products",
   PRODUCT_SUGGESTIONS: "product-suggestions",
   MY_SHOP: "my-shop",
+  ADDRESSES: "addresses",
 } as const;
