@@ -20,223 +20,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users": {
+    "/api/v1/users/me/addresses": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["UsersController_findAll"];
+        /** Lấy danh sách địa chỉ của tôi */
+        get: operations["UsersController_getAddresses"];
+        put?: never;
+        /** Thêm địa chỉ giao hàng mới */
+        post: operations["UsersController_addAddress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Xóa địa chỉ giao hàng */
+        delete: operations["UsersController_deleteAddress"];
+        options?: never;
+        head?: never;
+        /** Cập nhật địa chỉ giao hàng */
+        patch: operations["UsersController_updateAddress"];
+        trace?: never;
+    };
+    "/api/v1/users/me/addresses/{id}/set-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["UsersController_findOne"];
-        put?: never;
-        post?: never;
-        delete: operations["UsersController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["UsersController_update"];
-        trace?: never;
-    };
-    "/api/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Đăng ký tài khoản mới */
-        post: operations["AuthController_register"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/seller/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Đăng ký tài khoản người bán mới */
-        post: operations["AuthController_registerSeller"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/resend-verification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Gửi lại email xác thực tài khoản */
-        post: operations["AuthController_resendVerification"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Xác thực tài khoản bằng mã từ email */
-        post: operations["AuthController_verifyEmail"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Đăng nhập vào hệ thống */
-        post: operations["AuthController_login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/change-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Đổi mật khẩu (Cần đăng nhập) */
-        put: operations["AuthController_changePassword"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Quên mật khẩu (gửi email khôi phục) */
-        post: operations["AuthController_forgotPassword"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Đặt lại mật khẩu mới */
-        post: operations["AuthController_resetPassword"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lấy thông tin người dùng hiện tại từ Access Token */
-        get: operations["AuthController_getMe"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cấp lại Access Token mới bằng Refresh Token */
-        post: operations["AuthController_refreshTokens"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Đăng xuất khỏi hệ thống */
-        post: operations["AuthController_logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
+        /** Đặt địa chỉ làm mặc định */
+        patch: operations["UsersController_setDefaultAddress"];
         trace?: never;
     };
     "/api/v1/shops/{id}": {
@@ -592,6 +426,193 @@ export interface paths {
         patch: operations["CategoriesController_update"];
         trace?: never;
     };
+    "/api/v1/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng ký tài khoản mới */
+        post: operations["AuthController_register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/seller/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng ký tài khoản người bán mới */
+        post: operations["AuthController_registerSeller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gửi lại email xác thực tài khoản */
+        post: operations["AuthController_resendVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Xác thực tài khoản bằng mã từ email */
+        post: operations["AuthController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng nhập vào hệ thống */
+        post: operations["AuthController_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Đổi mật khẩu (Cần đăng nhập) */
+        put: operations["AuthController_changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quên mật khẩu (gửi email khôi phục) */
+        post: operations["AuthController_forgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đặt lại mật khẩu mới */
+        post: operations["AuthController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy thông tin người dùng hiện tại từ Access Token */
+        get: operations["AuthController_getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cấp lại Access Token mới bằng Refresh Token */
+        post: operations["AuthController_refreshTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Đăng xuất khỏi hệ thống */
+        post: operations["AuthController_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cart/items": {
         parameters: {
             query?: never;
@@ -662,36 +683,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/orders": {
+    "/api/v1/orders/checkout": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["OrdersController_findAll"];
+        get?: never;
         put?: never;
-        post: operations["OrdersController_create"];
+        /**
+         * Đặt hàng (Checkout) với cơ chế chống gửi trùng bằng Idempotency-Key
+         * @description Yêu cầu header `Idempotency-Key` là UUID. Nếu key đang PENDING → 409 Conflict. Nếu key đã COMPLETED và thuộc cùng user → replay response gốc.
+         */
+        post: operations["OrdersController_checkout"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/orders/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["OrdersController_findOne"];
-        put?: never;
-        post?: never;
-        delete: operations["OrdersController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["OrdersController_update"];
         trace?: never;
     };
     "/api/v1/promotions": {
@@ -794,68 +803,118 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        UpdateUserDto: {
+        AddressResponseDto: {
             /**
-             * @description Tên đăng nhập
-             * @example nguyenvana
+             * @description ID của địa chỉ
+             * @example 85f9c46d-c5bb-41cb-8fde-d39281a8b9a1
              */
-            username?: string;
+            id: string;
             /**
-             * @description Địa chỉ email
-             * @example nguyenvana@gmail.com
+             * @description Địa chỉ chi tiết
+             * @example 123 Đường ABC, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
              */
-            email?: string;
+            address_line: string;
             /**
-             * @description Mật khẩu
-             * @example Password123
+             * @description Vĩ độ
+             * @example 10.7769
              */
-            password?: string;
+            lat?: Record<string, never>;
             /**
-             * @description Vai trò người dùng
-             * @example customer
-             * @enum {string}
+             * @description Kinh độ
+             * @example 106.7009
              */
-            role?: "admin" | "customer" | "seller";
+            lng?: Record<string, never>;
             /**
-             * @description Trạng thái tài khoản
-             * @example active
-             * @enum {string}
+             * @description Địa chỉ mặc định hay không
+             * @example false
              */
-            status?: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            is_default: boolean;
             /**
-             * @description Họ và tên đầy đủ
+             * @description Tên người nhận hàng
              * @example Nguyễn Văn A
              */
-            full_name?: string;
+            recipient_name: string;
             /**
-             * @description Số điện thoại
-             * @example 0987654321
+             * @description Số điện thoại người nhận
+             * @example 0901234567
+             */
+            phone: string;
+            /**
+             * Format: date-time
+             * @description Thời gian tạo
+             * @example 2026-06-07T10:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Thời gian cập nhật
+             * @example 2026-06-07T10:00:00Z
+             */
+            updated_at: string;
+        };
+        CreateAddressDto: {
+            /**
+             * @description Địa chỉ chi tiết của người nhận
+             * @example 123 Đường ABC, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
+             */
+            address_line: string;
+            /**
+             * @description Vĩ độ của địa chỉ
+             * @example 10.7769
+             */
+            lat?: string;
+            /**
+             * @description Kinh độ của địa chỉ
+             * @example 106.7009
+             */
+            lng?: string;
+            /**
+             * @description Tên người nhận hàng
+             * @example Nguyễn Văn A
+             */
+            recipient_name: string;
+            /**
+             * @description Số điện thoại liên hệ của người nhận (chuẩn Việt Nam)
+             * @example 0901234567
+             */
+            phone: string;
+            /**
+             * @description Đặt làm địa chỉ mặc định
+             * @example false
+             */
+            is_default?: boolean;
+        };
+        UpdateAddressDto: {
+            /**
+             * @description Địa chỉ chi tiết của người nhận
+             * @example 123 Đường ABC, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
+             */
+            address_line?: string;
+            /**
+             * @description Vĩ độ của địa chỉ
+             * @example 10.7769
+             */
+            lat?: string;
+            /**
+             * @description Kinh độ của địa chỉ
+             * @example 106.7009
+             */
+            lng?: string;
+            /**
+             * @description Tên người nhận hàng
+             * @example Nguyễn Văn A
+             */
+            recipient_name?: string;
+            /**
+             * @description Số điện thoại liên hệ của người nhận (chuẩn Việt Nam)
+             * @example 0901234567
              */
             phone?: string;
-        };
-        RegisterDto: {
             /**
-             * @description Tên đăng nhập (3–32 ký tự, phải chứa ít nhất 1 chữ cái)
-             * @example nguyenvana
+             * @description Đặt làm địa chỉ mặc định
+             * @example false
              */
-            username: string;
-            /**
-             * @description Địa chỉ email hợp lệ
-             * @example nguyenvana@gmail.com
-             */
-            email: string;
-            /**
-             * @description Mật khẩu (≥8 ký tự, có chữ hoa, chữ thường và số)
-             * @example Password123
-             */
-            password: string;
-        };
-        ResendVerificationEmailDto: {
-            /**
-             * @description Email cần để gửi lại mã xác nhận
-             * @example nguyenvana@gmail.com
-             */
-            email: string;
+            is_default?: boolean;
         };
         UserResponseDto: {
             /**
@@ -895,82 +954,6 @@ export interface components {
              * @example 60d0fe4f5311236168a109ca
              */
             _id: string;
-        };
-        AuthResponseDto: {
-            /**
-             * @description JWT Access Token dùng để gọi các API yêu cầu xác thực
-             * @example eyJhbGciOiJIUzI1NiIsInR5cCI...
-             */
-            access_token: string;
-            /** @description Thông tin người dùng (đã ẩn mật khẩu) */
-            user: components["schemas"]["UserResponseDto"];
-        };
-        VerifyEmailDto: {
-            /**
-             * @description Mã xác thực từ email
-             * @example 123e4567-e89b-12d3-a456-426614174000
-             */
-            verification_token: string;
-        };
-        LoginDto: {
-            /**
-             * @description Tên đăng nhập hoặc email
-             * @example nguyenvana
-             */
-            username: string;
-            /**
-             * @description Mật khẩu
-             * @example Password123
-             */
-            password: string;
-        };
-        UnverifiedAccountResponseDto: {
-            /**
-             * @description Mã trạng thái HTTP
-             * @example 401
-             */
-            statusCode: number;
-            /**
-             * @description Thông báo lỗi chi tiết
-             * @example Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt.
-             */
-            message: string;
-            /**
-             * @description Loại lỗi xác thực
-             * @example Unauthorized
-             */
-            error: string;
-        };
-        ChangePasswordDto: {
-            /**
-             * @description Mật khẩu hiện tại
-             * @example OldPassword123
-             */
-            old_password: string;
-            /**
-             * @description Mật khẩu mới
-             * @example NewPassword123
-             */
-            new_password: string;
-        };
-        ForgotPasswordDto: {
-            /**
-             * @description Email của tài khoản cần khôi phục mật khẩu
-             * @example nguyenvana@gmail.com
-             */
-            email: string;
-        };
-        ResetPasswordDto: {
-            /**
-             * @description Mã token khôi phục mật khẩu nhận được từ email
-             * @example 123e4567-e89b-12d3-a456-426614174000
-             */
-            token: string;
-            /**
-             * @description Mật khẩu mới
-             * @example NewPassword123
-             */
-            new_password: string;
         };
         CategoryResponseDto: {
             /**
@@ -1074,6 +1057,16 @@ export interface components {
              */
             pickup_address: string;
             /**
+             * @description Vĩ độ (frontend điền sau khi chọn autocomplete)
+             * @example 10.7769
+             */
+            lat?: Record<string, never> | null;
+            /**
+             * @description Kinh độ (frontend điền sau khi chọn autocomplete)
+             * @example 106.6978
+             */
+            lng?: Record<string, never> | null;
+            /**
              * @description URL ảnh logo của shop
              * @example https://cloudinary.com/logo.png
              */
@@ -1125,6 +1118,16 @@ export interface components {
              * @example Số 1, đường ABC, Quận 1, TP.HCM
              */
             pickup_address?: string;
+            /**
+             * @description Vĩ độ (frontend điền sau khi chọn autocomplete)
+             * @example 10.7769
+             */
+            lat?: Record<string, never> | null;
+            /**
+             * @description Kinh độ (frontend điền sau khi chọn autocomplete)
+             * @example 106.6978
+             */
+            lng?: Record<string, never> | null;
             /**
              * @description URL ảnh logo của shop
              * @example https://cloudinary.com/logo.png
@@ -1610,6 +1613,106 @@ export interface components {
              */
             display_order: number;
         };
+        RegisterDto: {
+            /**
+             * @description Tên đăng nhập (3–32 ký tự, phải chứa ít nhất 1 chữ cái)
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Địa chỉ email hợp lệ
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+            /**
+             * @description Mật khẩu (≥8 ký tự, có chữ hoa, chữ thường và số)
+             * @example Password123
+             */
+            password: string;
+        };
+        ResendVerificationEmailDto: {
+            /**
+             * @description Email cần để gửi lại mã xác nhận
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+        };
+        AuthResponseDto: {
+            /**
+             * @description JWT Access Token dùng để gọi các API yêu cầu xác thực
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI...
+             */
+            access_token: string;
+            /** @description Thông tin người dùng (đã ẩn mật khẩu) */
+            user: components["schemas"]["UserResponseDto"];
+        };
+        VerifyEmailDto: {
+            /**
+             * @description Mã xác thực từ email
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            verification_token: string;
+        };
+        LoginDto: {
+            /**
+             * @description Tên đăng nhập hoặc email
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Mật khẩu
+             * @example Password123
+             */
+            password: string;
+        };
+        UnverifiedAccountResponseDto: {
+            /**
+             * @description Mã trạng thái HTTP
+             * @example 401
+             */
+            statusCode: number;
+            /**
+             * @description Thông báo lỗi chi tiết
+             * @example Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt.
+             */
+            message: string;
+            /**
+             * @description Loại lỗi xác thực
+             * @example Unauthorized
+             */
+            error: string;
+        };
+        ChangePasswordDto: {
+            /**
+             * @description Mật khẩu hiện tại
+             * @example OldPassword123
+             */
+            old_password: string;
+            /**
+             * @description Mật khẩu mới
+             * @example NewPassword123
+             */
+            new_password: string;
+        };
+        ForgotPasswordDto: {
+            /**
+             * @description Email của tài khoản cần khôi phục mật khẩu
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+        };
+        ResetPasswordDto: {
+            /**
+             * @description Mã token khôi phục mật khẩu nhận được từ email
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            token: string;
+            /**
+             * @description Mật khẩu mới
+             * @example NewPassword123
+             */
+            new_password: string;
+        };
         CartShopDto: {
             id: string;
             name: string;
@@ -1629,6 +1732,7 @@ export interface components {
             id: string;
             name: string;
             additional_price: number;
+            images: string[] | null;
         };
         CartItemResponseDto: {
             id: string;
@@ -1700,8 +1804,169 @@ export interface components {
             /** @description Danh sách sản phẩm từ localStorage khách */
             items: components["schemas"]["GuestCartItemDto"][];
         };
-        CreateOrderDto: Record<string, never>;
-        UpdateOrderDto: Record<string, never>;
+        ShopCouponDto: {
+            /**
+             * @description ID của Shop áp dụng mã giảm giá
+             * @example d1b85fb4-3449-45cf-a407-d26b808a55b8
+             */
+            shop_id: string;
+            /**
+             * @description Mã giảm giá của Shop tương ứng
+             * @example SHOP-SUMMER10
+             */
+            coupon_code: string;
+        };
+        CreateOrderDto: {
+            /**
+             * @description ID của địa chỉ giao hàng — phải thuộc sổ địa chỉ của user
+             * @example d1b85fb4-3449-45cf-a407-d26b808a55b8
+             */
+            address_id: string;
+            /**
+             * @description Phương thức thanh toán (hiện chỉ hỗ trợ COD)
+             * @example cod
+             * @enum {string}
+             */
+            payment_method: "cod";
+            /**
+             * @description Mã giảm giá toàn sàn (loại GLOBAL). Để trống nếu không dùng.
+             * @example WELCOME50K
+             */
+            global_coupon_code?: string;
+            /** @description Danh sách mã giảm giá theo từng Shop (loại SHOP). */
+            shop_coupons?: components["schemas"]["ShopCouponDto"][];
+        };
+        ShippingAddressSnapshotDto: {
+            /**
+             * @description Tên người nhận
+             * @example Nguyễn Văn A
+             */
+            recipient_name: string;
+            /**
+             * @description Số điện thoại người nhận
+             * @example 0901234567
+             */
+            phone: string;
+            /**
+             * @description Địa chỉ giao hàng
+             * @example 135 Nguyễn Huệ, Bến Nghé, Quận 1, TP.HCM
+             */
+            address_line: string;
+            /**
+             * @description Vĩ độ
+             * @example 10.777353
+             */
+            lat: Record<string, never> | null;
+            /**
+             * @description Kinh độ
+             * @example 106.698089
+             */
+            lng: Record<string, never> | null;
+        };
+        CheckoutResponseItemDto: {
+            /**
+             * @description ID sản phẩm
+             * @example d1b85fb4-3449-45cf-a407-d26b808a55b8
+             */
+            product_id: string;
+            /**
+             * @description Tên sản phẩm tại thời điểm mua
+             * @example Áo thun basic
+             */
+            product_name: string;
+            /**
+             * @description ID biến thể (null nếu không có biến thể)
+             * @example abc12345-0000-0000-0000-000000000001
+             */
+            variant_id: Record<string, never> | null;
+            /**
+             * @description Tên biến thể (null nếu không có biến thể)
+             * @example Size M / Màu Đen
+             */
+            variant_name: Record<string, never> | null;
+            /**
+             * @description Số lượng
+             * @example 2
+             */
+            quantity: number;
+            /**
+             * @description Giá tại thời điểm mua (VNĐ)
+             * @example 199000
+             */
+            price_at_purchase: number;
+        };
+        CheckoutResponseSubOrderDto: {
+            /**
+             * @description ID sub-order
+             * @example e5f6a7b8-1234-5678-abcd-000000000001
+             */
+            sub_order_id: string;
+            /**
+             * @description ID shop
+             * @example d1b85fb4-3449-45cf-a407-d26b808a55b8
+             */
+            shop_id: string;
+            /**
+             * @description Tên shop
+             * @example Shop ABC
+             */
+            shop_name: string;
+            /**
+             * @description Tổng tiền hàng của shop (chưa trừ giảm giá, chưa cộng ship)
+             * @example 398000
+             */
+            sub_total: number;
+            /**
+             * @description Phí vận chuyển
+             * @example 30000
+             */
+            shipping_fee: number;
+            /**
+             * @description Số tiền giảm giá từ coupon shop
+             * @example 40000
+             */
+            discount_amount: number;
+            /**
+             * @description Tổng tiền sub-order (sub_total - discount + shipping_fee)
+             * @example 388000
+             */
+            total_amount: number;
+            /** @description Danh sách sản phẩm trong sub-order */
+            items: components["schemas"]["CheckoutResponseItemDto"][];
+        };
+        CheckoutResponseDto: {
+            /**
+             * @description ID đơn hàng
+             * @example a1b2c3d4-0000-0000-0000-000000000001
+             */
+            order_id: string;
+            /**
+             * @description Mã đơn hàng hiển thị
+             * @example #ORD-20260609-AB12CD
+             */
+            order_number: string;
+            /**
+             * @description Tổng tiền toàn đơn (sau tất cả giảm giá)
+             * @example 388000
+             */
+            total_amount: number;
+            /**
+             * @description Phương thức thanh toán
+             * @example cod
+             * @enum {string}
+             */
+            payment_method: "cod";
+            /** @description Snapshot địa chỉ giao hàng tại thời điểm đặt */
+            shipping_address: components["schemas"]["ShippingAddressSnapshotDto"];
+            /** @description Danh sách sub-order theo từng shop */
+            sub_orders: components["schemas"]["CheckoutResponseSubOrderDto"][];
+            /**
+             * Format: date-time
+             * @description Thời điểm tạo đơn
+             * @example 2026-06-09T01:24:50.993Z
+             */
+            created_at: string;
+        };
         CreatePromotionDto: Record<string, never>;
         UpdatePromotionDto: Record<string, never>;
         CreatePaymentDto: Record<string, never>;
@@ -1734,7 +1999,7 @@ export interface operations {
             };
         };
     };
-    UsersController_findAll: {
+    UsersController_getAddresses: {
         parameters: {
             query?: never;
             header?: never;
@@ -1743,7 +2008,30 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Danh sách địa chỉ của người dùng */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Danh sách địa chỉ của người dùng */
+                        message?: string;
+                        data?: components["schemas"]["AddressResponseDto"][];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1751,68 +2039,7 @@ export interface operations {
             };
         };
     };
-    UsersController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    UsersController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    UsersController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_register: {
+    UsersController_addAddress: {
         parameters: {
             query?: never;
             header?: never;
@@ -1821,11 +2048,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterDto"];
+                "application/json": components["schemas"]["CreateAddressDto"];
             };
         };
         responses: {
-            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
+            /** @description Thêm địa chỉ thành công */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1834,285 +2061,28 @@ export interface operations {
                     "application/json": {
                         /** @example 201 */
                         statusCode?: number;
-                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
+                        /** @example Thêm địa chỉ thành công */
                         message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
+                        data?: components["schemas"]["AddressResponseDto"];
                     };
                 };
             };
-            /** @description Dữ liệu đầu vào không hợp lệ hoặc tài khoản/email đã tồn tại. */
+            /** @description Yêu cầu không hợp lệ (số điện thoại sai, quá giới hạn 10 địa chỉ...) */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-        };
-    };
-    AuthController_registerSeller: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterDto"];
-            };
-        };
-        responses: {
-            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 201 */
-                        statusCode?: number;
-                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
-                        message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
-                    };
-                };
-            };
-            /** @description Dữ liệu không hợp lệ hoặc tài khoản đã tồn tại. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_resendVerification: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResendVerificationEmailDto"];
-            };
-        };
-        responses: {
-            /** @description Đã gửi lại email xác thực. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đã gửi lại email xác thực. */
-                        message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
-                    };
-                };
-            };
-            /** @description Email không tồn tại hoặc tài khoản đã kích hoạt. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_verifyEmail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyEmailDto"];
-            };
-        };
-        responses: {
-            /** @description Xác thực thành công và tự động đăng nhập (trả về access_token). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Xác thực thành công và tự động đăng nhập (trả về access_token). */
-                        message?: string;
-                        data?: components["schemas"]["AuthResponseDto"];
-                    };
-                };
-            };
-            /** @description Mã xác thực không hợp lệ hoặc đã hết hạn. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginDto"];
-            };
-        };
-        responses: {
-            /** @description Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
-                        message?: string;
-                        data?: components["schemas"]["AuthResponseDto"];
-                    };
-                };
-            };
-            /**
-             * @description Lỗi xác thực:
-             *     - Sai tài khoản hoặc mật khẩu.
-             *     - Tài khoản chưa được xác thực (nếu đăng nhập bằng email): Hệ thống sẽ tự động gửi email chứa token xác thực và yêu cầu frontend redirect người dùng đến trang verify-email.
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnverifiedAccountResponseDto"];
-                };
-            };
-        };
-    };
-    AuthController_changePassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordDto"];
-            };
-        };
-        responses: {
-            /** @description Đổi mật khẩu thành công. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đổi mật khẩu thành công. */
-                        message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
-                    };
-                };
-            };
-            /** @description Mật khẩu cũ không chính xác. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Không có quyền truy cập. */
+            /** @description Chưa đăng nhập */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-        };
-    };
-    AuthController_forgotPassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotPasswordDto"];
-            };
-        };
-        responses: {
-            /** @description Đã gửi email khôi phục. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đã gửi email khôi phục. */
-                        message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    AuthController_resetPassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResetPasswordDto"];
-            };
-        };
-        responses: {
-            /** @description Đặt lại mật khẩu thành công. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đặt lại mật khẩu thành công. */
-                        message?: string;
-                        /** @example null */
-                        data?: Record<string, never>;
-                    };
-                };
-            };
-            /** @description Token khôi phục không hợp lệ hoặc đã hết hạn. */
-            400: {
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2120,16 +2090,19 @@ export interface operations {
             };
         };
     };
-    AuthController_getMe: {
+    UsersController_deleteAddress: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID của địa chỉ cần xóa (UUID) */
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Trả về thông tin người dùng không bao gồm mật khẩu. */
+            /** @description Xóa địa chỉ thành công */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2138,78 +2111,137 @@ export interface operations {
                     "application/json": {
                         /** @example 200 */
                         statusCode?: number;
-                        /** @example Trả về thông tin người dùng không bao gồm mật khẩu. */
-                        message?: string;
-                        data?: components["schemas"]["UserResponseDto"];
-                    };
-                };
-            };
-            /** @description Không có quyền truy cập hoặc Access Token đã hết hạn. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_refreshTokens: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Cấp lại token thành công. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Cấp lại token thành công. */
-                        message?: string;
-                        data?: components["schemas"]["AuthResponseDto"];
-                    };
-                };
-            };
-            /** @description Refresh token không hợp lệ hoặc đã hết hạn. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AuthController_logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Đăng xuất thành công. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 200 */
-                        statusCode?: number;
-                        /** @example Đăng xuất thành công. */
+                        /** @example Xóa địa chỉ thành công */
                         message?: string;
                         /** @example null */
                         data?: Record<string, never>;
                     };
                 };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy địa chỉ */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_updateAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID của địa chỉ cần cập nhật (UUID) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAddressDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật địa chỉ thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật địa chỉ thành công */
+                        message?: string;
+                        data?: components["schemas"]["AddressResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy địa chỉ */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_setDefaultAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID của địa chỉ cần đặt làm mặc định (UUID) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đặt địa chỉ mặc định thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đặt địa chỉ mặc định thành công */
+                        message?: string;
+                        data?: components["schemas"]["AddressResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admin không được phép thực hiện hành động này */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy địa chỉ */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -3458,6 +3490,407 @@ export interface operations {
             };
         };
     };
+    AuthController_register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Dữ liệu đầu vào không hợp lệ hoặc tài khoản/email đã tồn tại. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_registerSeller: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng ký thành công, vui lòng kiểm tra email. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 201 */
+                        statusCode?: number;
+                        /** @example Đăng ký thành công, vui lòng kiểm tra email. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Dữ liệu không hợp lệ hoặc tài khoản đã tồn tại. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_resendVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationEmailDto"];
+            };
+        };
+        responses: {
+            /** @description Đã gửi lại email xác thực. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đã gửi lại email xác thực. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Email không tồn tại hoặc tài khoản đã kích hoạt. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            /** @description Xác thực thành công và tự động đăng nhập (trả về access_token). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Xác thực thành công và tự động đăng nhập (trả về access_token). */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /** @description Mã xác thực không hợp lệ hoặc đã hết hạn. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đăng nhập thành công, trả về access_token và set refresh_token vào cookie. */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /**
+             * @description Lỗi xác thực:
+             *     - Sai tài khoản hoặc mật khẩu.
+             *     - Tài khoản chưa được xác thực (nếu đăng nhập bằng email): Hệ thống sẽ tự động gửi email chứa token xác thực và yêu cầu frontend redirect người dùng đến trang verify-email.
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnverifiedAccountResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đổi mật khẩu thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đổi mật khẩu thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Mật khẩu cũ không chính xác. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không có quyền truy cập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_forgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đã gửi email khôi phục. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đã gửi email khôi phục. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    AuthController_resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Đặt lại mật khẩu thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đặt lại mật khẩu thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Token khôi phục không hợp lệ hoặc đã hết hạn. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trả về thông tin người dùng không bao gồm mật khẩu. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Trả về thông tin người dùng không bao gồm mật khẩu. */
+                        message?: string;
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+            /** @description Không có quyền truy cập hoặc Access Token đã hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_refreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cấp lại token thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cấp lại token thành công. */
+                        message?: string;
+                        data?: components["schemas"]["AuthResponseDto"];
+                    };
+                };
+            };
+            /** @description Refresh token không hợp lệ hoặc đã hết hạn. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đăng xuất thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Đăng xuất thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
     CartsController_addItem: {
         parameters: {
             query?: never;
@@ -3744,27 +4177,14 @@ export interface operations {
             };
         };
     };
-    OrdersController_findAll: {
+    OrdersController_checkout: {
         parameters: {
             query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
+            header: {
+                "idempotency-key": string;
+                /** @description UUID do client sinh để chống gửi trùng đơn hàng */
+                "Idempotency-Key": string;
             };
-        };
-    };
-    OrdersController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -3774,68 +4194,38 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Tạo đơn hàng thành công */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponseDto"];
+                };
             };
-        };
-    };
-    OrdersController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
+            /** @description Dữ liệu không hợp lệ (thiếu/sai Idempotency-Key, sản phẩm hết hàng, coupon không hợp lệ, ...) */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-        };
-    };
-    OrdersController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
+            /** @description Chưa đăng nhập */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-        };
-    };
-    OrdersController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+            /** @description Admin không được phép checkout; hoặc Idempotency-Key thuộc về user khác */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateOrderDto"];
-            };
-        };
-        responses: {
-            200: {
+            /** @description Một request khác cùng Idempotency-Key đang xử lý dở dang */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

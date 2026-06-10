@@ -64,8 +64,8 @@ export const CartItemVariant = z.object({
   id: z.string(),
   name: z.string(),
   additional_price: z.number(),
-  images: z.array(z.string()).nullable().optional(),
-});
+  images: z.array(z.string()).nullable(),
+}) satisfies z.ZodType<components["schemas"]["CartItemVariantDto"], any, any>;
 
 export const CartItemResponse = z.object({
   id: z.string(),

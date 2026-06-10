@@ -68,6 +68,7 @@ const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
             id: item.variantId,
             name: variantInfo?.name || "Mặc định",
             additional_price: Number(variantInfo?.additional_price) || 0,
+            images: variantInfo?.images ?? null,
           }
         : null,
       quantity: item.quantity,
