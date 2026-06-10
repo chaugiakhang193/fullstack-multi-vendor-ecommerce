@@ -15,6 +15,7 @@ import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderStatus } from '@/common/enums';
 import { Payment } from '@/modules/payments/entities/payment.entity';
+import { ShippingAddressSnapshot } from '@/modules/orders/shipping.interface';
 
 @Entity()
 @Index(['customer', 'status'])
@@ -40,7 +41,7 @@ export class Order {
   total_amount: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  shipping_address: any;
+  shipping_address: ShippingAddressSnapshot | null;
 
   @Column({
     type: 'enum',

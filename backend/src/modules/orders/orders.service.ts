@@ -42,7 +42,10 @@ import { UsersService } from '@/modules/users/users.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
 
 // Interfaces (chỉ dùng cho type metadata — interface không có runtime)
-import type { IShippingCalculator } from '@/modules/orders/shipping.interface';
+import type {
+  IShippingCalculator,
+  ShippingAddressSnapshot,
+} from '@/modules/orders/shipping.interface';
 
 // Enums
 import {
@@ -615,7 +618,7 @@ export class OrdersService {
     idempotencyKey: string;
     totalAmount: number;
     globalCoupon: Coupon | null;
-    shippingAddress: Record<string, any>;
+    shippingAddress: ShippingAddressSnapshot;
     manager: EntityManager;
   }): Promise<Order> {
     const {
@@ -742,13 +745,7 @@ export class OrdersService {
     return round2(Math.max(0, cappedDiscount));
   }
 
-  private snapshotAddress(address: Address): {
-    recipient_name: string;
-    phone: string;
-    address_line: string;
-    lat: number | null;
-    lng: number | null;
-  } {
+  private snapshotAddress(address: Address): ShippingAddressSnapshot {
     const latNumber = address.lat !== null ? parseFloat(address.lat) : null;
     const lngNumber = address.lng !== null ? parseFloat(address.lng) : null;
     return {
@@ -767,13 +764,7 @@ export class OrdersService {
   private buildCheckoutResponse(params: {
     order: Order;
     subOrderPlans: SubOrderPlan[];
-    shippingAddressSnapshot: {
-      recipient_name: string;
-      phone: string;
-      address_line: string;
-      lat: number | null;
-      lng: number | null;
-    };
+    shippingAddressSnapshot: ShippingAddressSnapshot;
     paymentMethod: PaymentMethod;
     grandTotal: number;
   }): CheckoutResponseDto {
@@ -849,18 +840,18 @@ export class OrdersService {
       });
     }
 
-    const shippingAddress = (order.shipping_address as any) ?? {};
+    const shippingAddress = order.shipping_address;
     return {
       order_id: order.id,
       order_number: order.order_number,
       total_amount: round2(Number(order.total_amount ?? 0)),
       payment_method: order.payment?.method ?? PaymentMethod.COD,
       shipping_address: {
-        recipient_name: shippingAddress.recipient_name ?? '',
-        phone: shippingAddress.phone ?? '',
-        address_line: shippingAddress.address_line ?? '',
-        lat: shippingAddress.lat ?? null,
-        lng: shippingAddress.lng ?? null,
+        recipient_name: shippingAddress?.recipient_name ?? '',
+        phone: shippingAddress?.phone ?? '',
+        address_line: shippingAddress?.address_line ?? '',
+        lat: shippingAddress?.lat ?? null,
+        lng: shippingAddress?.lng ?? null,
       },
       sub_orders: subOrdersResponse,
       created_at: order.created_at,
