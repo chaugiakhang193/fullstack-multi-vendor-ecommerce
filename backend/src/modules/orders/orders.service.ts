@@ -198,6 +198,7 @@ export class OrdersService {
       const findCriteria = { where: { key: idempotencyKey } };
       const existing = await this.idempotencyRepository.findOne(findCriteria);
 
+      // Lỗi 409, isCollision = true 
       const isExistingMissing = !existing;
       if (isExistingMissing) {
         const transientMsg =
