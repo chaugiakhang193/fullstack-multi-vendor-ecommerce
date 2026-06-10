@@ -43,6 +43,13 @@ import {
 } from '@/auth/dto/auth-response.dto';
 
 import { Public, ResponseMessage } from '@/decorator/customize';
+import { User } from '@/decorator/user.decorator';
+import type { IUser } from '@/interface/user.interface';
+import type {
+  AuthenticatedRequest,
+  UserWithoutPassword,
+  RefreshRequestUser,
+} from '@/auth/auth.types';
 
 // Sinh tài liệu response api chung cho DOCS SWAGGER
 // API resonse mặc định của Swagger dùng chuyên để trả lỗi
@@ -171,7 +178,10 @@ export class AuthController {
       '- Tài khoản chưa được xác thực (nếu đăng nhập bằng email): Hệ thống sẽ tự động gửi email chứa token xác thực và yêu cầu frontend redirect người dùng đến trang verify-email.',
     type: UnverifiedAccountResponseDto,
   })
-  async login(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Req() req: AuthenticatedRequest<UserWithoutPassword>,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     //nếu đã login sẵn từ trước thì sẽ xóa session hiện tại tạo session mới tránh rác database
     const oldRefreshToken = req.cookies['refresh_token'];
     const { access_token, refresh_token, cookie_max_age, user } =
@@ -197,11 +207,11 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập.' })
   @ApiResponse({ status: 400, description: 'Mật khẩu cũ không chính xác.' })
   async changePassword(
-    @Req() req: any,
+    @User() user: IUser,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    // req.user được bóc ra từ JWT payload bởi Passport Strategy
-    const userId = req.user.sub;
+    // user được bóc ra từ JWT payload bởi Passport Strategy
+    const userId = user.sub;
     return await this.authService.changePassword(userId, changePasswordDto);
   }
 
@@ -249,8 +259,8 @@ export class AuthController {
     status: 401,
     description: 'Không có quyền truy cập hoặc Access Token đã hết hạn.',
   })
-  async getMe(@Req() req: any) {
-    const userId = req.user.sub;
+  async getMe(@User() user: IUser) {
+    const userId = user.sub;
     return await this.authService.getCurrentUser(userId);
   }
 
@@ -267,7 +277,7 @@ export class AuthController {
     description: 'Refresh token không hợp lệ hoặc đã hết hạn.',
   })
   async refreshTokens(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest<RefreshRequestUser>,
     @Res({ passthrough: true }) res: Response,
   ) {
     const userPayload = req.user;
@@ -287,7 +297,10 @@ export class AuthController {
   @ResponseMessage('Đăng xuất thành công, đã xóa phiên làm việc!')
   @ApiOperation({ summary: 'Đăng xuất khỏi hệ thống' })
   @ApiGenericResponse('Đăng xuất thành công.')
-  async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const refreshToken = req.cookies['refresh_token'];
 
     await this.authService.handleLogout(refreshToken);
