@@ -73,6 +73,23 @@ export interface paths {
         patch: operations["UsersController_setDefaultAddress"];
         trace?: never;
     };
+    "/api/v1/geocoding/autocomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gợi ý địa chỉ (LocationIQ proxy) */
+        get: operations["GeocodingController_autocomplete"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shops/{id}": {
         parameters: {
             query?: never;
@@ -2238,6 +2255,26 @@ export interface operations {
             };
             /** @description Không tìm thấy địa chỉ */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GeocodingController_autocomplete: {
+        parameters: {
+            query: {
+                /** @description Chuỗi địa chỉ đang gõ */
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
