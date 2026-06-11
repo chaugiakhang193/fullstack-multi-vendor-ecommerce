@@ -123,12 +123,13 @@ export function AddressFormModal({
     setSelectedCoords(latLng);
   };
 
-  const handleQueryChangeAutocomplete = () => {
+  const handleQueryChangeAutocomplete = (value: string) => {
     setSelectedCoords(null);
+    setValue("address_line", value, { shouldValidate: true });
   };
 
   const dialogTitleText = editing ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới";
-  const descText = "Nhập thông tin người nhận và chọn địa chỉ từ gợi ý để lấy tọa độ chính xác.";
+  const descText = "Nhập thông tin người nhận. Bạn có thể chọn địa chỉ từ gợi ý hoặc nhập tay — hệ thống sẽ tự xác định tọa độ.";
   const cancelBtnText = "Hủy";
   const submitBtnText = submitting ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Thêm địa chỉ";
 
