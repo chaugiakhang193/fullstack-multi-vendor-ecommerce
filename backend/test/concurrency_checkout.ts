@@ -157,6 +157,10 @@ async function createAddress(token: string): Promise<string> {
     '/users/me/addresses',
     {
       address_line: '123 Đường Test Đồng Thời, Phường 1, Quận 1, TP. Hồ Chí Minh',
+      // Truyền sẵn lat/lng (toạ độ Quận 1 HCM) để backend SKIP geocoding —
+      // test không phụ thuộc Nominatim (tránh flaky + tự ban IP, trap #9/#10).
+      lat: '10.7769',
+      lng: '106.7009',
       recipient_name: 'Concurrency Tester',
       phone: '0901234567',
       is_default: true,
