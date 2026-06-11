@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, ParseUUIDPipe } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -54,7 +54,7 @@ export class AdminShopsController {
   @ResponseMessage('Lấy chi tiết gian hàng thành công.')
   @ApiOperation({ summary: 'Admin xem chi tiết một gian hàng' })
   @ApiGenericResponse(ShopResponseDto, 'Lấy chi tiết gian hàng thành công.')
-  findOneAdmin(@Param('id') id: string) {
+  findOneAdmin(@Param('id', ParseUUIDPipe) id: string) {
     return this.shopsService.findOneByShopId(id);
   }
 
@@ -62,7 +62,7 @@ export class AdminShopsController {
   @ResponseMessage('Đã duyệt gian hàng thành công.')
   @ApiOperation({ summary: 'Admin duyệt gian hàng' })
   @ApiGenericResponse(ShopResponseDto, 'Duyệt gian hàng thành công.')
-  approveShop(@Param('id') id: string) {
+  approveShop(@Param('id', ParseUUIDPipe) id: string) {
     return this.shopsService.approveShop(id);
   }
 
@@ -72,7 +72,10 @@ export class AdminShopsController {
   @ApiGenericResponse(ShopResponseDto, 'Từ chối gian hàng thành công.')
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập.' })
   @ApiForbiddenResponse({ description: 'Yêu cầu quyền ADMIN.' })
-  rejectShop(@Param('id') id: string, @Body() rejectShopDto: RejectShopDto) {
+  rejectShop(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() rejectShopDto: RejectShopDto,
+  ) {
     return this.shopsService.rejectShop(id, rejectShopDto.reason);
   }
 }
