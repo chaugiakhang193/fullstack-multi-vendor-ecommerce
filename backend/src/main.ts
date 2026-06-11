@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -13,6 +14,8 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('FRONTEND_URL');
 
   app.setGlobalPrefix('api/v1');
+  // [Tech Debt F] Bảo mật HTTP headers. Tắt CSP để không chặn Swagger UI ở dev.
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
   app.enableCors({
     origin: frontendUrl,

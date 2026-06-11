@@ -49,6 +49,7 @@
     "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "handlebars": "^4.7.9",
+    "helmet": "^8.2.0",
     "multer": "^2.1.1",
     "mysql2": "^3.22.2",
     "passport": "^0.7.0",
