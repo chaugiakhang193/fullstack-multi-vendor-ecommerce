@@ -12,7 +12,7 @@ export const ShopCouponBody = z.object({
 
 export const CheckoutBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
-  payment_method: z.literal("COD"), // hiện chỉ COD
+  payment_method: z.literal("cod"), // hiện chỉ COD — khớp PaymentMethod.COD = 'cod' ở backend
   global_coupon_code: z.string().optional(),
   shop_coupons: z.array(ShopCouponBody).max(50).optional(),
 });
