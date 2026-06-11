@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
   Headers,
   HttpCode,
@@ -121,5 +122,19 @@ export class OrdersController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.ordersService.getCustomerOrderDetail(user.sub, id);
+  }
+
+  @Patch('sub-orders/:subOrderId/cancel')
+  @ApiOperation({ summary: 'Khách hủy 1 đơn hàng con (chỉ khi PENDING)' })
+  @ApiParam({ name: 'subOrderId', description: 'UUID sub-order' })
+  @ResponseMessage('Hủy đơn hàng con thành công')
+  @ApiOkResponse({ description: 'Đã hủy, trả về status + tổng tiền Master mới' })
+  @ApiBadRequestResponse({ description: 'Sub-order không ở trạng thái PENDING' })
+  @ApiNotFoundResponse({ description: 'Không tìm thấy sub-order (hoặc không thuộc về bạn)' })
+  cancelSubOrder(
+    @User() user: IUser,
+    @Param('subOrderId', ParseUUIDPipe) subOrderId: string,
+  ) {
+    return this.ordersService.cancelSubOrder(user.sub, subOrderId);
   }
 }

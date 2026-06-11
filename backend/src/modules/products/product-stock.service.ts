@@ -196,4 +196,89 @@ export class ProductStockService {
     }
     return resolved;
   }
+
+  /**
+   * Khoá và HOÀN kho atomically cho luồng Hủy đơn / Hoàn kho (đối xứng với
+   * lockAndDeductStockForCheckout). Cộng trả số lượng về cả variant con và
+   * product cha (delta-sync — Tech Debt A) trong cùng transaction.
+   *
+   * Giữ ĐÚNG thứ tự khoá Product ASC → Variant ASC như luồng checkout để không
+   * deadlock chéo giữa hai luồng. Hoàn kho không cần check đủ-kho (chỉ cộng thêm).
+   *
+   * Entity có thể đã bị seller xoá (OrderItem.variant/product là SET NULL) — khi đó
+   * bỏ qua an toàn nhờ guard tồn tại.
+   */
+  async lockAndRestock(
+    items: Array<{
+      product_id: string;
+      variant_id: string | null;
+      quantity: number;
+    }>,
+    manager: EntityManager,
+  ): Promise<void> {
+    const totalQtyByProductId = new Map<string, number>();
+    const totalQtyByVariantId = new Map<string, number>();
+    for (const item of items) {
+      const prevProductQty = totalQtyByProductId.get(item.product_id) ?? 0;
+      totalQtyByProductId.set(item.product_id, prevProductQty + item.quantity);
+      if (item.variant_id) {
+        const prevVariantQty = totalQtyByVariantId.get(item.variant_id) ?? 0;
+        totalQtyByVariantId.set(item.variant_id, prevVariantQty + item.quantity);
+      }
+    }
+
+    const sortedProductIds = [...totalQtyByProductId.keys()].sort();
+    const sortedVariantIds = [...totalQtyByVariantId.keys()].sort();
+
+    const lockedProducts =
+      sortedProductIds.length > 0
+        ? await manager.find(Product, {
+            where: { id: In(sortedProductIds) },
+            lock: { mode: 'pessimistic_write' },
+            order: { id: 'ASC' },
+          })
+        : [];
+
+    const lockedVariants =
+      sortedVariantIds.length > 0
+        ? await manager.find(ProductVariant, {
+            where: { id: In(sortedVariantIds) },
+            lock: { mode: 'pessimistic_write' },
+            order: { id: 'ASC' },
+          })
+        : [];
+
+    const productById = new Map<string, Product>();
+    for (const product of lockedProducts) {
+      productById.set(product.id, product);
+    }
+    const variantById = new Map<string, ProductVariant>();
+    for (const variant of lockedVariants) {
+      variantById.set(variant.id, variant);
+    }
+
+    // Cộng trả kho variant con
+    for (const [variantId, qty] of totalQtyByVariantId) {
+      const variant = variantById.get(variantId);
+      if (variant) {
+        variant.stock_quantity = variant.stock_quantity + qty;
+      }
+    }
+    // Cộng trả kho product cha (gồm cả item có variant) — đồng bộ cột tổng hợp
+    for (const [productId, qty] of totalQtyByProductId) {
+      const product = productById.get(productId);
+      if (product) {
+        product.stock_quantity = product.stock_quantity + qty;
+      }
+    }
+
+    const hasLockedVariants = lockedVariants.length > 0;
+    if (hasLockedVariants) {
+      await manager.save(ProductVariant, lockedVariants);
+    }
+    const hasLockedProducts = lockedProducts.length > 0;
+    if (hasLockedProducts) {
+      await manager.save(Product, lockedProducts);
+    }
+  }
 }
