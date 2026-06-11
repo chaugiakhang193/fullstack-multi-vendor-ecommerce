@@ -47,6 +47,12 @@ import {
   RefreshTokenPayload,
 } from '@/auth/auth.types';
 
+// [Tech Debt D] Sinh 1 hash bcrypt giả lúc load module bằng CÙNG hàm hash với mật khẩu
+// thật → tự khớp cost (đổi saltRounds cũng không lệch timing), không còn chuỗi magic.
+// Dùng để cân bằng thời gian phản hồi khi đăng nhập với user không tồn tại — chống dò
+// tài khoản qua timing attack. uuidv4() đã import sẵn ở file này nên tái dùng.
+const DUMMY_PASSWORD_HASH_PROMISE = hashDataHelper(uuidv4());
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -199,8 +205,11 @@ export class AuthService {
       isLoginByEmail = true;
     }
 
-    // Nếu không có tài khoản nào khớp
+    // Nếu không có tài khoản nào khớp:
+    // [Tech Debt D] vẫn chạy 1 phép so sánh bcrypt với hash giả để cân bằng thời gian
+    // phản hồi với nhánh "sai mật khẩu", tránh lộ email/username có tồn tại hay không.
     if (!user) {
+      await compareHashedDataHelper(password, await DUMMY_PASSWORD_HASH_PROMISE);
       throw new UnauthorizedException(
         'Tài khoản hoặc mật khẩu của bạn không đúng',
       );

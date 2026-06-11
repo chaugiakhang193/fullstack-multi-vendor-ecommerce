@@ -22,9 +22,12 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
       map((data) => {
-        // Nếu data có trường url (dành cho redirect), trả về nguyên bản để NestJS tự xử lý redirect
-        if (data && typeof data === 'object' && 'url' in data) {
-          return data;
+        // [Tech Debt C] Chỉ bỏ qua envelope khi handler CHỦ ĐỘNG đánh cờ `__redirect === true`
+        // (rồi strip cờ đi). Trước đây kiểm tra `'url' in data` — vỡ ngầm khi entity/DTO có
+        // cột `url` (vd MediaAsset) bị trả ở top-level và mất envelope chuẩn.
+        if (data && typeof data === 'object' && data.__redirect === true) {
+          const { __redirect, ...redirectData } = data;
+          return redirectData;
         }
         return {
           statusCode: context.switchToHttp().getResponse().statusCode,

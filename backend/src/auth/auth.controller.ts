@@ -231,6 +231,7 @@ export class AuthController {
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ResponseMessage('Thiết lập mật khẩu mới thành công! Vui lòng đăng nhập lại.')
   @ApiOperation({ summary: 'Đặt lại mật khẩu mới' })
   @ApiGenericResponse('Đặt lại mật khẩu thành công.')
