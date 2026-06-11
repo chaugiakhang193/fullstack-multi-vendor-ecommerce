@@ -1,10 +1,11 @@
 // Services
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { NominatimService, AutocompleteResult } from './nominatim.service';
+import { GeocodingService } from './geocoding.service';
+import { AutocompleteResult } from './geocoding.types';
 
-describe('NominatimService', () => {
-  let service: NominatimService;
+describe('GeocodingService', () => {
+  let service: GeocodingService;
   let fetchSpy: jest.SpyInstance;
 
   beforeEach(async () => {
@@ -57,7 +58,7 @@ describe('NominatimService', () => {
 
     const moduleFixture = {
       providers: [
-        NominatimService,
+        GeocodingService,
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -67,7 +68,7 @@ describe('NominatimService', () => {
 
     const module: TestingModule =
       await Test.createTestingModule(moduleFixture).compile();
-    service = module.get<NominatimService>(NominatimService);
+    service = module.get<GeocodingService>(GeocodingService);
 
     // Mock global fetch
     fetchSpy = jest.spyOn(global, 'fetch');

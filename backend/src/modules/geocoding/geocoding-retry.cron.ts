@@ -2,7 +2,7 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ShopsService } from '@/modules/shops/shops.service';
-import { NominatimService } from './nominatim.service';
+import { GeocodingService } from './geocoding.service';
 
 @Injectable()
 export class GeocodingRetryCron {
@@ -13,7 +13,7 @@ export class GeocodingRetryCron {
   constructor(
     @Inject(forwardRef(() => ShopsService))
     private readonly shopsService: ShopsService,
-    private readonly geocodingService: NominatimService,
+    private readonly geocodingService: GeocodingService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)

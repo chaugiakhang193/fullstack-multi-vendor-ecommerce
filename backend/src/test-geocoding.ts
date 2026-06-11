@@ -1,14 +1,14 @@
 // Services
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/app.module';
-import { NominatimService } from '@/modules/geocoding/nominatim.service';
+import { GeocodingService } from '@/modules/geocoding/geocoding.service';
 
 async function bootstrap() {
   const context = {
     logger: false as const,
   };
   const app = await NestFactory.createApplicationContext(AppModule, context);
-  const geocodingService = app.get(NominatimService);
+  const geocodingService = app.get(GeocodingService);
 
   const testAddress = 'Hà Nội';
   const result = await geocodingService.geocode(testAddress);

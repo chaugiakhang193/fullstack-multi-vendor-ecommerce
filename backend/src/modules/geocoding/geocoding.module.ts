@@ -7,13 +7,13 @@ import { ShopsModule } from '@/modules/shops/shops.module';
 import { GeocodingController } from './geocoding.controller';
 
 // Services
-import { NominatimService } from './nominatim.service';
+import { GeocodingService } from './geocoding.service';
 import { GeocodingRetryCron } from './geocoding-retry.cron';
 
 @Module({
   imports: [ConfigModule, forwardRef(() => ShopsModule)],
   controllers: [GeocodingController],
-  providers: [NominatimService, GeocodingRetryCron],
-  exports: [NominatimService],
+  providers: [GeocodingService, GeocodingRetryCron],
+  exports: [GeocodingService],
 })
 export class GeocodingModule {}
