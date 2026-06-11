@@ -75,6 +75,40 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+// Trục tiến độ để suy ra status Master từ các sub-order. CANCELLED nằm NGOÀI trục.
+const STATUS_PROGRESSION: OrderStatus[] = [
+  OrderStatus.PENDING,
+  OrderStatus.PROCESSING,
+  OrderStatus.SHIPPING,
+  OrderStatus.DELIVERED,
+];
+
+/**
+ * Suy ra status Master từ danh sách status các sub-order theo quy tắc
+ * "đơn con kém tiến độ nhất":
+ *   - Bỏ hết sub-order CANCELLED → tập active.
+ *   - Active rỗng (tất cả đã hủy) → Master CANCELLED.
+ *   - Ngược lại → Master = min tiến độ trong tập active
+ *     (tự cho ra DELIVERED khi mọi đơn con đều đã giao).
+ */
+function deriveMasterStatus(subOrderStatuses: OrderStatus[]): OrderStatus {
+  const active = subOrderStatuses.filter((s) => s !== OrderStatus.CANCELLED);
+  if (active.length === 0) {
+    return OrderStatus.CANCELLED;
+  }
+  let minRank = Number.POSITIVE_INFINITY;
+  for (const status of active) {
+    const rank = STATUS_PROGRESSION.indexOf(status);
+    if (rank !== -1 && rank < minRank) {
+      minRank = rank;
+    }
+  }
+  if (minRank === Number.POSITIVE_INFINITY) {
+    return active[0];
+  }
+  return STATUS_PROGRESSION[minRank];
+}
+
 // Kiểm tra lỗi unique violation của PostgreSQL (SQLSTATE 23505)
 function isPgUniqueViolation(error: any, constraintName?: string): boolean {
   if (!error) return false;
@@ -221,6 +255,146 @@ export class OrdersService {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
     return order;
+  }
+
+  // ==========================================
+  // CUSTOMER ORDERS — CANCEL SUB-ORDER
+  // ==========================================
+
+  /**
+   * Khách hủy 1 sub-order độc lập. Toàn bộ chạy trong 1 transaction:
+   *   1. Khoá row sub-order (chống double-cancel) → kiểm tra IDOR + chỉ PENDING.
+   *   2. Hoàn kho (lock Product ASC → Variant ASC, delta-sync product cha = Tech Debt A).
+   *   3. Set sub-order = CANCELLED.
+   *   4. Khóa Master Order pessimistic_write (tránh race condition khi cập nhật song song).
+   *   5. Recompute Order.total_amount + Order.status (deriveMasterStatus) (chưa gồm coupon global - sẽ làm ở Phase 3).
+   *   6. Đồng bộ Payment.amount.
+   */
+  async cancelSubOrder(
+    userId: string,
+    subOrderId: string,
+  ): Promise<{
+    orderId: string;
+    subOrderId: string;
+    orderStatus: OrderStatus;
+    orderTotalAmount: number;
+  }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const manager = queryRunner.manager;
+
+      // 1a. Khoá row sub-order theo id (không kèm relation để tránh lỗi FOR UPDATE trên nullable side)
+      const lockedRow = await manager.findOne(SubOrder, {
+        where: { id: subOrderId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedRow) {
+        throw new NotFoundException('Không tìm thấy đơn hàng con');
+      }
+
+      // 1b. Load đầy đủ quan hệ sau khi đã giữ lock
+      const subOrder = await manager.findOne(SubOrder, {
+        where: { id: subOrderId },
+        relations: {
+          order: { customer: true },
+          shop: true,
+          items: { variant: true, product: true },
+        },
+      });
+      if (!subOrder || !subOrder.order) {
+        throw new NotFoundException('Không tìm thấy đơn hàng con');
+      }
+
+      // 2. [Security/IDOR] Kiểm tra quyền sở hữu
+      const ownerId = subOrder.order.customer?.id;
+      if (ownerId !== userId) {
+        throw new NotFoundException('Không tìm thấy đơn hàng con');
+      }
+
+      // 3. Chỉ cho hủy khi PENDING
+      if (subOrder.status !== OrderStatus.PENDING) {
+        throw new BadRequestException(
+          'Đơn hàng đang được shop xử lý, không thể tự hủy',
+        );
+      }
+
+      // 4. Hoàn kho (giữ đúng thứ tự lock Product -> Variant ASC)
+      const restockTargets = subOrder.items
+        .filter((it) => it.product !== null && it.product !== undefined)
+        .map((it) => ({
+          product_id: it.product.id,
+          variant_id: it.variant?.id ?? null,
+          quantity: it.quantity,
+        }));
+      if (restockTargets.length > 0) {
+        await this.productStockService.lockAndRestock(restockTargets, manager);
+      }
+
+      // 5. Đổi trạng thái sub-order thành CANCELLED
+      subOrder.status = OrderStatus.CANCELLED;
+      await manager.save(SubOrder, subOrder);
+
+      // 6. Khóa dòng Master Order bằng pessimistic_write để đồng bộ hóa
+      const lockedOrder = await manager.findOne(Order, {
+        where: { id: subOrder.order.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedOrder) {
+        throw new NotFoundException('Không tìm thấy đơn hàng Master');
+      }
+
+      // 7. Tải lại toàn bộ sub-orders để tính toán lại tổng tiền Master
+      const siblings = await manager.find(SubOrder, {
+        where: { order: { id: lockedOrder.id } },
+      });
+
+      const activeSubs = siblings.filter(
+        (s) => s.status !== OrderStatus.CANCELLED,
+      );
+      let sumActiveShopTotals = 0;
+      for (const s of activeSubs) {
+        const subTotal = Number(s.sub_total ?? 0);
+        const shippingFee = Number(s.shipping_fee ?? 0);
+        // Lưu ý: Chưa xử lý coupon riêng của shop ở phase này (sẽ hoàn thiện ở Phase 3)
+        sumActiveShopTotals = round2(
+          sumActiveShopTotals + (subTotal + shippingFee),
+        );
+      }
+
+      const newTotal = round2(Math.max(0, sumActiveShopTotals));
+      const newStatus = deriveMasterStatus(siblings.map((s) => s.status));
+      lockedOrder.total_amount = newTotal;
+      lockedOrder.status = newStatus;
+      await manager.save(Order, lockedOrder);
+
+      // 8. Đồng bộ số tiền Payment (COD)
+      await this.paymentsService.updateAmountForOrder({
+        orderId: lockedOrder.id,
+        amount: newTotal,
+        manager,
+      });
+
+      await queryRunner.commitTransaction();
+
+      return {
+        orderId: lockedOrder.id,
+        subOrderId: subOrder.id,
+        orderStatus: newStatus,
+        orderTotalAmount: newTotal,
+      };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw error;
+    } finally {
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
+    }
   }
 
   // ==========================================

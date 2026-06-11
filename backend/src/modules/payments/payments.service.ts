@@ -69,4 +69,24 @@ export class PaymentsService {
     const savedPayment = await manager.save(Payment, payment);
     return savedPayment;
   }
+
+  /**
+   * Cập nhật lại số tiền phải thu của Payment khi tổng đơn Master thay đổi
+   * (vd hủy 1 sub-order). Tìm theo quan hệ order (OneToOne) trong cùng transaction.
+   */
+  async updateAmountForOrder(params: {
+    orderId: string;
+    amount: number;
+    manager: EntityManager;
+  }): Promise<void> {
+    const { orderId, amount, manager } = params;
+    const payment = await manager.findOne(Payment, {
+      where: { order: { id: orderId } },
+    });
+    if (!payment) {
+      return;
+    }
+    payment.amount = amount;
+    await manager.save(Payment, payment);
+  }
 }
