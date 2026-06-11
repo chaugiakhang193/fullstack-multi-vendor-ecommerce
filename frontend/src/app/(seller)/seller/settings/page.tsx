@@ -299,12 +299,6 @@ export default function SellerSettingsPage() {
 
   // Submit profile changes (including Multipart files)
   const onSubmit = async (data: UpdateSettingsFormType) => {
-    const addressChanged = data.pickup_address !== (shop?.pickup_address ?? "");
-    if (addressChanged && !selectedCoords) {
-      toast.error("Vui lòng chọn địa chỉ lấy hàng từ danh sách gợi ý");
-      return;
-    }
-
     setIsSaving(true);
     const formData = new FormData();
 

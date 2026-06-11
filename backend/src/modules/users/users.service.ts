@@ -1,7 +1,9 @@
+// NestJS core
 import {
   BadRequestException,
   NotFoundException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { RegisterDto } from '@/auth/dto/register.dto';
@@ -22,6 +24,8 @@ import { USER_LIMITS } from '@/common/constants/user.constant';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
@@ -163,8 +167,9 @@ export class UsersService {
     }
 
     // 2. Validate cặp tọa độ
-    let finalLat = lat;
-    let finalLng = lng;
+    // Dùng ?? null để đồng nhất kiểu với Address entity (string | null), tránh lỗi TS
+    let finalLat: string | null = lat ?? null;
+    let finalLng: string | null = lng ?? null;
 
     const hasLat = lat !== undefined && lat !== null && lat !== '';
     const hasLng = lng !== undefined && lng !== null && lng !== '';
@@ -173,7 +178,9 @@ export class UsersService {
       throw new BadRequestException('Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp');
     }
 
-    // Nếu cả hai tọa độ đều trống, thực hiện geocoding ngoài transaction
+    // Nếu cả hai tọa độ đều trống, thử geocoding ngoài transaction.
+    // Geocode fail → ném lỗi rõ ràng, không lưu địa chỉ thiếu tọa độ
+    // để tránh phí ship bị tính sai mà user không hay biết.
     if (!hasLat && !hasLng) {
       const geocodeResult = await this.geocodingService.geocode(address_line);
       const isSuccess = geocodeResult.success;
@@ -182,7 +189,7 @@ export class UsersService {
         finalLng = geocodeResult.lng.toString();
       } else {
         throw new BadRequestException(
-          'Không thể tự động xác định tọa độ cho địa chỉ này. Vui lòng cung cấp tọa độ hoặc nhập địa chỉ chi tiết hơn.',
+          'Không thể tự động xác định tọa độ cho địa chỉ này. Vui lòng nhập địa chỉ chi tiết hơn hoặc chọn từ gợi ý.',
         );
       }
     }
@@ -248,10 +255,11 @@ export class UsersService {
       throw new BadRequestException('Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp');
     }
 
-    let finalLat = lat !== undefined ? lat : address.lat;
-    let finalLng = lng !== undefined ? lng : address.lng;
+    // Kế thừa tọa độ cũ nếu request không gửi lat/lng mới
+    let finalLat: string | null = lat !== undefined ? lat : address.lat;
+    let finalLng: string | null = lng !== undefined ? lng : address.lng;
 
-    // Nếu cập nhật address_line mà không truyền cặp lat/lng, gọi geocoding ngoài transaction
+    // Nếu cập nhật address_line mà không truyền cặp lat/lng, thử geocoding ngoài transaction
     const hasAddressLineUpdate = address_line !== undefined && address_line !== null && address_line !== '';
     const isNewCoordsProvided = hasLat && hasLng;
 
@@ -264,7 +272,7 @@ export class UsersService {
           finalLng = geocodeResult.lng.toString();
         } else {
           throw new BadRequestException(
-            'Không thể tự động xác định tọa độ cho địa chỉ mới. Vui lòng cung cấp tọa độ hoặc nhập địa chỉ chi tiết hơn.',
+            'Không thể tự động xác định tọa độ cho địa chỉ mới. Vui lòng nhập địa chỉ chi tiết hơn hoặc chọn từ gợi ý.',
           );
         }
       }

@@ -242,11 +242,6 @@ export default function SellerSetupPage() {
       toast.error("Tối đa 3 ảnh bộ sưu tập");
       return;
     }
-    if (!selectedCoords) {
-      toast.error("Vui lòng chọn địa chỉ lấy hàng từ danh sách gợi ý");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -254,8 +249,12 @@ export default function SellerSetupPage() {
       // Append text fields
       formData.append("name", values.name);
       formData.append("pickup_address", values.pickup_address);
-      formData.append("lat", String(selectedCoords.lat));
-      formData.append("lng", String(selectedCoords.lng));
+      // Chỉ gửi tọa độ khi user đã chọn từ gợi ý.
+      // Nếu nhập tay (selectedCoords=null), bỏ qua → backend tự geocode pickup_address.
+      if (selectedCoords) {
+        formData.append("lat", String(selectedCoords.lat));
+        formData.append("lng", String(selectedCoords.lng));
+      }
       if (values.description) {
         formData.append("description", values.description);
       }

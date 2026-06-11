@@ -1,12 +1,13 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
 // Hooks
 import { AddressCoords, useAddressAutocomplete } from '@/hooks/useAddressAutocomplete';
 
 interface AddressAutocompleteProps {
   value: string;
   onSelect: (coords: AddressCoords) => void;
-  onQueryChange?: () => void; // Gọi khi user gõ tay sau khi đã chọn → parent reset selectedCoords
+  onQueryChange?: (value: string) => void; // Gọi khi user gõ tay → parent sync form field và reset selectedCoords
   placeholder?: string;
   error?: string;
   disabled?: boolean;
@@ -20,8 +21,19 @@ export function AddressAutocomplete({
   error,
   disabled,
 }: AddressAutocompleteProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { query, setQuery, suggestions, setSuggestions, isLoading } =
     useAddressAutocomplete();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [setSuggestions]);
 
   const handleSelect = (item: (typeof suggestions)[0]) => {
     const displayName = item.display_name;
@@ -34,7 +46,9 @@ export function AddressAutocomplete({
       lng: selectedLng,
     };
 
-    setQuery(displayName);
+    // Đưa query về rỗng để useEffect debounce KHÔNG fire request thừa tìm lại
+    // chính địa chỉ vừa chọn. Input hiển thị value cha (displayValue = query || value).
+    setQuery('');
     setSuggestions([]);
     onSelect(coords);
   };
@@ -42,15 +56,15 @@ export function AddressAutocomplete({
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
-    // Báo parent biết user đang gõ tay → cần chọn lại từ gợi ý để có tọa độ mới
-    onQueryChange?.();
+    // Truyền text đang gõ lên parent để sync form field, không chỉ reset coords
+    onQueryChange?.(newQuery);
   };
 
   // Hiển thị query nếu user đang tìm, ngược lại hiển thị value từ form state (ví dụ khi prefill)
   const displayValue = query || value;
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <input
         type="text"
         value={displayValue}

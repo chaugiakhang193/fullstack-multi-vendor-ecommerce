@@ -22,10 +22,10 @@ export class Address {
   address_line: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lat: string;
+  lat: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
-  lng: string;
+  lng: string | null;
 
   @Column({ default: false })
   is_default: boolean;
