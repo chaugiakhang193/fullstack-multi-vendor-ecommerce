@@ -33,6 +33,9 @@ import {
   CheckoutResponseItemDto,
   CheckoutResponseSubOrderDto,
 } from '@/modules/orders/dto/checkout-response.dto';
+import { CustomerOrderQueryDto } from '@/modules/orders/dto/customer-order-query.dto';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
+import { paginate } from '@/common/helpers/pagination.helper';
 
 // Services
 import { CartsService } from '@/modules/carts/carts.service';
@@ -166,6 +169,58 @@ export class OrdersService {
     // PHASE 3: mark COMPLETED + cache (best-effort)
     await this.markKeyCompleted(idempotencyKey, 201, response);
     return response;
+  }
+
+  // ==========================================
+  // CUSTOMER ORDERS — QUERY
+  // ==========================================
+
+  /**
+   * Danh sách đơn hàng Master của Customer (phân trang + lọc status Master).
+   * KHÔNG load quan hệ `customer` để không lộ password hash. IDOR chặn bằng
+   * điều kiện customer_id = userId. Join sub_orders + shop để FE hiển thị tóm tắt.
+   */
+  async getCustomerOrders(
+    userId: string,
+    query: CustomerOrderQueryDto,
+  ): Promise<PaginatedResponseDto<Order>> {
+    const qb = this.ordersRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.sub_orders', 'subOrder')
+      .leftJoinAndSelect('subOrder.shop', 'shop')
+      .leftJoinAndSelect('subOrder.items', 'item')
+      .where('order.customer_id = :userId', { userId })
+      .orderBy('order.created_at', 'DESC');
+
+    if (query.status) {
+      qb.andWhere('order.status = :status', { status: query.status });
+    }
+
+    return paginate(qb, query);
+  }
+
+  /**
+   * Chi tiết 1 đơn Master của Customer: sub-orders + items (snapshot) + payment.
+   * IDOR chặn bằng where { id, customer: { id: userId } } — không khớp → 404.
+   * Không load quan hệ `customer` (tránh lộ password hash).
+   */
+  async getCustomerOrderDetail(userId: string, orderId: string): Promise<Order> {
+    const order = await this.ordersRepository.findOne({
+      where: { id: orderId, customer: { id: userId } },
+      relations: {
+        sub_orders: {
+          shop: true,
+          shop_coupon: true,
+          items: true,
+        },
+        global_coupon: true,
+        payment: true,
+      },
+    });
+    if (!order) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+    return order;
   }
 
   // ==========================================

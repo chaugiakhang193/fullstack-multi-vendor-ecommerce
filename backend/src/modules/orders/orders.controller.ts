@@ -5,6 +5,10 @@ import {
   Headers,
   HttpCode,
   BadRequestException,
+  Get,
+  Query,
+  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,6 +20,9 @@ import {
   ApiForbiddenResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiOkResponse,
+  ApiNotFoundResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 
 // Services
@@ -24,6 +31,7 @@ import { OrdersService } from '@/modules/orders/orders.service';
 // DTOs
 import { CreateOrderDto } from '@/modules/orders/dto/create-order.dto';
 import { CheckoutResponseDto } from '@/modules/orders/dto/checkout-response.dto';
+import { CustomerOrderQueryDto } from '@/modules/orders/dto/customer-order-query.dto';
 
 // Decorators
 import { Roles } from '@/decorator/roles.decorator';
@@ -91,5 +99,27 @@ export class OrdersController {
 
     const userId = user.sub;
     return this.ordersService.checkout(userId, dto, idempotencyKey);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Danh sách đơn hàng của khách (phân trang + lọc status)' })
+  @ResponseMessage('Lấy danh sách đơn hàng thành công')
+  @ApiOkResponse({ description: 'Danh sách đơn hàng Master kèm sub-orders' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  getMyOrders(@User() user: IUser, @Query() query: CustomerOrderQueryDto) {
+    return this.ordersService.getCustomerOrders(user.sub, query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Chi tiết 1 đơn hàng của khách' })
+  @ApiParam({ name: 'id', description: 'UUID đơn hàng Master' })
+  @ResponseMessage('Lấy chi tiết đơn hàng thành công')
+  @ApiOkResponse({ description: 'Chi tiết Master + sub-orders + items (snapshot)' })
+  @ApiNotFoundResponse({ description: 'Không tìm thấy đơn hàng (hoặc không thuộc về bạn)' })
+  getMyOrderDetail(
+    @User() user: IUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.ordersService.getCustomerOrderDetail(user.sub, id);
   }
 }
