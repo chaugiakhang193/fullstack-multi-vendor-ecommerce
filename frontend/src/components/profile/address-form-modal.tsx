@@ -135,43 +135,52 @@ export function AddressFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-xl md:max-w-2xl p-10 rounded-2xl">
+        <DialogHeader className="pb-3 border-b">
+          <DialogTitle className="text-3xl font-black bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             {dialogTitleText}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-base mt-2">
             {descText}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-4">
           <Field>
-            <FieldLabel>
+            <FieldLabel className="text-base font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 block">
               Họ tên người nhận <span className="text-rose-500">*</span>
             </FieldLabel>
             <Input
               {...register("recipient_name")}
               placeholder="Nguyễn Văn A"
+              disabled={submitting}
+              className="py-4 px-4 h-12 text-lg md:text-lg rounded-xl focus:ring-violet-500/20 focus:border-violet-500"
             />
             <FieldError>{errors.recipient_name?.message}</FieldError>
           </Field>
 
           <Field>
-            <FieldLabel>
+            <FieldLabel className="text-base font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 block">
               Số điện thoại <span className="text-rose-500">*</span>
             </FieldLabel>
             {(() => {
               const registerOptions = {
                 setValueAs: (v: unknown) => (typeof v === "string" ? v.replace(/[\s.-]/g, "") : v),
               };
-              return <Input {...register("phone", registerOptions)} placeholder="0901234567" />;
+              return (
+                <Input
+                  {...register("phone", registerOptions)}
+                  placeholder="0901234567"
+                  disabled={submitting}
+                  className="py-4 px-4 h-12 text-lg md:text-lg rounded-xl focus:ring-violet-500/20 focus:border-violet-500"
+                />
+              );
             })()}
             <FieldError>{errors.phone?.message}</FieldError>
           </Field>
 
           <Field>
-            <FieldLabel>
+            <FieldLabel className="text-base font-bold text-zinc-800 dark:text-zinc-200 mb-1.5 block">
               Địa chỉ chi tiết <span className="text-rose-500">*</span>
             </FieldLabel>
             <AddressAutocomplete
@@ -180,19 +189,26 @@ export function AddressFormModal({
               onQueryChange={handleQueryChangeAutocomplete}
               placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
               error={errors.address_line?.message}
+              disabled={submitting}
+              inputClassName="py-4 px-4 h-12 text-lg rounded-xl focus:ring-violet-500/20 focus:border-violet-500"
             />
           </Field>
 
-          <DialogFooter>
+          <DialogFooter className="gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={submitting}
+              className="py-3 px-6 h-12 text-base rounded-xl font-bold"
             >
               {cancelBtnText}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="py-3 px-8 h-12 text-base rounded-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md shadow-violet-500/10 transition duration-150"
+            >
               {submitBtnText}
             </Button>
           </DialogFooter>
