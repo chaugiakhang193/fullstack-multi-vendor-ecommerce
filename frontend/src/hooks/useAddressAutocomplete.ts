@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
+import http from '@/lib/http';
 
-interface NominatimResult {
+// Một gợi ý địa chỉ đã được backend chuẩn hoá (nguồn: LocationIQ primary / Nominatim fallback)
+interface AddressSuggestion {
   place_id: number;
   display_name: string;
   lat: string;
   lon: string;
+}
+
+interface AutocompleteEnvelope {
+  data: AddressSuggestion[];
 }
 
 export interface AddressCoords {
@@ -14,42 +20,47 @@ export interface AddressCoords {
 }
 
 export function useAddressAutocomplete() {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const initialQuery = '';
+  const [query, setQuery] = useState(initialQuery);
+  const initialSuggestions: AddressSuggestion[] = [];
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>(initialSuggestions);
+  const initialLoading = false;
+  const [isLoading, setIsLoading] = useState(initialLoading);
 
   useEffect(() => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
+    const isQueryShort = !query || query.length < 3;
+    if (isQueryShort) {
+      const emptySuggestions: AddressSuggestion[] = [];
+      setSuggestions(emptySuggestions);
       return;
     }
 
     // Debounce 600ms — tránh gửi request liên tục khi người dùng đang gõ (Trap #9)
+    const debounceTimeMs = 600;
     const debounceTimeout = setTimeout(async () => {
       setIsLoading(true);
       try {
-        // Gọi trực tiếp từ client IP, không qua backend server để phân tán request
-        const searchUrl = new URL('https://nominatim.openstreetmap.org/search');
-        searchUrl.searchParams.set('q', query);
-        searchUrl.searchParams.set('format', 'json');
-        searchUrl.searchParams.set('limit', '5');
-        searchUrl.searchParams.set('countrycodes', 'vn');
-
-        const response = await fetch(searchUrl.toString(), {
-          headers: { 'Accept-Language': 'vi' },
-        });
-
-        const data: NominatimResult[] = await response.json();
-        setSuggestions(data);
+        const queryEncoded = encodeURIComponent(query);
+        const requestPath = `/geocoding/autocomplete?q=${queryEncoded}`;
+        const res = await http.get<AutocompleteEnvelope>(requestPath);
+        
+        const responseData = res.data;
+        const suggestionList = responseData ?? [];
+        setSuggestions(suggestionList);
       } catch {
-        setSuggestions([]);
+        const emptyList: AddressSuggestion[] = [];
+        setSuggestions(emptyList);
       } finally {
         setIsLoading(false);
       }
-    }, 600);
+    }, debounceTimeMs);
 
-    return () => clearTimeout(debounceTimeout);
+    const cleanupFn = () => {
+      clearTimeout(debounceTimeout);
+    };
+    return cleanupFn;
   }, [query]);
 
-  return { query, setQuery, suggestions, setSuggestions, isLoading };
+  const hookResult = { query, setQuery, suggestions, setSuggestions, isLoading };
+  return hookResult;
 }

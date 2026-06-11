@@ -1,7 +1,7 @@
 // Services
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { NominatimService } from './nominatim.service';
+import { NominatimService, AutocompleteResult } from './nominatim.service';
 
 describe('NominatimService', () => {
   let service: NominatimService;
@@ -10,23 +10,46 @@ describe('NominatimService', () => {
   beforeEach(async () => {
     const mockConfigService = {
       get: jest.fn((key: string) => {
-        if (key === 'NOMINATIM_API_URL') {
-          return 'https://nominatim.openstreetmap.org/search';
+        const nominatimApiUrlEnv = 'NOMINATIM_API_URL';
+        const nominatimEmailEnv = 'NOMINATIM_EMAIL';
+        const nominatimUserAgentEnv = 'NOMINATIM_USER_AGENT';
+        const fallbackGeocodingProviderEnv = 'FALLBACK_GEOCODING_PROVIDER';
+        const fallbackGeocodingApiUrlEnv = 'FALLBACK_GEOCODING_API_URL';
+        const fallbackGeocodingApiKeyEnv = 'FALLBACK_GEOCODING_API_KEY';
+        const locationiqApiKeyEnv = 'LOCATIONIQ_API_KEY';
+        const locationiqAutocompleteUrlEnv = 'LOCATIONIQ_AUTOCOMPLETE_URL';
+
+        if (key === nominatimApiUrlEnv) {
+          const val = 'https://nominatim.openstreetmap.org/search';
+          return val;
         }
-        if (key === 'NOMINATIM_EMAIL') {
-          return 'test@example.com';
+        if (key === nominatimEmailEnv) {
+          const val = 'test@example.com';
+          return val;
         }
-        if (key === 'NOMINATIM_USER_AGENT') {
-          return 'TestAgent/1.0 (test@example.com)';
+        if (key === nominatimUserAgentEnv) {
+          const val = 'TestAgent/1.0 (test@example.com)';
+          return val;
         }
-        if (key === 'FALLBACK_GEOCODING_PROVIDER') {
-          return 'goong';
+        if (key === fallbackGeocodingProviderEnv) {
+          const val = 'goong';
+          return val;
         }
-        if (key === 'FALLBACK_GEOCODING_API_URL') {
-          return 'https://rsapi.goong.io/Geocode';
+        if (key === fallbackGeocodingApiUrlEnv) {
+          const val = 'https://rsapi.goong.io/Geocode';
+          return val;
         }
-        if (key === 'FALLBACK_GEOCODING_API_KEY') {
-          return 'test_fallback_key';
+        if (key === fallbackGeocodingApiKeyEnv) {
+          const val = 'test_fallback_key';
+          return val;
+        }
+        if (key === locationiqApiKeyEnv) {
+          const val = 'test_locationiq_key';
+          return val;
+        }
+        if (key === locationiqAutocompleteUrlEnv) {
+          const val = 'https://api.locationiq.com/v1/autocomplete';
+          return val;
         }
         return null;
       }),
@@ -170,5 +193,134 @@ describe('NominatimService', () => {
 
     const expectedCallCount = 2;
     expect(fetchSpy).toHaveBeenCalledTimes(expectedCallCount);
+  });
+
+  describe('autocomplete', () => {
+    const okResponse = (body: unknown): Response => {
+      const responseObj = {
+        ok: true,
+        status: 200,
+        json: async () => {
+          return body;
+        },
+      };
+      const responseCast = responseObj as Response;
+      return responseCast;
+    };
+
+    const testTitle1 = 'trả mảng rỗng khi query ngắn hơn 3 ký tự (không gọi fetch)';
+    it(testTitle1, async () => {
+      const testQuery = 'ab';
+      const result = await service.autocomplete(testQuery);
+      const expectedEmpty: AutocompleteResult[] = [];
+      expect(result).toEqual(expectedEmpty);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    const testTitle2 = 'map kết quả LocationIQ (primary) thành AutocompleteResult';
+    it(testTitle2, async () => {
+      const mockResultData = [
+        {
+          place_id: '12345',
+          display_name: '450 Phan Xích Long, Phú Nhuận, TP.HCM',
+          lat: '10.799',
+          lon: '106.689',
+        },
+      ];
+      const mockOkRes = okResponse(mockResultData);
+      fetchSpy.mockResolvedValueOnce(mockOkRes);
+
+      const testQuery = '450 Phan Xich Long';
+      const result = await service.autocomplete(testQuery);
+
+      const callCount = 1;
+      expect(fetchSpy).toHaveBeenCalledTimes(callCount);
+      
+      const firstCall = fetchSpy.mock.calls[0];
+      const firstCallArg = firstCall[0];
+      const calledUrl = firstCallArg.toString();
+      
+      const searchStrLocationIq = 'api.locationiq.com';
+      const searchStrKey = 'key=test_locationiq_key';
+      const searchStrLang = 'accept-language=vi';
+      
+      expect(calledUrl).toContain(searchStrLocationIq);
+      expect(calledUrl).toContain(searchStrKey);
+      expect(calledUrl).toContain(searchStrLang);
+      
+      const expectedAutocompleteResult = [
+        {
+          place_id: 12345,
+          display_name: '450 Phan Xích Long, Phú Nhuận, TP.HCM',
+          lat: '10.799',
+          lon: '106.689',
+        },
+      ];
+      expect(result).toEqual(expectedAutocompleteResult);
+    });
+
+    const testTitle3 = 'fallback sang Nominatim khi LocationIQ lỗi';
+    it(testTitle3, async () => {
+      const mockLocationIqFailResponse = {
+        ok: false,
+        status: 429,
+      } as Response;
+
+      const mockNominatimResultData = [
+        {
+          place_id: 999,
+          display_name: 'Phan Xích Long, HCM',
+          lat: '10.8',
+          lon: '106.7',
+        },
+      ];
+      const mockNominatimRes = okResponse(mockNominatimResultData);
+
+      fetchSpy
+        .mockResolvedValueOnce(mockLocationIqFailResponse)
+        .mockResolvedValueOnce(mockNominatimRes);
+
+      const testQuery = 'phan xich long';
+      const result = await service.autocomplete(testQuery);
+
+      const callCount = 2;
+      expect(fetchSpy).toHaveBeenCalledTimes(callCount);
+      
+      const secondCall = fetchSpy.mock.calls[1];
+      const secondCallArg = secondCall[0];
+      const secondUrl = secondCallArg.toString();
+      
+      const searchStrNominatim = 'nominatim';
+      expect(secondUrl).toContain(searchStrNominatim);
+      
+      const expectedLen = 1;
+      expect(result).toHaveLength(expectedLen);
+      
+      const firstItem = result[0];
+      const firstItemId = firstItem.place_id;
+      const expectedId = 999;
+      expect(firstItemId).toBe(expectedId);
+    });
+
+    const testTitle4 = 'dùng cache cho query trùng (không gọi fetch lần 2)';
+    it(testTitle4, async () => {
+      const mockResultData = [
+        {
+          place_id: 1,
+          display_name: 'Nguyễn Huệ, Q1',
+          lat: '10.77',
+          lon: '106.70',
+        },
+      ];
+      const mockOkRes = okResponse(mockResultData);
+      fetchSpy.mockResolvedValueOnce(mockOkRes);
+
+      const testQuery = 'nguyen hue q1';
+      await service.autocomplete(testQuery);
+      await service.autocomplete(testQuery); // hit cache
+
+      const callCount = 1;
+      expect(fetchSpy).toHaveBeenCalledTimes(callCount);
+    });
   });
 });

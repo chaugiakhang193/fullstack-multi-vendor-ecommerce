@@ -18,6 +18,20 @@ interface NominatimResponseItem {
   lon: string;
 }
 
+export interface AutocompleteResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
+interface OsmAutocompleteItem {
+  place_id: number | string;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 interface GoongLocation {
   lat: string;
   lng: string;
@@ -94,6 +108,15 @@ export class NominatimService {
   private readonly logger = new Logger(NominatimService.name);
   private readonly cache: IGeocodingCache = new InMemoryGeocodingCache();
   private readonly CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 giờ
+
+  // Cache riêng cho autocomplete (mảng gợi ý) — tách khỏi cache geocode (1 toạ độ).
+  private readonly autocompleteCache = new Map<
+    string,
+    { data: AutocompleteResult[]; expiry: number }
+  >();
+  private readonly AUTOCOMPLETE_TTL_MS = 60 * 60 * 1000; // 1 giờ
+  private readonly AUTOCOMPLETE_MIN_LEN = 3;
+  private readonly AUTOCOMPLETE_LIMIT = 5;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -341,5 +364,228 @@ export class NominatimService {
     const unsupportedFormatMsg =
       'Định dạng phản hồi API dự phòng không được hỗ trợ';
     throw new Error(unsupportedFormatMsg);
+  }
+
+  // Gợi ý địa chỉ khi gõ: LocationIQ (primary) → Nominatim (fallback). Có cache + chặn query ngắn.
+  async autocomplete(query: string): Promise<AutocompleteResult[]> {
+    const normalized = this.normalizeAddress(query);
+    const minLen = this.AUTOCOMPLETE_MIN_LEN;
+    const isShortQuery = normalized.length < minLen;
+    if (isShortQuery) {
+      const emptyResult: AutocompleteResult[] = [];
+      return emptyResult;
+    }
+
+    // Kiểm tra cache trước để tiết kiệm quota gọi API ngoài
+    const cached = this.autocompleteCache.get(normalized);
+    if (cached) {
+      const cachedExpiry = cached.expiry;
+      const now = Date.now();
+      const isCacheValid = cachedExpiry > now;
+      if (isCacheValid) {
+        const logMsg = `Autocomplete cache hit: "${normalized}"`;
+        this.logger.debug(logMsg);
+        const cachedData = cached.data;
+        return cachedData;
+      }
+    }
+
+    let results: AutocompleteResult[] = [];
+    try {
+      results = await this.fetchAutocompleteFromLocationIQ(normalized);
+    } catch (error) {
+      const err = error as Error;
+      const errMsg = err.message;
+      const warnMsg = `LocationIQ autocomplete lỗi cho "${normalized}": ${errMsg}. Fallback Nominatim...`;
+      this.logger.warn(warnMsg);
+    }
+
+    const resultsLen = results.length;
+    const isResultsEmpty = resultsLen === 0;
+    if (isResultsEmpty) {
+      try {
+        results = await this.fetchAutocompleteFromNominatim(normalized);
+      } catch (fallbackError) {
+        const fErr = fallbackError as Error;
+        const fErrMsg = fErr.message;
+        const errorMsg = `Nominatim autocomplete cũng thất bại cho "${normalized}": ${fErrMsg}`;
+        this.logger.error(errorMsg);
+        const fallbackEmptyResult: AutocompleteResult[] = [];
+        results = fallbackEmptyResult;
+      }
+    }
+
+    const nowForCache = Date.now();
+    const ttlMs = this.AUTOCOMPLETE_TTL_MS;
+    const expiryTime = nowForCache + ttlMs;
+    const cacheEntry = {
+      data: results,
+      expiry: expiryTime,
+    };
+    this.autocompleteCache.set(normalized, cacheEntry);
+    return results;
+  }
+
+  private async fetchAutocompleteFromLocationIQ(
+    query: string,
+  ): Promise<AutocompleteResult[]> {
+    const locationIqApiKeyEnv = 'LOCATIONIQ_API_KEY';
+    const apiKey = this.configService.get<string>(locationIqApiKeyEnv);
+    const locationIqUrlEnv = 'LOCATIONIQ_AUTOCOMPLETE_URL';
+    const defaultUrl = 'https://api.locationiq.com/v1/autocomplete';
+    const baseUrl =
+      this.configService.get<string>(locationIqUrlEnv) ||
+      defaultUrl;
+
+    if (!apiKey) {
+      const missingKeyMsg = 'Chưa cấu hình LOCATIONIQ_API_KEY';
+      throw new Error(missingKeyMsg);
+    }
+
+    const url = new URL(baseUrl);
+    
+    const paramKey = 'key';
+    url.searchParams.append(paramKey, apiKey);
+    
+    const paramQ = 'q';
+    url.searchParams.append(paramQ, query);
+    
+    const limitVal = this.AUTOCOMPLETE_LIMIT;
+    const limitStr = String(limitVal);
+    const paramLimit = 'limit';
+    url.searchParams.append(paramLimit, limitStr);
+    
+    const countrycodesVal = 'vn';
+    const paramCountrycodes = 'countrycodes';
+    url.searchParams.append(paramCountrycodes, countrycodesVal);
+    
+    const acceptLanguageVal = 'vi';
+    const paramAcceptLanguage = 'accept-language';
+    url.searchParams.append(paramAcceptLanguage, acceptLanguageVal);
+    
+    const dedupeVal = '1';
+    const paramDedupe = 'dedupe';
+    url.searchParams.append(paramDedupe, dedupeVal);
+
+    const timeoutVal = 5000;
+    const timeoutSignal = AbortSignal.timeout(timeoutVal);
+    
+    const urlStr = url.toString();
+    const headersObj = { Accept: 'application/json' };
+    const fetchOptions = {
+      headers: headersObj,
+      signal: timeoutSignal,
+    };
+    const response = await fetch(urlStr, fetchOptions);
+
+    const isResponseOk = response.ok;
+    if (!isResponseOk) {
+      const rawStatus = response.status;
+      const statusStr = String(rawStatus);
+      const errorMsg = `LocationIQ trả về HTTP ${statusStr}`;
+      throw new Error(errorMsg);
+    }
+
+    const rawData = (await response.json()) as unknown;
+    const mappedResult = this.mapOsmItems(rawData);
+    return mappedResult;
+  }
+
+  private async fetchAutocompleteFromNominatim(
+    query: string,
+  ): Promise<AutocompleteResult[]> {
+    const nominatimUrlEnv = 'NOMINATIM_API_URL';
+    const defaultNominatimUrl = 'https://nominatim.openstreetmap.org/search';
+    const baseUrl =
+      this.configService.get<string>(nominatimUrlEnv) ||
+      defaultNominatimUrl;
+      
+    const nominatimEmailEnv = 'NOMINATIM_EMAIL';
+    const defaultEmail = 'admin@example.com';
+    const email =
+      this.configService.get<string>(nominatimEmailEnv) || defaultEmail;
+      
+    const nominatimUserAgentEnv = 'NOMINATIM_USER_AGENT';
+    const defaultUserAgent = `FullstackWeb/1.0 (${email})`;
+    const userAgent =
+      this.configService.get<string>(nominatimUserAgentEnv) ||
+      defaultUserAgent;
+
+    const url = new URL(baseUrl);
+    
+    const paramQ = 'q';
+    url.searchParams.append(paramQ, query);
+    
+    const formatVal = 'json';
+    const paramFormat = 'format';
+    url.searchParams.append(paramFormat, formatVal);
+    
+    const limitVal = this.AUTOCOMPLETE_LIMIT;
+    const limitStr = String(limitVal);
+    const paramLimit = 'limit';
+    url.searchParams.append(paramLimit, limitStr);
+    
+    const countrycodesVal = 'vn';
+    const paramCountrycodes = 'countrycodes';
+    url.searchParams.append(paramCountrycodes, countrycodesVal);
+    
+    const acceptLanguageVal = 'vi';
+    const paramAcceptLanguage = 'accept-language';
+    url.searchParams.append(paramAcceptLanguage, acceptLanguageVal);
+
+    const timeoutVal = 5000;
+    const timeoutSignal = AbortSignal.timeout(timeoutVal);
+    
+    const urlStr = url.toString();
+    const headersObj = { 'User-Agent': userAgent, Accept: 'application/json' };
+    const fetchOptions = {
+      headers: headersObj,
+      signal: timeoutSignal,
+    };
+    const response = await fetch(urlStr, fetchOptions);
+
+    const isResponseOk = response.ok;
+    if (!isResponseOk) {
+      const rawStatus = response.status;
+      const statusStr = String(rawStatus);
+      const errorMsg = `Nominatim trả về HTTP ${statusStr}`;
+      throw new Error(errorMsg);
+    }
+
+    const rawData = (await response.json()) as unknown;
+    const mappedResult = this.mapOsmItems(rawData);
+    return mappedResult;
+  }
+
+  // Chuẩn hoá item OSM (LocationIQ & Nominatim cùng format) → AutocompleteResult.
+  private mapOsmItems(data: unknown): AutocompleteResult[] {
+    const isArr = Array.isArray(data);
+    if (!isArr) {
+      const emptyArr: AutocompleteResult[] = [];
+      return emptyArr;
+    }
+    const items = data as OsmAutocompleteItem[];
+    const filterFn = (it: OsmAutocompleteItem) => {
+      const hasDisplayName = it && it.display_name;
+      const hasLat = it && it.lat;
+      const hasLon = it && it.lon;
+      const isValid = hasDisplayName && hasLat && hasLon;
+      return isValid;
+    };
+    const filteredItems = items.filter(filterFn);
+    
+    const mapFn = (it: OsmAutocompleteItem) => {
+      const rawId = it.place_id;
+      const idNum = Number(rawId);
+      const itemResult = {
+        place_id: idNum,
+        display_name: it.display_name,
+        lat: it.lat,
+        lon: it.lon,
+      };
+      return itemResult;
+    };
+    const mapped = filteredItems.map(mapFn);
+    return mapped;
   }
 }
