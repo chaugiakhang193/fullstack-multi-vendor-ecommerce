@@ -25,7 +25,7 @@ import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 import { UsersService } from '@/modules/users/users.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 import { MailService } from '@/modules/mail/mail.service';
-import { NominatimService } from '@/modules/geocoding/nominatim.service';
+import { GeocodingService } from '@/modules/geocoding/geocoding.service';
 
 // Enums
 import { AccountStatus, AssetType } from '@/common/enums';
@@ -46,7 +46,7 @@ export class ShopsService {
     private readonly userService: UsersService,
     @InjectDataSource() private dataSource: DataSource,
     private readonly mailService: MailService,
-    private readonly nominatimService: NominatimService,
+    private readonly geocodingService: GeocodingService,
   ) {}
 
   async setupInitialShop(
@@ -100,7 +100,7 @@ export class ShopsService {
     } else {
       // Frontend không gửi coords — backend tự geocode làm fallback
       const pickupAddress = createShopDto.pickup_address;
-      const geocodeResult = await this.nominatimService.geocode(pickupAddress);
+      const geocodeResult = await this.geocodingService.geocode(pickupAddress);
 
       if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
         resolvedLat = String(geocodeResult.lat);
@@ -336,7 +336,7 @@ export class ShopsService {
         // Địa chỉ thay đổi nhưng không có coords → fallback geocode từ backend
         // shop.pickup_address đã được cập nhật bởi Object.assign phía trên
         const targetAddress = shop.pickup_address;
-        const geocodeResult = await this.nominatimService.geocode(targetAddress);
+        const geocodeResult = await this.geocodingService.geocode(targetAddress);
 
         if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
           shop.lat = String(geocodeResult.lat);

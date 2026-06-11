@@ -2,66 +2,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface GeocodeResult {
-  lat: number | null;
-  lng: number | null;
-  success: boolean;
-}
-
-export interface IGeocodingCache {
-  get(key: string): Promise<GeocodeResult | null>;
-  set(key: string, value: GeocodeResult, ttlMs: number): Promise<void>;
-}
-
-interface NominatimResponseItem {
-  lat: string;
-  lon: string;
-}
-
-export interface AutocompleteResult {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-}
-
-interface OsmAutocompleteItem {
-  place_id: number | string;
-  display_name: string;
-  lat: string;
-  lon: string;
-}
-
-interface GoongLocation {
-  lat: string;
-  lng: string;
-}
-
-interface GoongResult {
-  geometry: {
-    location: GoongLocation;
-  };
-}
-
-interface GoongResponse {
-  results: GoongResult[];
-}
-
-interface GenericOsmItem {
-  lat: string;
-  lon: string;
-}
-
-interface GenericOpenCageItem {
-  geometry: {
-    lat: string;
-    lng: string;
-  };
-}
-
-interface GenericFallbackResponse {
-  results?: GenericOpenCageItem[];
-}
+// Types
+import {
+  GeocodeResult,
+  IGeocodingCache,
+  NominatimResponseItem,
+  AutocompleteResult,
+  OsmAutocompleteItem,
+  GoongResponse,
+  GenericOsmItem,
+  GenericFallbackResponse,
+} from './geocoding.types';
 
 // Lớp Cache trong bộ nhớ (In-Memory)
 export class InMemoryGeocodingCache implements IGeocodingCache {
@@ -104,8 +55,8 @@ export class InMemoryGeocodingCache implements IGeocodingCache {
 }
 
 @Injectable()
-export class NominatimService {
-  private readonly logger = new Logger(NominatimService.name);
+export class GeocodingService {
+  private readonly logger = new Logger(GeocodingService.name);
   private readonly cache: IGeocodingCache = new InMemoryGeocodingCache();
   private readonly CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 giờ
 

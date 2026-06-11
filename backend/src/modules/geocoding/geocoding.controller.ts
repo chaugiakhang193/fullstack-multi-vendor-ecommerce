@@ -8,10 +8,10 @@ import {
 import { Throttle } from '@nestjs/throttler';
 
 // Services
-import {
-  NominatimService,
-  AutocompleteResult,
-} from './nominatim.service';
+import { GeocodingService } from './geocoding.service';
+
+// Types
+import { AutocompleteResult } from './geocoding.types';
 
 // Decorators
 import { Roles } from '@/decorator/roles.decorator';
@@ -25,7 +25,7 @@ import { UserRole } from '@/common/enums';
 @Roles(UserRole.CUSTOMER, UserRole.SELLER)
 @Controller('geocoding')
 export class GeocodingController {
-  constructor(private readonly nominatimService: NominatimService) {}
+  constructor(private readonly geocodingService: GeocodingService) {}
 
   // Proxy gợi ý địa chỉ (giấu API key LocationIQ). Throttle chặt hơn global để chặn spam đốt quota.
   @Get('autocomplete')
@@ -35,6 +35,6 @@ export class GeocodingController {
   @ApiQuery({ name: 'q', required: true, description: 'Chuỗi địa chỉ đang gõ' })
   autocomplete(@Query('q') q: string): Promise<AutocompleteResult[]> {
     const safeQuery = q ?? '';
-    return this.nominatimService.autocomplete(safeQuery);
+    return this.geocodingService.autocomplete(safeQuery);
   }
 }

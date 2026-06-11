@@ -9,7 +9,7 @@ import { User } from '@/modules/users/entities/user.entity';
 import { Address } from '@/modules/users/entities/address.entity';
 import { CreateAddressDto } from '@/modules/users/dto/create-address.dto';
 import { UpdateAddressDto } from '@/modules/users/dto/update-address.dto';
-import { NominatimService } from '@/modules/geocoding/nominatim.service';
+import { GeocodingService } from '@/modules/geocoding/geocoding.service';
 import { Repository, DataSource } from 'typeorm';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import {
@@ -27,7 +27,7 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(Address)
     private addressRepository: Repository<Address>,
-    private readonly geocodingService: NominatimService,
+    private readonly geocodingService: GeocodingService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) { }
