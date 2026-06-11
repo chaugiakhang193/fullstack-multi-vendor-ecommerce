@@ -1,23 +1,22 @@
 import z from "zod";
-
-// ⚠️ TẤT CẢ type dưới đây viết tay vì backend W2 chưa có trong swagger.
-// @TODO W2: khi backend orders xong, regenerate api-schema và thay bằng
-// `satisfies z.ZodType<components["schemas"][...]>` cho an toàn type.
+import type { components } from "@/lib/api/api-schema";
 
 // ===== Checkout (ĐÃ CÓ backend — POST /orders/checkout) =====
+// `satisfies` đảm bảo Zod schema luôn khớp generated type từ api-schema.d.ts.
+// Nếu backend thay đổi enum/field, `npm run gen-api` + TypeScript sẽ báo lỗi ngay tại đây.
 export const ShopCouponBody = z.object({
   shop_id: z.string().uuid(),
   coupon_code: z.string(),
-});
+}) satisfies z.ZodType<components["schemas"]["ShopCouponDto"]>;
 
 export const CheckoutBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
-  payment_method: z.literal("cod"), // hiện chỉ COD — khớp PaymentMethod.COD = 'cod' ở backend
+  payment_method: z.literal("cod"),
   global_coupon_code: z.string().optional(),
   shop_coupons: z.array(ShopCouponBody).max(50).optional(),
-});
+}) satisfies z.ZodType<components["schemas"]["CreateOrderDto"]>;
 
-// ===== Checkout Preview (@TODO W2 — POST /orders/checkout/preview) =====
+// ===== Checkout Preview (@TODO W2 — POST /orders/checkout/preview — thêm satisfies khi gen-api xong) =====
 export const CheckoutPreviewBody = z.object({
   address_id: z.string().uuid(),
   global_coupon_code: z.string().optional(),
