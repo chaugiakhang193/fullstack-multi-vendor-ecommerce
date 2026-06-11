@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 
 // Services
@@ -24,7 +24,7 @@ export class ShopsController {
   })
   @ApiGenericResponse(ShopResponseDto, 'Lấy chi tiết gian hàng thành công.')
   @ApiResponse({ status: 404, description: 'Không tìm thấy gian hàng.' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.shopsService.findOneByShopId(id, true);
   }
 }

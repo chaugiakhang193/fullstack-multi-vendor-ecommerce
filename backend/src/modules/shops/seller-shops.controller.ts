@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   FileInterceptor,
@@ -229,7 +230,10 @@ export class SellerShopsController {
   @ResponseMessage('Xóa ảnh liên quan thành công.')
   @ApiOperation({ summary: 'Seller xóa 1 ảnh khỏi gallery' })
   @ApiGenericResponse(ShopResponseDto, 'Xóa ảnh thành công.')
-  removeGalleryImage(@User() user: IUser, @Param('assetId') assetId: string) {
+  removeGalleryImage(
+    @User() user: IUser,
+    @Param('assetId', ParseUUIDPipe) assetId: string,
+  ) {
     const userId = user.sub;
     return this.shopsService.removeGalleryImage(userId, assetId);
   }
