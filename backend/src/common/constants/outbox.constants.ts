@@ -2,6 +2,7 @@
 // Dùng chung giữa Orders module (writer) và Engagements Outbox Worker (reader)
 export const OUTBOX_EVENT_TYPES = {
   ORDER_CREATED: 'order.created',
+  ORDER_CANCELLED: 'order.cancelled',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -14,4 +15,14 @@ export interface OrderCreatedPayload {
   shopIds: string[];
   userId: string;
   totalAmount: number;
+}
+
+// Payload của event 'order.cancelled' — ghi khi khách hủy 1 sub-order.
+// shopId là của đúng sub-order bị hủy để worker chỉ thông báo đúng seller đó.
+export interface OrderCancelledPayload {
+  orderId: string;
+  orderNumber: string;
+  subOrderId: string;
+  userId: string;
+  shopId: string;
 }

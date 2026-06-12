@@ -4,7 +4,7 @@ import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 
 // TypeORM
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 
 // Entities
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
@@ -15,17 +15,28 @@ import { OutboxEventStatus, NotificationType } from '@/common/enums';
 import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
+  OrderCancelledPayload,
 } from '@/common/constants/outbox.constants';
 
 // Internal
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
-import { WS_EVENTS, OrderNewWsPayload } from './notification.events';
+import {
+  WS_EVENTS,
+  OrderNewWsPayload,
+  OrderStatusChangedWsPayload,
+} from './notification.events';
 
 // Tham số tuning của OutboxWorker. Để module-level const (không class field) vì
 // @Interval() là decorator — đối số phải là hằng compile-time, không dùng được `this`.
 const OUTBOX_POLL_INTERVAL_MS = 8000; // 8s — cân bằng độ trễ thông báo vs tải DB do poll
 const OUTBOX_BATCH_SIZE = 10; // trần số event xử lý mỗi lần quét
+
+// Chỉ nhặt đúng các event_type mà worker này biết xử lý.
+const HANDLED_EVENT_TYPES: string[] = [
+  OUTBOX_EVENT_TYPES.ORDER_CREATED,
+  OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
+];
 
 @Injectable()
 export class OutboxWorker {
@@ -55,14 +66,12 @@ export class OutboxWorker {
 
     this.isProcessing = true;
     try {
-      // Chỉ nhặt event đúng type mà worker này biết xử lý.
-      // pessimistic_write_or_fail → FOR UPDATE NOWAIT: nếu row bị lock → throw → catch trả về [].
+      // pessimistic_write_or_fail → FOR UPDATE NOWAIT: row đang bị lock → throw → [].
       const pendingStatus = OutboxEventStatus.PENDING;
-      const pendingEventType = OUTBOX_EVENT_TYPES.ORDER_CREATED;
       const events = await this.outboxRepo
         .createQueryBuilder('e')
         .where('e.status = :status', { status: pendingStatus })
-        .andWhere('e.event_type = :type', { type: pendingEventType })
+        .andWhere('e.event_type IN (:...types)', { types: HANDLED_EVENT_TYPES })
         .orderBy('e.created_at', 'ASC')
         .limit(OUTBOX_BATCH_SIZE)
         .setLock('pessimistic_write_or_fail')
@@ -78,79 +87,21 @@ export class OutboxWorker {
   }
 
   private async processOneEvent(event: OutboxEvent): Promise<void> {
-    // Mỗi event có transaction riêng: event thành công → PROCESSED ngay,
-    // event thất bại giữ PENDING để retry lần sau — không ảnh hưởng các event khác.
+    // Mỗi event có transaction riêng: thành công → PROCESSED; payload hỏng → FAILED;
+    // lỗi tạm thời (DB/network) → giữ PENDING để retry lần sau.
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // Validate payload — TypeError nếu hỏng → mark FAILED, không retry.
-      const payload = event.payload as OrderCreatedPayload;
-
-      if (
-        !payload.orderId ||
-        !payload.orderNumber ||
-        !Array.isArray(payload.shopIds) ||
-        !payload.userId
-      ) {
-        throw new TypeError(
-          `Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`,
-        );
+      if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CREATED) {
+        await this.handleOrderCreated(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CANCELLED) {
+        await this.handleOrderCancelled(event, queryRunner.manager);
+      } else {
+        throw new TypeError(`Event type không được hỗ trợ: ${event.event_type}`);
       }
 
-      // Lưu notification cho Customer kể cả khi chưa online —
-      // Notification Bell (Tuần 2) sẽ đọc từ DB này.
-      const customerNotificationDto = {
-        userId: payload.userId,
-        type: NotificationType.ORDER_CREATED,
-        title: 'Đặt hàng thành công',
-        content: `Đơn hàng ${payload.orderNumber} đã được đặt thành công. Tổng giá trị: ${payload.totalAmount.toLocaleString('vi-VN')}đ`,
-      };
-      await this.notificationService.create(
-        customerNotificationDto,
-        queryRunner.manager,
-      );
-
-      // Lưu notification + phát WebSocket cho mỗi Seller
-      for (const shopId of payload.shopIds) {
-        // Query seller.id từ shopId vì seller.id không có trong outbox payload.
-        const findShopOptions = {
-          where: { id: shopId },
-          relations: ['seller'],
-          select: { id: true, seller: { id: true } },
-        };
-        const shop = await this.shopRepo.findOne(findShopOptions);
-
-        if (!shop) {
-          this.logger.warn(
-            `[OutboxWorker] Shop ${shopId} không tồn tại — bỏ qua notification cho shop này.`,
-          );
-          continue;
-        }
-
-        const sellerNotificationDto = {
-          userId: shop.seller.id,
-          type: NotificationType.ORDER_CREATED,
-          title: 'Đơn hàng mới',
-          content: `Bạn vừa nhận được đơn hàng mới ${payload.orderNumber}.`,
-        };
-        await this.notificationService.create(
-          sellerNotificationDto,
-          queryRunner.manager,
-        );
-
-        // WebSocket fire-and-forget: Seller online nhận real-time,
-        // Seller offline vẫn có notification trong DB để đọc sau qua Notification Bell.
-        const wsPayload: OrderNewWsPayload = {
-          orderId: payload.orderId,
-          orderNumber: payload.orderNumber,
-          message: `Đơn hàng mới ${payload.orderNumber}`,
-        };
-        this.notificationGateway.sendToShop(shopId, WS_EVENTS.ORDER_NEW, wsPayload);
-      }
-
-      // Mark PROCESSED chỉ sau khi toàn bộ notifications đã lưu thành công trong transaction.
       const processedUpdate = {
         status: OutboxEventStatus.PROCESSED,
         processed_at: new Date(),
@@ -165,7 +116,7 @@ export class OutboxWorker {
       await queryRunner.rollbackTransaction();
 
       if (error instanceof TypeError) {
-        // Lỗi vĩnh viễn: payload hỏng, retry vô nghĩa → mark FAILED.
+        // Payload hỏng → FAILED, không retry vì sẽ fail mãi.
         const failedUpdate = {
           status: OutboxEventStatus.FAILED,
           error_message: `Payload không hợp lệ: ${error.message}`,
@@ -187,5 +138,137 @@ export class OutboxWorker {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // ==========================================
+  // HANDLER: order.created
+  // ==========================================
+  private async handleOrderCreated(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const payload = event.payload as OrderCreatedPayload;
+
+    if (
+      !payload.orderId ||
+      !payload.orderNumber ||
+      !Array.isArray(payload.shopIds) ||
+      !payload.userId
+    ) {
+      throw new TypeError(
+        `Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`,
+      );
+    }
+
+    // Lưu notification cho Customer kể cả khi chưa online —
+    // Notification Bell sẽ đọc từ DB này.
+    const customerNotificationDto = {
+      userId: payload.userId,
+      type: NotificationType.ORDER_CREATED,
+      title: 'Đặt hàng thành công',
+      content: `Đơn hàng ${payload.orderNumber} đã được đặt thành công. Tổng giá trị: ${payload.totalAmount.toLocaleString('vi-VN')}đ`,
+    };
+    await this.notificationService.create(customerNotificationDto, manager);
+
+    // Lưu notification + phát WebSocket cho từng Seller.
+    for (const shopId of payload.shopIds) {
+      const findShopOptions = {
+        where: { id: shopId },
+        relations: ['seller'],
+        select: { id: true, seller: { id: true } },
+      };
+      const shop = await this.shopRepo.findOne(findShopOptions);
+
+      if (!shop) {
+        this.logger.warn(
+          `[OutboxWorker] Shop ${shopId} không tồn tại — bỏ qua notification.`,
+        );
+        continue;
+      }
+
+      const sellerNotificationDto = {
+        userId: shop.seller.id,
+        type: NotificationType.ORDER_CREATED,
+        title: 'Đơn hàng mới',
+        content: `Bạn vừa nhận được đơn hàng mới ${payload.orderNumber}.`,
+      };
+      await this.notificationService.create(sellerNotificationDto, manager);
+
+      // WebSocket fire-and-forget: Seller online nhận real-time,
+      // Seller offline vẫn có notification trong DB để đọc sau qua Notification Bell.
+      const wsPayload: OrderNewWsPayload = {
+        orderId: payload.orderId,
+        orderNumber: payload.orderNumber,
+        message: `Đơn hàng mới ${payload.orderNumber}`,
+      };
+      this.notificationGateway.sendToShop(shopId, WS_EVENTS.ORDER_NEW, wsPayload);
+    }
+  }
+
+  // ==========================================
+  // HANDLER: order.cancelled
+  // ==========================================
+  private async handleOrderCancelled(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const payload = event.payload as OrderCancelledPayload;
+
+    if (
+      !payload.orderId ||
+      !payload.orderNumber ||
+      !payload.subOrderId ||
+      !payload.userId ||
+      !payload.shopId
+    ) {
+      throw new TypeError(
+        `Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`,
+      );
+    }
+
+    // Thông báo cho Customer biết đơn con đã được hủy theo yêu cầu.
+    const customerNotificationDto = {
+      userId: payload.userId,
+      type: NotificationType.ORDER_STATUS_CHANGED,
+      title: 'Đã hủy đơn hàng con',
+      content: `Một shop trong đơn ${payload.orderNumber} đã được hủy theo yêu cầu của bạn.`,
+    };
+    await this.notificationService.create(customerNotificationDto, manager);
+
+    // Thông báo + WebSocket cho Seller của shop bị hủy.
+    const findShopOptions = {
+      where: { id: payload.shopId },
+      relations: ['seller'],
+      select: { id: true, seller: { id: true } },
+    };
+    const shop = await this.shopRepo.findOne(findShopOptions);
+
+    if (!shop) {
+      this.logger.warn(
+        `[OutboxWorker] Shop ${payload.shopId} không tồn tại — bỏ qua notification hủy đơn.`,
+      );
+      return;
+    }
+
+    const sellerNotificationDto = {
+      userId: shop.seller.id,
+      type: NotificationType.ORDER_STATUS_CHANGED,
+      title: 'Đơn hàng bị hủy',
+      content: `Khách đã hủy 1 đơn hàng con thuộc đơn ${payload.orderNumber}.`,
+    };
+    await this.notificationService.create(sellerNotificationDto, manager);
+
+    const wsPayload: OrderStatusChangedWsPayload = {
+      orderId: payload.orderId,
+      orderNumber: payload.orderNumber,
+      subOrderId: payload.subOrderId,
+      status: 'cancelled',
+      message: `Đơn ${payload.orderNumber} có 1 shop bị hủy`,
+    };
+    this.notificationGateway.sendToShop(
+      payload.shopId,
+      WS_EVENTS.ORDER_STATUS_CHANGED,
+      wsPayload,
+    );
   }
 }

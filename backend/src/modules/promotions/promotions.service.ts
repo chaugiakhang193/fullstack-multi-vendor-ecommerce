@@ -150,4 +150,22 @@ export class PromotionsService {
     coupon.used_count = coupon.used_count + 1;
     await manager.save(Coupon, coupon);
   }
+
+  /**
+   * Hoàn 1 lượt sử dụng coupon (used_count -= 1) khi hủy đơn — đối xứng với consumeCoupon.
+   * Khoá pessimistic_write để tránh race với checkout đang tiêu thụ cùng coupon.
+   * Kẹp sàn 0 để không bao giờ âm phòng dữ liệu lệch.
+   */
+  async releaseCoupon(couponId: string, manager: EntityManager): Promise<void> {
+    const findOptions = {
+      where: { id: couponId },
+      lock: { mode: 'pessimistic_write' as const },
+    };
+    const coupon = await manager.findOne(Coupon, findOptions);
+    if (!coupon) {
+      return;
+    }
+    coupon.used_count = Math.max(0, coupon.used_count - 1);
+    await manager.save(Coupon, coupon);
+  }
 }
