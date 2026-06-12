@@ -16,6 +16,7 @@ import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
   OrderCancelledPayload,
+  OrderStatusUpdatedPayload,
 } from '@/common/constants/outbox.constants';
 
 // Internal
@@ -36,6 +37,7 @@ const OUTBOX_BATCH_SIZE = 10; // trần số event xử lý mỗi lần quét
 const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.ORDER_CREATED,
   OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
+  OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED,
 ];
 
 @Injectable()
@@ -98,6 +100,8 @@ export class OutboxWorker {
         await this.handleOrderCreated(event, queryRunner.manager);
       } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CANCELLED) {
         await this.handleOrderCancelled(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED) {
+        await this.handleOrderStatusUpdated(event, queryRunner.manager);
       } else {
         throw new TypeError(`Event type không được hỗ trợ: ${event.event_type}`);
       }
@@ -267,6 +271,49 @@ export class OutboxWorker {
     };
     this.notificationGateway.sendToShop(
       payload.shopId,
+      WS_EVENTS.ORDER_STATUS_CHANGED,
+      wsPayload,
+    );
+  }
+
+  // ==========================================
+  // HANDLER: order.status_updated
+  // ==========================================
+  private async handleOrderStatusUpdated(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const payload = event.payload as OrderStatusUpdatedPayload;
+
+    if (
+      !payload.orderId ||
+      !payload.orderNumber ||
+      !payload.subOrderId ||
+      !payload.userId ||
+      !payload.newStatus
+    ) {
+      throw new TypeError(`Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`);
+    }
+
+    await this.notificationService.create(
+      {
+        userId: payload.userId,
+        type: NotificationType.ORDER_STATUS_CHANGED,
+        title: 'Cập nhật đơn hàng',
+        content: `Một shop trong đơn ${payload.orderNumber} đã chuyển sang trạng thái "${payload.newStatus}".`,
+      },
+      manager,
+    );
+
+    const wsPayload: OrderStatusChangedWsPayload = {
+      orderId: payload.orderId,
+      orderNumber: payload.orderNumber,
+      subOrderId: payload.subOrderId,
+      status: payload.newStatus,
+      message: `Đơn ${payload.orderNumber} cập nhật: ${payload.newStatus}`,
+    };
+    this.notificationGateway.sendToUser(
+      payload.userId,
       WS_EVENTS.ORDER_STATUS_CHANGED,
       wsPayload,
     );
