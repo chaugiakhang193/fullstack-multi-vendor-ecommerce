@@ -6,6 +6,7 @@ import { OrdersService } from '@/modules/orders/orders.service';
 
 // Controllers
 import { OrdersController } from '@/modules/orders/orders.controller';
+import { SellerOrdersController } from '@/modules/orders/seller-orders.controller';
 
 // Crons
 import { IdempotencyCleanupCron } from '@/modules/orders/idempotency-cleanup.cron';
@@ -42,7 +43,7 @@ import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping
     CartsModule,
     PaymentsModule,
   ],
-  controllers: [OrdersController],
+  controllers: [OrdersController, SellerOrdersController],
   providers: [
     OrdersService,
     IdempotencyCleanupCron,

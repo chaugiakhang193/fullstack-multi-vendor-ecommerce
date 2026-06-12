@@ -3,6 +3,7 @@
 export const OUTBOX_EVENT_TYPES = {
   ORDER_CREATED: 'order.created',
   ORDER_CANCELLED: 'order.cancelled',
+  ORDER_STATUS_UPDATED: 'order.status_updated',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -25,4 +26,15 @@ export interface OrderCancelledPayload {
   subOrderId: string;
   userId: string;
   shopId: string;
+}
+
+// Payload 'order.status_updated' — seller đổi trạng thái 1 sub-order.
+// userId là CUSTOMER của đơn (người cần báo), không phải seller.
+export interface OrderStatusUpdatedPayload {
+  orderId: string;
+  orderNumber: string;
+  subOrderId: string;
+  userId: string;
+  shopId: string;
+  newStatus: string;
 }
