@@ -68,6 +68,7 @@ import {
 import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
+  OrderCancelledPayload,
 } from '@/common/constants/outbox.constants';
 
 // Round helper — giữ 2 chữ số thập phân cho mọi con số tiền
@@ -263,12 +264,11 @@ export class OrdersService {
 
   /**
    * Khách hủy 1 sub-order độc lập. Toàn bộ chạy trong 1 transaction:
-   *   1. Khoá row sub-order (chống double-cancel) → kiểm tra IDOR + chỉ PENDING.
-   *   2. Hoàn kho (lock Product ASC → Variant ASC, delta-sync product cha = Tech Debt A).
-   *   3. Set sub-order = CANCELLED.
-   *   4. Khóa Master Order pessimistic_write (tránh race condition khi cập nhật song song).
-   *   5. Recompute Order.total_amount + Order.status (deriveMasterStatus) (chưa gồm coupon global - sẽ làm ở Phase 3).
-   *   6. Đồng bộ Payment.amount.
+   *   - Khoá row sub-order (chống double-cancel) → kiểm tra IDOR + chỉ PENDING.
+   *   - Hoàn kho (lock Product ASC → Variant ASC, delta-sync product cha = Tech Debt A).
+   *   - Hoàn lượt shop_coupon; re-evaluate global coupon trên subtotal còn lại.
+   *   - Recompute Order.total_amount + Order.status + Payment.amount.
+   *   - Ghi outbox 'order.cancelled' trong cùng transaction.
    */
   async cancelSubOrder(
     userId: string,
@@ -286,7 +286,9 @@ export class OrdersService {
     try {
       const manager = queryRunner.manager;
 
-      // 1a. Khoá row sub-order theo id (không kèm relation để tránh lỗi FOR UPDATE trên nullable side)
+      // Khoá row sub-order trần trước để chống double-cancel song song.
+      // Tách riêng 2 bước: lock không kèm relation để tránh lỗi FOR UPDATE
+      // trên nullable side của outer join, rồi mới load quan hệ đầy đủ.
       const lockedRow = await manager.findOne(SubOrder, {
         where: { id: subOrderId },
         lock: { mode: 'pessimistic_write' },
@@ -295,12 +297,12 @@ export class OrdersService {
         throw new NotFoundException('Không tìm thấy đơn hàng con');
       }
 
-      // 1b. Load đầy đủ quan hệ sau khi đã giữ lock
       const subOrder = await manager.findOne(SubOrder, {
         where: { id: subOrderId },
         relations: {
-          order: { customer: true },
+          order: { customer: true, global_coupon: true },
           shop: true,
+          shop_coupon: true,
           items: { variant: true, product: true },
         },
       });
@@ -308,20 +310,20 @@ export class OrdersService {
         throw new NotFoundException('Không tìm thấy đơn hàng con');
       }
 
-      // 2. [Security/IDOR] Kiểm tra quyền sở hữu
+      // [Security/IDOR] Sai chủ → 404 để giấu sự tồn tại tài nguyên người khác.
       const ownerId = subOrder.order.customer?.id;
       if (ownerId !== userId) {
         throw new NotFoundException('Không tìm thấy đơn hàng con');
       }
 
-      // 3. Chỉ cho hủy khi PENDING
+      // Chỉ cho hủy khi PENDING để bảo vệ shop đang xử lý.
       if (subOrder.status !== OrderStatus.PENDING) {
         throw new BadRequestException(
           'Đơn hàng đang được shop xử lý, không thể tự hủy',
         );
       }
 
-      // 4. Hoàn kho (giữ đúng thứ tự lock Product -> Variant ASC)
+      // Hoàn kho — bỏ qua item có product đã bị xoá (SET NULL).
       const restockTargets = subOrder.items
         .filter((it) => it.product !== null && it.product !== undefined)
         .map((it) => ({
@@ -333,49 +335,96 @@ export class OrdersService {
         await this.productStockService.lockAndRestock(restockTargets, manager);
       }
 
-      // 5. Đổi trạng thái sub-order thành CANCELLED
       subOrder.status = OrderStatus.CANCELLED;
       await manager.save(SubOrder, subOrder);
 
-      // 6. Khóa dòng Master Order bằng pessimistic_write để đồng bộ hóa
+      // Hoàn lượt shop coupon của sub-order vừa hủy (nếu có).
+      if (subOrder.shop_coupon) {
+        const shopCouponId = subOrder.shop_coupon.id;
+        await this.promotionsService.releaseCoupon(shopCouponId, manager);
+      }
+
+      // Khoá Master Order với global_coupon để đọc thông tin giảm giá toàn đơn.
       const lockedOrder = await manager.findOne(Order, {
         where: { id: subOrder.order.id },
         lock: { mode: 'pessimistic_write' },
+        relations: { global_coupon: true },
       });
       if (!lockedOrder) {
         throw new NotFoundException('Không tìm thấy đơn hàng Master');
       }
 
-      // 7. Tải lại toàn bộ sub-orders để tính toán lại tổng tiền Master
+      // Tải lại tất cả sub-orders (bao gồm shop_coupon) để tính lại tổng tiền.
       const siblings = await manager.find(SubOrder, {
         where: { order: { id: lockedOrder.id } },
+        relations: { shop_coupon: true },
       });
 
       const activeSubs = siblings.filter(
         (s) => s.status !== OrderStatus.CANCELLED,
       );
+      let remainingShopSubtotals = 0;
       let sumActiveShopTotals = 0;
       for (const s of activeSubs) {
         const subTotal = Number(s.sub_total ?? 0);
         const shippingFee = Number(s.shipping_fee ?? 0);
-        // Lưu ý: Chưa xử lý coupon riêng của shop ở phase này (sẽ hoàn thiện ở Phase 3)
+        const shopDiscount = s.shop_coupon
+          ? this.computeCouponDiscount(s.shop_coupon, subTotal)
+          : 0;
+        remainingShopSubtotals = round2(remainingShopSubtotals + subTotal);
         sumActiveShopTotals = round2(
-          sumActiveShopTotals + (subTotal + shippingFee),
+          sumActiveShopTotals + (subTotal - shopDiscount + shippingFee),
         );
       }
 
-      const newTotal = round2(Math.max(0, sumActiveShopTotals));
+      // Re-evaluate global coupon trên subtotal còn lại.
+      // Nếu không còn đủ điều kiện → gỡ FK + hoàn lượt để tránh lãng phí.
+      let globalDiscount = 0;
+      if (lockedOrder.global_coupon) {
+        const minOrderRaw = lockedOrder.global_coupon.min_order_value;
+        const hasMinOrder = minOrderRaw !== null && minOrderRaw !== undefined;
+        const belowMin =
+          hasMinOrder && remainingShopSubtotals < Number(minOrderRaw);
+        const noActiveLeft = activeSubs.length === 0;
+        if (belowMin || noActiveLeft) {
+          const globalCouponId = lockedOrder.global_coupon.id;
+          await this.promotionsService.releaseCoupon(globalCouponId, manager);
+          lockedOrder.global_coupon = null as unknown as Coupon;
+        } else {
+          globalDiscount = this.computeCouponDiscount(
+            lockedOrder.global_coupon,
+            remainingShopSubtotals,
+          );
+        }
+      }
+
+      const newTotal = round2(Math.max(0, sumActiveShopTotals - globalDiscount));
       const newStatus = deriveMasterStatus(siblings.map((s) => s.status));
       lockedOrder.total_amount = newTotal;
       lockedOrder.status = newStatus;
       await manager.save(Order, lockedOrder);
 
-      // 8. Đồng bộ số tiền Payment (COD)
       await this.paymentsService.updateAmountForOrder({
         orderId: lockedOrder.id,
         amount: newTotal,
         manager,
       });
+
+      // Ghi outbox 'order.cancelled' trong cùng transaction để worker thông báo seller.
+      const shopId = subOrder.shop?.id ?? '';
+      const outboxPayload: OrderCancelledPayload = {
+        orderId: lockedOrder.id,
+        orderNumber: lockedOrder.order_number,
+        subOrderId: subOrder.id,
+        userId,
+        shopId,
+      };
+      const outboxEvent = manager.create(OutboxEvent, {
+        event_type: OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
+        payload: outboxPayload,
+        status: OutboxEventStatus.PENDING,
+      });
+      await manager.save(OutboxEvent, outboxEvent);
 
       await queryRunner.commitTransaction();
 
