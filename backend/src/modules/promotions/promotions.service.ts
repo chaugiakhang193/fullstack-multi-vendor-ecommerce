@@ -65,16 +65,26 @@ export class PromotionsService {
       return null;
     }
 
-    // Khoá pessimistic_write theo code (code có unique constraint nên đủ tin cậy)
-    const findOptions = {
+    // Khoá pessimistic_write theo code (code có unique constraint nên đủ tin cậy).
+    // KHÔNG join 'shop' ở câu lock: Postgres cấm FOR UPDATE trên phía nullable của
+    // outer join (LEFT JOIN shop) → lỗi 0A000. Lock bare row trước, load 'shop' sau
+    // (row đã khóa trong transaction nên đọc lại vẫn nhất quán).
+    const lockedRow = await manager.findOne(Coupon, {
       where: { code },
-      relations: ['shop'],
       lock: { mode: 'pessimistic_write' as const },
-    };
-    const coupon = await manager.findOne(Coupon, findOptions);
+    });
 
-    const isCouponMissing = !coupon;
+    const isCouponMissing = !lockedRow;
     if (isCouponMissing) {
+      const notFoundMsg = `Mã giảm giá "${code}" không tồn tại`;
+      throw new BadRequestException(notFoundMsg);
+    }
+
+    const coupon = await manager.findOne(Coupon, {
+      where: { id: lockedRow.id },
+      relations: ['shop'],
+    });
+    if (!coupon) {
       const notFoundMsg = `Mã giảm giá "${code}" không tồn tại`;
       throw new BadRequestException(notFoundMsg);
     }
