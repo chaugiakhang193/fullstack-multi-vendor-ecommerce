@@ -1,5 +1,5 @@
 // NestJS
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 // TypeORM
@@ -10,6 +10,11 @@ import { Notification } from '@/modules/engagements/entities/notification.entity
 
 // Enums
 import { NotificationType } from '@/common/enums';
+
+// Pagination + DTO
+import { paginate } from '@/common/helpers/pagination.helper';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
+import { NotificationQueryDto } from '@/modules/engagements/dto/notification-query.dto';
 
 export interface CreateNotificationDto {
   userId: string;
@@ -43,5 +48,45 @@ export class NotificationService {
     };
     const notification = repo.create(notificationData);
     return repo.save(notification);
+  }
+
+  /** Danh sách notification của user (phân trang + lọc is_read), mới nhất trước. */
+  async getNotifications(
+    userId: string,
+    query: NotificationQueryDto,
+  ): Promise<PaginatedResponseDto<Notification>> {
+    const qb = this.notificationRepo
+      .createQueryBuilder('n')
+      .where('n.user_id = :userId', { userId })
+      .orderBy('n.created_at', 'DESC');
+
+    if (query.is_read !== undefined) {
+      qb.andWhere('n.is_read = :isRead', { isRead: query.is_read });
+    }
+    return paginate(qb, query);
+  }
+
+  /** Đánh dấu 1 notification đã đọc (chặn IDOR). */
+  async markAsRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<Notification> {
+    const notification = await this.notificationRepo.findOne({
+      where: { id: notificationId, user: { id: userId } },
+    });
+    if (!notification) {
+      throw new NotFoundException('Không tìm thấy thông báo');
+    }
+    notification.is_read = true;
+    return this.notificationRepo.save(notification);
+  }
+
+  /** Đánh dấu tất cả notification chưa đọc của user là đã đọc. */
+  async markAllAsRead(userId: string): Promise<{ updated: number }> {
+    const result = await this.notificationRepo.update(
+      { user: { id: userId }, is_read: false },
+      { is_read: true },
+    );
+    return { updated: result.affected ?? 0 };
   }
 }

@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 // Services, Controllers & Gateway
 import { EngagementsService } from './engagements.service';
 import { EngagementsController } from './engagements.controller';
+import { NotificationsController } from './notifications.controller';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
 import { OutboxWorker } from './outbox.worker';
@@ -27,7 +28,7 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
       }),
     }),
   ],
-  controllers: [EngagementsController],
+  controllers: [EngagementsController, NotificationsController],
   providers: [
     EngagementsService,
     NotificationGateway,
