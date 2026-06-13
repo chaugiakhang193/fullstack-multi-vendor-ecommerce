@@ -72,11 +72,24 @@ import {
   OrderStatusUpdatedPayload,
 } from '@/common/constants/outbox.constants';
 import { SellerOrderQueryDto } from '@/modules/orders/dto/seller-order-query.dto';
+import { CheckoutPreviewDto } from '@/modules/orders/dto/checkout-preview.dto';
+import {
+  CheckoutPreviewResponseDto,
+  PreviewShopDto,
+  PreviewItemDto,
+} from '@/modules/orders/dto/checkout-preview-response.dto';
 
 // Round helper — giữ 2 chữ số thập phân cho mọi con số tiền
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+// Ngưỡng freeship per-shop (khớp HaversineShippingCalculator) + cửa sổ gợi ý mua thêm.
+const FREE_SHIPPING_THRESHOLD = 500000;
+const FREESHIP_UPSELL_WINDOW = 100000;
+
+// Tồn kho ≤ ngưỡng này thì preview hiện cảnh báo "Chỉ còn X sản phẩm".
+const LOW_STOCK_THRESHOLD = 5;
 
 // Trục tiến độ để suy ra status Master từ các sub-order. CANCELLED nằm NGOÀI trục.
 const STATUS_PROGRESSION: OrderStatus[] = [
@@ -409,9 +422,18 @@ export class OrdersService {
     orderId: string,
     manager: EntityManager,
   ): Promise<{ status: OrderStatus; total: number }> {
-    const order = await manager.findOne(Order, {
+    // Lock bare row trước (KHÔNG join global_coupon): Postgres cấm FOR UPDATE trên
+    // phía nullable của outer join (LEFT JOIN coupon) → lỗi 0A000. Load global_coupon
+    // ở câu sau (row đã khóa trong transaction nên đọc lại vẫn nhất quán).
+    const lockedOrder = await manager.findOne(Order, {
       where: { id: orderId },
       lock: { mode: 'pessimistic_write' },
+    });
+    if (!lockedOrder) {
+      throw new NotFoundException('Không tìm thấy đơn hàng Master');
+    }
+    const order = await manager.findOne(Order, {
+      where: { id: orderId },
       relations: { global_coupon: true },
     });
     if (!order) {
@@ -1308,6 +1330,164 @@ export class OrdersService {
         orderStatus: status,
         orderTotalAmount: total,
       };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw error;
+    } finally {
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
+    }
+  }
+
+  // ==========================================
+  // CHECKOUT PREVIEW (no-write)
+  // ==========================================
+
+  // Nhãn cảnh báo tồn kho cho 1 item (variant ưu tiên, fallback product).
+  private deriveStockWarning(item: CartItem): string | null {
+    const stock = item.variant
+      ? item.variant.stock_quantity
+      : item.product.stock_quantity;
+    if (stock <= 0) {
+      return 'Hết hàng';
+    }
+    if (stock <= LOW_STOCK_THRESHOLD) {
+      return `Chỉ còn ${stock} sản phẩm`;
+    }
+    return null;
+  }
+
+  // Số tiền cần mua thêm để đạt freeship (thiếu ≤ 100k) — ngược lại null.
+  private computeFreeshipUpsell(shopSubtotal: number): number | null {
+    if (shopSubtotal >= FREE_SHIPPING_THRESHOLD) {
+      return null;
+    }
+    const needed = round2(FREE_SHIPPING_THRESHOLD - shopSubtotal);
+    return needed <= FREESHIP_UPSELL_WINDOW ? needed : null;
+  }
+
+  /**
+   * Ước tính hóa đơn checkout (no-write). Bọc trong transaction CHỈ để dùng
+   * lockAndValidateCoupon (cần lock) rồi LUÔN rollback — không ghi DB.
+   */
+  async checkoutPreview(
+    userId: string,
+    dto: CheckoutPreviewDto,
+  ): Promise<CheckoutPreviewResponseDto> {
+    const address = await this.usersService.findOwnedAddressOrFail(
+      userId,
+      dto.address_id,
+    );
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const manager = queryRunner.manager;
+
+      const { validItems, unavailableItems } =
+        await this.cartsService.getActiveCartItemsForCheckout(userId, manager);
+      if (unavailableItems.length > 0) {
+        throw new BadRequestException({
+          message: 'Một số sản phẩm trong giỏ hàng không còn khả dụng',
+          unavailable: unavailableItems,
+        });
+      }
+      if (validItems.length === 0) {
+        throw new BadRequestException('Giỏ hàng trống, không thể xem trước');
+      }
+
+      const shopGroupsMap = this.groupItemsByShop(validItems);
+      const shopCouponCodeByShopId = new Map<string, string>();
+      for (const sc of dto.shop_coupons ?? []) {
+        shopCouponCodeByShopId.set(sc.shop_id, sc.coupon_code);
+      }
+
+      const shops: PreviewShopDto[] = [];
+      let totalShippingFee = 0;
+      let totalDiscount = 0;
+      let totalShopTotals = 0;
+      let totalShopSubtotals = 0;
+
+      for (const group of shopGroupsMap.values()) {
+        const shopSubtotal = this.computeShopSubtotal(group.items);
+
+        const shopCouponCode = shopCouponCodeByShopId.get(group.shop.id);
+        const shopCoupon = await this.promotionsService.lockAndValidateCoupon({
+          code: shopCouponCode,
+          expectedType: CouponType.SHOP,
+          shopId: group.shop.id,
+          subtotal: shopSubtotal,
+          manager,
+        });
+        const shopDiscount = shopCoupon
+          ? this.computeCouponDiscount(shopCoupon, shopSubtotal)
+          : 0;
+
+        const shippingFee = this.shippingCalculator.calculateShippingFee({
+          shop: {
+            lat: group.shop.lat,
+            lng: group.shop.lng,
+            is_coordinates_verified: group.shop.is_coordinates_verified,
+          },
+          destination: { lat: address.lat, lng: address.lng },
+          subtotal: shopSubtotal,
+        });
+
+        const items: PreviewItemDto[] = group.items.map((ci) => {
+          const price = round2(
+            Number(ci.product.price) + Number(ci.variant?.additional_price ?? 0),
+          );
+          return {
+            productId: ci.product.id,
+            variantId: ci.variant?.id ?? null,
+            productName: ci.product.name,
+            variantName: ci.variant?.name ?? null,
+            productThumbnail: ci.product.thumbnail_url ?? null,
+            price,
+            quantity: ci.quantity,
+            stock_warning: this.deriveStockWarning(ci),
+          };
+        });
+
+        shops.push({
+          shopId: group.shop.id,
+          shopName: group.shop.name,
+          items,
+          shippingFee,
+          shopSubtotal,
+          freeship_upsell_needed: this.computeFreeshipUpsell(shopSubtotal),
+        });
+
+        totalShippingFee = round2(totalShippingFee + shippingFee);
+        totalDiscount = round2(totalDiscount + shopDiscount);
+        totalShopTotals = round2(
+          totalShopTotals + (shopSubtotal - shopDiscount + shippingFee),
+        );
+        totalShopSubtotals = round2(totalShopSubtotals + shopSubtotal);
+      }
+
+      const globalCoupon = await this.promotionsService.lockAndValidateCoupon({
+        code: dto.global_coupon_code,
+        expectedType: CouponType.GLOBAL,
+        subtotal: totalShopSubtotals,
+        manager,
+      });
+      const globalDiscount = globalCoupon
+        ? this.computeCouponDiscount(globalCoupon, totalShopSubtotals)
+        : 0;
+      totalDiscount = round2(totalDiscount + globalDiscount);
+
+      const totalAmount = round2(Math.max(0, totalShopTotals - globalDiscount));
+
+      // NO-WRITE: luôn rollback (giải phóng lock coupon, không ghi gì).
+      await queryRunner.rollbackTransaction();
+
+      return { shops, totalShippingFee, totalDiscount, totalAmount };
     } catch (error) {
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();

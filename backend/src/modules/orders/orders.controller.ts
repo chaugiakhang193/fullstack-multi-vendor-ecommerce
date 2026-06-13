@@ -33,6 +33,8 @@ import { OrdersService } from '@/modules/orders/orders.service';
 import { CreateOrderDto } from '@/modules/orders/dto/create-order.dto';
 import { CheckoutResponseDto } from '@/modules/orders/dto/checkout-response.dto';
 import { CustomerOrderQueryDto } from '@/modules/orders/dto/customer-order-query.dto';
+import { CheckoutPreviewDto } from '@/modules/orders/dto/checkout-preview.dto';
+import { CheckoutPreviewResponseDto } from '@/modules/orders/dto/checkout-preview-response.dto';
 
 // Decorators
 import { Roles } from '@/decorator/roles.decorator';
@@ -100,6 +102,23 @@ export class OrdersController {
 
     const userId = user.sub;
     return this.ordersService.checkout(userId, dto, idempotencyKey);
+  }
+
+  @Post('checkout/preview')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Ước tính hóa đơn checkout (no-write): ship/freeship/coupon/tồn kho',
+  })
+  @ResponseMessage('Tính toán checkout thành công')
+  @ApiResponse({ status: 200, type: CheckoutPreviewResponseDto })
+  @ApiBadRequestResponse({
+    description:
+      'Giỏ trống / có sản phẩm không khả dụng / coupon không hợp lệ',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  checkoutPreview(@User() user: IUser, @Body() dto: CheckoutPreviewDto) {
+    return this.ordersService.checkoutPreview(user.sub, dto);
   }
 
   @Get()
