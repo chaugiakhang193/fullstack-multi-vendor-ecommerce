@@ -15,3 +15,16 @@ export const tabId =
       ? crypto.randomUUID()
       : Math.random().toString(36).substring(2, 11)
     : "server";
+
+export function buildQuery(q?: Record<string, any>): string {
+  if (!q) return "";
+  const params = new URLSearchParams();
+  Object.entries(q).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      params.set(key, String(value));
+    }
+  });
+  const s = params.toString();
+  return s ? `?${s}` : "";
+}
+

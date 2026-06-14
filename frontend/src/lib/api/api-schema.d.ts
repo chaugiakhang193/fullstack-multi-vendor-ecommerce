@@ -720,6 +720,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/checkout/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ước tính hóa đơn checkout (no-write): ship/freeship/coupon/tồn kho */
+        post: operations["OrdersController_checkoutPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách đơn hàng của khách (phân trang + lọc status) */
+        get: operations["OrdersController_getMyOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chi tiết 1 đơn hàng của khách */
+        get: operations["OrdersController_getMyOrderDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/sub-orders/{subOrderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Khách hủy 1 đơn hàng con (chỉ khi PENDING) */
+        patch: operations["OrdersController_cancelSubOrder"];
+        trace?: never;
+    };
+    "/api/v1/seller/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách đơn hàng con của Shop (phân trang + lọc status) */
+        get: operations["SellerOrdersController_getSellerOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chi tiết 1 đơn hàng con của Shop */
+        get: operations["SellerOrdersController_getSellerOrderDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/orders/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seller đổi trạng thái đơn hàng con (theo State Machine) */
+        patch: operations["SellerOrdersController_updateStatus"];
+        trace?: never;
+    };
     "/api/v1/promotions": {
         parameters: {
             query?: never;
@@ -814,6 +933,57 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["EngagementsController_update"];
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách thông báo của user (phân trang + lọc is_read) */
+        get: operations["NotificationsController_getNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Đánh dấu tất cả thông báo đã đọc */
+        patch: operations["NotificationsController_markAllAsRead"];
+        trace?: never;
+    };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Đánh dấu 1 thông báo đã đọc */
+        patch: operations["NotificationsController_markAsRead"];
         trace?: never;
     };
 }
@@ -1983,6 +2153,47 @@ export interface components {
              * @example 2026-06-09T01:24:50.993Z
              */
             created_at: string;
+        };
+        CheckoutPreviewDto: {
+            /** @description ID địa chỉ giao hàng (thuộc sổ địa chỉ user) */
+            address_id: string;
+            /** @description Mã giảm giá toàn sàn (GLOBAL) */
+            global_coupon_code?: string;
+            /** @description Mã giảm giá theo từng Shop */
+            shop_coupons?: components["schemas"]["ShopCouponDto"][];
+        };
+        PreviewItemDto: {
+            productId: string;
+            variantId?: Record<string, never> | null;
+            productName: string;
+            variantName?: Record<string, never> | null;
+            productThumbnail?: Record<string, never> | null;
+            price: number;
+            quantity: number;
+            /** @description "Hết hàng" | "Chỉ còn X sản phẩm" | null */
+            stock_warning?: Record<string, never> | null;
+        };
+        PreviewShopDto: {
+            shopId: string;
+            shopName: string;
+            items: components["schemas"]["PreviewItemDto"][];
+            shippingFee: number;
+            shopSubtotal: number;
+            /** @description Số tiền cần mua thêm để freeship (≤100k) hoặc null */
+            freeship_upsell_needed?: Record<string, never> | null;
+        };
+        CheckoutPreviewResponseDto: {
+            shops: components["schemas"]["PreviewShopDto"][];
+            totalShippingFee: number;
+            totalDiscount: number;
+            totalAmount: number;
+        };
+        UpdateSubOrderStatusDto: {
+            /**
+             * @description Trạng thái mới của sub-order
+             * @enum {string}
+             */
+            status: "pending" | "processing" | "shipping" | "delivered" | "cancelled" | "returned";
         };
         CreatePromotionDto: Record<string, never>;
         UpdatePromotionDto: Record<string, never>;
@@ -4270,6 +4481,238 @@ export interface operations {
             };
         };
     };
+    OrdersController_checkoutPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutPreviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutPreviewResponseDto"];
+                };
+            };
+            /** @description Giỏ trống / có sản phẩm không khả dụng / coupon không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_getMyOrders: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo trạng thái đơn hàng Master */
+                status?: "pending" | "processing" | "shipping" | "delivered" | "cancelled" | "returned";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách đơn hàng Master kèm sub-orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_getMyOrderDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID đơn hàng Master */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chi tiết Master + sub-orders + items (snapshot) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy đơn hàng (hoặc không thuộc về bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_cancelSubOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID sub-order */
+                subOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đã hủy, trả về status + tổng tiền Master mới */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sub-order không ở trạng thái PENDING */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sub-order (hoặc không thuộc về bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerOrdersController_getSellerOrders: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo trạng thái sub-order */
+                status?: "pending" | "processing" | "shipping" | "delivered" | "cancelled" | "returned";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách sub-order kèm order + items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập / không phải seller */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerOrdersController_getSellerOrderDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID sub-order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerOrdersController_updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID sub-order */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSubOrderStatusDto"];
+            };
+        };
+        responses: {
+            /** @description Đã cập nhật, trả về status sub-order + Master mới */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chuyển trạng thái không hợp lệ theo State Machine */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PromotionsController_findAll: {
         parameters: {
             query?: never;
@@ -4560,6 +5003,81 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_getNotifications: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo đã đọc / chưa đọc */
+                is_read?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách notification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_markAllAsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Số bản ghi đã cập nhật */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_markAsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID notification */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Không tìm thấy (hoặc không thuộc về bạn) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

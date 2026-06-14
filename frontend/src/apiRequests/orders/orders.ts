@@ -1,58 +1,43 @@
 import http from "@/lib/http";
+import { buildQuery } from "@/lib/utils";
 import {
+  CheckoutPreviewResponse,
   CheckoutBodyType,
   CheckoutPreviewBodyType,
   OrderListQueryType,
-  UpdateOrderStatusBodyType,
-  OrderEnvelope,
+  CheckoutEnvelope,
+  CheckoutPreviewEnvelope,
+  CustomerOrderListEnvelope,
+  CustomerOrderEnvelope,
+  CancelSubOrderEnvelope,
 } from "@/schemaValidations/orders/orders.schema";
 
-const toQuery = (q?: OrderListQueryType) => {
-  if (!q) return "";
-  const params = new URLSearchParams();
-  if (q.page) params.set("page", String(q.page));
-  if (q.limit) params.set("limit", String(q.limit));
-  if (q.status) params.set("status", q.status);
-  const s = params.toString();
-  return s ? `?${s}` : "";
-};
 
 const orderApiRequest = {
-  // ===== ĐÃ CÓ backend =====
   // Idempotency-Key đi qua HEADER, không nằm trong body.
   checkout: (body: CheckoutBodyType, idempotencyKey: string) =>
-    http.post<OrderEnvelope>("/orders/checkout", body, {
+    http.post<CheckoutEnvelope>("/orders/checkout", body, {
       headers: { "Idempotency-Key": idempotencyKey },
     }),
 
-  // ===== @TODO W2: backend chưa tồn tại, sẽ nối ở Tuần 2 =====
-  // @TODO W2: POST /orders/checkout/preview
-  checkoutPreview: (body: CheckoutPreviewBodyType) =>
-    http.post<OrderEnvelope>("/orders/checkout/preview", body),
+  // POST /orders/checkout/preview — ước tính ship/freeship/coupon, không ghi DB.
+  // `.parse()` để coerce mọi field tiền tệ về number (đề phòng decimal-string từ giá variant).
+  checkoutPreview: (body: CheckoutPreviewBodyType, options?: { signal?: AbortSignal }) =>
+    http
+      .post<CheckoutPreviewEnvelope>("/orders/checkout/preview", body, options)
+      .then((res) => ({ message: res.message, data: CheckoutPreviewResponse.parse(res.data) })),
 
-  // @TODO W2: GET /orders (Customer)
+  // GET /orders (Customer) — lịch sử đơn.
   getOrders: (query?: OrderListQueryType) =>
-    http.get<OrderEnvelope>(`/orders${toQuery(query)}`),
+    http.get<CustomerOrderListEnvelope>(`/orders${buildQuery(query)}`),
 
-  // @TODO W2: GET /orders/:id (Customer)
+  // GET /orders/:id (Customer)
   getOrderDetail: (id: string) =>
-    http.get<OrderEnvelope>(`/orders/${id}`),
+    http.get<CustomerOrderEnvelope>(`/orders/${id}`),
 
-  // @TODO W2: PATCH /orders/sub-orders/:id/cancel (Customer)
+  // PATCH /orders/sub-orders/:id/cancel (Customer)
   cancelSubOrder: (subOrderId: string) =>
-    http.patch<OrderEnvelope>(`/orders/sub-orders/${subOrderId}/cancel`, {}),
-
-  // @TODO W2: GET /seller/orders (Seller)
-  getSellerOrders: (query?: OrderListQueryType) =>
-    http.get<OrderEnvelope>(`/seller/orders${toQuery(query)}`),
-
-  // @TODO W2: GET /seller/orders/:id (Seller)
-  getSellerOrderDetail: (id: string) =>
-    http.get<OrderEnvelope>(`/seller/orders/${id}`),
-
-  // @TODO W2: PATCH /seller/orders/:id/status (Seller)
-  updateSellerOrderStatus: (id: string, body: UpdateOrderStatusBodyType) =>
-    http.patch<OrderEnvelope>(`/seller/orders/${id}/status`, body),
+    http.patch<CancelSubOrderEnvelope>(`/orders/sub-orders/${subOrderId}/cancel`, {}),
 };
 
 export default orderApiRequest;

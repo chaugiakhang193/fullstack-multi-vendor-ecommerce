@@ -3,6 +3,9 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { AUTH_API_ENDPOINTS } from "@/constants/routes";
 import { HTTP_STATUS } from "@/constants/http-status";
 
+export type ApiEnvelope<T> = { message?: string; data: T };
+
+
 // Custom phần báo lỗi
 export class HttpError extends Error {
   status: number;
