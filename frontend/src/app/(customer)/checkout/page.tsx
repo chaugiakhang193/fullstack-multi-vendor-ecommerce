@@ -33,10 +33,11 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 // API
 import orderApiRequest from "@/apiRequests/orders/orders";
-import { getErrorMessage } from "@/lib/http";
+import { getErrorMessage, HttpError } from "@/lib/http";
 
 // Constants & types
 import { QUERY_KEYS } from "@/constants/query-keys";
+import { HTTP_STATUS } from "@/constants/http-status";
 import { cn } from "@/lib/utils";
 import { formatVnd } from "@/lib/format";
 import type {
@@ -128,7 +129,17 @@ export default function CheckoutPage() {
 
   const preview = previewQuery.data?.data;
   const shops = preview?.shops ?? [];
-  const isCartEmpty = previewQuery.isSuccess && shops.length === 0;
+  // Backend trả HTTP 400 "Giỏ hàng trống, không thể xem trước" khi giỏ rỗng
+  // (không phải shops=[]). Bắt riêng để render Empty State thay vì banner đỏ.
+  // KHÔNG nuốt mọi 400 vì coupon không hợp lệ cũng 400 (message khác).
+  const previewError = previewQuery.error;
+  const isEmptyCartError =
+    previewError instanceof HttpError &&
+    previewError.status === HTTP_STATUS.BAD_REQUEST &&
+    typeof previewError.payload?.message === "string" &&
+    previewError.payload.message.includes("Giỏ hàng trống");
+  const isCartEmpty =
+    (previewQuery.isSuccess && shops.length === 0) || isEmptyCartError;
   // Chặn đặt hàng chủ động khi có item "Hết hàng" (BE vẫn là chốt chặn cuối).
   // Lưu ý: "Chỉ còn X sản phẩm" vẫn mua được nên KHÔNG chặn.
   const hasOutOfStockItem = shops.some((shop) => {
@@ -301,7 +312,7 @@ export default function CheckoutPage() {
               onAddNew={handleOpenAddressModal}
             />
 
-            {previewQuery.isError ? (
+            {previewQuery.isError && !isEmptyCartError ? (
               <div className="bg-card border border-rose-200 dark:border-rose-900/40 rounded-xl p-6 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 {getErrorMessage(previewQuery.error)}
