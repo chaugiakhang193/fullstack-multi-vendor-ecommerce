@@ -1,9 +1,9 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type OrderStatusType } from "@/schemaValidations/orders/orders.schema";
 
 // Khớp OrderStatus enum backend (common/enums.ts): pending/processing/shipping/delivered/cancelled.
 // 'cancelled' KHÔNG nằm trên timeline tuyến tính → xử lý banner riêng.
-// @TODO W2: khi orders.schema.ts có enum OrderStatus generated, thay key bằng nó cho type-safe.
 const STEPS = [
   { key: "pending", label: "Chờ xử lý" },
   { key: "processing", label: "Đang xử lý" },
@@ -12,7 +12,7 @@ const STEPS = [
 ] as const;
 
 interface OrderStatusTimelineProps {
-  status: string;
+  status: OrderStatusType;
   className?: string;
 }
 
@@ -20,7 +20,11 @@ export function OrderStatusTimeline({
   status,
   className,
 }: OrderStatusTimelineProps) {
-  if (status === "cancelled") {
+  // 'cancelled' và 'returned' KHÔNG nằm trên timeline tuyến tính → banner riêng,
+  // tránh foundIndex = -1 khiến render nhầm về bước "Chờ xử lý".
+  if (status === "cancelled" || status === "returned") {
+    const bannerText =
+      status === "cancelled" ? "Đơn hàng đã bị hủy" : "Đơn hàng đã được trả lại";
     return (
       <div
         className={cn(
@@ -28,7 +32,7 @@ export function OrderStatusTimeline({
           className,
         )}
       >
-        Đơn hàng đã bị hủy
+        {bannerText}
       </div>
     );
   }
