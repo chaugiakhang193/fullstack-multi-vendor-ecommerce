@@ -8,5 +8,7 @@ export const QUERY_KEYS = {
   CHECKOUT_PREVIEW: "checkout-preview",
   SELLER_ORDERS: "seller-orders",
   SELLER_ORDER_DETAIL: "seller-order-detail",
+  CUSTOMER_ORDERS: "customer-orders",
+  CUSTOMER_ORDER_DETAIL: "customer-order-detail",
   NOTIFICATIONS: "notifications",
 } as const;

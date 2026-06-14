@@ -1,6 +1,6 @@
 import z from "zod";
 import type { components } from "@/lib/api/api-schema";
-import { ApiEnvelope } from "@/lib/http";
+import type { ApiEnvelope } from "@/lib/http";
 
 
 // `satisfies` đảm bảo Zod schema luôn khớp generated type từ api-schema.d.ts.
@@ -156,6 +156,10 @@ export const SellerOrderShop = z.object({
   id: z.string(),
   name: z.string(),
   logo_url: z.string().nullable().optional(),
+  // Tọa độ shop (decimal → string runtime) cho Live-Tracking Map. getOrderDetail
+  // KHÔNG .parse() nên field qua được; khai optional để TS cho truy cập + an toàn nếu thiếu.
+  lat: z.union([z.string(), z.number()]).nullable().optional(),
+  lng: z.union([z.string(), z.number()]).nullable().optional(),
 });
 
 // Order "master" được load kèm (leftJoin) — customer KHÔNG join ở list.

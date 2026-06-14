@@ -20,6 +20,7 @@ import {
   Loader2,
   LogOut,
   MapPin,
+  Package,
   Settings,
   Store,
   User,
@@ -198,6 +199,20 @@ export function Navbar() {
                             >
                               <LayoutDashboard className="h-5 w-5 shrink-0" />
                               <span>Trang quản trị</span>
+                            </Link>
+                          </div>
+                        )}
+
+                        {/* Link Đơn hàng của tôi — hiện cho mọi user trừ Admin */}
+                        {user.role !== UserRole.ADMIN && (
+                          <div className="py-1.5">
+                            <Link
+                              href="/orders"
+                              onClick={() => setIsDropdownOpen(false)}
+                              className="flex items-center space-x-2.5 px-4 py-3 text-sm md:text-base font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
+                            >
+                              <Package className="h-5 w-5 shrink-0" />
+                              <span>Đơn hàng của tôi</span>
                             </Link>
                           </div>
                         )}
