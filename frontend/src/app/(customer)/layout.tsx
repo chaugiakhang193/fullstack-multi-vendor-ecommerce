@@ -19,6 +19,7 @@ import { QUERY_KEYS } from "@/constants/query-keys";
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 // Khai báo price formatter ngoài component để tránh re-creation và tuân thủ rule
 const priceFormatterObj = new Intl.NumberFormat("vi-VN", {
@@ -488,10 +489,11 @@ export default function CustomerLayout({
               )}
             </button>
 
-            <Separator orientation="vertical" className="h-12" />
-
             {/* User Dropdown Profile Menu */}
             {user ? (
+              <>
+                <NotificationBell size="lg" />
+                <Separator orientation="vertical" className="h-12" />
               <div className="relative">
                 <button
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -575,6 +577,7 @@ export default function CustomerLayout({
                   </>
                 )}
               </div>
+              </>
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login">

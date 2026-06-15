@@ -15,7 +15,6 @@ import useHydrated from "@/hooks/useHydrated";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Bell,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -40,6 +39,7 @@ import authApiRequest from "@/apiRequests/auth/auth";
 import { tabId } from "@/lib/utils";
 import { UserRole } from "@/constants/enum";
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Navbar() {
   const isClient = useHydrated();
@@ -134,10 +134,7 @@ export function Navbar() {
             {user ? (
               <>
                 {/* Notifications Bell */}
-                <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
-                </button>
+                <NotificationBell />
 
                 <Separator orientation="vertical" className="h-6" />
 

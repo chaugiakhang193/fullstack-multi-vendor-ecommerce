@@ -100,7 +100,7 @@ export class NotificationGateway
       // Seller → query DB lấy shopId để join room shop.
       // shopId không có trong JWT — query 1 lần/session là trade-off chấp nhận được
       // thay vì sửa auth flow ở 3 chỗ (login, refresh, createTokens).
-      if (role === 'SELLER') {
+      if (role.toUpperCase() === 'SELLER') {
         try {
           // Shop entity: cột 'seller_id', relation property 'seller'
           // → where: { seller: { id: userId } } là đúng cú pháp TypeORM relation filter

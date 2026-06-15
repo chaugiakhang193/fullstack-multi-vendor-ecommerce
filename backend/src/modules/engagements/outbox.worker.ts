@@ -68,7 +68,6 @@ export class OutboxWorker {
 
     this.isProcessing = true;
     try {
-      // pessimistic_write_or_fail → FOR UPDATE NOWAIT: row đang bị lock → throw → [].
       const pendingStatus = OutboxEventStatus.PENDING;
       const events = await this.outboxRepo
         .createQueryBuilder('e')
@@ -76,9 +75,11 @@ export class OutboxWorker {
         .andWhere('e.event_type IN (:...types)', { types: HANDLED_EVENT_TYPES })
         .orderBy('e.created_at', 'ASC')
         .limit(OUTBOX_BATCH_SIZE)
-        .setLock('pessimistic_write_or_fail')
         .getMany()
-        .catch(() => [] as OutboxEvent[]);
+        .catch((err: Error) => {
+          this.logger.error(`[OutboxWorker] Query lỗi: ${err.message}`);
+          return [] as OutboxEvent[];
+        });
 
       for (const event of events) {
         await this.processOneEvent(event);

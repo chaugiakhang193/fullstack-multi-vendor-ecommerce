@@ -12,11 +12,11 @@ import {
   Menu,
   X,
   LogOut,
-  Bell,
   ChevronRight,
   User,
   ExternalLink,
 } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
@@ -498,10 +498,7 @@ export default function SellerLayout({
             </Link>
 
             {/* Notifications */}
-            <button className="p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
-            </button>
+            <NotificationBell />
 
             <Separator orientation="vertical" className="h-8" />
 
