@@ -21,7 +21,7 @@ import { getErrorMessage } from "@/lib/http";
 
 // Constants & types
 import { QUERY_KEYS } from "@/constants/query-keys";
-import { type OrderStatusType } from "@/schemaValidations/orders/orders.schema";
+import { type OrderStatusType, ORDER_STATUS_LABELS } from "@/schemaValidations/orders/orders.schema";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,10 @@ export default function SellerOrderDetailPage() {
   const id = params.id;
   const queryClient = useQueryClient();
 
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<{
+    to: OrderStatusType;
+    label: string;
+  } | null>(null);
 
   const detailQuery = useQuery({
     queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL, id],
@@ -69,29 +72,18 @@ export default function SellerOrderDetailPage() {
       const message = getErrorMessage(error);
       toast.error(message);
     },
-    onSettled: () => setConfirmCancel(false),
+    onSettled: () => setPendingTransition(null),
   });
 
   // ===== Handlers =====
-  const handleAction = (to: OrderStatusType) => {
-    if (to === "cancelled") {
-      setConfirmCancel(true);
-      return;
-    }
-    updateMutation.mutate(to);
+  const handleAction = (to: OrderStatusType, label: string) => {
+    setPendingTransition({ to, label });
   };
 
-  const handleCloseCancelDialog = () => {
-    setConfirmCancel(false);
-  };
+  const handleCloseDialog = () => setPendingTransition(null);
 
-  const handleCancelDialogOpenChange = (open: boolean) => {
-    if (!open) setConfirmCancel(false);
-  };
-
-  const handleConfirmCancel = () => {
-    const cancelledStatus: OrderStatusType = "cancelled";
-    updateMutation.mutate(cancelledStatus);
+  const handleConfirm = () => {
+    if (pendingTransition) updateMutation.mutate(pendingTransition.to);
   };
 
   const backLink = (
@@ -274,7 +266,7 @@ export default function SellerOrderDetailPage() {
                   const buttonVariant =
                     transition.tone === "danger" ? "destructive" : "default";
                   const handleClickAction = () => {
-                    handleAction(targetStatus);
+                    handleAction(targetStatus, transition.label);
                   };
                   return (
                     <Button
@@ -299,36 +291,43 @@ export default function SellerOrderDetailPage() {
         </div>
       </div>
 
-      {/* Confirm cancel dialog */}
-      <Dialog open={confirmCancel} onOpenChange={handleCancelDialogOpenChange}>
+      {/* Confirm status change dialog */}
+      <Dialog open={!!pendingTransition} onOpenChange={(open) => !open && handleCloseDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Hủy đơn hàng?</DialogTitle>
+            <DialogTitle>Xác nhận thay đổi trạng thái?</DialogTitle>
             <DialogDescription>
-              Hành động này sẽ hoàn kho và không thể hoàn tác. Bạn chắc chắn muốn
-              hủy đơn{" "}
-              <span className="font-bold text-foreground">{orderNumber}</span>?
+              Bạn có đồng ý chuyển trạng thái đơn{" "}
+              <span className="font-bold text-foreground">{orderNumber}</span> từ{" "}
+              <span className="font-bold text-foreground">
+                {ORDER_STATUS_LABELS[status]}
+              </span>{" "}
+              sang{" "}
+              <span className="font-bold text-foreground">
+                {pendingTransition?.to ? ORDER_STATUS_LABELS[pendingTransition.to] : ""}
+              </span>
+              ?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-2">
             <Button
               variant="outline"
-              onClick={handleCloseCancelDialog}
+              onClick={handleCloseDialog}
               disabled={updateMutation.isPending}
             >
               Quay lại
             </Button>
             <Button
-              variant="destructive"
+              variant={pendingTransition?.to === "cancelled" ? "destructive" : "default"}
               disabled={updateMutation.isPending}
-              onClick={handleConfirmCancel}
+              onClick={handleConfirm}
             >
               {updateMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Đang hủy...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang xử lý...
                 </>
               ) : (
-                "Xác nhận hủy"
+                "Xác nhận"
               )}
             </Button>
           </div>
