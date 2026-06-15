@@ -18,5 +18,4 @@ export const REQUIRED_AUTH_PATH_PREFIXES = [
   "/admin",
   "/seller",
   "/profile",
-  "/orders",
 ] as const;

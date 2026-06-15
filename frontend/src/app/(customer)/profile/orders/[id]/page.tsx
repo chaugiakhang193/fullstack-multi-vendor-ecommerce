@@ -71,7 +71,7 @@ export default function CustomerOrderDetailPage() {
     <Button
       variant="ghost"
       size="sm"
-      render={<Link href="/orders" />}
+      render={<Link href="/profile/orders" />}
       className="mb-2"
     >
       <ArrowLeft className="h-4 w-4" /> Đơn hàng của tôi
@@ -80,7 +80,7 @@ export default function CustomerOrderDetailPage() {
 
   if (detailQuery.isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-6 animate-pulse">
+      <div className="space-y-6 animate-pulse">
         <div className="h-8 w-48 bg-muted rounded-lg" />
         <div className="h-24 bg-muted rounded-xl" />
         <div className="h-72 bg-muted rounded-xl" />
@@ -90,7 +90,7 @@ export default function CustomerOrderDetailPage() {
 
   if (detailQuery.isError || !detailQuery.data) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-4">
+      <div className="space-y-4">
         {backButton}
         <div className="rounded-xl border border-rose-200 dark:border-rose-900/40 bg-card p-8 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -115,7 +115,7 @@ export default function CustomerOrderDetailPage() {
     : "";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
         {backButton}

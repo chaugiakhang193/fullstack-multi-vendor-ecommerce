@@ -204,7 +204,7 @@ export function Navbar() {
                         {user.role !== UserRole.ADMIN && (
                           <div className="py-1.5">
                             <Link
-                              href="/orders"
+                              href="/profile/orders"
                               onClick={() => setIsDropdownOpen(false)}
                               className="flex items-center space-x-2.5 px-4 py-3 text-sm md:text-base font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
                             >

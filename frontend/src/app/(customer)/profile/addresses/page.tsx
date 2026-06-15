@@ -40,7 +40,7 @@ export default function AddressesPage() {
   const emptyStateActionLabel = "Thêm địa chỉ mới";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
           Sổ địa chỉ

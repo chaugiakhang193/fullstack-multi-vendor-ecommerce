@@ -84,7 +84,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
       const href =
         role === UserRole.SELLER
           ? `/seller/orders/${payload.subOrderId}`
-          : `/orders/${payload.orderId}`;
+          : `/profile/orders/${payload.orderId}`;
       toast.info(payload.message, {
         description: `Đơn ${payload.orderNumber}`,
         action: { label: "Xem", onClick: () => router.push(href) },
@@ -115,7 +115,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
     } catch {
       // đánh dấu đọc lỗi không chặn điều hướng
     }
-    router.push(role === UserRole.SELLER ? "/seller/orders" : "/orders");
+    router.push(role === UserRole.SELLER ? "/seller/orders" : "/profile/orders");
   };
 
   const handleMarkAll = async () => {
@@ -197,7 +197,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
             <button
               onClick={() => {
                 setOpen(false);
-                router.push(role === UserRole.SELLER ? "/seller/orders" : "/orders");
+                router.push(role === UserRole.SELLER ? "/seller/orders" : "/profile/orders");
               }}
               className="w-full px-4 py-3 text-sm font-bold text-center text-muted-foreground hover:text-foreground border-t hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
             >

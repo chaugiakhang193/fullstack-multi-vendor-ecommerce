@@ -44,7 +44,7 @@ export default function CustomerOrdersPage() {
   // Guard client-side (mirror /checkout) — redirect sau hydrate để tránh nhấp nháy.
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
-      router.replace("/login?redirect=%2Forders");
+      router.replace("/login?redirect=%2Fprofile%2Forders");
     }
   }, [isHydrated, isAuthenticated, router]);
 
@@ -69,7 +69,7 @@ export default function CustomerOrdersPage() {
   // Skeleton trước hydrate / chưa xác thực — tránh chớp nội dung.
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-10 animate-pulse">
+      <div className="space-y-4 animate-pulse">
         <div className="h-9 w-56 bg-muted rounded-xl mb-8" />
         <div className="space-y-4">
           <div className="h-28 bg-muted rounded-xl" />
@@ -81,7 +81,7 @@ export default function CustomerOrdersPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
@@ -160,7 +160,7 @@ function OrderCard({ order }: { order: CustomerOrderType }) {
 
   return (
     <Link
-      href={`/orders/${order.id}`}
+      href={`/profile/orders/${order.id}`}
       className="block rounded-xl border bg-card p-5 shadow-xs hover:shadow-md hover:border-violet-300 dark:hover:border-violet-800 transition group"
     >
       {/* Top: mã đơn + trạng thái */}

@@ -62,8 +62,8 @@ export default async function CheckoutSuccessPage({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 mt-2 w-full sm:w-auto">
-          {/* /orders & /orders/:id là trang W2 — link tạm 404 tới khi W2 dựng */}
-          <Button render={<Link href={orderId ? `/orders/${orderId}` : "/orders"} />}>
+          {/* Xem chi tiết đơn vừa đặt */}
+          <Button render={<Link href={orderId ? `/profile/orders/${orderId}` : "/profile/orders"} />}>
             Xem đơn hàng
           </Button>
           <Button variant="outline" render={<Link href="/products" />}>

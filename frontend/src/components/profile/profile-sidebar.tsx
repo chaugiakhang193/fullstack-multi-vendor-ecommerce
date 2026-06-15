@@ -1,0 +1,38 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Package, MapPin } from "lucide-react";
+
+const NAV_ITEMS = [
+  { href: "/profile/orders", label: "Đơn hàng của tôi", icon: Package },
+  { href: "/profile/addresses", label: "Sổ địa chỉ", icon: MapPin },
+];
+
+export function ProfileSidebar() {
+  const pathname = usePathname();
+  return (
+    <aside className="lg:sticky lg:top-24">
+      <nav className="rounded-xl border bg-card p-2 shadow-sm space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const isActive = pathname.startsWith(item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
+                isActive
+                  ? "bg-violet-600/10 text-violet-600 dark:text-violet-400"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
