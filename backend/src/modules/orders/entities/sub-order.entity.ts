@@ -44,6 +44,12 @@ export class SubOrder {
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   shipping_fee: number;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  discount_amount: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  total_amount: number;
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 

@@ -745,6 +745,8 @@ export class OrdersService {
           shop: { id: plan.shop.id } as Shop,
           sub_total: plan.shopSubtotal,
           shipping_fee: plan.shippingFee,
+          discount_amount: plan.shopDiscount,
+          total_amount: plan.shopTotal,
           status: OrderStatus.PENDING,
         };
         if (plan.shopCoupon) {
@@ -1149,8 +1151,10 @@ export class OrdersService {
 
       const subTotal = round2(Number(subOrder.sub_total ?? 0));
       const shippingFee = round2(Number(subOrder.shipping_fee ?? 0));
-      const discountAmount = 0; // SubOrder hiện không lưu cột discount riêng
-      const totalAmount = round2(subTotal - discountAmount + shippingFee);
+      const discountAmount = round2(Number(subOrder.discount_amount ?? 0));
+      const totalAmount = round2(
+        Number(subOrder.total_amount ?? subTotal - discountAmount + shippingFee),
+      );
 
       subOrdersResponse.push({
         sub_order_id: subOrder.id,
