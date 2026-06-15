@@ -8,6 +8,7 @@ import { tabId } from "@/lib/utils";
 import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@/lib/query-client";
+import { SocketProvider } from "@/components/providers/socket-provider";
 import { GUEST_ONLY_PATHS, REQUIRED_AUTH_PATH_PREFIXES } from "@/constants/routes";
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
 import { UserRole } from "@/constants/enum";
@@ -104,7 +105,7 @@ export default function AppProvider({
   return (
     <QueryClientProvider client={queryClient}>
       <QueryErrorResetBoundary>
-        {children}
+        <SocketProvider>{children}</SocketProvider>
       </QueryErrorResetBoundary>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

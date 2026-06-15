@@ -52,16 +52,18 @@ export class NotificationGateway
 
   async handleConnection(client: Socket): Promise<void> {
     try {
-      // Parse access_token từ cookie trong HTTP handshake header.
-      // Browser tự động gửi cookie trong WebSocket handshake.
-      // Hàm parse() chuyển raw cookie string thành object { access_token: "...", ... }
+      // access_token không được set thành HttpOnly cookie — FE lưu trong Zustand.
+      // FE truyền token qua socket.io auth option → handshake.auth.token.
+      // Fallback cookie giữ lại phòng trường hợp auth flow thay đổi sau này.
       const rawCookie = client.handshake.headers.cookie ?? '';
       const cookies = parse(rawCookie);
-      const token = cookies['access_token'];
+      const token =
+        (client.handshake.auth as { token?: string })?.token ??
+        cookies['access_token'];
 
       if (!token) {
         this.logger.warn(
-          `[Gateway] Từ chối kết nối — không có access_token cookie. socketId=${client.id}`,
+          `[Gateway] Từ chối kết nối — không có access_token. socketId=${client.id}`,
         );
         client.disconnect();
         return;
