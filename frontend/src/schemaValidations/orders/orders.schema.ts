@@ -176,6 +176,8 @@ export const SellerOrder = z.object({
   id: z.string(),
   sub_total: z.coerce.number().nullable(),
   shipping_fee: z.coerce.number().nullable(),
+  discount_amount: z.coerce.number().nullable(),
+  total_amount: z.coerce.number().nullable(),
   status: OrderStatusEnum,
   created_at: z.string(),
   updated_at: z.string(),

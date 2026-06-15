@@ -129,7 +129,8 @@ export default function SellerOrderDetailPage() {
   const items = order.items ?? [];
   const subTotal = order.sub_total ?? 0;
   const shippingFee = order.shipping_fee ?? 0;
-  const grandTotal = subTotal + shippingFee;
+  const discount = order.discount_amount ?? 0;
+  const grandTotal = order.total_amount ?? subTotal - discount + shippingFee;
   const shippingLabel = shippingFee > 0 ? formatVnd.format(shippingFee) : "Miễn phí";
   const transitions = getTransitions(status);
   const createdAtLabel = formatDateTime(order.created_at);
@@ -239,6 +240,14 @@ export default function SellerOrderDetailPage() {
                 {formatVnd.format(subTotal)}
               </span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Giảm giá</span>
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  −{formatVnd.format(discount)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Phí vận chuyển</span>
               <span className="font-medium text-foreground">{shippingLabel}</span>

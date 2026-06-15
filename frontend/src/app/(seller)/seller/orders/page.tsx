@@ -46,11 +46,9 @@ const TABS: { label: string; value: OrderStatusType | "all" }[] = [
   { label: "Đã hủy", value: "cancelled" },
 ];
 
-// Tổng tiền sub-order (tạm tính + ship). Backend không trả discount riêng cho seller.
+// Số thực thu seller = total_amount snapshot (đã trừ giảm giá). Fallback cho row cũ.
 function subOrderAmount(order: SellerOrderType): number {
-  const subTotal = order.sub_total ?? 0;
-  const shippingFee = order.shipping_fee ?? 0;
-  return subTotal + shippingFee;
+  return order.total_amount ?? (order.sub_total ?? 0) + (order.shipping_fee ?? 0);
 }
 
 export default function SellerOrdersPage() {
@@ -189,7 +187,7 @@ export default function SellerOrdersPage() {
                     <th className="p-6">Mã đơn</th>
                     <th className="p-6">Khách hàng</th>
                     <th className="p-6">Ngày đặt</th>
-                    <th className="p-6 text-right">Tạm tính + ship</th>
+                    <th className="p-6 text-right">Thực thu</th>
                     <th className="p-6 text-center">Trạng thái</th>
                     <th className="p-6 text-center w-[220px]">Thao tác</th>
                   </tr>
