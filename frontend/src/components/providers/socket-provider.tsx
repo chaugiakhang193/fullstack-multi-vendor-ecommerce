@@ -23,14 +23,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Chỉ connect khi đã hydrate + đăng nhập. Chưa đăng nhập → đảm bảo ngắt.
-    if (!isHydrated || !isAuthenticated) {
+    // Chỉ connect khi đã hydrate + đăng nhập + CÓ access token. Token chỉ ở RAM nên sau
+    // khi reload, isAuthenticated vẫn true (persist) nhưng accessToken rỗng — connect với
+    // token rỗng sẽ bị gateway từ chối → reconnect loop → mỗi lần connect lại chạy
+    // health-sync invalidate /cart → bão refetch → 429. Đợi tới khi có token thật mới nối.
+    if (!isHydrated || !isAuthenticated || !accessToken) {
       disconnectSocket();
       setSocket(null);
       return;
     }
 
-    const s = connectSocket(accessToken ?? "");
+    const s = connectSocket(accessToken);
     setSocket(s);
 
     // Health-sync: sau mỗi (re)connect, data có thể cũ do lỡ event lúc rớt mạng.
