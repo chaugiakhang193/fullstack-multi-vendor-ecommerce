@@ -1,47 +1,56 @@
 import { useQuery } from "@tanstack/react-query";
 import productsApiRequest from "@/apiRequests/products/products";
 import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
+import { productKeys, STALE_TIME } from "@/constants/query-keys";
 
-/**
- * Hook mẫu truy vấn danh sách sản phẩm của Seller (Inventory) sử dụng TanStack Query.
- */
+type PublicProductsParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  category_id?: string;
+  min_price?: number;
+  max_price?: number;
+  sort?: string;
+  order?: "ASC" | "DESC";
+};
+
+/** Danh sách sản phẩm của Seller (Inventory). */
 export const useSellerInventory = () => {
   return useQuery({
-    queryKey: ["seller-inventory"],
-    queryFn: async () => {
-      const response = await sellerProductsApiRequest.getSellerInventory();
-      return response; // Trả về dạng ProductListResponseType
-    },
-    // Các tùy chọn nâng cao cấu hình trực tiếp (hoặc dùng mặc định từ query-client)
-    staleTime: 1000 * 60 * 2, // Coi data là mới trong 2 phút
+    queryKey: productKeys.sellerInventory(),
+    queryFn: () => sellerProductsApiRequest.getSellerInventory(),
+    staleTime: STALE_TIME.MEDIUM,
   });
 };
 
-/**
- * Hook truy vấn danh sách sản phẩm công khai (Public) của khách hàng.
- */
+/** Danh sách sản phẩm công khai (Public). */
 export const useProducts = (
-  params?: {
-    page?: number;
-    limit?: number;
-    q?: string;
-    category_id?: string;
-    min_price?: number;
-    max_price?: number;
-    sort?: string;
-    order?: "ASC" | "DESC";
-  },
-  options?: {
-    placeholderData?: (previousData: any) => any;
-  }
+  params?: PublicProductsParams,
+  options?: { placeholderData?: (previousData: any) => any }
 ) => {
   return useQuery({
-    queryKey: ["products", params],
-    queryFn: async () => {
-      const response = await productsApiRequest.getPublicProducts(params);
-      return response;
-    },
-    staleTime: 1000 * 60 * 2, // Coi data là mới trong 2 phút
+    queryKey: productKeys.list(params),
+    queryFn: () => productsApiRequest.getPublicProducts(params),
+    staleTime: STALE_TIME.MEDIUM,
     placeholderData: options?.placeholderData,
+  });
+};
+
+/** Chi tiết một sản phẩm công khai theo id/slug. */
+export const useProductDetail = (productId: string) => {
+  return useQuery({
+    queryKey: productKeys.detail(productId),
+    queryFn: () => productsApiRequest.getProductDetail(productId),
+    enabled: !!productId,
+    staleTime: STALE_TIME.LONG,
+  });
+};
+
+/** Sản phẩm gợi ý (giỏ hàng trống). */
+export const useRecommendProducts = (limit: number = 4) => {
+  return useQuery({
+    queryKey: productKeys.recommend(limit),
+    queryFn: () => productsApiRequest.getPublicProducts({ limit }),
+    staleTime: STALE_TIME.STATIC,
   });
 };
