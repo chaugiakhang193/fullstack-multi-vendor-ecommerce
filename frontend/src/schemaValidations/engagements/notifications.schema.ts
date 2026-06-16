@@ -1,5 +1,6 @@
 import z from "zod";
 import { ApiEnvelope } from "@/lib/http";
+import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
 
 // Backend notifications KHÔNG khai báo @ApiResponse({ type }) → swagger để trống schema,
 // nên không có generated type để `satisfies`. Schema dưới đây viết tay theo entity
@@ -7,11 +8,23 @@ import { ApiEnvelope } from "@/lib/http";
 // (common/enums.ts). Response list là PaginatedResponseDto<Notification> = { items, meta }.
 
 // Khớp NotificationType enum backend (common/enums.ts).
+// Dữ liệu cấu trúc để FE render câu hiển thị (localized + bold). Mirror BE NotificationData.
+// apiRequest KHÔNG .parse() nên union này chỉ dùng để type; render switch có default fallback
+// về `content` nếu gặp kind lạ (backend thêm kind mới mà FE chưa cập nhật).
+export const NotificationData = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("order_placed"), orderNumber: z.string(), amount: z.coerce.number() }),
+  z.object({ kind: z.literal("order_new_seller"), orderNumber: z.string() }),
+  z.object({ kind: z.literal("suborder_cancelled_customer"), orderNumber: z.string() }),
+  z.object({ kind: z.literal("suborder_cancelled_seller"), orderNumber: z.string() }),
+  z.object({ kind: z.literal("suborder_status_changed"), orderNumber: z.string(), status: OrderStatusEnum }),
+]);
+
 export const NotificationItem = z.object({
   id: z.string(),
   type: z.enum(["order.created", "order.status_changed"]),
   title: z.string().nullable(),
   content: z.string().nullable(),
+  data: NotificationData.nullable().optional(),
   is_read: z.boolean(),
   created_at: z.string(),
 });
@@ -40,6 +53,7 @@ export const MarkAllReadResult = z.object({
   updated: z.number(),
 });
 
+export type NotificationDataType = z.TypeOf<typeof NotificationData>;
 export type NotificationItemType = z.TypeOf<typeof NotificationItem>;
 export type NotificationListQueryType = z.TypeOf<typeof NotificationListQuery>;
 export type NotificationListType = z.TypeOf<typeof NotificationList>;

@@ -15,6 +15,7 @@ import { QUERY_KEYS } from "@/constants/query-keys";
 import { UserRole } from "@/constants/enum";
 import { getErrorMessage } from "@/lib/http";
 import { formatDateTime } from "@/lib/format";
+import { renderNotificationData } from "@/components/notifications/notification-content";
 import type { NotificationItemType } from "@/schemaValidations/engagements/notifications.schema";
 
 // Tên event WS — khớp backend notification.events.ts WS_EVENTS.
@@ -184,7 +185,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
                   >
                     <p className="text-base font-bold truncate">{item.title}</p>
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
-                      {item.content}
+                      {renderNotificationData(item.data) ?? item.content}
                     </p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
                       {formatDateTime(item.created_at)}
