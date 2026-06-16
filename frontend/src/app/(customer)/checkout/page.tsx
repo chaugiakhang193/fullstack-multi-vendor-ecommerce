@@ -83,7 +83,9 @@ export default function CheckoutPage() {
     if (isHydrated && !isAuthenticated) {
       const message = "Vui lòng đăng nhập để thanh toán!";
       toast.error(message);
-      const loginPath = "/login";
+      // Kèm redirect để sau khi đăng nhập user quay lại đúng /checkout (login-form đọc
+      // param `redirect`), tránh bị văng về home — đồng bộ pattern với trang orders.
+      const loginPath = "/login?redirect=%2Fcheckout";
       router.replace(loginPath);
     }
   }, [isHydrated, isAuthenticated, router]);
