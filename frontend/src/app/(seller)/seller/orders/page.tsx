@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import {
   type OrderStatusType,
   type SellerOrderType,
+  ORDER_STATUS_LABELS,
 } from "@/schemaValidations/orders/orders.schema";
 
 // Components
@@ -56,7 +57,10 @@ export default function SellerOrdersPage() {
   const [activeTab, setActiveTab] = useState<OrderStatusType | "all">("all");
   const [page, setPage] = useState(1);
   const [actingId, setActingId] = useState<string | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<SellerOrderType | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<{
+    order: SellerOrderType;
+    to: OrderStatusType;
+  } | null>(null);
 
   const listQuery = useQuery({
     queryKey: [QUERY_KEYS.SELLER_ORDERS, activeTab, page],
@@ -90,18 +94,14 @@ export default function SellerOrdersPage() {
     },
     onSettled: () => {
       setActingId(null);
-      setCancelTarget(null);
+      setPendingTransition(null);
     },
   });
 
   // ===== Handlers =====
+  // Mọi chuyển trạng thái (kể cả Hủy) đều qua modal xác nhận trước khi mutate.
   const handleAction = (order: SellerOrderType, to: OrderStatusType) => {
-    if (to === "cancelled") {
-      setCancelTarget(order);
-      return;
-    }
-    const payload = { id: order.id, status: to };
-    updateMutation.mutate(payload);
+    setPendingTransition({ order, to });
   };
 
   const handleTabChange = (value: OrderStatusType | "all") => {
@@ -109,23 +109,30 @@ export default function SellerOrdersPage() {
     setPage(1);
   };
 
-  const handleCloseCancelDialog = () => {
-    setCancelTarget(null);
+  const handleCloseDialog = () => {
+    setPendingTransition(null);
   };
 
-  const handleCancelDialogOpenChange = (open: boolean) => {
-    if (!open) setCancelTarget(null);
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) setPendingTransition(null);
   };
 
-  const handleConfirmCancel = () => {
-    if (!cancelTarget) return;
-    const payload = { id: cancelTarget.id, status: "cancelled" as OrderStatusType };
+  const handleConfirmTransition = () => {
+    if (!pendingTransition) return;
+    const payload = { id: pendingTransition.order.id, status: pendingTransition.to };
     updateMutation.mutate(payload);
   };
 
   const orders = listQuery.data?.data.items ?? [];
   const meta = listQuery.data?.data.meta;
-  const cancelTargetNumber = cancelTarget?.order?.order_number ?? shortId(cancelTarget?.id ?? "");
+  const isCancelTransition = pendingTransition?.to === "cancelled";
+  const pendingOrderNumber =
+    pendingTransition?.order?.order?.order_number ??
+    shortId(pendingTransition?.order?.id ?? "");
+  const pendingFromLabel = pendingTransition
+    ? ORDER_STATUS_LABELS[pendingTransition.order.status]
+    : "";
+  const pendingToLabel = pendingTransition ? ORDER_STATUS_LABELS[pendingTransition.to] : "";
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -283,43 +290,58 @@ export default function SellerOrdersPage() {
         </>
       )}
 
-      {/* Confirm cancel dialog */}
-      <Dialog open={!!cancelTarget} onOpenChange={handleCancelDialogOpenChange}>
-        <DialogContent>
+      {/* Confirm status change dialog (mọi transition, kể cả Hủy) */}
+      <Dialog open={!!pendingTransition} onOpenChange={handleDialogOpenChange}>
+        {pendingTransition && (
+          <DialogContent>
           <DialogHeader>
-            <DialogTitle>Hủy đơn hàng?</DialogTitle>
+            <DialogTitle>
+              {isCancelTransition ? "Hủy đơn hàng?" : "Xác nhận thay đổi trạng thái?"}
+            </DialogTitle>
             <DialogDescription>
-              Hành động này sẽ hoàn kho và không thể hoàn tác. Bạn chắc chắn muốn
-              hủy đơn{" "}
-              <span className="font-bold text-foreground">
-                {cancelTargetNumber}
-              </span>
-              ?
+              {isCancelTransition ? (
+                <>
+                  Hành động này sẽ hoàn kho và không thể hoàn tác. Bạn chắc chắn muốn
+                  hủy đơn{" "}
+                  <span className="font-bold text-foreground">{pendingOrderNumber}</span>?
+                </>
+              ) : (
+                <>
+                  Bạn có đồng ý chuyển trạng thái đơn{" "}
+                  <span className="font-bold text-foreground">{pendingOrderNumber}</span> từ{" "}
+                  <span className="font-bold text-foreground">{pendingFromLabel}</span> sang{" "}
+                  <span className="font-bold text-foreground">{pendingToLabel}</span>?
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-2">
             <Button
               variant="outline"
-              onClick={handleCloseCancelDialog}
+              onClick={handleCloseDialog}
               disabled={updateMutation.isPending}
             >
               Quay lại
             </Button>
             <Button
-              variant="destructive"
+              variant={isCancelTransition ? "destructive" : "default"}
               disabled={updateMutation.isPending}
-              onClick={handleConfirmCancel}
+              onClick={handleConfirmTransition}
             >
               {updateMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Đang hủy...
+                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                  {isCancelTransition ? "Đang hủy..." : "Đang xử lý..."}
                 </>
-              ) : (
+              ) : isCancelTransition ? (
                 "Xác nhận hủy"
+              ) : (
+                "Xác nhận"
               )}
             </Button>
           </div>
-        </DialogContent>
+          </DialogContent>
+        )}
       </Dialog>
     </div>
   );
