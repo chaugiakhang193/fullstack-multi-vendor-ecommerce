@@ -11,7 +11,7 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // Enums & Constants
-import { OutboxEventStatus, NotificationType } from '@/common/enums';
+import { OutboxEventStatus, NotificationType, OrderStatus } from '@/common/enums';
 import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
@@ -21,7 +21,10 @@ import {
 
 // Internal
 import { NotificationGateway } from './notification.gateway';
-import { NotificationService } from './notification.service';
+import {
+  NotificationService,
+  CreateNotificationDto,
+} from './notification.service';
 import {
   WS_EVENTS,
   OrderNewWsPayload,
@@ -167,11 +170,16 @@ export class OutboxWorker {
 
     // Lưu notification cho Customer kể cả khi chưa online —
     // Notification Bell sẽ đọc từ DB này.
-    const customerNotificationDto = {
+    const customerNotificationDto: CreateNotificationDto = {
       userId: payload.userId,
       type: NotificationType.ORDER_CREATED,
       title: 'Đặt hàng thành công',
       content: `Đơn hàng ${payload.orderNumber} đã được đặt thành công. Tổng giá trị: ${payload.totalAmount.toLocaleString('vi-VN')}đ`,
+      data: {
+        kind: 'order_placed',
+        orderNumber: payload.orderNumber,
+        amount: payload.totalAmount,
+      },
     };
     await this.notificationService.create(customerNotificationDto, manager);
 
@@ -191,11 +199,12 @@ export class OutboxWorker {
         continue;
       }
 
-      const sellerNotificationDto = {
+      const sellerNotificationDto: CreateNotificationDto = {
         userId: shop.seller.id,
         type: NotificationType.ORDER_CREATED,
         title: 'Đơn hàng mới',
         content: `Bạn vừa nhận được đơn hàng mới ${payload.orderNumber}.`,
+        data: { kind: 'order_new_seller', orderNumber: payload.orderNumber },
       };
       await this.notificationService.create(sellerNotificationDto, manager);
 
@@ -232,11 +241,12 @@ export class OutboxWorker {
     }
 
     // Thông báo cho Customer biết đơn con đã được hủy theo yêu cầu.
-    const customerNotificationDto = {
+    const customerNotificationDto: CreateNotificationDto = {
       userId: payload.userId,
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: 'Đã hủy đơn hàng con',
       content: `Một shop trong đơn ${payload.orderNumber} đã được hủy theo yêu cầu của bạn.`,
+      data: { kind: 'suborder_cancelled_customer', orderNumber: payload.orderNumber },
     };
     await this.notificationService.create(customerNotificationDto, manager);
 
@@ -255,11 +265,12 @@ export class OutboxWorker {
       return;
     }
 
-    const sellerNotificationDto = {
+    const sellerNotificationDto: CreateNotificationDto = {
       userId: shop.seller.id,
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: 'Đơn hàng bị hủy',
       content: `Khách đã hủy 1 đơn hàng con thuộc đơn ${payload.orderNumber}.`,
+      data: { kind: 'suborder_cancelled_seller', orderNumber: payload.orderNumber },
     };
     await this.notificationService.create(sellerNotificationDto, manager);
 
@@ -296,15 +307,18 @@ export class OutboxWorker {
       throw new TypeError(`Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`);
     }
 
-    await this.notificationService.create(
-      {
-        userId: payload.userId,
-        type: NotificationType.ORDER_STATUS_CHANGED,
-        title: 'Cập nhật đơn hàng',
-        content: `Một shop trong đơn ${payload.orderNumber} đã chuyển sang trạng thái "${payload.newStatus}".`,
+    const statusNotificationDto: CreateNotificationDto = {
+      userId: payload.userId,
+      type: NotificationType.ORDER_STATUS_CHANGED,
+      title: 'Cập nhật đơn hàng',
+      content: `Một shop trong đơn ${payload.orderNumber} đã chuyển sang trạng thái "${payload.newStatus}".`,
+      data: {
+        kind: 'suborder_status_changed',
+        orderNumber: payload.orderNumber,
+        status: payload.newStatus as OrderStatus,
       },
-      manager,
-    );
+    };
+    await this.notificationService.create(statusNotificationDto, manager);
 
     const wsPayload: OrderStatusChangedWsPayload = {
       orderId: payload.orderId,

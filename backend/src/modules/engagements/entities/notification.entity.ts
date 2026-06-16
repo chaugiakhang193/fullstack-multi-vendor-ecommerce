@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { NotificationType } from '@/common/enums';
+import { NotificationData } from '@/modules/engagements/notification.data';
 
 @Entity()
 @Index(['user', 'is_read', 'created_at'])
@@ -33,6 +34,10 @@ export class Notification {
 
   @Column({ type: 'text', nullable: true })
   content: string;
+
+  // Dữ liệu cấu trúc để FE render câu hiển thị (localized + bold). content giữ làm fallback.
+  @Column({ type: 'jsonb', nullable: true })
+  data: NotificationData | null;
 
   @Column({ default: false })
   is_read: boolean;

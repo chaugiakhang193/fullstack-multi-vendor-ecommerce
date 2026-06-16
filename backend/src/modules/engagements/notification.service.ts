@@ -10,6 +10,7 @@ import { Notification } from '@/modules/engagements/entities/notification.entity
 
 // Enums
 import { NotificationType } from '@/common/enums';
+import { NotificationData } from '@/modules/engagements/notification.data';
 
 // Pagination + DTO
 import { paginate } from '@/common/helpers/pagination.helper';
@@ -21,6 +22,7 @@ export interface CreateNotificationDto {
   type: NotificationType;
   title: string;
   content: string;
+  data?: NotificationData;
 }
 
 @Injectable()
@@ -45,6 +47,7 @@ export class NotificationService {
       type: dto.type,
       title: dto.title,
       content: dto.content,
+      data: dto.data ?? null,
     };
     const notification = repo.create(notificationData);
     return repo.save(notification);
