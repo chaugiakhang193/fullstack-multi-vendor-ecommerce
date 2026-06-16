@@ -246,25 +246,32 @@ const request = async <Response>(
       // Phân biệt loại lỗi
       const errorMessage = error?.message || "";
 
-      // Refresh thất bại -> Đá văng ra login
       const logoutStore = useAuthStore.getState();
-      logoutStore.logout();
+      // Chỉ logout (kéo theo clearCart) + đá về login khi user VỐN đang đăng nhập.
+      // Guest gặp 401 (vd lỡ gọi endpoint /me) thì KHÔNG logout — tránh xóa nhầm giỏ
+      // guest; chỉ ném 401 cho caller tự xử, để guard của trang điều hướng êm (có redirect).
+      // Mirror cách silentRefresh phân biệt wasAuthenticated (useAuthStore.ts).
+      const wasAuthenticated = logoutStore.isAuthenticated;
+      if (wasAuthenticated) {
+        // Refresh thất bại -> Đá văng ra login
+        logoutStore.logout();
 
-      const currentPath = window.location.pathname;
-      const isAuthPage = typeof window !== "undefined" && ["/login", "/register"].includes(currentPath);
-      if (typeof window !== "undefined" && !isAuthPage) {
-        const fullPath = window.location.pathname + window.location.search;
-        const redirectPath = encodeURIComponent(fullPath);
+        const currentPath = window.location.pathname;
+        const isAuthPage = typeof window !== "undefined" && ["/login", "/register"].includes(currentPath);
+        if (typeof window !== "undefined" && !isAuthPage) {
+          const fullPath = window.location.pathname + window.location.search;
+          const redirectPath = encodeURIComponent(fullPath);
 
-        // Hiển thị cảnh báo bảo mật nếu token không hợp lệ
-        if (errorMessage === "INVALID_TOKEN") {
-          // Lưu flag vào sessionStorage để AppProvider hiển thị toast
-          const sessionFlag = "auth_security_warning";
-          sessionStorage.setItem(sessionFlag, "true");
+          // Hiển thị cảnh báo bảo mật nếu token không hợp lệ
+          if (errorMessage === "INVALID_TOKEN") {
+            // Lưu flag vào sessionStorage để AppProvider hiển thị toast
+            const sessionFlag = "auth_security_warning";
+            sessionStorage.setItem(sessionFlag, "true");
+          }
+
+          const loginRedirectUrl = `/login?redirect=${redirectPath}`;
+          window.location.href = loginRedirectUrl;
         }
-
-        const loginRedirectUrl = `/login?redirect=${redirectPath}`;
-        window.location.href = loginRedirectUrl;
       }
 
       const isExpired = errorMessage === "SESSION_EXPIRED";
