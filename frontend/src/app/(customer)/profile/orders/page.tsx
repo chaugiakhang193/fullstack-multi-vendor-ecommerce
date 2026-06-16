@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { Loader2, Package, AlertTriangle, ChevronRight, ShoppingBag } from "lucide-react";
 
-import orderApiRequest from "@/apiRequests/orders/orders";
 import { getErrorMessage } from "@/lib/http";
-import { QUERY_KEYS } from "@/constants/query-keys";
+import { useCustomerOrdersList } from "@/hooks/useCustomerOrders";
 import { cn } from "@/lib/utils";
 import {
   type OrderStatusType,
@@ -48,15 +46,7 @@ export default function CustomerOrdersPage() {
     }
   }, [isHydrated, isAuthenticated, router]);
 
-  const listQuery = useQuery({
-    queryKey: [QUERY_KEYS.CUSTOMER_ORDERS, activeTab, page],
-    queryFn: () => {
-      const statusFilter = activeTab === "all" ? undefined : activeTab;
-      return orderApiRequest.getOrders({ page, limit: LIMIT, status: statusFilter });
-    },
-    enabled: isHydrated && isAuthenticated,
-    staleTime: 1000 * 30,
-  });
+  const listQuery = useCustomerOrdersList(activeTab, page, isHydrated && isAuthenticated);
 
   const handleTabChange = (value: OrderStatusType | "all") => {
     setActiveTab(value);

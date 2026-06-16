@@ -2,16 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Eye, Loader2, Package, AlertTriangle } from "lucide-react";
 
 // API
-import sellerOrderApiRequest from "@/apiRequests/orders/seller-orders";
 import { getErrorMessage } from "@/lib/http";
 
-// Constants & types
-import { QUERY_KEYS } from "@/constants/query-keys";
+// Hooks
+import { useSellerOrdersList, useUpdateSellerOrderStatus } from "@/hooks/useSellerOrders";
 import { cn } from "@/lib/utils";
 import {
   type OrderStatusType,
@@ -53,7 +50,7 @@ function subOrderAmount(order: SellerOrderType): number {
 }
 
 export default function SellerOrdersPage() {
-  const queryClient = useQueryClient();
+
   const [activeTab, setActiveTab] = useState<OrderStatusType | "all">("all");
   const [page, setPage] = useState(1);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -62,36 +59,9 @@ export default function SellerOrdersPage() {
     to: OrderStatusType;
   } | null>(null);
 
-  const listQuery = useQuery({
-    queryKey: [QUERY_KEYS.SELLER_ORDERS, activeTab, page],
-    queryFn: () => {
-      const statusFilter = activeTab === "all" ? undefined : activeTab;
-      const params = { page, limit: LIMIT, status: statusFilter };
-      return sellerOrderApiRequest.getSellerOrders(params);
-    },
-    staleTime: 1000 * 30, // Coi dữ liệu đơn hàng là mới trong 30 giây
-  });
+  const listQuery = useSellerOrdersList(activeTab, page);
 
-  const updateMutation = useMutation({
-    mutationFn: (vars: { id: string; status: OrderStatusType }) => {
-      const { id, status } = vars;
-      const body = { status };
-      return sellerOrderApiRequest.updateSellerOrderStatus(id, body);
-    },
-    onMutate: (vars) => {
-      const { id } = vars;
-      setActingId(id);
-    },
-    onSuccess: () => {
-      const message = "Cập nhật trạng thái đơn hàng thành công";
-      toast.success(message);
-      const listFilter = { queryKey: [QUERY_KEYS.SELLER_ORDERS] };
-      queryClient.invalidateQueries(listFilter);
-    },
-    onError: (error) => {
-      const message = getErrorMessage(error);
-      toast.error(message);
-    },
+  const updateMutation = useUpdateSellerOrderStatus({
     onSettled: () => {
       setActingId(null);
       setPendingTransition(null);
@@ -119,8 +89,11 @@ export default function SellerOrdersPage() {
 
   const handleConfirmTransition = () => {
     if (!pendingTransition) return;
-    const payload = { id: pendingTransition.order.id, status: pendingTransition.to };
-    updateMutation.mutate(payload);
+    setActingId(pendingTransition.order.id);
+    updateMutation.mutate({
+      id: pendingTransition.order.id,
+      body: { status: pendingTransition.to },
+    });
   };
 
   const orders = listQuery.data?.data.items ?? [];

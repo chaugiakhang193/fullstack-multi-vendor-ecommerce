@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, ShieldCheck, ShoppingBag, ArrowRight, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
 
 // Hooks & Components
 import { useActiveCart } from "@/hooks/useActiveCart";
@@ -14,9 +13,7 @@ import CartShopGroup from "./components/CartShopGroup";
 import { EmptyCart } from "@/components/shared/empty-state";
 import StickyCheckoutBar from "@/components/cart/StickyCheckoutBar";
 import ProductCard from "@/components/products/product-card";
-
-// API
-import productsApiRequest from "@/apiRequests/products/products";
+import { useRecommendProducts } from "@/hooks/useProducts";
 
 // Helpers & Types
 import { cn } from "@/lib/utils";
@@ -43,15 +40,7 @@ const getItemKey = (item: CartItem) => {
 
 // Component con hiển thị giỏ hàng trống kết hợp danh sách sản phẩm gợi ý
 function EmptyCartWithRecommend() {
-  const recommendQueryConfig = {
-    queryKey: ["recommend-products"],
-    queryFn: () => {
-      const getParamsObj = { limit: 4 };
-      return productsApiRequest.getPublicProducts(getParamsObj);
-    },
-    staleTime: 1000 * 60 * 10, // Cache trong 10 phút
-  };
-  const { data: productsRes, isLoading } = useQuery(recommendQueryConfig);
+  const { data: productsRes, isLoading } = useRecommendProducts(4);
   const recommendProducts = productsRes?.data?.items || [];
 
   return (

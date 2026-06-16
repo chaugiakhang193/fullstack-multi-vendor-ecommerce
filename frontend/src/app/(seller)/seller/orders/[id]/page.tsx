@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import {
   ArrowLeft,
   Loader2,
@@ -16,11 +14,10 @@ import {
 } from "lucide-react";
 
 // API
-import sellerOrderApiRequest from "@/apiRequests/orders/seller-orders";
 import { getErrorMessage } from "@/lib/http";
 
-// Constants & types
-import { QUERY_KEYS } from "@/constants/query-keys";
+// Hooks
+import { useSellerOrderDetail, useUpdateSellerOrderStatus } from "@/hooks/useSellerOrders";
 import { type OrderStatusType, ORDER_STATUS_LABELS } from "@/schemaValidations/orders/orders.schema";
 
 // Components
@@ -42,36 +39,16 @@ import { formatVnd, formatDateTime, shortId } from "@/lib/format";
 export default function SellerOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const queryClient = useQueryClient();
+
 
   const [pendingTransition, setPendingTransition] = useState<{
     to: OrderStatusType;
     label: string;
   } | null>(null);
 
-  const detailQuery = useQuery({
-    queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL, id],
-    queryFn: () => sellerOrderApiRequest.getSellerOrderDetail(id),
-    enabled: !!id,
-  });
+  const detailQuery = useSellerOrderDetail(id);
 
-  const updateMutation = useMutation({
-    mutationFn: (status: OrderStatusType) => {
-      const body = { status };
-      return sellerOrderApiRequest.updateSellerOrderStatus(id, body);
-    },
-    onSuccess: () => {
-      const message = "Cập nhật trạng thái đơn hàng thành công";
-      toast.success(message);
-      const detailFilter = { queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL, id] };
-      queryClient.invalidateQueries(detailFilter);
-      const listFilter = { queryKey: [QUERY_KEYS.SELLER_ORDERS] };
-      queryClient.invalidateQueries(listFilter);
-    },
-    onError: (error) => {
-      const message = getErrorMessage(error);
-      toast.error(message);
-    },
+  const updateMutation = useUpdateSellerOrderStatus({
     onSettled: () => setPendingTransition(null),
   });
 
@@ -83,7 +60,9 @@ export default function SellerOrderDetailPage() {
   const handleCloseDialog = () => setPendingTransition(null);
 
   const handleConfirm = () => {
-    if (pendingTransition) updateMutation.mutate(pendingTransition.to);
+    if (pendingTransition) {
+      updateMutation.mutate({ id, body: { status: pendingTransition.to } });
+    }
   };
 
   const backLink = (

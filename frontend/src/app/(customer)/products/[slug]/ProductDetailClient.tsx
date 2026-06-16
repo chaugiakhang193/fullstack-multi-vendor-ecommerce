@@ -4,7 +4,6 @@ import React, { useState, useEffect, use, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import {
   ShoppingCart,
   Star,
@@ -20,12 +19,12 @@ import {
 import { toast } from "sonner";
 
 // Services, Stores & Hooks
-import productsApiRequest from "@/apiRequests/products/products";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
 import { useActiveCart } from "@/hooks/useActiveCart";
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
+import { useProductDetail } from "@/hooks/useProducts";
+import { useMyShop } from "@/hooks/useShop";
 
 // Components
 import VariantSelector from "@/components/products/VariantSelector";
@@ -80,16 +79,8 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   const setIsOpen = useCartStore((state) => state.setIsOpen);
   const user = useAuthStore((state) => state.user);
 
-  // Fetch product detail using React Query
-  const fetchDetailFn = () => {
-    const detailPromise = productsApiRequest.getProductDetail(productId);
-    return detailPromise;
-  };
-  const { data: detailRes, isLoading, error } = useQuery({
-    queryKey: ["product-detail", productId],
-    queryFn: fetchDetailFn,
-    retry: 1,
-  });
+  // Fetch product detail using React Query hook
+  const { data: detailRes, isLoading, error } = useProductDetail(productId);
 
   const product = detailRes?.data;
   const addProductToRecentlyViewed = useRecentlyViewedStore((state) => state.addProduct);
@@ -101,16 +92,8 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
     }
   }, [product, addProductToRecentlyViewed]);
 
-  // Fetch seller's own shop if logged in as seller
-  const { data: myShopRes } = useQuery({
-    queryKey: ["my-shop-detail"],
-    queryFn: () => {
-      const myShopPromise = sellerShopsApiRequest.getMyShop();
-      return myShopPromise;
-    },
-    enabled: user?.role === "seller",
-    retry: false,
-  });
+  // Fetch seller's own shop if logged in as seller using hook
+  const { data: myShopRes } = useMyShop(user?.role === "seller");
   const myShop = myShopRes?.data;
 
   const isOwnProduct = product && myShop

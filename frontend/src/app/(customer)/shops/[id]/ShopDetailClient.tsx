@@ -4,7 +4,6 @@ import React, { use, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import {
   Store,
   Calendar,
@@ -19,8 +18,7 @@ import {
 import { toast } from "sonner";
 
 // Services & Components
-import shopsApiRequest from "@/apiRequests/shops/shops";
-import productsApiRequest from "@/apiRequests/products/products";
+import { useShopDetail, useShopCatalog } from "@/hooks/useShop";
 import ProductCard from "@/components/products/product-card";
 import SortDropdown, { SortOption } from "@/components/products/sort-dropdown";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -101,12 +99,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
 
 
   // Fetch shop detail using React Query (staleTime 5 minutes)
-  const { data: shopRes, isLoading: isShopLoading, error: shopError } = useQuery({
-    queryKey: ["public-shop-detail", shopId],
-    queryFn: () => shopsApiRequest.getPublicShopDetail(shopId),
-    retry: 1,
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: shopRes, isLoading: isShopLoading, error: shopError } = useShopDetail(shopId);
   const shop = shopRes?.data;
 
   // Map logical page and expansion to API params
@@ -123,13 +116,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
   };
 
   // Fetch shop catalog using React Query
-  const productsQueryResult = useQuery({
-    queryKey: ["public-shop-catalog", shopId, productsQuery],
-    queryFn: () => productsApiRequest.getPublicCatalogByShop(shopId, productsQuery),
-    retry: 1,
-    staleTime: 1000 * 60 * 2,
-    placeholderData: (prev) => prev,
-  });
+  const productsQueryResult = useShopCatalog(shopId, productsQuery);
   const isProductsLoading = productsQueryResult.isLoading;
   const products = productsQueryResult.data?.data?.items || [];
   const meta = productsQueryResult.data?.data?.meta;

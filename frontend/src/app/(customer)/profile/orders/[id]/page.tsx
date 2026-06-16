@@ -4,8 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import {
   ArrowLeft,
   Loader2,
@@ -18,9 +16,8 @@ import {
   X,
 } from "lucide-react";
 
-import orderApiRequest from "@/apiRequests/orders/orders";
 import { getErrorMessage } from "@/lib/http";
-import { QUERY_KEYS } from "@/constants/query-keys";
+import { useCustomerOrderDetail, useCancelSubOrder } from "@/hooks/useCustomerOrders";
 import { type CustomerOrderSubOrderType } from "@/schemaValidations/orders/orders.schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,27 +35,13 @@ import { formatVnd, formatDateTime, shortId } from "@/lib/format";
 export default function CustomerOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const queryClient = useQueryClient();
+
 
   const [cancelTarget, setCancelTarget] = useState<CustomerOrderSubOrderType | null>(null);
 
-  const detailQuery = useQuery({
-    queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL, id],
-    queryFn: () => orderApiRequest.getOrderDetail(id),
-    enabled: !!id,
-  });
+  const detailQuery = useCustomerOrderDetail(id);
 
-  const cancelMutation = useMutation({
-    mutationFn: (subOrderId: string) => orderApiRequest.cancelSubOrder(subOrderId),
-    onSuccess: () => {
-      toast.success("Đã hủy đơn hàng và hoàn kho thành công");
-      // KHÔNG đọc response body (mismatch subOrderStatus) — refetch là nguồn sự thật.
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL, id] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDERS] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error));
-    },
+  const cancelMutation = useCancelSubOrder(id, {
     onSettled: () => setCancelTarget(null),
   });
 
