@@ -35,6 +35,7 @@ import {
 } from '@/modules/orders/dto/checkout-response.dto';
 import { CustomerOrderQueryDto } from '@/modules/orders/dto/customer-order-query.dto';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import { paginate } from '@/common/helpers/pagination.helper';
 
 // Services
@@ -185,6 +186,89 @@ export class OrdersService {
     @Inject('IShippingCalculator')
     private readonly shippingCalculator: IShippingCalculator,
   ) { }
+
+  // ==========================================
+  // CROSS-MODULE HELPERS Dùng bởi EngagementsModule (reviews)
+  // ==========================================
+
+  /** Lấy 1 order_item kèm quan hệ cần để validate review (null nếu không có). */
+  async findOrderItemForReview(orderItemId: string): Promise<OrderItem | null> {
+    return this.dataSource.getRepository(OrderItem).findOne({
+      where: { id: orderItemId },
+      relations: {
+        sub_order: { order: { customer: true } },
+        product: { shop: true },
+      },
+    });
+  }
+
+  /** order_item này có thuộc đơn DELIVERED của user không (không xét đã review chưa). */
+  async isDeliveredOrderItemOfUser(
+    userId: string,
+    orderItemId: string,
+  ): Promise<boolean> {
+    const count = await this.dataSource
+      .getRepository(OrderItem)
+      .createQueryBuilder('oi')
+      .innerJoin('oi.sub_order', 'so')
+      .innerJoin('so.order', 'o')
+      .where('oi.id = :orderItemId', { orderItemId })
+      .andWhere('o.customer_id = :userId', { userId })
+      .andWhere('so.status = :delivered', { delivered: OrderStatus.DELIVERED })
+      .getCount();
+    return count > 0;
+  }
+
+  /**
+   * Danh sách order_item DELIVERED của user, LOẠI TRỪ các id đã review (caller truyền vào).
+   * Trả raw row (kèm order_number + delivered_at) + meta phân trang.
+   */
+  async getReviewableOrderItems(
+    userId: string,
+    excludeOrderItemIds: string[],
+    query: PaginationQueryDto,
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const baseQb = this.dataSource
+      .getRepository(OrderItem)
+      .createQueryBuilder('oi')
+      .innerJoin('oi.sub_order', 'so')
+      .innerJoin('so.order', 'o')
+      .where('o.customer_id = :userId', { userId })
+      .andWhere('so.status = :delivered', { delivered: OrderStatus.DELIVERED });
+
+    if (excludeOrderItemIds.length > 0) {
+      baseQb.andWhere('oi.id NOT IN (:...excludeIds)', {
+        excludeIds: excludeOrderItemIds,
+      });
+    }
+
+    const totalItems = await baseQb.getCount();
+
+    const items = await baseQb
+      .clone()
+      .select([
+        'oi.id AS order_item_id',
+        'oi.product_id AS product_id',
+        'oi.product_name AS product_name',
+        'oi.variant_name AS variant_name',
+        'oi.product_thumbnail AS product_thumbnail',
+        'oi.variant_attributes AS variant_attributes',
+        'oi.quantity AS quantity',
+        'o.order_number AS order_number',
+        'so.updated_at AS delivered_at',
+      ])
+      .orderBy('so.updated_at', 'DESC')
+      .offset(skip)
+      .limit(limit)
+      .getRawMany();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    return { items, meta: { page, limit, totalItems, totalPages } };
+  }
 
   // ==========================================
   // PUBLIC ENTRY

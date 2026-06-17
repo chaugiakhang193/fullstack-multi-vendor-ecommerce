@@ -18,19 +18,16 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
-import { Product } from '@/modules/products/entities/product.entity';
-import { OrderItem } from '@/modules/orders/entities/order-item.entity';
+
+// Modules (Rule II.11 — truy cập entity module khác qua service của module đó)
+import { ProductsModule } from '@/modules/products/products.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Shop,
-      Notification,
-      OutboxEvent,
-      Review,
-      Product,
-      OrderItem,
-    ]),
+    TypeOrmModule.forFeature([Shop, Notification, OutboxEvent, Review]),
+    ProductsModule,
+    OrdersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

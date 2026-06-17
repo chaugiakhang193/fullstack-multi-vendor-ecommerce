@@ -9,6 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   DataSource,
+  EntityManager,
   Repository,
   In,
   Brackets,
@@ -63,6 +64,52 @@ export class ProductsService {
     private readonly shopsService: ShopsService,
     private readonly dataSource: DataSource,
   ) {}
+
+  // ==========================================
+  // CROSS-MODULE HELPERS Dùng bởi EngagementsModule (reviews)
+  // ==========================================
+
+  /** Đảm bảo product tồn tại, không thì 404 (cho module khác validate mà không inject repo). */
+  async ensureExists(id: string): Promise<void> {
+    const realId = extractId(id);
+    const found = await this.productsRepository.findOne({
+      where: { id: realId },
+      select: { id: true },
+    });
+    if (!found) {
+      throw new NotFoundException('Không tìm thấy sản phẩm');
+    }
+  }
+
+  /**
+   * Khoá pessimistic_write dòng product để tuần tự hoá recompute rating.
+   * Phải gọi TRƯỚC khi đọc AVG/COUNT trong cùng transaction (chống lost-update).
+   */
+  async lockProductRow(
+    productId: string,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager
+      .createQueryBuilder()
+      .setLock('pessimistic_write')
+      .select('p.id')
+      .from(Product, 'p')
+      .where('p.id = :id', { id: productId })
+      .getOne();
+  }
+
+  /** Ghi đè rating tổng hợp đã tính sẵn (caller giữ lock + tính từ bảng review). */
+  async applyRatingStats(
+    productId: string,
+    avgRating: number,
+    reviewCount: number,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager.update(Product, productId, {
+      avg_rating: avgRating,
+      review_count: reviewCount,
+    });
+  }
 
   // ==========================================
   // I. CREATE SERVICE

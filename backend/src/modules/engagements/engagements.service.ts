@@ -10,13 +10,14 @@ import { DataSource, Repository } from 'typeorm';
 
 // Entities
 import { Review } from '@/modules/engagements/entities/review.entity';
-import { Product } from '@/modules/products/entities/product.entity';
-import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 
 // DTOs
 import { CreateReviewDto } from '@/modules/engagements/dto/create-review.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+
+import { ProductsService } from '@/modules/products/products.service';
+import { OrdersService } from '@/modules/orders/orders.service';
 
 // Helpers & Constants
 import { paginate } from '@/common/helpers/pagination.helper';
@@ -32,10 +33,8 @@ export class EngagementsService {
   constructor(
     @InjectRepository(Review)
     private readonly reviewRepo: Repository<Review>,
-    @InjectRepository(Product)
-    private readonly productRepo: Repository<Product>,
-    @InjectRepository(OrderItem)
-    private readonly orderItemRepo: Repository<OrderItem>,
+    private readonly productsService: ProductsService,
+    private readonly ordersService: OrdersService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -43,46 +42,18 @@ export class EngagementsService {
   // CUSTOMER: danh sách các lần mua còn đánh giá được
   // ============================================================
   async getReviewableItems(userId: string, query: PaginationQueryDto) {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
+    // Lấy order_item_id user đã review (Review là entity của chính module này).
+    const reviewedRows = await this.reviewRepo
+      .createQueryBuilder('r')
+      .innerJoin('r.order_item', 'oi')
+      .leftJoin('r.user', 'u')
+      .select('oi.id', 'order_item_id')
+      .where('u.id = :userId', { userId })
+      .getRawMany<{ order_item_id: string }>();
+    const excludeIds = reviewedRows.map((row) => row.order_item_id);
 
-    // Base query dùng chung cho count + lấy data. KHÔNG dùng helper paginate()
-    // (getManyAndCount sinh DISTINCT wrapper → vỡ khi order theo cột join chưa select,
-    //  đồng thời nuốt raw addSelect order_number). Đây là list hiển thị thuần nên
-    //  dùng getRawMany + đếm + offset/limit thủ công.
-    const baseQb = this.orderItemRepo
-      .createQueryBuilder('oi')
-      .innerJoin('oi.sub_order', 'so')
-      .innerJoin('so.order', 'o')
-      // LEFT JOIN review theo order_item để lọc ra các mục chưa được đánh giá
-      .leftJoin(Review, 'r', 'r.order_item_id = oi.id')
-      .where('o.customer_id = :userId', { userId })
-      .andWhere('so.status = :delivered', { delivered: OrderStatus.DELIVERED })
-      .andWhere('r.id IS NULL');
-
-    const totalItems = await baseQb.getCount();
-
-    const items = await baseQb
-      .clone()
-      .select([
-        'oi.id AS order_item_id',
-        'oi.product_id AS product_id',
-        'oi.product_name AS product_name',
-        'oi.variant_name AS variant_name',
-        'oi.product_thumbnail AS product_thumbnail',
-        'oi.variant_attributes AS variant_attributes',
-        'oi.quantity AS quantity',
-        'o.order_number AS order_number',
-        'so.updated_at AS delivered_at',
-      ])
-      .orderBy('so.updated_at', 'DESC')
-      .offset(skip)
-      .limit(limit)
-      .getRawMany();
-
-    const totalPages = Math.ceil(totalItems / limit);
-    return { items, meta: { page, limit, totalItems, totalPages } };
+    // OrdersService sở hữu order_item → trả về danh sách delivered, loại các id đã review.
+    return this.ordersService.getReviewableOrderItems(userId, excludeIds, query);
   }
 
   // ============================================================
@@ -92,27 +63,17 @@ export class EngagementsService {
     userId: string,
     orderItemId: string,
   ): Promise<boolean> {
-    const orderItemIdCondition = 'oi.id = :orderItemId';
-    const orderItemIdParams = { orderItemId };
-    const customerIdCondition = 'o.customer_id = :userId';
-    const customerIdParams = { userId };
-    const statusCondition = 'so.status = :delivered';
-    const statusParams = { delivered: OrderStatus.DELIVERED };
-    const notReviewedCondition = 'r.id IS NULL';
-
-    const count = await this.orderItemRepo
-      .createQueryBuilder('oi')
-      .innerJoin('oi.sub_order', 'so')
-      .innerJoin('so.order', 'o')
-      .leftJoin(Review, 'r', 'r.order_item_id = oi.id')
-      .where(orderItemIdCondition, orderItemIdParams)
-      .andWhere(customerIdCondition, customerIdParams)
-      .andWhere(statusCondition, statusParams)
-      .andWhere(notReviewedCondition)
-      .getCount();
-
-    const isReviewable = count > 0;
-    return isReviewable;
+    const deliveredOwned = await this.ordersService.isDeliveredOrderItemOfUser(
+      userId,
+      orderItemId,
+    );
+    if (!deliveredOwned) {
+      return false;
+    }
+    const existing = await this.reviewRepo.findOne({
+      where: { order_item: { id: orderItemId } },
+    });
+    return !existing;
   }
 
   // ============================================================
@@ -120,14 +81,8 @@ export class EngagementsService {
   // ============================================================
   async createReview(userId: string, dto: CreateReviewDto): Promise<Review> {
     const orderItemId = dto.order_item_id;
-    const findOptions = {
-      where: { id: orderItemId },
-      relations: {
-        sub_order: { order: { customer: true } },
-        product: { shop: true },
-      },
-    };
-    const orderItem = await this.orderItemRepo.findOne(findOptions);
+    // OrdersService sở hữu order_item → lấy kèm quan hệ để validate.
+    const orderItem = await this.ordersService.findOrderItemForReview(orderItemId);
     if (!orderItem) {
       const errorMsg = 'Không tìm thấy mục đơn hàng';
       throw new NotFoundException(errorMsg);
@@ -173,39 +128,32 @@ export class EngagementsService {
       const review = manager.create(Review, reviewPayload);
       const saved = await manager.save(Review, review);
 
-      // Lock dòng sản phẩm để tránh race condition khi cập nhật avg_rating/review_count
-      const productId = product.id;
-      const lockCondition = 'p.id = :id';
-      const lockParams = { id: productId };
-      await manager
-        .createQueryBuilder()
-        .setLock('pessimistic_write')
-        .select('p.id')
-        .from(Product, 'p')
-        .where(lockCondition, lockParams)
-        .getOne();
+      // Khoá dòng product TRƯỚC khi đọc AVG/COUNT (ProductsService sở hữu Product).
+      await this.productsService.lockProductRow(product.id, manager);
 
-      // Tính toán lại toàn bộ avg_rating và review_count từ DB để chống lệch
-      const aggCondition = 'r.product_id = :id';
-      const aggParams = { id: productId };
+      // Tính lại toàn bộ avg_rating/review_count từ bảng review (entity của module này).
       const agg = await manager
         .createQueryBuilder()
         .select('AVG(r.rating)', 'avg')
         .addSelect('COUNT(r.id)', 'cnt')
         .from(Review, 'r')
-        .where(aggCondition, aggParams)
+        .where('r.product_id = :id', { id: product.id })
         .getRawOne<{ avg: string; cnt: string }>();
-
       const avgVal = agg?.avg ? Number(Number(agg.avg).toFixed(1)) : 0;
       const cntVal = agg?.cnt ? parseInt(agg.cnt, 10) : 0;
 
-      const productUpdateValues = { avg_rating: avgVal, review_count: cntVal };
-      await manager.update(Product, productId, productUpdateValues);
+      // Ghi rating qua ProductsService (Product là entity của module products).
+      await this.productsService.applyRatingStats(
+        product.id,
+        avgVal,
+        cntVal,
+        manager,
+      );
 
-      // Ghi Outbox event cho review.created
+      // Ghi Outbox event review.created (outbox là hạ tầng dùng chung).
       const outboxPayload: ReviewCreatedPayload = {
         reviewId: saved.id,
-        productId: productId,
+        productId: product.id,
         productName: product.name,
         shopId: product.shop.id,
         rating: dto.rating,
@@ -229,13 +177,7 @@ export class EngagementsService {
   async getProductReviews(productId: string, query: PaginationQueryDto) {
     // Endpoint public scoped theo product → 404 nếu product không tồn tại
     // (đồng bộ GET /products/:id; tránh trả rỗng cho UUID ảo che lỗi phía client).
-    const product = await this.productRepo.findOne({
-      where: { id: productId },
-      select: { id: true },
-    });
-    if (!product) {
-      throw new NotFoundException('Không tìm thấy sản phẩm');
-    }
+    await this.productsService.ensureExists(productId);
 
     const productCondition = 'r.product_id = :productId';
     const productParams = { productId };
