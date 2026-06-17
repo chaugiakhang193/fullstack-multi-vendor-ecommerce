@@ -15,6 +15,7 @@ import {
   ChevronRight,
   User,
   ExternalLink,
+  Ticket,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -192,6 +193,11 @@ export default function SellerLayout({
       icon: <ShoppingCart className="h-5 w-5" />,
     },
     {
+      label: "Khuyến mãi",
+      href: "/seller/coupons",
+      icon: <Ticket className="h-5 w-5" />,
+    },
+    {
       label: "Cài đặt",
       href: "/seller/settings",
       icon: <Settings className="h-5 w-5" />,
@@ -216,6 +222,7 @@ export default function SellerLayout({
       seller: "Kênh Người Bán",
       products: "Sản phẩm",
       orders: "Đơn hàng",
+      coupons: "Khuyến mãi",
       settings: "Cài đặt",
       create: "Tạo sản phẩm mới",
       edit: "Sửa thông tin",

@@ -19,6 +19,7 @@ export const QUERY_KEYS = {
   CUSTOMER_ORDERS: "customer-orders",
   CUSTOMER_ORDER_DETAIL: "customer-order-detail",
   NOTIFICATIONS: "notifications",
+  COUPONS: "coupons",
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -73,4 +74,12 @@ export const notificationKeys = {
   all: [QUERY_KEYS.NOTIFICATIONS] as const,
   list: [QUERY_KEYS.NOTIFICATIONS, "list"] as const,
   unreadCount: [QUERY_KEYS.NOTIFICATIONS, "unread-count"] as const,
+};
+
+export const couponKeys = {
+  all: [QUERY_KEYS.COUPONS] as const,
+  adminList: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "admin-list", query ?? {}] as const,
+  sellerList: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "seller-list", query ?? {}] as const,
+  browse: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "browse", query ?? {}] as const,
+  wallet: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "wallet", query ?? {}] as const,
 };

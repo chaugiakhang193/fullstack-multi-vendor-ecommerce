@@ -15,6 +15,7 @@ import {
   Bell,
   ChevronRight,
   User,
+  Ticket,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
@@ -100,6 +101,11 @@ export default function AdminLayout({
       href: "/admin/products",
       icon: <Package className="h-5 w-5" />,
     },
+    {
+      label: "Khuyến mãi",
+      href: "/admin/coupons",
+      icon: <Ticket className="h-5 w-5" />,
+    },
   ];
 
   // Helper to check if a route is active
@@ -120,6 +126,7 @@ export default function AdminLayout({
       sellers: "Duyệt cửa hàng",
       categories: "Danh mục",
       products: "Sản phẩm",
+      coupons: "Khuyến mãi",
       create: "Tạo mới",
       edit: "Chỉnh sửa",
     };

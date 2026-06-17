@@ -839,36 +839,116 @@ export interface paths {
         patch: operations["SellerOrdersController_updateStatus"];
         trace?: never;
     };
-    "/api/v1/promotions": {
+    "/api/v1/admin/coupons": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["PromotionsController_findAll"];
+        get: operations["AdminCouponsController_list"];
         put?: never;
-        post: operations["PromotionsController_create"];
+        post: operations["AdminCouponsController_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/promotions/{id}": {
+    "/api/v1/admin/coupons/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["PromotionsController_findOne"];
+        get?: never;
         put?: never;
         post?: never;
-        delete: operations["PromotionsController_remove"];
+        delete: operations["AdminCouponsController_remove"];
         options?: never;
         head?: never;
-        patch: operations["PromotionsController_update"];
+        patch: operations["AdminCouponsController_update"];
+        trace?: never;
+    };
+    "/api/v1/seller/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SellerCouponsController_list"];
+        put?: never;
+        post: operations["SellerCouponsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/coupons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["SellerCouponsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["SellerCouponsController_update"];
+        trace?: never;
+    };
+    "/api/v1/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CustomerCouponsController_listClaimable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CustomerCouponsController_wallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CustomerCouponsController_claim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/payments": {
@@ -903,36 +983,84 @@ export interface paths {
         patch: operations["PaymentsController_update"];
         trace?: never;
     };
-    "/api/v1/engagements": {
+    "/api/v1/reviews": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["EngagementsController_findAll"];
+        get?: never;
         put?: never;
-        post: operations["EngagementsController_create"];
+        post: operations["ReviewsController_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/engagements/{id}": {
+    "/api/v1/reviews/reviewable": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["EngagementsController_findOne"];
+        get: operations["ReviewsController_reviewable"];
         put?: never;
         post?: never;
-        delete: operations["EngagementsController_remove"];
+        delete?: never;
         options?: never;
         head?: never;
-        patch: operations["EngagementsController_update"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SellerReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/reviews/{id}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["SellerReviewsController_reply"];
         trace?: never;
     };
     "/api/v1/notifications": {
@@ -2195,12 +2323,71 @@ export interface components {
              */
             status: "pending" | "processing" | "shipping" | "delivered" | "cancelled" | "returned";
         };
-        CreatePromotionDto: Record<string, never>;
-        UpdatePromotionDto: Record<string, never>;
+        CreateCouponDto: {
+            /** @example SALE50 */
+            code: string;
+            /** @enum {string} */
+            discount_type: "percentage" | "fixed_amount";
+            /**
+             * @description percentage: %, fixed_amount: VND
+             * @example 50000
+             */
+            discount_value: number;
+            /** @example 200000 */
+            min_order_value?: number;
+            /**
+             * @description Trần giảm cho percentage
+             * @example 100000
+             */
+            max_discount_value?: number;
+            /** Format: date-time */
+            start_date?: string;
+            /** Format: date-time */
+            end_date?: string;
+            /**
+             * @description Tổng lượt dùng; null = không giới hạn
+             * @example 100
+             */
+            usage_limit?: number;
+        };
+        UpdateCouponDto: {
+            /** @example SALE50 */
+            code?: string;
+            /** @enum {string} */
+            discount_type?: "percentage" | "fixed_amount";
+            /**
+             * @description percentage: %, fixed_amount: VND
+             * @example 50000
+             */
+            discount_value?: number;
+            /** @example 200000 */
+            min_order_value?: number;
+            /**
+             * @description Trần giảm cho percentage
+             * @example 100000
+             */
+            max_discount_value?: number;
+            /** Format: date-time */
+            start_date?: string;
+            /** Format: date-time */
+            end_date?: string;
+            /**
+             * @description Tổng lượt dùng; null = không giới hạn
+             * @example 100
+             */
+            usage_limit?: number;
+        };
         CreatePaymentDto: Record<string, never>;
         UpdatePaymentDto: Record<string, never>;
-        CreateEngagementDto: Record<string, never>;
-        UpdateEngagementDto: Record<string, never>;
+        CreateReviewDto: {
+            /** @description ID của order_item (lần mua) muốn đánh giá */
+            order_item_id: string;
+            rating: number;
+            comment?: string;
+        };
+        ReplyReviewDto: {
+            reply: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -4713,9 +4900,20 @@ export interface operations {
             };
         };
     };
-    PromotionsController_findAll: {
+    AdminCouponsController_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo loại (admin list) */
+                type?: "global" | "shop";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4730,7 +4928,7 @@ export interface operations {
             };
         };
     };
-    PromotionsController_create: {
+    AdminCouponsController_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4739,7 +4937,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePromotionDto"];
+                "application/json": components["schemas"]["CreateCouponDto"];
             };
         };
         responses: {
@@ -4751,7 +4949,7 @@ export interface operations {
             };
         };
     };
-    PromotionsController_findOne: {
+    AdminCouponsController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -4770,26 +4968,7 @@ export interface operations {
             };
         };
     };
-    PromotionsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PromotionsController_update: {
+    AdminCouponsController_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -4800,11 +4979,177 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdatePromotionDto"];
+                "application/json": components["schemas"]["UpdateCouponDto"];
             };
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerCouponsController_list: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo loại (admin list) */
+                type?: "global" | "shop";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerCouponsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCouponDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerCouponsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerCouponsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCouponDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomerCouponsController_listClaimable: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo loại (admin list) */
+                type?: "global" | "shop";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomerCouponsController_wallet: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo loại (admin list) */
+                type?: "global" | "shop";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CustomerCouponsController_claim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4911,24 +5256,7 @@ export interface operations {
             };
         };
     };
-    EngagementsController_findAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    EngagementsController_create: {
+    ReviewsController_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -4937,7 +5265,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateEngagementDto"];
+                "application/json": components["schemas"]["CreateReviewDto"];
             };
         };
         responses: {
@@ -4949,9 +5277,44 @@ export interface operations {
             };
         };
     };
-    EngagementsController_findOne: {
+    ReviewsController_reviewable: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReviewsController_list: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
             header?: never;
             path: {
                 id: string;
@@ -4968,13 +5331,20 @@ export interface operations {
             };
         };
     };
-    EngagementsController_remove: {
+    SellerReviewsController_list: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4987,7 +5357,7 @@ export interface operations {
             };
         };
     };
-    EngagementsController_update: {
+    SellerReviewsController_reply: {
         parameters: {
             query?: never;
             header?: never;
@@ -4998,7 +5368,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateEngagementDto"];
+                "application/json": components["schemas"]["ReplyReviewDto"];
             };
         };
         responses: {
