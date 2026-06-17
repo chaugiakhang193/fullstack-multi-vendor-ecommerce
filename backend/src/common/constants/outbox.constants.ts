@@ -46,7 +46,7 @@ export interface ReviewCreatedPayload {
   reviewId: string;
   productId: string;
   productName: string;
-  shopId: string; // shop sở hữu product → tìm seller để báo (handler #151)
+  shopId: string; // shop sở hữu product → tìm seller để báo 
   rating: number;
 }
 

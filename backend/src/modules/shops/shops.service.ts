@@ -610,6 +610,14 @@ export class ShopsService {
     return shops;
   }
 
+  async getShopWithSeller(shopId: string): Promise<Shop | null> {
+    return this.shopsRepository.findOne({
+      where: { id: shopId },
+      relations: ['seller'],
+      select: { id: true, seller: { id: true } },
+    });
+  }
+
   async findUnverifiedShops(limit = 20): Promise<Shop[]> {
     const findOptions = {
       where: { is_coordinates_verified: false },

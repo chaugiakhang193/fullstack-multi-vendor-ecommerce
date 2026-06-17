@@ -17,6 +17,8 @@ import {
   OrderCreatedPayload,
   OrderCancelledPayload,
   OrderStatusUpdatedPayload,
+  ReviewCreatedPayload,
+  ReviewRepliedPayload,
 } from '@/common/constants/outbox.constants';
 
 // Internal
@@ -29,7 +31,10 @@ import {
   WS_EVENTS,
   OrderNewWsPayload,
   OrderStatusChangedWsPayload,
+  ReviewNewWsPayload,
+  ReviewRepliedWsPayload,
 } from './notification.events';
+import { ShopsService } from '@/modules/shops/shops.service';
 
 // Tham số tuning của OutboxWorker. Để module-level const (không class field) vì
 // @Interval() là decorator — đối số phải là hằng compile-time, không dùng được `this`.
@@ -41,6 +46,8 @@ const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.ORDER_CREATED,
   OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
   OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED,
+  OUTBOX_EVENT_TYPES.REVIEW_CREATED,
+  OUTBOX_EVENT_TYPES.REVIEW_REPLIED,
 ];
 
 @Injectable()
@@ -61,6 +68,7 @@ export class OutboxWorker {
     private readonly notificationGateway: NotificationGateway,
     private readonly notificationService: NotificationService,
     private readonly dataSource: DataSource,
+    private readonly shopsService: ShopsService,
   ) {}
 
   @Interval(OUTBOX_POLL_INTERVAL_MS)
@@ -106,6 +114,10 @@ export class OutboxWorker {
         await this.handleOrderCancelled(event, queryRunner.manager);
       } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED) {
         await this.handleOrderStatusUpdated(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_CREATED) {
+        await this.handleReviewCreated(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_REPLIED) {
+        await this.handleReviewReplied(event, queryRunner.manager);
       } else {
         throw new TypeError(`Event type không được hỗ trợ: ${event.event_type}`);
       }
@@ -177,6 +189,7 @@ export class OutboxWorker {
       content: `Đơn hàng ${payload.orderNumber} đã được đặt thành công. Tổng giá trị: ${payload.totalAmount.toLocaleString('vi-VN')}đ`,
       data: {
         kind: 'order_placed',
+        orderId: payload.orderId,
         orderNumber: payload.orderNumber,
         amount: payload.totalAmount,
       },
@@ -204,7 +217,11 @@ export class OutboxWorker {
         type: NotificationType.ORDER_CREATED,
         title: 'Đơn hàng mới',
         content: `Bạn vừa nhận được đơn hàng mới ${payload.orderNumber}.`,
-        data: { kind: 'order_new_seller', orderNumber: payload.orderNumber },
+        data: {
+          kind: 'order_new_seller',
+          orderId: payload.orderId,
+          orderNumber: payload.orderNumber,
+        },
       };
       await this.notificationService.create(sellerNotificationDto, manager);
 
@@ -246,7 +263,11 @@ export class OutboxWorker {
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: 'Đã hủy đơn hàng con',
       content: `Một shop trong đơn ${payload.orderNumber} đã được hủy theo yêu cầu của bạn.`,
-      data: { kind: 'suborder_cancelled_customer', orderNumber: payload.orderNumber },
+      data: {
+        kind: 'suborder_cancelled_customer',
+        orderId: payload.orderId,
+        orderNumber: payload.orderNumber,
+      },
     };
     await this.notificationService.create(customerNotificationDto, manager);
 
@@ -270,7 +291,11 @@ export class OutboxWorker {
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: 'Đơn hàng bị hủy',
       content: `Khách đã hủy 1 đơn hàng con thuộc đơn ${payload.orderNumber}.`,
-      data: { kind: 'suborder_cancelled_seller', orderNumber: payload.orderNumber },
+      data: {
+        kind: 'suborder_cancelled_seller',
+        orderId: payload.orderId,
+        orderNumber: payload.orderNumber,
+      },
     };
     await this.notificationService.create(sellerNotificationDto, manager);
 
@@ -314,6 +339,7 @@ export class OutboxWorker {
       content: `Một shop trong đơn ${payload.orderNumber} đã chuyển sang trạng thái "${payload.newStatus}".`,
       data: {
         kind: 'suborder_status_changed',
+        orderId: payload.orderId,
         orderNumber: payload.orderNumber,
         status: payload.newStatus as OrderStatus,
       },
@@ -332,5 +358,84 @@ export class OutboxWorker {
       WS_EVENTS.ORDER_STATUS_CHANGED,
       wsPayload,
     );
+  }
+
+  // ==========================================
+  // HANDLER: review.created
+  // ==========================================
+  private async handleReviewCreated(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as ReviewCreatedPayload;
+    if (!p.reviewId || !p.productId || !p.productName || !p.shopId) {
+      throw new TypeError(`Payload review.created thiếu field: ${JSON.stringify(p)}`);
+    }
+
+    // Dùng ShopsService thay vì query shopRepo trực tiếp cho review logic
+    const shop = await this.shopsService.getShopWithSeller(p.shopId);
+    if (!shop) {
+      this.logger.warn(`[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ review notif.`);
+      return;
+    }
+
+    if (!shop.seller || !shop.seller.id) {
+      this.logger.warn(`[OutboxWorker] Shop ${p.shopId} không có seller liên kết — bỏ review notif.`);
+      return;
+    }
+
+    await this.notificationService.create({
+      userId: shop.seller.id,
+      type: NotificationType.REVIEW_CREATED,
+      title: 'Đánh giá mới',
+      content: `Sản phẩm "${p.productName}" vừa nhận đánh giá ${p.rating}★.`,
+      data: {
+        kind: 'review_new_seller',
+        productId: p.productId,
+        productName: p.productName,
+      },
+    }, manager);
+
+    const ws: ReviewNewWsPayload = {
+      reviewId: p.reviewId,
+      productId: p.productId,
+      productName: p.productName,
+      rating: p.rating,
+      message: `Đánh giá mới cho "${p.productName}"`,
+    };
+    this.notificationGateway.sendToShop(p.shopId, WS_EVENTS.REVIEW_NEW, ws);
+  }
+
+  // ==========================================
+  // HANDLER: review.replied
+  // ==========================================
+  private async handleReviewReplied(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as ReviewRepliedPayload;
+    if (!p.reviewId || !p.productId || !p.productName || !p.customerId) {
+      throw new TypeError(`Payload review.replied thiếu field: ${JSON.stringify(p)}`);
+    }
+
+    await this.notificationService.create({
+      userId: p.customerId,
+      type: NotificationType.REVIEW_REPLIED,
+      title: 'Shop đã phản hồi đánh giá',
+      content: `Shop đã phản hồi đánh giá của bạn cho "${p.productName}".`,
+      data: {
+        kind: 'review_replied',
+        productId: p.productId,
+        productName: p.productName,
+      },
+    }, manager);
+
+    const ws: ReviewRepliedWsPayload = {
+      reviewId: p.reviewId,
+      productId: p.productId,
+      productName: p.productName,
+      message: `Shop đã phản hồi đánh giá "${p.productName}"`,
+    };
+    this.notificationGateway.sendToUser(p.customerId, WS_EVENTS.REVIEW_REPLIED, ws);
   }
 }

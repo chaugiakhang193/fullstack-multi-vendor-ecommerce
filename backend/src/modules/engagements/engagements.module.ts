@@ -22,12 +22,14 @@ import { Review } from '@/modules/engagements/entities/review.entity';
 // Modules (Rule II.11 — truy cập entity module khác qua service của module đó)
 import { ProductsModule } from '@/modules/products/products.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
+import { ShopsModule } from '@/modules/shops/shops.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Shop, Notification, OutboxEvent, Review]),
     ProductsModule,
     OrdersModule,
+    ShopsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

@@ -87,4 +87,6 @@ export enum OutboxEventStatus {
 export enum NotificationType {
   ORDER_CREATED = 'order.created',
   ORDER_STATUS_CHANGED = 'order.status_changed',
+  REVIEW_CREATED = 'review.created',
+  REVIEW_REPLIED = 'review.replied',
 }
