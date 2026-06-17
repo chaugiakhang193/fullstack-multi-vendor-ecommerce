@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef, Suspense } from "react";
 import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Ticket,
   Loader2,
-  Calendar,
   Gift,
   Check,
   ShoppingBag,
@@ -18,8 +18,10 @@ import { CouponType, DiscountType } from "@/constants/enum";
 import { formatVnd } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
-export default function CustomerCouponsBrowsePage() {
+function CustomerCouponsContent() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Fetch claimable coupons
   const { data: browseEnvelope, isLoading: isBrowseLoading } = useBrowseCoupons({ limit: 100 });
@@ -41,11 +43,42 @@ export default function CustomerCouponsBrowsePage() {
 
   const handleClaim = (coupon: CouponTypeObj) => {
     if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để lưu mã giảm giá!");
+      const redirectUrl = `/coupons?claimCouponId=${coupon.id}`;
+      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
       return;
     }
     claimMutation.mutate(coupon.id);
   };
+
+  // Auto-claim logic after redirect back from login
+  const claimCouponId = searchParams.get("claimCouponId");
+  const lastProcessedIdRef = useRef<string | null>(null);
+
+  // If authenticated and have a coupon ID to claim, trigger mutation and clean up URL
+  useEffect(() => {
+    if (isAuthenticated && claimCouponId && lastProcessedIdRef.current !== claimCouponId) {
+      lastProcessedIdRef.current = claimCouponId;
+
+      claimMutation.mutate(claimCouponId, {
+        onSettled: () => {
+          // Remove claimCouponId from URL search params to prevent loop/re-claim on refresh
+          const params = new URLSearchParams(searchParams.toString());
+          params.delete("claimCouponId");
+          const newSearch = params.toString();
+          const newPath = newSearch ? `/coupons?${newSearch}` : "/coupons";
+          router.replace(newPath);
+        },
+      });
+    }
+  }, [isAuthenticated, claimCouponId, claimMutation, router, searchParams]);
+
+  // If not authenticated and visit directly with claimCouponId, redirect to login
+  useEffect(() => {
+    if (!isAuthenticated && claimCouponId) {
+      const redirectUrl = `/coupons?claimCouponId=${claimCouponId}`;
+      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+    }
+  }, [isAuthenticated, claimCouponId, router]);
 
   const getDaysLeft = (endDateStr: string | null) => {
     if (!endDateStr) return "Không giới hạn thời gian";
@@ -178,5 +211,19 @@ export default function CustomerCouponsBrowsePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CustomerCouponsBrowsePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-violet-600 animate-spin" />
+        </div>
+      }
+    >
+      <CustomerCouponsContent />
+    </Suspense>
   );
 }
