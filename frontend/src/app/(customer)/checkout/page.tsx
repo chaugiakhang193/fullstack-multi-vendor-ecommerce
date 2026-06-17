@@ -314,12 +314,14 @@ export default function CheckoutPage() {
               onAddNew={handleOpenAddressModal}
             />
 
-            {previewQuery.isError && !isEmptyCartError ? (
+            {previewQuery.isError && !isEmptyCartError && (
               <div className="bg-card border border-rose-200 dark:border-rose-900/40 rounded-xl p-6 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 {getErrorMessage(previewQuery.error)}
               </div>
-            ) : previewQuery.isLoading ? (
+            )}
+
+            {previewQuery.isLoading ? (
               <div className="bg-card border rounded-xl p-12 flex items-center justify-center">
                 <Loader2 className="h-6 w-6 text-violet-500 animate-spin" />
               </div>
