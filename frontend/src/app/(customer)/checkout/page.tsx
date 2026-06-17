@@ -24,6 +24,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { AddressFormModal } from "@/components/profile/address-form-modal";
 import { AddressPicker } from "@/components/orders/address-picker";
 import { ShopCard } from "@/components/orders/shop-card";
+import { CouponPickerModal } from "@/components/orders/coupon-picker-modal";
+import { CouponType } from "@/constants/enum";
 
 // Hooks & stores
 import useHydrated from "@/hooks/useHydrated";
@@ -58,6 +60,12 @@ export default function CheckoutPage() {
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [globalPickerOpen, setGlobalPickerOpen] = useState(false);
+  const [activeShopPicker, setActiveShopPicker] = useState<{
+    shopId: string;
+    shopName: string;
+    shopSubtotal: number;
+  } | null>(null);
 
   // Coupon: tách "đang nhập" và "đã áp dụng" — chỉ giá trị đã áp dụng đẩy vào preview.
   const [globalCouponInput, setGlobalCouponInput] = useState("");
@@ -335,6 +343,12 @@ export default function CheckoutPage() {
                   handleShopCouponInputChange(shopId, value);
                 const handleApply = () => handleApplyShopCoupon(shopId);
                 const handleClear = () => handleClearShopCoupon(shopId);
+                const handleSelectFromWallet = () =>
+                  setActiveShopPicker({
+                    shopId,
+                    shopName: shop.shopName,
+                    shopSubtotal: shop.shopSubtotal,
+                  });
                 return (
                   <ShopCard
                     key={shopId}
@@ -344,6 +358,7 @@ export default function CheckoutPage() {
                     onCouponInputChange={handleInputChange}
                     onApplyCoupon={handleApply}
                     onClearCoupon={handleClear}
+                    onSelectFromWallet={handleSelectFromWallet}
                   />
                 );
               })
@@ -360,9 +375,18 @@ export default function CheckoutPage() {
 
               {/* Global coupon */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase">
-                  Mã giảm giá toàn sàn
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    Mã giảm giá toàn sàn
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setGlobalPickerOpen(true)}
+                    className="text-xs font-bold text-violet-600 hover:text-violet-750 dark:text-violet-400"
+                  >
+                    Chọn từ ví
+                  </button>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -462,6 +486,39 @@ export default function CheckoutPage() {
       )}
 
       <AddressFormModal open={modalOpen} onOpenChange={setModalOpen} editing={null} />
+
+      <CouponPickerModal
+        open={globalPickerOpen}
+        onOpenChange={setGlobalPickerOpen}
+        type={CouponType.GLOBAL}
+        totalAmount={preview?.shops.reduce((acc, s) => acc + s.shopSubtotal, 0) ?? 0}
+        selectedCouponCode={globalCouponApplied}
+        onSelect={(code) => {
+          setGlobalCouponInput(code);
+          setGlobalCouponApplied(code);
+        }}
+      />
+
+      <CouponPickerModal
+        open={!!activeShopPicker}
+        onOpenChange={(open) => {
+          if (!open) setActiveShopPicker(null);
+        }}
+        type={CouponType.SHOP}
+        shopId={activeShopPicker?.shopId}
+        shopName={activeShopPicker?.shopName}
+        totalAmount={activeShopPicker?.shopSubtotal ?? 0}
+        selectedCouponCode={activeShopPicker ? (shopCouponsApplied[activeShopPicker.shopId] ?? "") : ""}
+        onSelect={(code) => {
+          if (activeShopPicker) {
+            handleShopCouponInputChange(activeShopPicker.shopId, code);
+            setShopCouponsApplied((prev) => ({
+              ...prev,
+              [activeShopPicker.shopId]: code,
+            }));
+          }
+        }}
+      />
     </div>
   );
 }

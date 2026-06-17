@@ -12,6 +12,7 @@ interface ShopCardProps {
   onCouponInputChange: (value: string) => void;
   onApplyCoupon: () => void;
   onClearCoupon: () => void;
+  onSelectFromWallet?: () => void;
 }
 
 export function ShopCard({
@@ -21,6 +22,7 @@ export function ShopCard({
   onCouponInputChange,
   onApplyCoupon,
   onClearCoupon,
+  onSelectFromWallet,
 }: ShopCardProps) {
   const shopSubtotal = shop.shopSubtotal;
   const shippingFee = shop.shippingFee;
@@ -97,31 +99,45 @@ export function ShopCard({
       </div>
 
       {/* Shop coupon */}
-      <div className="flex items-center gap-2 pt-2">
-        <div className="relative flex-1">
-          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={couponInput}
-            onChange={handleCouponInputChange}
-            placeholder="Mã giảm giá của shop"
-            className="w-full h-9 pl-9 pr-3 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-          />
+      <div className="space-y-1.5 pt-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-muted-foreground uppercase">Mã giảm giá cửa hàng</span>
+          {onSelectFromWallet && (
+            <button
+              type="button"
+              onClick={onSelectFromWallet}
+              className="text-xs font-bold text-violet-600 hover:text-violet-750 dark:text-violet-400"
+            >
+              Chọn từ ví
+            </button>
+          )}
         </div>
-        {appliedCoupon ? (
-          <Button variant="outline" size="sm" onClick={onClearCoupon}>
-            Bỏ mã
-          </Button>
-        ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onApplyCoupon}
-            disabled={isCouponInputEmpty}
-          >
-            Áp dụng
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={couponInput}
+              onChange={handleCouponInputChange}
+              placeholder="Mã giảm giá của shop"
+              className="w-full h-9 pl-9 pr-3 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+            />
+          </div>
+          {appliedCoupon ? (
+            <Button variant="outline" size="sm" onClick={onClearCoupon}>
+              Bỏ mã
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onApplyCoupon}
+              disabled={isCouponInputEmpty}
+            >
+              Áp dụng
+            </Button>
+          )}
+        </div>
       </div>
       {appliedCoupon && (
         <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
