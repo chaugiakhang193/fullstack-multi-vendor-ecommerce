@@ -4,11 +4,13 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 
 @Entity()
+@Unique(['user', 'coupon'])
 export class UserCoupon {
   @PrimaryGeneratedColumn('uuid')
   id: string;

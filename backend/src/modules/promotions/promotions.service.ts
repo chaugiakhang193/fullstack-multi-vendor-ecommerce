@@ -1,37 +1,276 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { EntityManager, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
-// DTOs
-import { CreatePromotionDto } from '@/modules/promotions/dto/create-promotion.dto';
-import { UpdatePromotionDto } from '@/modules/promotions/dto/update-promotion.dto';
+import { CreateCouponDto } from '@/modules/promotions/dto/create-coupon.dto';
+import { UpdateCouponDto } from '@/modules/promotions/dto/update-coupon.dto';
+import { CouponQueryDto } from '@/modules/promotions/dto/coupon-query.dto';
 
-// Entities
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
+import { UserCoupon } from '@/modules/promotions/entities/user-coupon.entity';
+import { Shop } from '@/modules/shops/entities/shop.entity';
+import { ShopsService } from '@/modules/shops/shops.service';
 
-// Enums
-import { CouponType } from '@/common/enums';
+import { CouponType, DiscountType } from '@/common/enums';
+import { paginate } from '@/common/helpers/pagination.helper';
 
 @Injectable()
 export class PromotionsService {
-  // === Scaffold mặc định (chưa dùng) ===
-  create(createPromotionDto: CreatePromotionDto) {
-    return 'This action adds a new promotion';
+  constructor(
+    @InjectRepository(Coupon)
+    private readonly couponRepo: Repository<Coupon>,
+    @InjectRepository(UserCoupon)
+    private readonly userCouponRepo: Repository<UserCoupon>,
+    private readonly shopsService: ShopsService,
+  ) {}
+
+  // ===== Validate chung khi tạo/sửa =====
+  private validateCouponPayload(dto: CreateCouponDto | UpdateCouponDto) {
+    if (dto.discount_type === DiscountType.PERCENTAGE && dto.discount_value != null) {
+      if (dto.discount_value <= 0 || dto.discount_value > 100) {
+        throw new BadRequestException('Giảm theo % phải trong khoảng 1–100');
+      }
+    }
+    if (dto.start_date && dto.end_date) {
+      const parsedStartDate = new Date(dto.start_date);
+      const parsedEndDate = new Date(dto.end_date);
+      if (parsedStartDate > parsedEndDate) {
+        throw new BadRequestException('start_date phải trước end_date');
+      }
+    }
   }
 
-  findAll() {
-    return `This action returns all promotions`;
+  // ===== ADMIN: coupon GLOBAL =====
+  async createGlobalCoupon(dto: CreateCouponDto): Promise<Coupon> {
+    this.validateCouponPayload(dto);
+    const findOptions = { where: { code: dto.code } };
+    const existed = await this.couponRepo.findOne(findOptions);
+    if (existed) throw new ConflictException(`Mã "${dto.code}" đã tồn tại`);
+    const couponData = { ...dto, type: CouponType.GLOBAL, shop: null as any };
+    const coupon = this.couponRepo.create(couponData);
+    return this.couponRepo.save(coupon);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} promotion`;
+  // ===== SELLER: coupon SHOP (scope theo shop của seller) =====
+  private async getShopBySeller(sellerId: string): Promise<Shop> {
+    try {
+      const shop = await this.shopsService.findOneByUserId(sellerId);
+      return shop;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new ForbiddenException('Tài khoản chưa có shop');
+      }
+      throw error;
+    }
   }
 
-  update(id: number, updatePromotionDto: UpdatePromotionDto) {
-    return `This action updates a #${id} promotion`;
+  async createShopCoupon(sellerId: string, dto: CreateCouponDto): Promise<Coupon> {
+    this.validateCouponPayload(dto);
+    const shop = await this.getShopBySeller(sellerId);
+    const findOptions = { where: { code: dto.code } };
+    const existed = await this.couponRepo.findOne(findOptions);
+    if (existed) throw new ConflictException(`Mã "${dto.code}" đã tồn tại`);
+    const couponData = { ...dto, type: CouponType.SHOP, shop };
+    const coupon = this.couponRepo.create(couponData);
+    return this.couponRepo.save(coupon);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} promotion`;
+  // ===== UPDATE/DELETE (dùng chung, check ownership) =====
+  private async getOwnedCoupon(couponId: string, opts: { sellerId?: string }): Promise<Coupon> {
+    const findOptions = { where: { id: couponId }, relations: ['shop'] };
+    const coupon = await this.couponRepo.findOne(findOptions);
+    if (!coupon) throw new NotFoundException('Không tìm thấy coupon');
+    if (opts.sellerId) {
+      const sellerId = opts.sellerId;
+      const shop = await this.getShopBySeller(sellerId);
+      const couponShopId = coupon.shop?.id;
+      if (coupon.type !== CouponType.SHOP || couponShopId !== shop.id) {
+        throw new ForbiddenException('Coupon không thuộc shop của bạn');
+      }
+    }
+    return coupon;
+  }
+
+  async updateCoupon(couponId: string, dto: UpdateCouponDto, opts: { sellerId?: string }): Promise<Coupon> {
+    this.validateCouponPayload(dto);
+    const coupon = await this.getOwnedCoupon(couponId, opts);
+    const { ...rest } = dto as any;
+    delete rest.code;
+    Object.assign(coupon, rest);
+    return this.couponRepo.save(coupon);
+  }
+
+  async deleteCoupon(couponId: string, opts: { sellerId?: string }): Promise<void> {
+    const coupon = await this.getOwnedCoupon(couponId, opts);
+    await this.couponRepo.remove(coupon);
+  }
+
+  // ===== LIST =====
+  async listAdmin(query: CouponQueryDto) {
+    const alias = 'coupon';
+    const qb = this.couponRepo.createQueryBuilder(alias);
+    const joinRelation = 'coupon.shop';
+    const joinAlias = 'shop';
+    qb.leftJoinAndSelect(joinRelation, joinAlias);
+    
+    if (query.type) {
+      const type = query.type;
+      const whereClause = 'coupon.type = :type';
+      const whereParams = { type };
+      qb.where(whereClause, whereParams);
+    }
+    const orderColumn = 'coupon.start_date';
+    const orderDirection = query.order ?? 'DESC';
+    qb.orderBy(orderColumn, orderDirection);
+    return paginate(qb, query);
+  }
+
+  async listSeller(sellerId: string, query: CouponQueryDto) {
+    const shop = await this.getShopBySeller(sellerId);
+    const alias = 'coupon';
+    const qb = this.couponRepo.createQueryBuilder(alias);
+    const whereClause = 'coupon.shop_id = :shopId';
+    const shopId = shop.id;
+    const whereParams = { shopId };
+    qb.where(whereClause, whereParams);
+    const orderColumn = 'coupon.start_date';
+    const orderDirection = query.order ?? 'DESC';
+    qb.orderBy(orderColumn, orderDirection);
+    return paginate(qb, query);
+  }
+
+  // ===== CUSTOMER: browse coupon claim được (còn hạn + còn lượt) =====
+  async listClaimable(userId: string, query: CouponQueryDto) {
+    const now = new Date();
+    const alias = 'coupon';
+    const qb = this.couponRepo.createQueryBuilder(alias);
+    const joinRelation = 'coupon.shop';
+    const joinAlias = 'shop';
+    qb.leftJoinAndSelect(joinRelation, joinAlias);
+    
+    const startDateClause = '(coupon.start_date IS NULL OR coupon.start_date <= :now)';
+    const startDateParams = { now };
+    qb.where(startDateClause, startDateParams);
+
+    const endDateClause = '(coupon.end_date IS NULL OR coupon.end_date >= :now)';
+    const endDateParams = { now };
+    qb.andWhere(endDateClause, endDateParams);
+
+    const limitClause = '(coupon.usage_limit IS NULL OR coupon.used_count < coupon.usage_limit)';
+    qb.andWhere(limitClause);
+
+    const notClaimedSubquery = (qb2: any) => {
+      const selectColumn = 'uc.coupon_id';
+      const fromTable = UserCoupon;
+      const subAlias = 'uc';
+      const subWhereClause = 'uc.user_id = :userId';
+      const subWhereParams = { userId };
+      
+      const sub = qb2
+        .subQuery()
+        .select(selectColumn)
+        .from(fromTable, subAlias)
+        .where(subWhereClause, subWhereParams)
+        .getQuery();
+      return `coupon.id NOT IN ${sub}`;
+    };
+    qb.andWhere(notClaimedSubquery);
+
+    const orderColumn = 'coupon.end_date';
+    const orderDirection = 'ASC';
+    qb.orderBy(orderColumn, orderDirection);
+    return paginate(qb, query);
+  }
+
+  // ===== CUSTOMER: claim =====
+  async claimCoupon(userId: string, couponId: string): Promise<UserCoupon> {
+    const now = new Date();
+    const findOptions = { where: { id: couponId } };
+    const coupon = await this.couponRepo.findOne(findOptions);
+    if (!coupon) throw new NotFoundException('Không tìm thấy coupon');
+    if (coupon.end_date) {
+      const parsedEndDate = new Date(coupon.end_date);
+      if (now > parsedEndDate) {
+        throw new BadRequestException('Coupon đã hết hạn');
+      }
+    }
+    if (coupon.usage_limit != null && coupon.used_count >= coupon.usage_limit) {
+      throw new BadRequestException('Coupon đã hết lượt');
+    }
+    const dupFindOptions = {
+      where: { user: { id: userId }, coupon: { id: couponId } },
+    };
+    const dup = await this.userCouponRepo.findOne(dupFindOptions);
+    if (dup) throw new ConflictException('Bạn đã lưu coupon này rồi');
+    const ucData = {
+      user: { id: userId } as any,
+      coupon: { id: couponId } as any,
+      is_used: false,
+    };
+    const uc = this.userCouponRepo.create(ucData);
+    return this.userCouponRepo.save(uc);
+  }
+
+  // ===== CUSTOMER: ví =====
+  async getWallet(userId: string, query: CouponQueryDto) {
+    const alias = 'uc';
+    const qb = this.userCouponRepo.createQueryBuilder(alias);
+    
+    const couponJoinRelation = 'uc.coupon';
+    const couponJoinAlias = 'coupon';
+    qb.leftJoinAndSelect(couponJoinRelation, couponJoinAlias);
+
+    const shopJoinRelation = 'coupon.shop';
+    const shopJoinAlias = 'shop';
+    qb.leftJoinAndSelect(shopJoinRelation, shopJoinAlias);
+
+    const whereClause = 'uc.user_id = :userId';
+    const whereParams = { userId };
+    qb.where(whereClause, whereParams);
+
+    const orderColumn1 = 'uc.is_used';
+    const orderDirection1 = 'ASC';
+    qb.orderBy(orderColumn1, orderDirection1);
+
+    const orderColumn2 = 'coupon.end_date';
+    const orderDirection2 = 'ASC';
+    qb.addOrderBy(orderColumn2, orderDirection2);
+    return paginate(qb, query);
+  }
+
+  // ===== Sync ví khi redeem/hủy (gọi từ orders.service, trong cùng transaction) =====
+  async markWalletUsed(userId: string, couponId: string, manager: EntityManager): Promise<void> {
+    const qb = manager.createQueryBuilder();
+    const entity = UserCoupon;
+    const updateValues = { is_used: true, used_at: () => 'NOW()' };
+    const whereClause = 'user_id = :userId AND coupon_id = :couponId AND is_used = false';
+    const whereParams = { userId, couponId };
+
+    await qb
+      .update(entity)
+      .set(updateValues)
+      .where(whereClause, whereParams)
+      .execute();
+  }
+
+  async markWalletUnused(userId: string, couponId: string, manager: EntityManager): Promise<void> {
+    const qb = manager.createQueryBuilder();
+    const entity = UserCoupon;
+    const updateValues = { is_used: false, used_at: null };
+    const whereClause = 'user_id = :userId AND coupon_id = :couponId';
+    const whereParams = { userId, couponId };
+
+    await qb
+      .update(entity)
+      .set(updateValues)
+      .where(whereClause, whereParams)
+      .execute();
   }
 
   // ==========================================
@@ -69,10 +308,11 @@ export class PromotionsService {
     // KHÔNG join 'shop' ở câu lock: Postgres cấm FOR UPDATE trên phía nullable của
     // outer join (LEFT JOIN shop) → lỗi 0A000. Lock bare row trước, load 'shop' sau
     // (row đã khóa trong transaction nên đọc lại vẫn nhất quán).
-    const lockedRow = await manager.findOne(Coupon, {
+    const findOptions1 = {
       where: { code },
       lock: { mode: 'pessimistic_write' as const },
-    });
+    };
+    const lockedRow = await manager.findOne(Coupon, findOptions1);
 
     const isCouponMissing = !lockedRow;
     if (isCouponMissing) {
@@ -80,10 +320,12 @@ export class PromotionsService {
       throw new BadRequestException(notFoundMsg);
     }
 
-    const coupon = await manager.findOne(Coupon, {
-      where: { id: lockedRow.id },
+    const lockedRowId = lockedRow.id;
+    const findOptions2 = {
+      where: { id: lockedRowId },
       relations: ['shop'],
-    });
+    };
+    const coupon = await manager.findOne(Coupon, findOptions2);
     if (!coupon) {
       const notFoundMsg = `Mã giảm giá "${code}" không tồn tại`;
       throw new BadRequestException(notFoundMsg);
@@ -111,7 +353,8 @@ export class PromotionsService {
     const now = new Date();
     const hasStartDate = coupon.start_date !== null && coupon.start_date !== undefined;
     if (hasStartDate) {
-      const isBeforeStart = now < new Date(coupon.start_date);
+      const parsedStartDate = new Date(coupon.start_date);
+      const isBeforeStart = now < parsedStartDate;
       if (isBeforeStart) {
         const notYetActiveMsg = `Mã "${code}" chưa đến thời gian áp dụng`;
         throw new BadRequestException(notYetActiveMsg);
@@ -119,7 +362,8 @@ export class PromotionsService {
     }
     const hasEndDate = coupon.end_date !== null && coupon.end_date !== undefined;
     if (hasEndDate) {
-      const isAfterEnd = now > new Date(coupon.end_date);
+      const parsedEndDate = new Date(coupon.end_date);
+      const isAfterEnd = now > parsedEndDate;
       if (isAfterEnd) {
         const expiredMsg = `Mã "${code}" đã hết hạn`;
         throw new BadRequestException(expiredMsg);

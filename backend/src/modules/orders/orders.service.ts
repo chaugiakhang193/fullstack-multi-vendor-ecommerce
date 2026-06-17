@@ -406,7 +406,16 @@ export class OrdersService {
       await this.productStockService.lockAndRestock(restockTargets, manager);
     }
     if (subOrder.shop_coupon) {
-      await this.promotionsService.releaseCoupon(subOrder.shop_coupon.id, manager);
+      const shopCouponId = subOrder.shop_coupon.id;
+      await this.promotionsService.releaseCoupon(shopCouponId, manager);
+      const userId = subOrder.order?.customer?.id;
+      if (userId) {
+        await this.promotionsService.markWalletUnused(
+          userId,
+          shopCouponId,
+          manager,
+        );
+      }
     }
   }
 
@@ -434,7 +443,7 @@ export class OrdersService {
     }
     const order = await manager.findOne(Order, {
       where: { id: orderId },
-      relations: { global_coupon: true },
+      relations: { global_coupon: true, customer: true },
     });
     if (!order) {
       throw new NotFoundException('Không tìm thấy đơn hàng Master');
@@ -467,7 +476,16 @@ export class OrdersService {
       const belowMin =
         hasMinOrder && remainingShopSubtotals < Number(minOrderRaw);
       if (belowMin || activeSubs.length === 0) {
-        await this.promotionsService.releaseCoupon(order.global_coupon.id, manager);
+        const globalCouponId = order.global_coupon.id;
+        await this.promotionsService.releaseCoupon(globalCouponId, manager);
+        const userId = order.customer?.id;
+        if (userId) {
+          await this.promotionsService.markWalletUnused(
+            userId,
+            globalCouponId,
+            manager,
+          );
+        }
         order.global_coupon = null as unknown as Coupon;
       } else {
         globalDiscount = this.computeCouponDiscount(
@@ -802,16 +820,31 @@ export class OrdersService {
 
       // 11. Tiêu thụ coupon (tăng used_count) trong cùng transaction
       if (lockedGlobalCoupon) {
+        const manager = queryRunner.manager;
         await this.promotionsService.consumeCoupon(
           lockedGlobalCoupon,
-          queryRunner.manager,
+          manager,
+        );
+        const globalCouponId = lockedGlobalCoupon.id;
+        await this.promotionsService.markWalletUsed(
+          userId,
+          globalCouponId,
+          manager,
         );
       }
       for (const plan of subOrderPlans) {
         if (plan.shopCoupon) {
+          const shopCoupon = plan.shopCoupon;
+          const manager = queryRunner.manager;
           await this.promotionsService.consumeCoupon(
-            plan.shopCoupon,
-            queryRunner.manager,
+            shopCoupon,
+            manager,
+          );
+          const shopCouponId = shopCoupon.id;
+          await this.promotionsService.markWalletUsed(
+            userId,
+            shopCouponId,
+            manager,
           );
         }
       }
