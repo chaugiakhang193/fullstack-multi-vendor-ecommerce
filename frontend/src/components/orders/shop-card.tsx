@@ -13,6 +13,7 @@ interface ShopCardProps {
   onApplyCoupon: () => void;
   onClearCoupon: () => void;
   onSelectFromWallet?: () => void;
+  couponError?: string;
 }
 
 export function ShopCard({
@@ -23,6 +24,7 @@ export function ShopCard({
   onApplyCoupon,
   onClearCoupon,
   onSelectFromWallet,
+  couponError,
 }: ShopCardProps) {
   const shopSubtotal = shop.shopSubtotal;
   const shippingFee = shop.shippingFee;
@@ -138,6 +140,11 @@ export function ShopCard({
             </Button>
           )}
         </div>
+        {couponError && (
+          <p className="text-xs font-semibold text-rose-500 mt-1">
+            {couponError}
+          </p>
+        )}
       </div>
       {appliedCoupon && (
         <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">

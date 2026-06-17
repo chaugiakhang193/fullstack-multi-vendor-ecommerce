@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -73,6 +73,10 @@ export default function CheckoutPage() {
   const [shopCouponInputs, setShopCouponInputs] = useState<Record<string, string>>({});
   const [shopCouponsApplied, setShopCouponsApplied] = useState<Record<string, string>>({});
 
+  // Coupon validation errors
+  const [globalCouponError, setGlobalCouponError] = useState<string | null>(null);
+  const [shopCouponErrors, setShopCouponErrors] = useState<Record<string, string>>({});
+
   // Idempotency-Key đại diện cho MỘT ý định đặt đơn: giữ ổn định để retry (mất response)
   // được backend dedupe, nhưng sinh key mới khi đổi địa chỉ/coupon (ý định đơn đã khác).
   // KHÔNG sinh theo mỗi click — nút đã disable khi pending nên double-click đã được chặn,
@@ -135,6 +139,7 @@ export default function CheckoutPage() {
     },
     enabled: isPreviewEnabled,
     staleTime: 0, // Luôn coi dữ liệu checkout preview là cũ để fetch lại khi thay đổi địa chỉ/coupon
+    placeholderData: keepPreviousData,
   });
 
   const preview = previewQuery.data?.data;
@@ -150,6 +155,59 @@ export default function CheckoutPage() {
     previewError.payload.message.includes("Giỏ hàng trống");
   const isCartEmpty =
     (previewQuery.isSuccess && shops.length === 0) || isEmptyCartError;
+
+  // Xử lý lỗi coupon từ kết quả preview
+  useEffect(() => {
+    if (
+      previewQuery.isError &&
+      previewQuery.error &&
+      !(
+        previewQuery.error instanceof HttpError &&
+        previewQuery.error.status === HTTP_STATUS.BAD_REQUEST &&
+        typeof previewQuery.error.payload?.message === "string" &&
+        previewQuery.error.payload.message.includes("Giỏ hàng trống")
+      )
+    ) {
+      const message = getErrorMessage(previewQuery.error);
+
+      // Check if the error is related to the global coupon
+      if (
+        globalCouponApplied &&
+        message.toLowerCase().includes(globalCouponApplied.toLowerCase())
+      ) {
+        setGlobalCouponError(message);
+        toast.error(message);
+        setGlobalCouponApplied(""); // Reset để tải lại checkout thành công
+        return;
+      }
+
+      // Check if the error is related to one of the shop coupons
+      let foundShopId = "";
+      for (const [shopId, code] of Object.entries(shopCouponsApplied)) {
+        if (code && message.toLowerCase().includes(code.toLowerCase())) {
+          foundShopId = shopId;
+          break;
+        }
+      }
+
+      if (foundShopId) {
+        setShopCouponErrors((prev) => ({ ...prev, [foundShopId]: message }));
+        toast.error(message);
+        setShopCouponsApplied((prev) => {
+          const next = { ...prev };
+          delete next[foundShopId];
+          return next;
+        });
+        return;
+      }
+    }
+  }, [
+    previewQuery.isError,
+    previewQuery.error,
+    globalCouponApplied,
+    shopCouponsApplied,
+  ]);
+
   // Chặn đặt hàng chủ động khi có item "Hết hàng" (BE vẫn là chốt chặn cuối).
   // Lưu ý: "Chỉ còn X sản phẩm" vẫn mua được nên KHÔNG chặn.
   const hasOutOfStockItem = shops.some((shop) => {
@@ -197,16 +255,21 @@ export default function CheckoutPage() {
   const handleGlobalCouponInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setGlobalCouponInput(value);
+    if (globalCouponError) setGlobalCouponError(null);
   };
 
   const handleApplyGlobalCoupon = () => {
     const code = globalCouponInput.trim();
-    if (code) setGlobalCouponApplied(code);
+    if (code) {
+      setGlobalCouponError(null);
+      setGlobalCouponApplied(code);
+    }
   };
 
   const handleClearGlobalCoupon = () => {
     setGlobalCouponInput("");
     setGlobalCouponApplied("");
+    setGlobalCouponError(null);
   };
 
   const handleShopCouponInputChange = (shopId: string, value: string) => {
@@ -214,12 +277,24 @@ export default function CheckoutPage() {
       const next = { ...prev, [shopId]: value };
       return next;
     });
+    if (shopCouponErrors[shopId]) {
+      setShopCouponErrors((prev) => {
+        const next = { ...prev };
+        delete next[shopId];
+        return next;
+      });
+    }
   };
 
   const handleApplyShopCoupon = (shopId: string) => {
     const existingInput = shopCouponInputs[shopId] ?? "";
     const code = existingInput.trim();
     if (!code) return;
+    setShopCouponErrors((prev) => {
+      const next = { ...prev };
+      delete next[shopId];
+      return next;
+    });
     setShopCouponsApplied((prev) => {
       const next = { ...prev, [shopId]: code };
       return next;
@@ -232,6 +307,11 @@ export default function CheckoutPage() {
       return next;
     });
     setShopCouponsApplied((prev) => {
+      const next = { ...prev };
+      delete next[shopId];
+      return next;
+    });
+    setShopCouponErrors((prev) => {
       const next = { ...prev };
       delete next[shopId];
       return next;
@@ -359,6 +439,7 @@ export default function CheckoutPage() {
                     onApplyCoupon={handleApply}
                     onClearCoupon={handleClear}
                     onSelectFromWallet={handleSelectFromWallet}
+                    couponError={shopCouponErrors[shopId]}
                   />
                 );
               })
@@ -417,6 +498,11 @@ export default function CheckoutPage() {
                     </Button>
                   )}
                 </div>
+                {globalCouponError && (
+                  <p className="text-xs font-semibold text-rose-500 mt-1">
+                    {globalCouponError}
+                  </p>
+                )}
               </div>
 
               {/* Totals */}
