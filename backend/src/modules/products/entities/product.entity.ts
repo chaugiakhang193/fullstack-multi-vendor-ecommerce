@@ -85,6 +85,12 @@ export class Product {
   })
   status: ProductStatus;
 
+  @Column({ type: 'decimal', precision: 2, scale: 1, default: 0 })
+  avg_rating: number;
+
+  @Column({ type: 'int', default: 0 })
+  review_count: number;
+
   @CreateDateColumn()
   created_at: Date;
 

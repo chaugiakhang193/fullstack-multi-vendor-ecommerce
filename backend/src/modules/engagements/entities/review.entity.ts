@@ -5,11 +5,14 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Product } from '@/modules/products/entities/product.entity';
+import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 
 @Entity()
+@Unique(['order_item'])
 export class Review {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,6 +24,10 @@ export class Review {
   @ManyToOne(() => Product, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'product_id' })
   product: Product;
+
+  @ManyToOne(() => OrderItem, { onDelete: 'CASCADE', nullable: false })
+  @JoinColumn({ name: 'order_item_id' })
+  order_item: OrderItem;
 
   @Column({ type: 'int', nullable: true })
   rating: number;

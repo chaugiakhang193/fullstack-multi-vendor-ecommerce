@@ -4,6 +4,8 @@ export const OUTBOX_EVENT_TYPES = {
   ORDER_CREATED: 'order.created',
   ORDER_CANCELLED: 'order.cancelled',
   ORDER_STATUS_UPDATED: 'order.status_updated',
+  REVIEW_CREATED: 'review.created',
+  REVIEW_REPLIED: 'review.replied',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -37,4 +39,21 @@ export interface OrderStatusUpdatedPayload {
   userId: string;
   shopId: string;
   newStatus: string;
+}
+
+// review.created — notify SELLER chủ shop của product
+export interface ReviewCreatedPayload {
+  reviewId: string;
+  productId: string;
+  productName: string;
+  shopId: string; // shop sở hữu product → tìm seller để báo (handler #151)
+  rating: number;
+}
+
+// review.replied — notify CUSTOMER đã viết review
+export interface ReviewRepliedPayload {
+  reviewId: string;
+  productId: string;
+  productName: string;
+  customerId: string; // người nhận thông báo
 }

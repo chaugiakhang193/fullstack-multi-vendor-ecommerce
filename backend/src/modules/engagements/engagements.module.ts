@@ -6,7 +6,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Services, Controllers & Gateway
 import { EngagementsService } from './engagements.service';
-import { EngagementsController } from './engagements.controller';
+import { ReviewsController } from './reviews.controller';
+import { SellerReviewsController } from './seller-reviews.controller';
 import { NotificationsController } from './notifications.controller';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
@@ -16,10 +17,20 @@ import { OutboxWorker } from './outbox.worker';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { Review } from '@/modules/engagements/entities/review.entity';
+import { Product } from '@/modules/products/entities/product.entity';
+import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Shop, Notification, OutboxEvent]),
+    TypeOrmModule.forFeature([
+      Shop,
+      Notification,
+      OutboxEvent,
+      Review,
+      Product,
+      OrderItem,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,7 +39,11 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
       }),
     }),
   ],
-  controllers: [EngagementsController, NotificationsController],
+  controllers: [
+    ReviewsController,
+    SellerReviewsController,
+    NotificationsController,
+  ],
   providers: [
     EngagementsService,
     NotificationGateway,
@@ -36,4 +51,4 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
     OutboxWorker,
   ],
 })
-export class EngagementsModule { }
+export class EngagementsModule {}
