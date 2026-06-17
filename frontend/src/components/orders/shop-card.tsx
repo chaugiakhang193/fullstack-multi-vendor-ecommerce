@@ -106,7 +106,7 @@ export function ShopCard({
             <button
               type="button"
               onClick={onSelectFromWallet}
-              className="text-xs font-bold text-violet-600 hover:text-violet-750 dark:text-violet-400"
+              className="text-xs font-bold text-violet-600 hover:text-violet-700 dark:text-violet-400"
             >
               Chọn từ ví
             </button>

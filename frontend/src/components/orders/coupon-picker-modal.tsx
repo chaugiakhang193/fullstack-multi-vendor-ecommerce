@@ -139,11 +139,11 @@ export function CouponPickerModal({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {type === CouponType.GLOBAL ? (
-                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md bg-violet-100 text-violet-850 dark:bg-violet-950/30 dark:text-violet-400">
+                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md bg-violet-100 text-violet-800 dark:bg-violet-950/30 dark:text-violet-400">
                             <Gift className="h-2 w-2" /> Toàn sàn
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md bg-amber-100 text-amber-850 dark:bg-amber-950/30 dark:text-amber-400 max-w-[100px] truncate">
+                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 max-w-[100px] truncate">
                             <ShoppingBag className="h-2 w-2" /> Shop
                           </span>
                         )}
