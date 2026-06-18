@@ -3,6 +3,14 @@ import { CouponType, DiscountType } from "@/constants/enum";
 import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 
+// Trích xuất backend types để đảm bảo đồng bộ compile-time
+type CreateCouponDto = components["schemas"]["CreateCouponDto"];
+type UpdateCouponDto = components["schemas"]["UpdateCouponDto"];
+
+// ==========================================
+// Core Schemas
+// ==========================================
+
 export const CouponSchema = z.object({
   id: z.string().uuid(),
   code: z.string().min(1, "Mã code không được để trống"),
@@ -28,6 +36,10 @@ export const UserCouponSchema = z.object({
   coupon: CouponSchema,
 });
 
+// ==========================================
+// Request Body Schemas
+// ==========================================
+
 export const CouponBodyObject = z.object({
   code: z.string().min(3, "Mã giảm giá phải có tối thiểu 3 ký tự").max(20, "Mã giảm giá tối đa 20 ký tự"),
   discount_type: z.nativeEnum(DiscountType),
@@ -37,7 +49,7 @@ export const CouponBodyObject = z.object({
   start_date: z.string().min(1, "Ngày bắt đầu không được để trống"),
   end_date: z.string().min(1, "Ngày kết thúc không được để trống"),
   usage_limit: z.coerce.number().int().positive("Giới hạn lượt dùng phải là số dương").optional(),
-}) satisfies z.ZodType<components["schemas"]["CreateCouponDto"]>;
+}) satisfies z.ZodType<CreateCouponDto>;
 
 export const CreateCouponBody = CouponBodyObject.refine((data) => {
   if (data.start_date && data.end_date) {
@@ -49,13 +61,17 @@ export const CreateCouponBody = CouponBodyObject.refine((data) => {
   path: ["end_date"],
 });
 
-export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<components["schemas"]["UpdateCouponDto"]>;
+export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<UpdateCouponDto>;
 
 export const CouponQuery = z.object({
   page: z.number().int().positive().optional(),
   limit: z.number().int().positive().optional(),
   type: z.nativeEnum(CouponType).optional(),
 });
+
+// ==========================================
+// Response Schemas
+// ==========================================
 
 export const CouponPaginationMeta = z.object({
   page: z.number(),
@@ -77,6 +93,7 @@ export const UserCouponListResponse = z.object({
 // ==========================================
 // Types
 // ==========================================
+
 export type CouponTypeObj = z.TypeOf<typeof CouponSchema>;
 export type CouponDetailEnvelope = ApiEnvelope<CouponTypeObj>;
 
@@ -90,4 +107,3 @@ export type CouponQueryType = z.TypeOf<typeof CouponQuery>;
 export type CouponListEnvelope = ApiEnvelope<z.TypeOf<typeof CouponListResponse>>;
 
 export type UserCouponListEnvelope = ApiEnvelope<z.TypeOf<typeof UserCouponListResponse>>;
-
