@@ -20,6 +20,7 @@ export const QUERY_KEYS = {
   CUSTOMER_ORDER_DETAIL: "customer-order-detail",
   NOTIFICATIONS: "notifications",
   COUPONS: "coupons",
+  REVIEWS: "reviews",
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -82,4 +83,12 @@ export const couponKeys = {
   sellerList: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "seller-list", query ?? {}] as const,
   browse: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "browse", query ?? {}] as const,
   wallet: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "wallet", query ?? {}] as const,
+};
+
+export const reviewKeys = {
+  all: [QUERY_KEYS.REVIEWS] as const,
+  productReviews: (productId: string, query?: Record<string, unknown>) =>
+    [QUERY_KEYS.REVIEWS, "product", productId, query ?? {}] as const,
+  reviewable: (query?: Record<string, unknown>) => [QUERY_KEYS.REVIEWS, "reviewable", query ?? {}] as const,
+  sellerReviews: (query?: Record<string, unknown>) => [QUERY_KEYS.REVIEWS, "seller-list", query ?? {}] as const,
 };

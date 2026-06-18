@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, MapPin, Ticket } from "lucide-react";
+import { Package, MapPin, Ticket, Star } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/profile/orders", label: "Đơn hàng của tôi", icon: Package },
   { href: "/profile/addresses", label: "Sổ địa chỉ", icon: MapPin },
   { href: "/profile/coupons", label: "Ví voucher", icon: Ticket },
+  { href: "/profile/reviews", label: "Đánh giá sản phẩm", icon: Star },
 ];
 
 export function ProfileSidebar() {

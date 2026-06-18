@@ -16,6 +16,7 @@ import {
   User,
   ExternalLink,
   Ticket,
+  Star,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -198,6 +199,11 @@ export default function SellerLayout({
       icon: <Ticket className="h-5 w-5" />,
     },
     {
+      label: "Đánh giá",
+      href: "/seller/reviews",
+      icon: <Star className="h-5 w-5" />,
+    },
+    {
       label: "Cài đặt",
       href: "/seller/settings",
       icon: <Settings className="h-5 w-5" />,
@@ -223,6 +229,7 @@ export default function SellerLayout({
       products: "Sản phẩm",
       orders: "Đơn hàng",
       coupons: "Khuyến mãi",
+      reviews: "Đánh giá",
       settings: "Cài đặt",
       create: "Tạo sản phẩm mới",
       edit: "Sửa thông tin",
