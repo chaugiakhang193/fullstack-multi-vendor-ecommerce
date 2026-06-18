@@ -198,6 +198,8 @@ export const ProductResponse = z.object({
   status: z.enum(["active", "deleted"]),
   created_at: z.string(),
   updated_at: z.string(),
+  avg_rating: z.coerce.number().optional().nullable(),
+  review_count: z.coerce.number().optional().nullable(),
 });
 
 export const PaginationMetaSchema = z.object({

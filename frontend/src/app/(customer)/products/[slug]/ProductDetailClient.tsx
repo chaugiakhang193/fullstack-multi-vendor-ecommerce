@@ -15,6 +15,8 @@ import {
   Truck,
   RotateCcw,
   Sparkles,
+  Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,6 +27,8 @@ import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
 import { useActiveCart } from "@/hooks/useActiveCart";
 import { useProductDetail } from "@/hooks/useProducts";
 import { useMyShop } from "@/hooks/useShop";
+import { StarRating } from "@/components/shared/star-rating";
+import { useProductReviews } from "@/hooks/useReviews";
 
 // Components
 import VariantSelector from "@/components/products/VariantSelector";
@@ -72,6 +76,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariantResponseType | null>(null);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [activeTab, setActiveTab] = useState<"description" | "reviews">("description");
+  const [reviewPage, setReviewPage] = useState(1);
+  const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
 
   const mainImageRef = useRef<HTMLImageElement>(null);
   const initialCheckRef = useRef(false);
@@ -83,6 +90,14 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   const { data: detailRes, isLoading, error } = useProductDetail(productId);
 
   const product = detailRes?.data;
+
+  // Fetch product reviews
+  const { data: reviewsRes, isLoading: isReviewsLoading } = useProductReviews(product?.id || "", {
+    page: reviewPage,
+    limit: 10,
+    rating: selectedRating,
+  });
+  const reviewsData = reviewsRes?.data;
   const addProductToRecentlyViewed = useRecentlyViewedStore((state) => state.addProduct);
 
   // Lưu sản phẩm vào danh sách vừa xem gần đây
@@ -488,15 +503,10 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
             </h1>
 
             {/* Ratings Summary */}
-            <div className="flex items-center gap-1.5 text-amber-500 pt-1">
-              <div className="flex items-center gap-0.5">
-                {[...Array(4)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
-                <Star className="h-4 w-4 text-zinc-300 dark:text-zinc-700 fill-current" />
-              </div>
+            <div className="flex items-center gap-1.5 pt-1">
+              <StarRating rating={Number(product.avg_rating || 0)} size="sm" />
               <span className="text-xs font-bold text-muted-foreground ml-1">
-                4.0 (50 đánh giá) | Đã bán 289
+                {Number(product.avg_rating || 0).toFixed(1)} ({product.review_count || 0} đánh giá)
               </span>
             </div>
 
@@ -603,50 +613,233 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
         </div>
       </div>
 
-      {/* Tabs description */}
+      {/* Tabs description & reviews */}
       <div className="rounded-2xl border bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="border-b pb-4 flex gap-8">
-          <span className="text-base font-extrabold text-violet-600 border-b-2 border-violet-600 pb-4 -mb-[18px] flex items-center gap-1.5 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => setActiveTab("description")}
+            className={`text-base font-extrabold pb-4 -mb-[18px] flex items-center gap-1.5 border-b-2 transition-all ${
+              activeTab === "description"
+                ? "text-violet-600 border-violet-600"
+                : "text-muted-foreground border-transparent hover:text-foreground"
+            }`}
+          >
             <Sparkles className="h-4 w-4" /> Chi tiết sản phẩm
-          </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("reviews")}
+            className={`text-base font-extrabold pb-4 -mb-[18px] flex items-center gap-1.5 border-b-2 transition-all ${
+              activeTab === "reviews"
+                ? "text-violet-600 border-violet-600"
+                : "text-muted-foreground border-transparent hover:text-foreground"
+            }`}
+          >
+            <Star className="h-4 w-4" /> Đánh giá ({product.review_count || 0})
+          </button>
         </div>
 
-        <div className="space-y-4 pt-2">
-          {product.description ? (
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-              {product.description}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Hiện chưa có mô tả chi tiết cho sản phẩm này.
-            </p>
-          )}
+        {activeTab === "description" ? (
+          <div className="space-y-4 pt-2">
+            {product.description ? (
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {product.description}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                Hiện chưa có mô tả chi tiết cho sản phẩm này.
+              </p>
+            )}
 
-          {/* Technical Specifications */}
-          <div className="pt-4 max-w-md">
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
-              Thông số kỹ thuật:
-            </h4>
-            <div className="divide-y text-xs border rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/10">
-              <div className="flex p-3">
-                <span className="w-1/3 text-muted-foreground font-semibold">Trọng lượng</span>
-                <span className="w-2/3 text-foreground font-bold">{product.weight}g</span>
-              </div>
-              <div className="flex p-3">
-                <span className="w-1/3 text-muted-foreground font-semibold">Kích thước hộp</span>
-                <span className="w-2/3 text-foreground font-bold">
-                  {product.length || 20} x {product.width || 15} x {product.height || 10} cm
-                </span>
-              </div>
-              <div className="flex p-3">
-                <span className="w-1/3 text-muted-foreground font-semibold">Mã SKU gốc</span>
-                <span className="w-2/3 text-foreground font-mono font-bold">
-                  {product.sku || "N/A"}
-                </span>
+            {/* Technical Specifications */}
+            <div className="pt-4 max-w-md">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
+                Thông số kỹ thuật:
+              </h4>
+              <div className="divide-y text-xs border rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/10">
+                <div className="flex p-3">
+                  <span className="w-1/3 text-muted-foreground font-semibold">Trọng lượng</span>
+                  <span className="w-2/3 text-foreground font-bold">{product.weight}g</span>
+                </div>
+                <div className="flex p-3">
+                  <span className="w-1/3 text-muted-foreground font-semibold">Kích thước hộp</span>
+                  <span className="w-2/3 text-foreground font-bold">
+                    {product.length || 20} x {product.width || 15} x {product.height || 10} cm
+                  </span>
+                </div>
+                <div className="flex p-3">
+                  <span className="w-1/3 text-muted-foreground font-semibold">Mã SKU gốc</span>
+                  <span className="w-2/3 text-foreground font-mono font-bold">
+                    {product.sku || "N/A"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-6 pt-2">
+            {/* Reviews Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/10 border">
+              {/* Avg rating score */}
+              <div className="md:col-span-4 flex flex-col items-center justify-center border-r md:border-r border-zinc-200 dark:border-zinc-800 pr-6">
+                <span className="text-5xl font-black text-foreground">
+                  {Number(product.avg_rating || 0).toFixed(1)}
+                </span>
+                <div className="mt-2">
+                  <StarRating rating={Number(product.avg_rating || 0)} size="md" />
+                </div>
+                <span className="mt-2 text-xs font-bold text-muted-foreground">
+                  {product.review_count || 0} đánh giá
+                </span>
+              </div>
+
+              {/* Distribution bars */}
+              <div className="md:col-span-8 flex flex-col gap-2">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const distribution = reviewsData?.distribution || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+                  const count = distribution[stars.toString() as keyof typeof distribution] || 0;
+                  const total = Object.values(distribution).reduce((a, b) => a + b, 0) || 1;
+                  const percent = Math.round((count / total) * 100);
+                  return (
+                    <div key={stars} className="flex items-center gap-3 text-xs">
+                      <span className="w-12 font-bold text-muted-foreground text-right shrink-0">{stars} sao</span>
+                      <div className="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <span className="w-16 font-bold text-muted-foreground shrink-0">
+                        {percent}% ({count})
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Star Filters */}
+            <div className="flex flex-wrap gap-2 pb-2 border-b">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRating(undefined);
+                  setReviewPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border ${
+                  selectedRating === undefined
+                    ? "bg-violet-600 text-white border-violet-600"
+                    : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+                }`}
+              >
+                Tất cả
+              </button>
+              {[5, 4, 3, 2, 1].map((stars) => (
+                <button
+                  key={stars}
+                  type="button"
+                  onClick={() => {
+                    setSelectedRating(stars);
+                    setReviewPage(1);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border flex items-center gap-1 ${
+                    selectedRating === stars
+                      ? "bg-violet-600 text-white border-violet-600"
+                      : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+                  }`}
+                >
+                  {stars} sao
+                </button>
+              ))}
+            </div>
+
+            {/* Reviews List */}
+            {isReviewsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+              </div>
+            ) : !reviewsData || reviewsData.items.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm font-semibold italic">
+                Chưa có đánh giá nào cho sản phẩm này.
+              </div>
+            ) : (
+              <div className="divide-y space-y-6">
+                {reviewsData.items.map((review) => (
+                  <div key={review.id} className="pt-6 first:pt-0 space-y-3">
+                    {/* User profile & rating */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-extrabold text-foreground">
+                          {review.user?.username || "Người dùng ẩn danh"}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <StarRating rating={review.rating} size="sm" />
+                          {review.order_item?.variant_name && (
+                            <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-semibold px-2 py-0.5 rounded">
+                              Phân loại: {review.order_item.variant_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {new Date(review.created_at).toLocaleDateString("vi-VN", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Comment content */}
+                    {review.comment && (
+                      <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed pl-1">
+                        {review.comment}
+                      </p>
+                    )}
+
+                    {/* Seller Reply Box */}
+                    {review.reply_from_seller && (
+                      <div className="p-4 rounded-xl bg-violet-50/50 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/30 ml-4 space-y-1">
+                        <div className="text-xs font-black text-violet-600 dark:text-violet-400 flex items-center gap-1.5 uppercase tracking-wider">
+                          <MessageSquare className="h-3.5 w-3.5" /> Phản hồi từ người bán
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                          {review.reply_from_seller}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Pagination Controls */}
+                {reviewsData.meta.totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 pt-6">
+                    <button
+                      type="button"
+                      disabled={reviewPage <= 1}
+                      onClick={() => setReviewPage((p) => p - 1)}
+                      className="px-4 py-2 rounded-xl text-xs font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
+                    >
+                      Trang trước
+                    </button>
+                    <span className="text-xs font-extrabold text-muted-foreground">
+                      Trang {reviewPage} / {reviewsData.meta.totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={reviewPage >= reviewsData.meta.totalPages}
+                      onClick={() => setReviewPage((p) => p + 1)}
+                      className="px-4 py-2 rounded-xl text-xs font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Section sản phẩm đã xem gần đây */}

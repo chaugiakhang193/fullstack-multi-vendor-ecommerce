@@ -7,6 +7,7 @@ import { ProductResponseType } from "@/schemaValidations/products/products.schem
 import { toast } from "sonner";
 import { ShoppingCart, Star, Store } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
+import { StarRating } from "@/components/shared/star-rating";
 import { useActiveCart } from "@/hooks/useActiveCart";
 import { queryClient } from "@/lib/query-client";
 import productsApiRequest from "@/apiRequests/products/products";
@@ -184,15 +185,11 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <div className="space-y-1.5">
-            {/* Stars / Rating reviews placeholder */}
-            <div className="flex items-center gap-0.5 text-amber-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <Star className="h-3.5 w-3.5 text-zinc-300 dark:text-zinc-700 fill-current" />
-              <span className="text-sm text-muted-foreground font-bold ml-1">
-                (4.0)
+            {/* Stars / Rating reviews dynamic */}
+            <div className="flex items-center gap-1">
+              <StarRating rating={Number(product.avg_rating || 0)} size="sm" />
+              <span className="text-xs text-muted-foreground font-bold ml-1">
+                ({Number(product.avg_rating || 0).toFixed(1)})
               </span>
             </div>
 
