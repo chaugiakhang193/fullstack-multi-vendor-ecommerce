@@ -96,21 +96,42 @@ export default function SellerReviewsPage() {
             {reviewsData.items.map((review) => (
               <div key={review.id} className="p-5 space-y-4">
                 {/* Header review details */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="space-y-1">
-                    <div className="text-sm font-extrabold text-foreground">
-                      Khách hàng: {review.user?.username || "Ẩn danh"}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-2.5">
+                    {/* User and Stars */}
+                    <div className="space-y-1">
+                      <div className="text-sm font-extrabold text-foreground">
+                        Khách hàng: {review.user?.username || "Ẩn danh"}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StarRating rating={review.rating} size="sm" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StarRating rating={review.rating} size="sm" />
-                      {review.order_item?.variant_name && (
-                        <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-semibold px-2 py-0.5 rounded">
-                          Phân loại: {review.order_item.variant_name}
-                        </span>
-                      )}
-                    </div>
+
+                    {/* Product & Variant */}
+                    {review.product && (
+                      <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded-xl border border-zinc-100 dark:border-zinc-800 max-w-md">
+                        {review.product.thumbnail_url && (
+                          <img
+                            src={review.product.thumbnail_url}
+                            alt={review.product.name}
+                            className="w-10 h-10 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0"
+                          />
+                        )}
+                        <div className="text-xs">
+                          <div className="font-extrabold text-foreground line-clamp-1">
+                            {review.product.name}
+                          </div>
+                          {review.order_item?.variant_name && (
+                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                              Phân loại: {review.order_item.variant_name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-bold text-muted-foreground">
+                  <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                     {new Date(review.created_at).toLocaleString("vi-VN", {
                       year: "numeric",
                       month: "long",

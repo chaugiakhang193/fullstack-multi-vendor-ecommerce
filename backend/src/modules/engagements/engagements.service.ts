@@ -282,6 +282,8 @@ export class EngagementsService {
       .innerJoin('p.shop', 's')
       .leftJoin('r.user', 'u')
       .addSelect(['u.id', 'u.username'])
+      .leftJoin('r.order_item', 'oi')
+      .addSelect(['oi.variant_name'])
       .where(sellerCondition, sellerParams)
       .orderBy('r.created_at', 'DESC');
 

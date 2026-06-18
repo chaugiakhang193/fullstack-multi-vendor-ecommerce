@@ -23,6 +23,11 @@ export const ReviewSchema = z.object({
   order_item: z.object({
     variant_name: z.string().nullable().optional(),
   }).nullable().optional(),
+  product: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    thumbnail_url: z.string().nullable().optional(),
+  }).nullable().optional(),
 });
 
 export const ReviewableItemSchema = z.object({
