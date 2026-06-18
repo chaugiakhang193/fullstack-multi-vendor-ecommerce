@@ -42,6 +42,8 @@ export const SELLER_PERMISSIONS: Record<
       "/seller/orders",
       "/seller/settings",
       "/seller/analytics",
+      "/seller/coupons",
+      "/seller/reviews",
       // Tuyệt đối không có /seller/pending hay /seller/rejected ở đây!
     ],
   },
