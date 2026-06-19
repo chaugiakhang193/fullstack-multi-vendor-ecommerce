@@ -48,6 +48,18 @@ export function renderNotificationData(
           <B>{ORDER_STATUS_LABELS[data.status]}</B>.
         </>
       );
+    case "review_new_seller":
+      return (
+        <>
+          Sản phẩm <B>{data.productName}</B> vừa nhận được một đánh giá mới.
+        </>
+      );
+    case "review_replied":
+      return (
+        <>
+          Cửa hàng đã phản hồi đánh giá của bạn về sản phẩm <B>{data.productName}</B>.
+        </>
+      );
     default:
       return null;
   }

@@ -21,6 +21,8 @@ import type { NotificationItemType } from "@/schemaValidations/engagements/notif
 // Tên event WS — khớp backend notification.events.ts WS_EVENTS.
 const WS_ORDER_NEW = "order.new";
 const WS_ORDER_STATUS_CHANGED = "order.status_changed";
+const WS_REVIEW_NEW = "review.new";
+const WS_REVIEW_REPLIED = "review.replied";
 
 interface OrderNewPayload {
   orderId: string;
@@ -34,6 +36,42 @@ interface OrderStatusChangedPayload {
   status: string;
   message: string;
 }
+interface ReviewNewPayload {
+  reviewId: string;
+  productId: string;
+  productName: string;
+  rating: number;
+  message: string;
+}
+interface ReviewRepliedPayload {
+  reviewId: string;
+  productId: string;
+  productName: string;
+  message: string;
+}
+
+// Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
+const getNotificationHref = (item: NotificationItemType, role?: string): string => {
+  const d = item.data;
+  if (!d) return role === UserRole.SELLER ? "/seller/orders" : "/profile/orders";
+
+  switch (d.kind) {
+    case "order_placed":
+    case "suborder_cancelled_customer":
+    case "suborder_status_changed":
+      return d.orderId ? `/profile/orders/${d.orderId}` : "/profile/orders";
+    case "order_new_seller":
+    case "suborder_cancelled_seller":
+      return d.orderId ? `/seller/orders/${d.orderId}` : "/seller/orders";
+    case "review_new_seller":
+      return "/seller/reviews";
+    case "review_replied":
+      // Dẫn về sản phẩm để xem đánh giá và phản hồi
+      return d.productId ? `/products/${d.productId}` : "/profile/orders";
+    default:
+      return role === UserRole.SELLER ? "/seller/orders" : "/profile/orders";
+  }
+};
 
 export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
   const router = useRouter();
@@ -92,12 +130,38 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
       });
     };
 
+    const onReviewNew = (payload: ReviewNewPayload) => {
+      increment();
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      toast.info(`Khách hàng vừa đánh giá ${payload.rating}⭐ cho ${payload.productName}`, {
+        action: {
+          label: "Xem ngay",
+          onClick: () => router.push("/seller/reviews"),
+        },
+      });
+    };
+
+    const onReviewReplied = (payload: ReviewRepliedPayload) => {
+      increment();
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      toast.info(`Shop đã phản hồi đánh giá sản phẩm ${payload.productName}`, {
+        action: {
+          label: "Xem",
+          onClick: () => router.push(`/products/${payload.productId}`),
+        },
+      });
+    };
+
     socket.on(WS_ORDER_NEW, onOrderNew);
     socket.on(WS_ORDER_STATUS_CHANGED, onStatusChanged);
+    socket.on(WS_REVIEW_NEW, onReviewNew);
+    socket.on(WS_REVIEW_REPLIED, onReviewReplied);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
       socket.off(WS_ORDER_STATUS_CHANGED, onStatusChanged);
+      socket.off(WS_REVIEW_NEW, onReviewNew);
+      socket.off(WS_REVIEW_REPLIED, onReviewReplied);
     };
   }, [socket, role, router, queryClient, increment]);
 
@@ -116,7 +180,8 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
     } catch {
       // đánh dấu đọc lỗi không chặn điều hướng
     }
-    router.push(role === UserRole.SELLER ? "/seller/orders" : "/profile/orders");
+    const href = getNotificationHref(item, role);
+    router.push(href);
   };
 
   const handleMarkAll = async () => {

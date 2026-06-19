@@ -12,16 +12,51 @@ import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
 // apiRequest KHÔNG .parse() nên union này chỉ dùng để type; render switch có default fallback
 // về `content` nếu gặp kind lạ (backend thêm kind mới mà FE chưa cập nhật).
 export const NotificationData = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("order_placed"), orderNumber: z.string(), amount: z.coerce.number() }),
-  z.object({ kind: z.literal("order_new_seller"), orderNumber: z.string() }),
-  z.object({ kind: z.literal("suborder_cancelled_customer"), orderNumber: z.string() }),
-  z.object({ kind: z.literal("suborder_cancelled_seller"), orderNumber: z.string() }),
-  z.object({ kind: z.literal("suborder_status_changed"), orderNumber: z.string(), status: OrderStatusEnum }),
+  z.object({ 
+    kind: z.literal("order_placed"), 
+    orderNumber: z.string(), 
+    amount: z.coerce.number(),
+    orderId: z.string().uuid().optional(),
+  }),
+  z.object({ 
+    kind: z.literal("order_new_seller"), 
+    orderNumber: z.string(),
+    orderId: z.string().uuid().optional(),
+  }),
+  z.object({ 
+    kind: z.literal("suborder_cancelled_customer"), 
+    orderNumber: z.string(),
+    orderId: z.string().uuid().optional(),
+  }),
+  z.object({ 
+    kind: z.literal("suborder_cancelled_seller"), 
+    orderNumber: z.string(),
+    orderId: z.string().uuid().optional(),
+  }),
+  z.object({ 
+    kind: z.literal("suborder_status_changed"), 
+    orderNumber: z.string(), 
+    status: OrderStatusEnum,
+    orderId: z.string().uuid().optional(),
+  }),
+  // Các loại thông báo Đánh giá mới
+  z.object({
+    kind: z.literal("review_new_seller"),
+    productId: z.string().uuid().optional(),
+    productName: z.string(),
+    reviewId: z.string().uuid().optional(),
+  }),
+  z.object({
+    kind: z.literal("review_replied"),
+    productId: z.string().uuid().optional(),
+    productName: z.string(),
+    reviewId: z.string().uuid().optional(),
+  }),
 ]);
 
 export const NotificationItem = z.object({
   id: z.string(),
-  type: z.enum(["order.created", "order.status_changed"]),
+  type: z.enum(["order.created", "order.status_changed", "review.created", "review.replied"]),
   title: z.string().nullable(),
   content: z.string().nullable(),
   data: NotificationData.nullable().optional(),
