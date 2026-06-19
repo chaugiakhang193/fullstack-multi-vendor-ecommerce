@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import {
   Ticket,
   Plus,
@@ -33,7 +32,6 @@ import {
   UpdateCouponBodyType,
 } from "@/schemaValidations/promotions/coupons.schema";
 import { CouponType, DiscountType } from "@/constants/enum";
-import { getErrorMessage } from "@/lib/http";
 import { formatVnd } from "@/lib/format";
 
 import { Button } from "@/components/ui/button";
@@ -166,9 +164,6 @@ export default function AdminCouponsPage() {
         resetCreate();
         setIsCreateOpen(false);
       },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
-      },
     });
   };
 
@@ -184,9 +179,6 @@ export default function AdminCouponsPage() {
         setIsEditOpen(false);
         setSelectedCoupon(null);
       },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
-      },
     });
   };
 
@@ -196,9 +188,6 @@ export default function AdminCouponsPage() {
       onSuccess: () => {
         setIsDeleteOpen(false);
         setSelectedCoupon(null);
-      },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
       },
     });
   };
@@ -399,19 +388,19 @@ export default function AdminCouponsPage() {
 
       {/* CREATE DIALOG */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Tạo Mã Giảm Giá Mới</DialogTitle>
-            <DialogDescription>Nhập thông tin chi tiết của coupon toàn sàn.</DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Tạo Mã Giảm Giá Mới</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">Nhập thông tin chi tiết của coupon toàn sàn.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmitCreate(onCreateSubmit)} className="space-y-4">
             <Field>
-              <FieldLabel htmlFor="create-code">Mã giảm giá (Code)</FieldLabel>
+              <FieldLabel htmlFor="create-code" className="text-sm sm:text-base font-semibold">Mã giảm giá (Code)</FieldLabel>
               <Input
                 id="create-code"
                 placeholder="Ví dụ: SANTOT50"
-                className="uppercase"
+                className="uppercase h-10 sm:h-11 text-sm sm:text-base"
                 {...registerCreate("code")}
               />
               <FieldError>{createErrors.code?.message}</FieldError>
@@ -419,9 +408,9 @@ export default function AdminCouponsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel>Loại giảm giá</FieldLabel>
+                <FieldLabel className="text-sm sm:text-base font-semibold">Loại giảm giá</FieldLabel>
                 <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full h-10 sm:h-11 rounded-md border border-input bg-background px-3 py-1 text-sm sm:text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   {...registerCreate("discount_type")}
                 >
                   <option value={DiscountType.FIXED_AMOUNT}>Giảm tiền mặt (đ)</option>
@@ -431,58 +420,66 @@ export default function AdminCouponsPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="create-value">Giá trị giảm</FieldLabel>
+                <FieldLabel htmlFor="create-value" className="text-sm sm:text-base font-semibold">
+                  {createDiscountType === DiscountType.PERCENTAGE ? "Phần trăm giảm (%)" : "Số tiền giảm (đ)"}
+                </FieldLabel>
                 <Input
                   id="create-value"
                   type="number"
                   placeholder={createDiscountType === DiscountType.PERCENTAGE ? "Ví dụ: 10" : "Ví dụ: 20000"}
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerCreate("discount_value")}
                 />
                 <FieldError>{createErrors.discount_value?.message}</FieldError>
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={createDiscountType === DiscountType.PERCENTAGE ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}>
               <Field>
-                <FieldLabel htmlFor="create-min">Giá trị đơn tối thiểu</FieldLabel>
+                <FieldLabel htmlFor="create-min" className="text-sm sm:text-base font-semibold">Giá trị đơn tối thiểu (đ)</FieldLabel>
                 <Input
                   id="create-min"
                   type="number"
                   placeholder="Ví dụ: 50000"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerCreate("min_order_value")}
                 />
                 <FieldError>{createErrors.min_order_value?.message}</FieldError>
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="create-max">Giá trị giảm tối đa (nếu %)</FieldLabel>
-                <Input
-                  id="create-max"
-                  type="number"
-                  disabled={createDiscountType !== DiscountType.PERCENTAGE}
-                  placeholder="Bỏ trống nếu không giới hạn"
-                  {...registerCreate("max_discount_value")}
-                />
-                <FieldError>{createErrors.max_discount_value?.message}</FieldError>
-              </Field>
+              {createDiscountType === DiscountType.PERCENTAGE && (
+                <Field>
+                  <FieldLabel htmlFor="create-max" className="text-sm sm:text-base font-semibold">Giá trị giảm tối đa (đ)</FieldLabel>
+                  <Input
+                    id="create-max"
+                    type="number"
+                    placeholder="Bỏ trống nếu không giới hạn"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
+                    {...registerCreate("max_discount_value")}
+                  />
+                  <FieldError>{createErrors.max_discount_value?.message}</FieldError>
+                </Field>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel htmlFor="create-start">Ngày bắt đầu</FieldLabel>
+                <FieldLabel htmlFor="create-start" className="text-sm sm:text-base font-semibold">Ngày bắt đầu</FieldLabel>
                 <Input
                   id="create-start"
                   type="datetime-local"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerCreate("start_date")}
                 />
                 <FieldError>{createErrors.start_date?.message}</FieldError>
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="create-end">Ngày kết thúc</FieldLabel>
+                <FieldLabel htmlFor="create-end" className="text-sm sm:text-base font-semibold">Ngày kết thúc</FieldLabel>
                 <Input
                   id="create-end"
                   type="datetime-local"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerCreate("end_date")}
                 />
                 <FieldError>{createErrors.end_date?.message}</FieldError>
@@ -490,24 +487,26 @@ export default function AdminCouponsPage() {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="create-limit">Giới hạn lượt dùng toàn sàn</FieldLabel>
+              <FieldLabel htmlFor="create-limit" className="text-sm sm:text-base font-semibold">Giới hạn lượt dùng toàn sàn</FieldLabel>
               <Input
                 id="create-limit"
                 type="number"
                 placeholder="Bỏ trống nếu không giới hạn"
+                className="h-10 sm:h-11 text-sm sm:text-base"
                 {...registerCreate("usage_limit")}
               />
               <FieldError>{createErrors.usage_limit?.message}</FieldError>
             </Field>
 
-            <DialogFooter className="pt-4 border-t gap-2">
-              <DialogClose render={<Button variant="outline" type="button" />}>
+            <DialogFooter className="pt-4 border-t gap-3">
+              <DialogClose render={<Button variant="outline" type="button" size="lg" className="h-10 sm:h-11 text-sm sm:text-base px-5" />}>
                 Hủy
               </DialogClose>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="bg-violet-600 hover:bg-violet-700 text-white font-bold"
+                size="lg"
+                className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-10 sm:h-11 text-sm sm:text-base px-6"
               >
                 {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Tạo mã
@@ -519,19 +518,19 @@ export default function AdminCouponsPage() {
 
       {/* EDIT DIALOG */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Cập Nhật Mã Giảm Giá</DialogTitle>
-            <DialogDescription>Chỉnh sửa các thông tin của coupon đang chọn.</DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Cập Nhật Mã Giảm Giá</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">Chỉnh sửa các thông tin của coupon đang chọn.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmitEdit(onEditSubmit)} className="space-y-4">
             <Field>
-              <FieldLabel htmlFor="edit-code">Mã giảm giá (Code)</FieldLabel>
+              <FieldLabel htmlFor="edit-code" className="text-sm sm:text-base font-semibold">Mã giảm giá (Code)</FieldLabel>
               <Input
                 id="edit-code"
                 placeholder="Mã giảm giá"
-                className="uppercase text-muted-foreground"
+                className="uppercase text-muted-foreground h-10 sm:h-11 text-sm sm:text-base"
                 readOnly
                 {...registerEdit("code")}
               />
@@ -540,9 +539,9 @@ export default function AdminCouponsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel>Loại giảm giá</FieldLabel>
+                <FieldLabel className="text-sm sm:text-base font-semibold">Loại giảm giá</FieldLabel>
                 <select
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full h-10 sm:h-11 rounded-md border border-input bg-background px-3 py-1 text-sm sm:text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   {...registerEdit("discount_type")}
                 >
                   <option value={DiscountType.FIXED_AMOUNT}>Giảm tiền mặt (đ)</option>
@@ -552,58 +551,66 @@ export default function AdminCouponsPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="edit-value">Giá trị giảm</FieldLabel>
+                <FieldLabel htmlFor="edit-value" className="text-sm sm:text-base font-semibold">
+                  {editDiscountType === DiscountType.PERCENTAGE ? "Phần trăm giảm (%)" : "Số tiền giảm (đ)"}
+                </FieldLabel>
                 <Input
                   id="edit-value"
                   type="number"
                   placeholder="Ví dụ: 20000"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerEdit("discount_value")}
                 />
                 <FieldError>{editErrors.discount_value?.message}</FieldError>
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={editDiscountType === DiscountType.PERCENTAGE ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}>
               <Field>
-                <FieldLabel htmlFor="edit-min">Giá trị đơn tối thiểu</FieldLabel>
+                <FieldLabel htmlFor="edit-min" className="text-sm sm:text-base font-semibold">Giá trị đơn tối thiểu (đ)</FieldLabel>
                 <Input
                   id="edit-min"
                   type="number"
                   placeholder="Ví dụ: 50000"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerEdit("min_order_value")}
                 />
                 <FieldError>{editErrors.min_order_value?.message}</FieldError>
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="edit-max">Giá trị giảm tối đa (nếu %)</FieldLabel>
-                <Input
-                  id="edit-max"
-                  type="number"
-                  disabled={editDiscountType !== DiscountType.PERCENTAGE}
-                  placeholder="Bỏ trống nếu không giới hạn"
-                  {...registerEdit("max_discount_value")}
-                />
-                <FieldError>{editErrors.max_discount_value?.message}</FieldError>
-              </Field>
+              {editDiscountType === DiscountType.PERCENTAGE && (
+                <Field>
+                  <FieldLabel htmlFor="edit-max" className="text-sm sm:text-base font-semibold">Giá trị giảm tối đa (đ)</FieldLabel>
+                  <Input
+                    id="edit-max"
+                    type="number"
+                    placeholder="Bỏ trống nếu không giới hạn"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
+                    {...registerEdit("max_discount_value")}
+                  />
+                  <FieldError>{editErrors.max_discount_value?.message}</FieldError>
+                </Field>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel htmlFor="edit-start">Ngày bắt đầu</FieldLabel>
+                <FieldLabel htmlFor="edit-start" className="text-sm sm:text-base font-semibold">Ngày bắt đầu</FieldLabel>
                 <Input
                   id="edit-start"
                   type="datetime-local"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerEdit("start_date")}
                 />
                 <FieldError>{editErrors.start_date?.message}</FieldError>
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="edit-end">Ngày kết thúc</FieldLabel>
+                <FieldLabel htmlFor="edit-end" className="text-sm sm:text-base font-semibold">Ngày kết thúc</FieldLabel>
                 <Input
                   id="edit-end"
                   type="datetime-local"
+                  className="h-10 sm:h-11 text-sm sm:text-base"
                   {...registerEdit("end_date")}
                 />
                 <FieldError>{editErrors.end_date?.message}</FieldError>
@@ -611,24 +618,26 @@ export default function AdminCouponsPage() {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="edit-limit">Giới hạn lượt dùng toàn sàn</FieldLabel>
+              <FieldLabel htmlFor="edit-limit" className="text-sm sm:text-base font-semibold">Giới hạn lượt dùng toàn sàn</FieldLabel>
               <Input
                 id="edit-limit"
                 type="number"
                 placeholder="Bỏ trống nếu không giới hạn"
+                className="h-10 sm:h-11 text-sm sm:text-base"
                 {...registerEdit("usage_limit")}
               />
               <FieldError>{editErrors.usage_limit?.message}</FieldError>
             </Field>
 
-            <DialogFooter className="pt-4 border-t gap-2">
-              <DialogClose render={<Button variant="outline" type="button" />}>
+            <DialogFooter className="pt-4 border-t gap-3">
+              <DialogClose render={<Button variant="outline" type="button" size="lg" className="h-10 sm:h-11 text-sm sm:text-base px-5" />}>
                 Hủy
               </DialogClose>
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="bg-violet-600 hover:bg-violet-700 text-white font-bold"
+                size="lg"
+                className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-10 sm:h-11 text-sm sm:text-base px-6"
               >
                 {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Lưu thay đổi

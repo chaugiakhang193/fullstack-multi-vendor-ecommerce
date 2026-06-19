@@ -40,28 +40,51 @@ export const UserCouponSchema = z.object({
 // Request Body Schemas
 // ==========================================
 
+// Chuẩn hoá number tuỳ chọn nhập từ form: ô trống ("") / null / undefined đều coi
+// như "không nhập" → undefined, để backend lưu NULL. Tránh việc z.coerce.number("")
+// = 0 vừa làm fail validate (usage_limit), vừa âm thầm lưu nhầm 0
+// (max_discount_value: cap giảm tối đa = 0đ → coupon % giảm 0đ).
+const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    schema,
+  );
+
 export const CouponBodyObject = z.object({
   code: z.string().min(3, "Mã giảm giá phải có tối thiểu 3 ký tự").max(20, "Mã giảm giá tối đa 20 ký tự"),
   discount_type: z.nativeEnum(DiscountType),
   discount_value: z.coerce.number().positive("Giá trị giảm phải lớn hơn 0"),
-  min_order_value: z.coerce.number().nonnegative("Giá trị đơn hàng tối thiểu không được âm").optional(),
-  max_discount_value: z.coerce.number().nonnegative("Giá trị giảm tối đa không được âm").optional(),
+  min_order_value: optionalNumber(z.coerce.number().nonnegative("Giá trị đơn hàng tối thiểu không được âm").optional()),
+  max_discount_value: optionalNumber(z.coerce.number().nonnegative("Giá trị giảm tối đa không được âm").optional()),
   start_date: z.string().min(1, "Ngày bắt đầu không được để trống"),
   end_date: z.string().min(1, "Ngày kết thúc không được để trống"),
-  usage_limit: z.coerce.number().int().positive("Giới hạn lượt dùng phải là số dương").optional(),
-}) satisfies z.ZodType<CreateCouponDto>;
+  usage_limit: optionalNumber(z.coerce.number().int().positive("Giới hạn lượt dùng phải là số dương").optional()),
+  // Input để 'unknown' vì optionalNumber dùng z.preprocess (nhận "" từ form);
+  // vẫn ràng buộc OUTPUT khớp CreateCouponDto để đồng bộ compile-time với backend.
+}) satisfies z.ZodType<CreateCouponDto, z.ZodTypeDef, unknown>;
 
-export const CreateCouponBody = CouponBodyObject.refine((data) => {
-  if (data.start_date && data.end_date) {
-    return new Date(data.end_date) > new Date(data.start_date);
-  }
-  return true;
-}, {
-  message: "Ngày kết thúc phải sau ngày bắt đầu",
-  path: ["end_date"],
-});
+export const CreateCouponBody = CouponBodyObject
+  .refine((data) => {
+    if (data.start_date && data.end_date) {
+      return new Date(data.end_date) > new Date(data.start_date);
+    }
+    return true;
+  }, {
+    message: "Ngày kết thúc phải sau ngày bắt đầu",
+    path: ["end_date"],
+  })
+  // Với loại giảm theo %, giá trị phải nằm trong 1–100. Loại fixed_amount không giới hạn.
+  .refine(
+    (data) =>
+      data.discount_type !== DiscountType.PERCENTAGE ||
+      (data.discount_value >= 1 && data.discount_value <= 100),
+    {
+      message: "Phần trăm giảm giá phải nằm trong khoảng 1 - 100",
+      path: ["discount_value"],
+    },
+  );
 
-export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<UpdateCouponDto>;
+export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<UpdateCouponDto, z.ZodTypeDef, unknown>;
 
 export const CouponQuery = z.object({
   page: z.number().int().positive().optional(),

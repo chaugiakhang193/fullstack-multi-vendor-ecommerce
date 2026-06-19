@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import {
   Ticket,
   Plus,
@@ -29,7 +28,6 @@ import {
   CouponTypeObj,
 } from "@/schemaValidations/promotions/coupons.schema";
 import { CouponType, DiscountType } from "@/constants/enum";
-import { getErrorMessage } from "@/lib/http";
 import { formatVnd } from "@/lib/format";
 
 import { Button } from "@/components/ui/button";
@@ -162,9 +160,6 @@ export default function SellerCouponsPage() {
         resetCreate();
         setIsCreateOpen(false);
       },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
-      },
     });
   };
 
@@ -180,9 +175,6 @@ export default function SellerCouponsPage() {
         setIsEditOpen(false);
         setSelectedCoupon(null);
       },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
-      },
     });
   };
 
@@ -192,9 +184,6 @@ export default function SellerCouponsPage() {
       onSuccess: () => {
         setIsDeleteOpen(false);
         setSelectedCoupon(null);
-      },
-      onError: (err) => {
-        toast.error(getErrorMessage(err));
       },
     });
   };
