@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useMemo, useEffect, useRef, Suspense } from "react";
-import { toast } from "sonner";
+import React, { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Ticket,
@@ -9,35 +8,31 @@ import {
   Gift,
   Check,
   ShoppingBag,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
-import { useBrowseCoupons, useWalletCoupons, useClaimCoupon } from "@/hooks/useCoupons";
+import { useBrowseCoupons, useClaimCoupon } from "@/hooks/useCoupons";
 import { useAuthStore } from "@/store/useAuthStore";
 import { CouponTypeObj } from "@/schemaValidations/promotions/coupons.schema";
 import { CouponType, DiscountType } from "@/constants/enum";
 import { formatVnd } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
+// Guard ở module scope: nhớ các coupon đã auto-claim trong phiên tab này.
+// Sống sót qua remount/StrictMode (khác useRef bị reset khi component mount lại),
+// nên mỗi claimCouponId chỉ auto-claim đúng MỘT lần → không bị double toast.
+const autoClaimedIds = new Set<string>();
+
 function CustomerCouponsContent() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Fetch claimable coupons
-  const { data: browseEnvelope, isLoading: isBrowseLoading } = useBrowseCoupons({ limit: 100 });
+  // Fetch claimable coupons. Backend tự gắn cờ is_claimed theo user đang đăng nhập
+  // (guest → false), nên không cần tải ví để đối chiếu ở trang này.
+  const { data: browseEnvelope, isLoading: isBrowseLoading, isError: isBrowseError, refetch } = useBrowseCoupons({ limit: 100 });
   const coupons = browseEnvelope?.data?.items ?? [];
-
-  // Fetch customer's claimed coupons to cross-check "claimed" status
-  const { data: walletEnvelope, isLoading: isWalletLoading } = useWalletCoupons(
-    { limit: 100 },
-    isAuthenticated
-  );
-  const walletItems = walletEnvelope?.data?.items ?? [];
-
-  // Create a set of claimed coupon IDs
-  const claimedCouponIds = useMemo(() => {
-    return new Set(walletItems.map((item) => item.coupon.id));
-  }, [walletItems]);
 
   const claimMutation = useClaimCoupon();
 
@@ -52,33 +47,28 @@ function CustomerCouponsContent() {
 
   // Auto-claim logic after redirect back from login
   const claimCouponId = searchParams.get("claimCouponId");
-  const lastProcessedIdRef = useRef<string | null>(null);
 
-  // If authenticated and have a coupon ID to claim, trigger mutation and clean up URL
   useEffect(() => {
-    if (isAuthenticated && claimCouponId && lastProcessedIdRef.current !== claimCouponId) {
-      lastProcessedIdRef.current = claimCouponId;
+    if (!claimCouponId) return;
 
-      claimMutation.mutate(claimCouponId, {
-        onSettled: () => {
-          // Remove claimCouponId from URL search params to prevent loop/re-claim on refresh
-          const params = new URLSearchParams(searchParams.toString());
-          params.delete("claimCouponId");
-          const newSearch = params.toString();
-          const newPath = newSearch ? `/coupons?${newSearch}` : "/coupons";
-          router.replace(newPath);
-        },
-      });
-    }
-  }, [isAuthenticated, claimCouponId, claimMutation, router, searchParams]);
-
-  // If not authenticated and visit directly with claimCouponId, redirect to login
-  useEffect(() => {
-    if (!isAuthenticated && claimCouponId) {
+    // Chưa đăng nhập → đẩy sang login rồi quay lại đúng trang claim sau khi đăng nhập.
+    // (Không đánh dấu vào autoClaimedIds vì ta đang rời trang; quay lại vẫn cần claim.)
+    if (!isAuthenticated) {
       const redirectUrl = `/coupons?claimCouponId=${claimCouponId}`;
-      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+      router.replace(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+      return;
     }
-  }, [isAuthenticated, claimCouponId, router]);
+
+    // Đã đăng nhập: chỉ auto-claim MỘT lần cho mỗi coupon (guard sống sót qua remount).
+    if (autoClaimedIds.has(claimCouponId)) return;
+    autoClaimedIds.add(claimCouponId);
+
+    // Dọn URL NGAY (trước khi mutate) để về /coupons sạch query và tránh claim lại khi F5.
+    // Toast thành công / "đã nhận rồi" (backend 409) do useClaimCoupon xử lý ở mức hook.
+    router.replace("/coupons", { scroll: false });
+    claimMutation.mutate(claimCouponId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, claimCouponId]);
 
   const getDaysLeft = (endDateStr: string | null) => {
     if (!endDateStr) return "Không giới hạn thời gian";
@@ -88,7 +78,7 @@ function CustomerCouponsContent() {
     return `Còn lại ${diffDays} ngày`;
   };
 
-  const isLoading = isBrowseLoading || (isAuthenticated && isWalletLoading);
+  const isLoading = isBrowseLoading;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 min-h-[60vh] animate-fade-in">
@@ -106,6 +96,18 @@ function CustomerCouponsContent() {
         <div className="h-64 flex items-center justify-center">
           <Loader2 className="h-8 w-8 text-violet-600 animate-spin" />
         </div>
+      ) : isBrowseError ? (
+        <div className="text-center py-20 border rounded-2xl bg-card space-y-4">
+          <AlertTriangle className="h-16 w-16 text-amber-400 mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-foreground">Không thể tải mã giảm giá</h3>
+            <p className="text-sm text-muted-foreground">Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.</p>
+          </div>
+          <Button variant="outline" onClick={() => refetch()} className="mt-2">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Thử lại
+          </Button>
+        </div>
       ) : coupons.length === 0 ? (
         <div className="text-center py-20 border rounded-2xl bg-card space-y-4">
           <Ticket className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mx-auto" />
@@ -117,7 +119,7 @@ function CustomerCouponsContent() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {coupons.map((coupon) => {
-            const isClaimed = claimedCouponIds.has(coupon.id);
+            const isClaimed = coupon.is_claimed ?? false;
             const isPct = coupon.discount_type === DiscountType.PERCENTAGE;
             const discountLabel = isPct
               ? `Giảm ${coupon.discount_value}%`
@@ -128,6 +130,10 @@ function CustomerCouponsContent() {
             // Limit details
             const isFull = coupon.usage_limit ? coupon.used_count >= coupon.usage_limit : false;
             const daysLeft = getDaysLeft(coupon.end_date);
+
+            // Chỉ coupon đang được claim mới quay spinner (tránh tất cả nút cùng loading)
+            const isClaiming =
+              claimMutation.isPending && claimMutation.variables === coupon.id;
 
             return (
               <div
@@ -194,10 +200,10 @@ function CustomerCouponsContent() {
                   ) : (
                     <Button
                       onClick={() => handleClaim(coupon)}
-                      disabled={claimMutation.isPending}
+                      disabled={isClaiming}
                       className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-9 w-full rounded-lg text-xs"
                     >
-                      {claimMutation.isPending ? (
+                      {isClaiming ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         "Lưu mã"

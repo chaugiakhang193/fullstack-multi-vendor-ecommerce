@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import couponApiRequest from "@/apiRequests/promotions/coupons";
 import { couponKeys, STALE_TIME } from "@/constants/query-keys";
+import { useAuthStore } from "@/store/useAuthStore";
 import { CreateCouponBodyType, UpdateCouponBodyType, CouponQueryType } from "@/schemaValidations/promotions/coupons.schema";
 
 // Admin Hooks
@@ -90,8 +91,12 @@ export const useSellerDeleteCoupon = () => {
 
 // Customer Hooks
 export const useBrowseCoupons = (query?: CouponQueryType) => {
+  // is_claimed do backend tính theo user đăng nhập → guest và user PHẢI tách cache
+  // riêng, nếu không cache của guest (is_claimed=false) sẽ "đè" lên kết quả của user
+  // ngay sau khi đăng nhập (trong khoảng staleTime), khiến badge "Đã lưu" không hiện.
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
-    queryKey: couponKeys.browse(query),
+    queryKey: [...couponKeys.browse(query), isAuthenticated],
     queryFn: () => couponApiRequest.browseClaimable(query),
     staleTime: STALE_TIME.SHORT,
   });
@@ -110,12 +115,13 @@ export const useClaimCoupon = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => couponApiRequest.claim(id),
+    // Nút bấm không có form → ép handler lỗi toàn cục (mutationCache.onError) hiện toast
+    // cho cả lỗi 400 ("hết hạn"/"hết lượt") lẫn 409 ("đã lưu rồi"). Không tự thêm onError
+    // ở đây để tránh toast TRÙNG với handler tập trung.
+    meta: { showToastOnError: true },
     onSuccess: () => {
       toast.success("Lưu mã giảm giá vào ví thành công!");
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
-    },
-    onError: (error: any) => {
-      toast.error(error?.payload?.message || "Không thể lưu mã giảm giá này");
     },
   });
 };

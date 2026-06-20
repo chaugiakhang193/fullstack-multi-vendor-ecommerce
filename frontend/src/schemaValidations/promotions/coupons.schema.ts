@@ -27,6 +27,9 @@ export const CouponSchema = z.object({
     id: z.string(),
     name: z.string(),
   }).nullable().optional(),
+  // Cờ do backend gắn ở endpoint browse: user hiện tại đã "Lưu mã" coupon này chưa.
+  // Guest hoặc endpoint không tính → undefined/false.
+  is_claimed: z.boolean().optional(),
 });
 
 export const UserCouponSchema = z.object({

@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { CreateCouponDto } from '@/modules/promotions/dto/create-coupon.dto';
@@ -146,7 +146,7 @@ export class PromotionsService {
   }
 
   // ===== CUSTOMER: browse coupon claim được (còn hạn + còn lượt) =====
-  async listClaimable(userId: string, query: CouponQueryDto) {
+  async listClaimable(userId: string | undefined, query: CouponQueryDto) {
     const now = new Date();
     const alias = 'coupon';
     const qb = this.couponRepo.createQueryBuilder(alias);
@@ -165,27 +165,30 @@ export class PromotionsService {
     const limitClause = '(coupon.usage_limit IS NULL OR coupon.used_count < coupon.usage_limit)';
     qb.andWhere(limitClause);
 
-    const notClaimedSubquery = (qb2: any) => {
-      const selectColumn = 'uc.coupon_id';
-      const fromTable = UserCoupon;
-      const subAlias = 'uc';
-      const subWhereClause = 'uc.user_id = :userId';
-      const subWhereParams = { userId };
-      
-      const sub = qb2
-        .subQuery()
-        .select(selectColumn)
-        .from(fromTable, subAlias)
-        .where(subWhereClause, subWhereParams)
-        .getQuery();
-      return `coupon.id NOT IN ${sub}`;
-    };
-    qb.andWhere(notClaimedSubquery);
-
     const orderColumn = 'coupon.end_date';
     const orderDirection = 'ASC';
     qb.orderBy(orderColumn, orderDirection);
-    return paginate(qb, query);
+
+    const result = await paginate(qb, query);
+
+    // Gắn cờ is_claimed cho từng coupon dựa trên ví của user (nếu đã đăng nhập).
+    // Guest (userId undefined) → is_claimed = false cho toàn bộ.
+    // Chỉ truy vấn theo đúng id trên trang hiện tại nên an toàn khi phân trang.
+    const couponIds = result.items.map((coupon) => coupon.id);
+    let claimedSet = new Set<string>();
+    if (userId && couponIds.length > 0) {
+      const claimed = await this.userCouponRepo.find({
+        where: { user: { id: userId }, coupon: { id: In(couponIds) } },
+        relations: ['coupon'],
+      });
+      claimedSet = new Set(claimed.map((uc) => uc.coupon.id));
+    }
+    result.items = result.items.map((coupon) => ({
+      ...coupon,
+      is_claimed: claimedSet.has(coupon.id),
+    })) as typeof result.items;
+
+    return result;
   }
 
   // ===== CUSTOMER: claim =====
