@@ -16,6 +16,7 @@ import {
   ChevronRight,
   User,
   Ticket,
+  UserCog,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import authApiRequest from "@/apiRequests/auth/auth";
@@ -92,6 +93,11 @@ export default function AdminLayout({
       icon: <Users className="h-5 w-5" />,
     },
     {
+      label: "Người dùng",
+      href: "/admin/users",
+      icon: <UserCog className="h-5 w-5" />,
+    },
+    {
       label: "Danh mục",
       href: "/admin/categories",
       icon: <Layers className="h-5 w-5" />,
@@ -124,6 +130,7 @@ export default function AdminLayout({
     const routeMap: Record<string, string> = {
       admin: "Kênh Quản Trị",
       sellers: "Duyệt cửa hàng",
+      users: "Người dùng",
       categories: "Danh mục",
       products: "Sản phẩm",
       coupons: "Khuyến mãi",
