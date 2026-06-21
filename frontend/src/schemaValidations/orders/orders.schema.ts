@@ -2,6 +2,11 @@ import z from "zod";
 import type { components } from "@/lib/api/api-schema";
 import type { ApiEnvelope } from "@/lib/http";
 
+type ShopCouponDto = components["schemas"]["ShopCouponDto"];
+type CreateOrderDto = components["schemas"]["CreateOrderDto"];
+type CheckoutPreviewDto = components["schemas"]["CheckoutPreviewDto"];
+type UpdateSubOrderStatusDto = components["schemas"]["UpdateSubOrderStatusDto"];
+
 
 // `satisfies` đảm bảo Zod schema luôn khớp generated type từ api-schema.d.ts.
 // Nếu backend thay đổi enum/field, `npm run gen-api` + TypeScript sẽ báo lỗi ngay tại đây.
@@ -45,21 +50,21 @@ export const ORDER_STATUS_LABELS: Record<OrderStatusType, string> = {
 export const ShopCouponBody = z.object({
   shop_id: z.string().uuid(),
   coupon_code: z.string(),
-}) satisfies z.ZodType<components["schemas"]["ShopCouponDto"]>;
+}) satisfies z.ZodType<ShopCouponDto, any, any>;
 
 export const CheckoutBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
   payment_method: z.literal("cod"),
   global_coupon_code: z.string().optional(),
   shop_coupons: z.array(ShopCouponBody).max(50).optional(),
-}) satisfies z.ZodType<components["schemas"]["CreateOrderDto"]>;
+}) satisfies z.ZodType<CreateOrderDto, any, any>;
 
 // ===== Checkout Preview (POST /orders/checkout/preview) =====
 export const CheckoutPreviewBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
   global_coupon_code: z.string().optional(),
   shop_coupons: z.array(ShopCouponBody).max(50).optional(),
-}) satisfies z.ZodType<components["schemas"]["CheckoutPreviewDto"]>;
+}) satisfies z.ZodType<CheckoutPreviewDto, any, any>;
 
 // ===== Query lịch sử đơn / seller orders =====
 export const OrderListQuery = z.object({
@@ -71,7 +76,7 @@ export const OrderListQuery = z.object({
 // ===== Seller cập nhật trạng thái (PATCH /seller/orders/:id/status) =====
 export const UpdateOrderStatusBody = z.object({
   status: OrderStatusEnum,
-}) satisfies z.ZodType<components["schemas"]["UpdateSubOrderStatusDto"]>;
+}) satisfies z.ZodType<UpdateSubOrderStatusDto, any, any>;
 
 // ===== Shared: snapshot địa chỉ giao hàng (jsonb trên Order) =====
 export const ShippingAddressSnapshot = z.object({

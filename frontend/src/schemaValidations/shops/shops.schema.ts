@@ -1,14 +1,10 @@
 import z from "zod";
 import { SHOP_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 type UpdateShopSwaggerDto = components["schemas"]["UpdateShopSwaggerDto"];
 type RejectShopDto = components["schemas"]["RejectShopDto"];
-export interface BaseResponse<T> {
-  // statusCode: number;
-  message: string;
-  data: T;
-}
 // Schema cho form tạo gian hàng lần đầu (Setup Shop)
 // Frontend có 3 input riêng cho thông tin ngân hàng, sẽ merge thành bank_account_info khi gửi API
 export const CreateShopBody = z
@@ -128,5 +124,5 @@ export type ShopResponseType = z.TypeOf<typeof ShopResponse>;
 export type ShopResponseResType = z.TypeOf<typeof ShopResponseRes>;
 
 export type ShopType = components["schemas"]["ShopResponseDto"];
-export type GetPendingShopsResType = BaseResponse<ShopType[]>;
-export type ActionShopResType = BaseResponse<ShopType>;
+export type GetPendingShopsResType = ApiEnvelope<ShopType[]>;
+export type ActionShopResType = ApiEnvelope<ShopType>;

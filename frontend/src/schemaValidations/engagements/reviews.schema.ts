@@ -1,5 +1,5 @@
 import z from "zod";
-import { ApiEnvelope } from "@/lib/http";
+import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 
 // Trích xuất backend types để đảm bảo đồng bộ compile-time
@@ -50,11 +50,11 @@ export const CreateReviewBody = z.object({
   order_item_id: z.string().uuid("ID sản phẩm đặt hàng không hợp lệ"),
   rating: z.number().int().min(1, "Vui lòng chọn số sao từ 1 đến 5").max(5, "Đánh giá tối đa là 5 sao"),
   comment: z.string().max(2000, "Đánh giá không được vượt quá 2000 ký tự").optional(),
-}) satisfies z.ZodType<CreateReviewDto>;
+}) satisfies z.ZodType<CreateReviewDto, any, any>;
 
 export const SellerReplyBody = z.object({
   reply: z.string().min(1, "Phản hồi không được để trống").max(2000, "Phản hồi tối đa 2000 ký tự"),
-}) satisfies z.ZodType<ReplyReviewDto>;
+}) satisfies z.ZodType<ReplyReviewDto, any, any>;
 
 // ==========================================
 // Response Schemas

@@ -1,5 +1,5 @@
 import z from "zod";
-import { ApiEnvelope } from "@/lib/http";
+import type { ApiEnvelope } from "@/lib/http";
 import { NotificationType } from "@/constants/enum";
 import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
 

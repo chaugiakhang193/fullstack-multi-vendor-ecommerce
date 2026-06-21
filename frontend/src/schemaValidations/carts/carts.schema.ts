@@ -6,6 +6,10 @@ type AddCartItemDto = components["schemas"]["AddCartItemDto"];
 type UpdateCartItemDto = components["schemas"]["UpdateCartItemDto"];
 type GuestCartItemDto = components["schemas"]["GuestCartItemDto"];
 type MergeCartDto = components["schemas"]["MergeCartDto"];
+type CartShopDto = components["schemas"]["CartShopDto"];
+type CartItemProductDto = components["schemas"]["CartItemProductDto"];
+type CartItemVariantDto = components["schemas"]["CartItemVariantDto"];
+type CartResponseDto = components["schemas"]["CartResponseDto"];
 
 export const AddCartItemBody = z
   .object({
@@ -48,24 +52,24 @@ export const MergeCartBody = z
   .strict() satisfies z.ZodType<MergeCartDto, any, any>;export const CartShop = z.object({
   id: z.string(),
   name: z.string(),
-  logo_url: z.any() as z.ZodType<components["schemas"]["CartShopDto"]["logo_url"]>,
-}) satisfies z.ZodType<components["schemas"]["CartShopDto"], any, any>;
+  logo_url: z.any() as z.ZodType<CartShopDto["logo_url"]>,
+}) satisfies z.ZodType<CartShopDto, any, any>;
 
 export const CartItemProduct = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
   price: z.number(),
-  thumbnail_url: z.any() as z.ZodType<components["schemas"]["CartItemProductDto"]["thumbnail_url"]>,
+  thumbnail_url: z.any() as z.ZodType<CartItemProductDto["thumbnail_url"]>,
   is_hidden: z.boolean(),
   status: z.enum(["active", "deleted"]),
-}) satisfies z.ZodType<components["schemas"]["CartItemProductDto"], any, any>;
+}) satisfies z.ZodType<CartItemProductDto, any, any>;
 export const CartItemVariant = z.object({
   id: z.string(),
   name: z.string(),
   additional_price: z.number(),
   images: z.array(z.string()).nullable(),
-}) satisfies z.ZodType<components["schemas"]["CartItemVariantDto"], any, any>;
+}) satisfies z.ZodType<CartItemVariantDto, any, any>;
 
 export const CartItemResponse = z.object({
   id: z.string(),
@@ -91,7 +95,7 @@ export const CartResponse = z.object({
   total_items: z.number(),
   total_quantity: z.number(),
   total_amount: z.number(),
-}) satisfies z.ZodType<components["schemas"]["CartResponseDto"], any, any>;
+}) satisfies z.ZodType<CartResponseDto, any, any>;
 
 export const CartGenericResponse = z.object({
   // statusCode: z.number().optional(),
