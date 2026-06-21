@@ -31,6 +31,7 @@ interface AuthState {
 
   setAuth: (user: AccountType, token: string) => void;
   setAccessToken: (token: string) => void;
+  setUser: (user: AccountType) => void;
   silentRefresh: (router?: any) => Promise<boolean>;
   logout: () => void;
 }
@@ -54,6 +55,9 @@ export const useAuthStore = create<AuthState>()(
 
       // Gọi ngầm khi các Interceptor tự update token
       setAccessToken: (token) => set({ accessToken: token }),
+
+      // Cập nhật thông tin user (sau khi sửa hồ sơ / avatar) — không đụng token
+      setUser: (user) => set({ user }),
 
       // Cơ chế Đăng nhập âm thầm - Đạt chuẩn Chống Đạn (Bulletproof)
       silentRefresh: async (router?: any) => {

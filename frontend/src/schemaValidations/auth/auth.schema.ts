@@ -11,6 +11,7 @@ export const UserSchema = z.object({
   status: z.nativeEnum(AccountStatus),
   full_name: z.string().nullable(),
   phone: z.string().nullable(),
+  avatar_url: z.string().nullable(),
   password_changed_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),

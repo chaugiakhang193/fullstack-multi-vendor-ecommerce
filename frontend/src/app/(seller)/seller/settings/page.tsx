@@ -20,9 +20,12 @@ import {
   Image as ImageIcon,
   ShieldCheck,
   ShieldAlert,
+  User as UserIcon,
 } from "lucide-react";
 
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
+import userApiRequest from "@/apiRequests/users/users";
+import { useAuthStore } from "@/store/useAuthStore";
 import { ShopResponseType } from "@/schemaValidations/shops/shops.schema";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { Button } from "@/components/ui/button";
@@ -75,6 +78,16 @@ export default function SellerSettingsPage() {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
 
+  // Avatar cá nhân — lưu độc lập với form shop (upload ngay khi chọn)
+  const authUser = useAuthStore((s) => s.user);
+  const setAuthUser = useAuthStore((s) => s.setUser);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const avatarPreviewUrl = useMemo(
+    () => (avatarFile ? URL.createObjectURL(avatarFile) : null),
+    [avatarFile],
+  );
+
   // Local object URL previews
   const logoPreviewUrl = useMemo(() => {
     return logoFile ? URL.createObjectURL(logoFile) : null;
@@ -99,6 +112,12 @@ export default function SellerSettingsPage() {
       newGalleryPreviews.forEach((item) => URL.revokeObjectURL(item.url));
     };
   }, [logoPreviewUrl, bannerPreviewUrl, newGalleryPreviews]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    };
+  }, [avatarPreviewUrl]);
 
   // Setup react-hook-form
   const {
@@ -206,6 +225,51 @@ export default function SellerSettingsPage() {
         });
       },
     });
+
+  // Avatar cá nhân: upload ngay khi chọn (không qua submit form shop)
+  const handleAvatarChange = async (file: File) => {
+    setIsUploadingAvatar(true);
+    setAvatarFile(file);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await userApiRequest.uploadAvatar(fd);
+      setAuthUser(res.data);
+      toast.success("Cập nhật ảnh đại diện thành công!");
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsUploadingAvatar(false);
+      setAvatarFile(null);
+    }
+  };
+
+  const { getRootProps: getAvatarProps, getInputProps: getAvatarInputProps } =
+    useDropzone({
+      accept: { "image/*": [] },
+      multiple: false,
+      maxSize: 10 * 1024 * 1024,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles?.[0]) {
+          handleAvatarChange(acceptedFiles[0]);
+        }
+      },
+      onDropRejected: (fileRejections) => {
+        fileRejections.forEach((rejection) => {
+          rejection.errors.forEach((err) => {
+            if (err.code === "file-too-large") {
+              toast.error("Ảnh đại diện vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.");
+            } else if (err.code === "file-invalid-type") {
+              toast.error("File không đúng định dạng. Chỉ chấp nhận ảnh.");
+            } else {
+              toast.error(`Lỗi tải file: ${err.message}`);
+            }
+          });
+        });
+      },
+    });
+
+  const displayAvatar = avatarPreviewUrl || authUser?.avatar_url || null;
 
   // Dropzone for Banner
   const { getRootProps: getBannerProps, getInputProps: getBannerInputProps } =
@@ -369,6 +433,41 @@ export default function SellerSettingsPage() {
 
   return (
     <div className="space-y-8 max-w-[1600px] w-full animate-fade-in pb-12">
+      {/* Ảnh đại diện cá nhân — lưu độc lập, KHÔNG qua submit form shop */}
+      <div className="rounded-2xl border bg-card p-6 shadow-sm flex items-center gap-5">
+        <div
+          {...getAvatarProps()}
+          className="relative h-24 w-24 rounded-full border-4 border-card bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden cursor-pointer group shadow-md shrink-0"
+        >
+          <input {...getAvatarInputProps()} />
+          {displayAvatar ? (
+            <img
+              src={displayAvatar}
+              alt="Avatar"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <UserIcon className="h-10 w-10 text-zinc-400" />
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+            {isUploadingAvatar ? (
+              <Loader2 className="h-7 w-7 text-white animate-spin" />
+            ) : (
+              <Camera className="h-7 w-7 text-white" />
+            )}
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-extrabold text-foreground">
+            Ảnh đại diện cá nhân
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ảnh gắn với tài khoản của bạn (khác logo cửa hàng). Bấm vào ảnh để
+            đổi (tối đa 10MB).
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Header lồng cụm nút thao tác tĩnh hệ thống */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 pb-5 border-b border-zinc-200 dark:border-zinc-800">

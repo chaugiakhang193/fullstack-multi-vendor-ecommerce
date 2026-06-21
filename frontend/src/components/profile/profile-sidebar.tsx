@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, MapPin, Ticket, Star } from "lucide-react";
+import { User, Package, MapPin, Ticket, Star } from "lucide-react";
 
 const NAV_ITEMS = [
+  { href: "/profile", label: "Tài khoản", icon: User },
   { href: "/profile/orders", label: "Đơn hàng của tôi", icon: Package },
   { href: "/profile/addresses", label: "Sổ địa chỉ", icon: MapPin },
   { href: "/profile/coupons", label: "Ví voucher", icon: Ticket },
@@ -17,7 +18,12 @@ export function ProfileSidebar() {
     <aside className="lg:sticky lg:top-24">
       <nav className="rounded-xl border bg-card p-2 shadow-sm space-y-1">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          // "/profile" là route gốc → chỉ active khi khớp tuyệt đối,
+          // tránh active luôn khi đang ở /profile/orders...
+          const isActive =
+            item.href === "/profile"
+              ? pathname === "/profile"
+              : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
             <Link

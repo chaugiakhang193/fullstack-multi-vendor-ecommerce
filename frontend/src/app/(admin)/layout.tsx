@@ -167,7 +167,7 @@ export default function AdminLayout({
       {/* --- DESKTOP SIDEBAR --- */}
       <aside className="hidden md:flex flex-col w-72 bg-zinc-950 text-zinc-100 border-r border-zinc-800 shadow-xl shrink-0 overflow-y-auto">
         {/* Brand/Logo */}
-        <div className="h-20 flex items-center px-8 border-b border-zinc-800 gap-3">
+        <div className="h-24 flex items-center px-8 border-b border-zinc-800 gap-3">
           <Shield className="h-8 w-8 text-violet-400" />
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-white leading-none">
@@ -210,9 +210,17 @@ export default function AdminLayout({
         {/* User Card */}
         <div className="p-6 border-t border-zinc-800 bg-zinc-900/50">
           <div className="flex items-center space-x-3.5 mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md">
-              {user?.username?.charAt(0).toUpperCase() || (
-                <User className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md overflow-hidden">
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user?.username || ""}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                user?.username?.charAt(0).toUpperCase() || (
+                  <User className="h-5 w-5" />
+                )
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -296,9 +304,17 @@ export default function AdminLayout({
             {/* User */}
             <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow">
-                  {user?.username?.charAt(0).toUpperCase() || (
-                    <User className="h-4 w-4" />
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user?.username || ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user?.username?.charAt(0).toUpperCase() || (
+                      <User className="h-4 w-4" />
+                    )
                   )}
                 </div>
                 <div>
@@ -328,7 +344,7 @@ export default function AdminLayout({
       {/* --- MAIN PAGE AREA --- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER BAR */}
-        <header className="h-20 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-6 sm:px-8 shadow-sm">
+        <header className="h-24 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-6 sm:px-8 shadow-sm">
           {/* Left: Mobile Toggle & Breadcrumbs */}
           <div className="flex items-center space-x-5">
             <button
@@ -366,25 +382,33 @@ export default function AdminLayout({
           {/* Right: Notifications & User profile dropdown */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <button className="p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
+            <button className="h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm">
+              <Bell className="h-6 w-6" />
+              <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
             </button>
 
-            <Separator orientation="vertical" className="h-8" />
+            <Separator orientation="vertical" className="h-12" />
 
             {/* User Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
+                className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
               >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm">
-                  {user?.username?.charAt(0).toUpperCase() || (
-                    <User className="h-5 w-5" />
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user?.username || ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user?.username?.charAt(0).toUpperCase() || (
+                      <User className="h-5 w-5" />
+                    )
                   )}
                 </div>
-                <span className="text-sm font-black hidden sm:inline-block pr-1.5">
+                <span className="text-base font-bold hidden sm:inline-block pr-1.5">
                   {user?.username || "Quản trị viên"}
                 </span>
               </button>

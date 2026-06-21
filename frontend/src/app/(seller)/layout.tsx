@@ -53,6 +53,7 @@ export default function SellerLayout({
   const [isCheckingShop, setIsCheckingShop] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false); // Flag để ngăn check lại sau redirect
   const [customLabels, setCustomLabels] = useState<Record<string, string>>({});
+  const [shopId, setShopId] = useState<string | null>(null); // Cho nút "Xem trang shop" trỏ đúng gian hàng
 
   useEffect(() => {
     const handleCustomBreadcrumb = (e: Event) => {
@@ -133,6 +134,23 @@ export default function SellerLayout({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Lấy shopId của seller để nút "Xem trang shop" mở đúng gian hàng công khai
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    sellerShopsApiRequest
+      .getMyShop()
+      .then((res) => {
+        if (active) setShopId(res.data?.id ?? null);
+      })
+      .catch(() => {
+        // Seller chưa có shop (404) → giữ shopId null, nút fallback về trang chủ
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     const isSetupOrPendingPage =
@@ -298,7 +316,7 @@ export default function SellerLayout({
       {/* --- DESKTOP SIDEBAR --- */}
       <aside className="hidden md:flex flex-col w-72 bg-zinc-950 text-zinc-100 border-r border-zinc-800 shadow-xl shrink-0 overflow-y-auto">
         {/* Brand/Logo */}
-        <div className="h-20 flex items-center px-8 border-b border-zinc-800 gap-3">
+        <div className="h-24 flex items-center px-8 border-b border-zinc-800 gap-3">
           <Store className="h-8 w-8 text-violet-400" />
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-white leading-none">
@@ -341,9 +359,17 @@ export default function SellerLayout({
         {/* User Card */}
         <div className="p-6 border-t border-zinc-800 bg-zinc-900/50">
           <div className="flex items-center space-x-3.5 mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md">
-              {user?.username?.charAt(0).toUpperCase() || (
-                <User className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md overflow-hidden">
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user?.username || ""}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                user?.username?.charAt(0).toUpperCase() || (
+                  <User className="h-5 w-5" />
+                )
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -427,9 +453,17 @@ export default function SellerLayout({
             {/* User */}
             <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow">
-                  {user?.username?.charAt(0).toUpperCase() || (
-                    <User className="h-4 w-4" />
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user?.username || ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user?.username?.charAt(0).toUpperCase() || (
+                      <User className="h-4 w-4" />
+                    )
                   )}
                 </div>
                 <div>
@@ -459,7 +493,7 @@ export default function SellerLayout({
       {/* --- MAIN PAGE AREA --- */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER BAR */}
-        <header className="h-20 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-6 sm:px-8 shadow-sm">
+        <header className="h-24 sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b flex items-center justify-between px-6 sm:px-8 shadow-sm">
           {/* Left: Mobile Toggle & Breadcrumbs */}
           <div className="flex items-center space-x-5">
             <button
@@ -502,32 +536,42 @@ export default function SellerLayout({
 
           {/* Right: Notifications & User profile dropdown */}
           <div className="flex items-center space-x-4">
-            {/* View Shop Link */}
+            {/* View Shop Link — mở gian hàng công khai của chính seller ở tab mới */}
             <Link
-              href="/"
-              className="hidden lg:flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl border hover:bg-muted transition-all duration-200"
+              href={shopId ? `/shops/${shopId}` : "/"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden lg:flex items-center gap-2 text-base font-bold px-5 h-16 rounded-2xl border-2 hover:bg-muted transition-all duration-200"
             >
               <span>Xem trang shop</span>
               <ExternalLink className="h-4 w-4" />
             </Link>
 
             {/* Notifications */}
-            <NotificationBell />
+            <NotificationBell size="lg" />
 
-            <Separator orientation="vertical" className="h-8" />
+            <Separator orientation="vertical" className="h-12" />
 
             {/* User Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center space-x-2.5 p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
+                className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
               >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm">
-                  {user?.username?.charAt(0).toUpperCase() || (
-                    <User className="h-5 w-5" />
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user?.username || ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    user?.username?.charAt(0).toUpperCase() || (
+                      <User className="h-5 w-5" />
+                    )
                   )}
                 </div>
-                <span className="text-sm font-black hidden sm:inline-block pr-1.5">
+                <span className="text-base font-bold hidden sm:inline-block pr-1.5">
                   {user?.username || "Người bán"}
                 </span>
               </button>
