@@ -38,6 +38,9 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  avatar_url: string;
+
   @Column({ type: 'timestamp', nullable: true })
   password_changed_at: Date;
 

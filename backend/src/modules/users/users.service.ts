@@ -2,10 +2,12 @@
 import {
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
   Injectable,
   Logger,
 } from '@nestjs/common';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
+import { UpdateProfileDto } from '@/modules/users/dto/update-profile.dto';
 import { RegisterDto } from '@/auth/dto/register.dto';
 import { User } from '@/modules/users/entities/user.entity';
 import { Address } from '@/modules/users/entities/address.entity';
@@ -19,8 +21,10 @@ import {
   compareHashedDataHelper,
   isDataExist,
 } from '@/common/helpers/utils';
-import { UserRole } from '@/common/enums';
+import { UserRole, AssetType } from '@/common/enums';
 import { USER_LIMITS } from '@/common/constants/user.constant';
+import { CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
+import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
 
 @Injectable()
 export class UsersService {
@@ -34,6 +38,7 @@ export class UsersService {
     private readonly geocodingService: GeocodingService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly cloudinaryService: CloudinaryService,
   ) { }
 
   /*  isDataExist = async (field: string, data: any) => {
@@ -151,6 +156,81 @@ export class UsersService {
 
   async findById(userID: string) {
     return this.usersRepository.findOne({ where: { id: userID } });
+  }
+
+  // Lấy hồ sơ đầy đủ của user (password đã select:false nên không lộ)
+  async getProfile(userId: string): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    return user;
+  }
+
+  // Cập nhật thông tin cơ bản: full_name, phone
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    if (dto.full_name !== undefined) {
+      user.full_name = dto.full_name;
+    }
+    if (dto.phone !== undefined) {
+      user.phone = dto.phone;
+    }
+    await this.usersRepository.save(user);
+    return this.getProfile(userId);
+  }
+
+  // Đổi ảnh đại diện: upload ảnh mới → set avatar_url → xóa ảnh cũ (mirror replaceShopAsset)
+  async updateAvatar(
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<User> {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn ảnh đại diện');
+    }
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    let newAssetResult: any = null;
+    try {
+      newAssetResult = await this.cloudinaryService.uploadFile(
+        file,
+        CLOUDINARY_FOLDER.USER_AVATARS,
+        userId,
+        AssetType.USER_AVATAR,
+      );
+
+      await this.usersRepository.update(userId, {
+        avatar_url: newAssetResult.url,
+      });
+
+      const oldUrl = user.avatar_url;
+      if (oldUrl) {
+        const oldAsset = await this.cloudinaryService.findAssetByUrl(oldUrl);
+        if (oldAsset) {
+          await this.cloudinaryService
+            .deleteAsset(oldAsset.id, userId)
+            .catch((e) => this.logger.error('Xóa avatar cũ thất bại', e));
+        }
+      }
+
+      return this.getProfile(userId);
+    } catch (error) {
+      // Rollback: nếu đã upload ảnh mới nhưng lỗi sau đó → xóa ảnh mới để tránh rác
+      if (newAssetResult?.id) {
+        await this.cloudinaryService
+          .deleteAsset(newAssetResult.id, userId)
+          .catch((e) => this.logger.error('Rollback avatar thất bại', e));
+      }
+      throw new InternalServerErrorException(
+        'Có lỗi xảy ra khi cập nhật ảnh đại diện',
+      );
+    }
   }
 
   async addAddress(userId: string, dto: CreateAddressDto): Promise<Address> {

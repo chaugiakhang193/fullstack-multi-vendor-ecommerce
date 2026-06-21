@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Address } from '@/modules/users/entities/address.entity';
 import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
+import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 
 @Module({
   controllers: [UsersController],
@@ -12,6 +13,7 @@ import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
   imports: [
     TypeOrmModule.forFeature([User, Address]),
     forwardRef(() => GeocodingModule),
+    CloudinaryModule,
   ],
   exports: [UsersService],
 })

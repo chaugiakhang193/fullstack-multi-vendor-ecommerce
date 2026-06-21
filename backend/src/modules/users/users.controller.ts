@@ -1,3 +1,4 @@
+import 'multer';
 import {
   Controller,
   Get,
@@ -7,7 +8,10 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -16,6 +20,8 @@ import {
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
   ApiParam,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 
 // Services
@@ -25,6 +31,8 @@ import { UsersService } from './users.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { AddressResponseDto } from './dto/address-response.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UploadSingleFileSwaggerDto } from '@/modules/shops/dto/shop-swagger.dto';
 
 // Decorators & Guards
 import { Roles } from '@/decorator/roles.decorator';
@@ -42,6 +50,36 @@ import type { IUser } from '@/interface/user.interface';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // Đọc hồ sơ tái dùng GET /auth/me (đã trả full user gồm avatar_url) → không tạo GET /users/me trùng
+
+  @Patch('me')
+  @Roles(UserRole.CUSTOMER, UserRole.SELLER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Cập nhật họ tên / số điện thoại của tôi' })
+  @ResponseMessage('Cập nhật hồ sơ thành công')
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  updateMyProfile(@User() user: IUser, @Body() dto: UpdateProfileDto) {
+    const userId = user.sub;
+    return this.usersService.updateProfile(userId, dto);
+  }
+
+  @Post('me/avatar')
+  @Roles(UserRole.CUSTOMER, UserRole.SELLER, UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Cập nhật ảnh đại diện của tôi' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadSingleFileSwaggerDto })
+  @ResponseMessage('Cập nhật ảnh đại diện thành công')
+  @ApiResponse({ status: 400, description: 'Thiếu file hoặc file không hợp lệ' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  uploadAvatar(
+    @User() user: IUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const userId = user.sub;
+    return this.usersService.updateAvatar(userId, file);
+  }
 
   @Post('me/addresses')
   @ApiOperation({ summary: 'Thêm địa chỉ giao hàng mới' })
