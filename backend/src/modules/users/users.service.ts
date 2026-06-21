@@ -158,79 +158,109 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id: userID } });
   }
 
-  // Lấy hồ sơ đầy đủ của user (password đã select:false nên không lộ)
-  async getProfile(userId: string): Promise<User> {
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng');
+  // Tìm user theo id hoặc ném 404 — helper dùng chung cho các luồng hồ sơ/avatar.
+  // Mirror findOwnedAddressOrFail: tách findCriteria + cờ tường minh + message có tên.
+  private async findUserOrFail(userId: string): Promise<User> {
+    const findCriteria = { where: { id: userId } };
+    const user = await this.usersRepository.findOne(findCriteria);
+    const isUserMissing = !user;
+    if (isUserMissing) {
+      const notFoundMsg = 'Không tìm thấy người dùng';
+      throw new NotFoundException(notFoundMsg);
     }
     return user;
   }
 
-  // Cập nhật thông tin cơ bản: full_name, phone
+  // Lấy hồ sơ đầy đủ của user (password đã select:false nên không lộ)
+  async getProfile(userId: string): Promise<User> {
+    return this.findUserOrFail(userId);
+  }
+
+  // Cập nhật thông tin cơ bản: chỉ ghi đè field thực sự được gửi lên
+  // (giữ check !== undefined inline để TS narrow đúng kiểu string)
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<User> {
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng');
-    }
+    const user = await this.findUserOrFail(userId);
+
     if (dto.full_name !== undefined) {
       user.full_name = dto.full_name;
     }
     if (dto.phone !== undefined) {
       user.phone = dto.phone;
     }
+
     await this.usersRepository.save(user);
     return this.getProfile(userId);
   }
 
-  // Đổi ảnh đại diện: upload ảnh mới → set avatar_url → xóa ảnh cũ (mirror replaceShopAsset)
-  async updateAvatar(
-    userId: string,
-    file: Express.Multer.File,
-  ): Promise<User> {
-    if (!file) {
+  // Đổi ảnh đại diện: upload ảnh mới → trỏ avatar_url → dọn ảnh cũ.
+  // Mirror shops.service.replaceShopAsset; rollback ảnh mới nếu lỗi giữa chừng.
+  async updateAvatar(userId: string, file: Express.Multer.File): Promise<User> {
+    const isFileMissing = !file;
+    if (isFileMissing) {
       throw new BadRequestException('Vui lòng chọn ảnh đại diện');
     }
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng');
-    }
 
-    let newAssetResult: any = null;
+    const user = await this.findUserOrFail(userId);
+    const oldAvatarUrl = user.avatar_url;
+
+    // Giữ tham chiếu asset mới để rollback nếu các bước sau thất bại
+    let newAvatarAsset: any = null;
     try {
-      newAssetResult = await this.cloudinaryService.uploadFile(
+      // 1. Upload ảnh mới lên Cloudinary (đồng thời ghi 1 dòng media_assets)
+      newAvatarAsset = await this.cloudinaryService.uploadFile(
         file,
         CLOUDINARY_FOLDER.USER_AVATARS,
         userId,
         AssetType.USER_AVATAR,
       );
 
-      await this.usersRepository.update(userId, {
-        avatar_url: newAssetResult.url,
-      });
+      // 2. Trỏ avatar_url của user sang URL ảnh mới
+      const avatarUpdateFields = { avatar_url: newAvatarAsset.url };
+      await this.usersRepository.update(userId, avatarUpdateFields);
 
-      const oldUrl = user.avatar_url;
-      if (oldUrl) {
-        const oldAsset = await this.cloudinaryService.findAssetByUrl(oldUrl);
-        if (oldAsset) {
-          await this.cloudinaryService
-            .deleteAsset(oldAsset.id, userId)
-            .catch((e) => this.logger.error('Xóa avatar cũ thất bại', e));
-        }
-      }
+      // 3. Dọn ảnh cũ (nếu có) khỏi Cloudinary + media_assets
+      await this.removeOldAvatarAsset(oldAvatarUrl, userId);
 
       return this.getProfile(userId);
     } catch (error) {
-      // Rollback: nếu đã upload ảnh mới nhưng lỗi sau đó → xóa ảnh mới để tránh rác
-      if (newAssetResult?.id) {
-        await this.cloudinaryService
-          .deleteAsset(newAssetResult.id, userId)
-          .catch((e) => this.logger.error('Rollback avatar thất bại', e));
-      }
+      await this.rollbackNewAvatarAsset(newAvatarAsset, userId);
       throw new InternalServerErrorException(
         'Có lỗi xảy ra khi cập nhật ảnh đại diện',
       );
     }
+  }
+
+  // Dọn asset avatar cũ theo URL (no-op nếu user chưa từng có avatar)
+  private async removeOldAvatarAsset(
+    oldAvatarUrl: string,
+    userId: string,
+  ): Promise<void> {
+    const hasOldAvatar = !!oldAvatarUrl;
+    if (!hasOldAvatar) {
+      return;
+    }
+    const oldAsset = await this.cloudinaryService.findAssetByUrl(oldAvatarUrl);
+    const isOldAssetMissing = !oldAsset;
+    if (isOldAssetMissing) {
+      return;
+    }
+    await this.cloudinaryService
+      .deleteAsset(oldAsset.id, userId)
+      .catch((e) => this.logger.error('Xóa avatar cũ thất bại', e));
+  }
+
+  // Rollback ảnh vừa upload khi luồng updateAvatar lỗi giữa chừng (tránh rác Cloudinary)
+  private async rollbackNewAvatarAsset(
+    newAvatarAsset: any,
+    userId: string,
+  ): Promise<void> {
+    const hasNewAsset = !!newAvatarAsset?.id;
+    if (!hasNewAsset) {
+      return;
+    }
+    await this.cloudinaryService
+      .deleteAsset(newAvatarAsset.id, userId)
+      .catch((e) => this.logger.error('Rollback avatar thất bại', e));
   }
 
   async addAddress(userId: string, dto: CreateAddressDto): Promise<Address> {
