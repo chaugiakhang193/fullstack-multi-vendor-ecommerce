@@ -154,6 +154,8 @@ export function useActiveCart() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data === BROADCAST_EVENTS.CART_UPDATED) {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
+        // Tab khác đổi giỏ → làm mới luôn checkout preview ở tab này (nếu đang ở /checkout).
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW] });
       }
     };
 
@@ -167,6 +169,10 @@ export function useActiveCart() {
 
   // Helper to broadcast cart updates to other tabs
   const broadcastCartUpdate = useCallback(() => {
+    // Giỏ vừa đổi (thêm/sửa SL/xoá/clear/đổi biến thể) → làm mới checkout preview của TAB
+    // HIỆN TẠI (cùng queryClient) để tổng tiền & sản phẩm ở /checkout cập nhật ngay, không
+    // cần F5. Gọi ngay sau invalidate CART trong mọi mutation nên phủ hết.
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW] });
     if (typeof window === "undefined") return;
     try {
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
@@ -175,7 +181,7 @@ export function useActiveCart() {
     } catch (error) {
       console.error("Failed to broadcast cart update:", error);
     }
-  }, []);
+  }, [queryClient]);
 
   // Normalized items: unified format representing both guest items and database items
   const items: CartItem[] = useMemo(() => {
