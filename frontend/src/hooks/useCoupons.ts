@@ -99,6 +99,9 @@ export const useBrowseCoupons = (query?: CouponQueryType) => {
     queryKey: [...couponKeys.browse(query), isAuthenticated],
     queryFn: () => couponApiRequest.browseClaimable(query),
     staleTime: STALE_TIME.SHORT,
+    // Đồng bộ đa tab: claim ở tab khác (queryClient riêng) không invalidate được tab này,
+    // nên refetch khi cửa sổ được focus lại để badge "Đã lưu" cập nhật mà không cần F5.
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -106,7 +109,10 @@ export const useWalletCoupons = (query?: CouponQueryType, enabled = true) => {
   return useQuery({
     queryKey: couponKeys.wallet(query),
     queryFn: () => couponApiRequest.getWallet(query),
-    staleTime: STALE_TIME.SHORT,
+    // staleTime 0 + refetchOnWindowFocus: khi chuyển sang tab ví, luôn refetch để thấy
+    // ngay coupon vừa claim ở tab khác (ADV-4 tab syncing) — không phụ thuộc cửa sổ staleTime.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     enabled,
   });
 };
