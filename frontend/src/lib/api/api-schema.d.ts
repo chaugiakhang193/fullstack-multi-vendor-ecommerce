@@ -20,6 +20,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cập nhật họ tên / số điện thoại của tôi */
+        patch: operations["UsersController_updateMyProfile"];
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cập nhật ảnh đại diện của tôi */
+        post: operations["UsersController_uploadAvatar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/addresses": {
         parameters: {
             query?: never;
@@ -71,6 +105,57 @@ export interface paths {
         head?: never;
         /** Đặt địa chỉ làm mặc định */
         patch: operations["UsersController_setDefaultAddress"];
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin lấy danh sách user (lọc + phân trang) */
+        get: operations["AdminUsersController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin xem chi tiết 1 user */
+        get: operations["AdminUsersController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin đổi trạng thái user (ban/unban/suspend) */
+        patch: operations["AdminUsersController_updateStatus"];
         trace?: never;
     };
     "/api/v1/geocoding/autocomplete": {
@@ -1118,6 +1203,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UpdateProfileDto: {
+            /** @description Họ và tên hiển thị */
+            full_name?: string;
+            /** @description Số điện thoại (để trống để xóa) */
+            phone?: string;
+        };
+        UploadSingleFileSwaggerDto: {
+            /**
+             * Format: binary
+             * @description File ảnh cần upload
+             */
+            file: string;
+        };
         AddressResponseDto: {
             /**
              * @description ID của địa chỉ
@@ -1230,6 +1328,69 @@ export interface components {
              * @example false
              */
             is_default?: boolean;
+        };
+        PaginationMetaDto: {
+            /**
+             * @description Trang hiện tại
+             * @example 1
+             */
+            page: number;
+            /**
+             * @description Số lượng phần tử trên mỗi trang
+             * @example 10
+             */
+            limit: number;
+            /**
+             * @description Tổng số phần tử
+             * @example 100
+             */
+            totalItems: number;
+            /**
+             * @description Tổng số trang
+             * @example 10
+             */
+            totalPages: number;
+        };
+        AdminUserResponseDto: {
+            /** @example 550e8400-e29b-41d4-a716-446655440002 */
+            id: string;
+            /** @example buyer01 */
+            username: string;
+            /** @example buyer@example.com */
+            email: string;
+            /**
+             * @example customer
+             * @enum {string}
+             */
+            role: "admin" | "customer" | "seller";
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /** @example Nguyễn Văn A */
+            full_name?: Record<string, never> | null;
+            /** @example 0901234567 */
+            phone?: Record<string, never> | null;
+            /** @example https://res.cloudinary.com/demo/image/upload/avatar.jpg */
+            avatar_url?: Record<string, never> | null;
+            /**
+             * Format: date-time
+             * @example 2026-06-20T10:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @example 2026-06-21T11:00:00Z
+             */
+            updated_at: string;
+        };
+        UpdateUserStatusDto: {
+            /**
+             * @description Trạng thái mới (chỉ active | suspended | banned)
+             * @enum {string}
+             */
+            status: "active" | "suspended" | "banned";
         };
         UserResponseDto: {
             /**
@@ -1479,13 +1640,6 @@ export interface components {
             /** @description Thêm ảnh vào bộ sưu tập */
             gallery?: string[];
         };
-        UploadSingleFileSwaggerDto: {
-            /**
-             * Format: binary
-             * @description File ảnh cần upload
-             */
-            file: string;
-        };
         UploadMultipleFilesSwaggerDto: {
             /** @description Danh sách các file ảnh (tối đa 3) */
             files: string[];
@@ -1496,28 +1650,6 @@ export interface components {
              * @example Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ.
              */
             reason: string;
-        };
-        PaginationMetaDto: {
-            /**
-             * @description Trang hiện tại
-             * @example 1
-             */
-            page: number;
-            /**
-             * @description Số lượng phần tử trên mỗi trang
-             * @example 10
-             */
-            limit: number;
-            /**
-             * @description Tổng số phần tử
-             * @example 100
-             */
-            totalItems: number;
-            /**
-             * @description Tổng số trang
-             * @example 10
-             */
-            totalPages: number;
         };
         ProductVariantResponseDto: {
             /**
@@ -2414,6 +2546,64 @@ export interface operations {
             };
         };
     };
+    UsersController_updateMyProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileDto"];
+            };
+        };
+        responses: {
+            /** @description Dữ liệu không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UsersController_uploadAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadSingleFileSwaggerDto"];
+            };
+        };
+        responses: {
+            /** @description Thiếu file hoặc file không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UsersController_getAddresses: {
         parameters: {
             query?: never;
@@ -2653,6 +2843,166 @@ export interface operations {
             };
             /** @description Không tìm thấy địa chỉ */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Lọc theo vai trò */
+                role?: "admin" | "customer" | "seller";
+                /** @description Lọc theo trạng thái */
+                status?: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+                /** @description Tìm theo username hoặc email */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy danh sách người dùng thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy danh sách người dùng thành công */
+                        message?: string;
+                        data?: {
+                            items?: components["schemas"]["AdminUserResponseDto"][];
+                            meta?: components["schemas"]["PaginationMetaDto"];
+                        };
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy chi tiết người dùng thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy chi tiết người dùng thành công */
+                        message?: string;
+                        data?: components["schemas"]["AdminUserResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy người dùng */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserStatusDto"];
+            };
+        };
+        responses: {
+            /** @description Cập nhật trạng thái người dùng thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Cập nhật trạng thái người dùng thành công */
+                        message?: string;
+                        data?: components["schemas"]["AdminUserResponseDto"];
+                    };
+                };
+            };
+            /** @description Dữ liệu/thao tác không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không thao tác được tài khoản admin */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
