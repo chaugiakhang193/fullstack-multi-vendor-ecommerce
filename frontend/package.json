@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "gen-api": "openapi-typescript http://localhost:8080/api/docs-json -o ./src/lib/api/api-schema.d.ts"
+    "gen-api": "openapi-typescript http://localhost:8080/api/docs-json -o ./src/lib/api/api-schema.d.ts",
+    "gen-enums": "node scripts/gen-enums.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

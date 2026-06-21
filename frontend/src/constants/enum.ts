@@ -1,54 +1,16 @@
-export enum UserRole {
-  ADMIN = "admin",
-  CUSTOMER = "customer",
-  SELLER = "seller",
-}
+// Enum đồng bộ từ backend (backend/src/common/enums.ts) qua `npm run gen-enums`.
+// KHÔNG sửa các enum đó ở đây — sửa bên backend rồi chạy lại script.
+export * from "./enum.generated";
 
-export enum AccountStatus {
-  PENDING_VERIFICATION = "pending_verification",
-  PENDING_APPROVAL = "pending_approval",
-  NEW_SELLER = "new_seller",
-  ACTIVE = "active",
-  SUSPENDED = "suspended",
-  BANNED = "banned",
-  REJECTED = "rejected",
-}
+// ============================================================
+// FE-only enums (không có nguồn 1:1 ở backend → giữ tay tại đây)
+// ============================================================
 
-export enum OrderStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  SHIPPING = "shipping",
-  DELIVERED = "delivered",
-  CANCELLED = "cancelled",
-  RETURNED = "returned",
-}
-
-export enum PaymentMethod {
-  COD = "cod",
-}
-
-export enum PaymentStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  REFUNDED = "refunded",
-}
-
-export enum CouponType {
-  GLOBAL = "global",
-  SHOP = "shop",
-}
-
-export enum DiscountType {
-  PERCENTAGE = "percentage",
-  FIXED_AMOUNT = "fixed_amount",
-}
-
-export enum VerificationTokenType {
-  VERIFY_EMAIL = "verify_email",
-  RESET_PASSWORD = "reset_password",
-}
-
+// CartConflictReason = các lý do item không khả dụng do server trả về
+// (khớp [[CartItemUnavailableReason]] của backend) CỘNG THÊM `price_changed` —
+// một khái niệm THUẦN FE (so giá lúc add-to-cart vs lúc checkout, FE tự phát hiện),
+// dùng trong CartConflictDialog. Vì backend không có `price_changed` nên enum này
+// không sinh từ gen-enums mà giữ tay.
 export enum CartConflictReason {
   PRICE_CHANGED = "price_changed",
   OUT_OF_STOCK = "out_of_stock",
@@ -57,4 +19,3 @@ export enum CartConflictReason {
   PRODUCT_DELETED = "product_deleted",
   SHOP_INACTIVE = "shop_inactive",
 }
-
