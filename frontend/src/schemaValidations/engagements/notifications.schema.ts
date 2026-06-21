@@ -1,5 +1,6 @@
 import z from "zod";
 import { ApiEnvelope } from "@/lib/http";
+import { NotificationType } from "@/constants/enum";
 import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
 
 // Backend notifications KHÔNG khai báo @ApiResponse({ type }) → swagger để trống schema,
@@ -56,7 +57,7 @@ export const NotificationData = z.discriminatedUnion("kind", [
 
 export const NotificationItem = z.object({
   id: z.string(),
-  type: z.enum(["order.created", "order.status_changed", "review.created", "review.replied"]),
+  type: z.nativeEnum(NotificationType),
   title: z.string().nullable(),
   content: z.string().nullable(),
   data: NotificationData.nullable().optional(),
