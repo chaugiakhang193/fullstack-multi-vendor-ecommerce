@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  ForbiddenException,
   Injectable,
   Logger,
 } from '@nestjs/common';
@@ -14,7 +15,10 @@ import { Address } from '@/modules/users/entities/address.entity';
 import { CreateAddressDto } from '@/modules/users/dto/create-address.dto';
 import { UpdateAddressDto } from '@/modules/users/dto/update-address.dto';
 import { GeocodingService } from '@/modules/geocoding/geocoding.service';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Brackets } from 'typeorm';
+import { paginate } from '@/common/helpers/pagination.helper';
+import { AdminUserQueryDto } from '@/modules/users/dto/admin-user-query.dto';
+import { UpdateUserStatusDto } from '@/modules/users/dto/update-user-status.dto';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import {
   hashDataHelper,
@@ -261,6 +265,67 @@ export class UsersService {
     await this.cloudinaryService
       .deleteAsset(newAvatarAsset.id, userId)
       .catch((e) => this.logger.error('Rollback avatar thất bại', e));
+  }
+
+  // ADMIN: danh sách user toàn sàn — lọc role/status/search + phân trang.
+  // password đã select:false nên không lộ khi getManyAndCount.
+  async findAllForAdmin(query: AdminUserQueryDto) {
+    const { role, status, search, sort, order } = query;
+    const qb = this.usersRepository.createQueryBuilder('user');
+
+    if (role) {
+      qb.andWhere('user.role = :role', { role });
+    }
+    if (status) {
+      qb.andWhere('user.status = :status', { status });
+    }
+    if (search) {
+      qb.setParameter('search', `%${search}%`);
+      qb.andWhere(
+        new Brackets((b) => {
+          b.where('user.username ILIKE :search').orWhere(
+            'user.email ILIKE :search',
+          );
+        }),
+      );
+    }
+
+    // Chống SQL injection ở cột sort: chỉ cho phép whitelist
+    const allowedSortFields = ['created_at', 'username', 'email'];
+    const isSortAllowed = sort && allowedSortFields.includes(sort);
+    const sortField = isSortAllowed ? sort : 'created_at';
+    qb.orderBy(`user.${sortField}`, order);
+
+    return paginate<User>(qb, query);
+  }
+
+  // ADMIN: ban/unban/suspend 1 user.
+  // Hiệu lực ban dựa tech-debt B (#115): route ghi seller/admin đọc lại status/role
+  // từ DB; JWT cũ của user bị ban có thể còn hạn tới TTL với route ĐỌC (chấp nhận cho MVP).
+  async updateUserStatus(
+    adminId: string,
+    targetId: string,
+    dto: UpdateUserStatusDto,
+  ): Promise<User> {
+    const isSelf = adminId === targetId;
+    if (isSelf) {
+      throw new BadRequestException(
+        'Không thể tự đổi trạng thái của chính mình',
+      );
+    }
+
+    const target = await this.findUserOrFail(targetId);
+
+    const isTargetAdmin = target.role === UserRole.ADMIN;
+    if (isTargetAdmin) {
+      throw new ForbiddenException(
+        'Không thể thay đổi trạng thái của tài khoản admin khác',
+      );
+    }
+
+    target.status = dto.status;
+    await this.usersRepository.save(target);
+    return this.getProfile(targetId);
   }
 
   async addAddress(userId: string, dto: CreateAddressDto): Promise<Address> {
