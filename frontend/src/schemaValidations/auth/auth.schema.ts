@@ -1,6 +1,11 @@
 import z from "zod";
 import { UserRole, AccountStatus } from "@/constants/enum";
 import { AUTH_LIMITS } from "@/constants/limits";
+import type { components } from "@/lib/api/api-schema";
+
+type LoginDto = components["schemas"]["LoginDto"];
+type ForgotPasswordDto = components["schemas"]["ForgotPasswordDto"];
+type VerifyEmailDto = components["schemas"]["VerifyEmailDto"];
 
 // Định nghĩa User
 export const UserSchema = z.object({
@@ -36,9 +41,10 @@ export const LoginBody = z
         "Mật khẩu không được chứa khoảng trắng.",
       ),
   })
-  .strict();
+  .strict() satisfies z.ZodType<LoginDto, any, any>;
 
 // Đăng ký tài khoản mới (register)
+// Không satisfies RegisterDto: body có confirmPassword (FE-only, strip trước khi gửi).
 export const RegisterBody = z
   .object({
     username: z
@@ -85,9 +91,10 @@ export const ForgotPasswordBody = z.object({
     .min(1, "Vui lòng nhập email.")
     .email("Email không đúng định dạng.")
     .refine((val) => !val.includes(" "), "Email không được chứa khoảng trắng."),
-});
+}) satisfies z.ZodType<ForgotPasswordDto, any, any>;
 
 // Đặt lại mật khẩu (reset-password)
+// Không satisfies ResetPasswordDto: body có confirmPassword (FE-only, strip trước khi gửi).
 export const ResetPasswordBody = z
   .object({
     token: z.string().min(1, "Token không hợp lệ"),
@@ -109,6 +116,7 @@ export const ResetPasswordBody = z
   });
 
 // Đổi mật khẩu (change-password)
+// Không satisfies ChangePasswordDto: body có confirmPassword (FE-only, strip trước khi gửi).
 export const ChangePasswordBody = z
   .object({
     old_password: z
@@ -147,7 +155,7 @@ export const ResendVerificationBody = z.object({
 // Xác thực Email (verify-email)
 export const VerifyEmailBody = z.object({
   verification_token: z.string().min(1, "Mã xác thực không hợp lệ"),
-});
+}) satisfies z.ZodType<VerifyEmailDto, any, any>;
 
 export const AuthRes = z.object({
   //statusCode: z.number().optional(),
@@ -166,7 +174,7 @@ export const AccountRes = z.object({
 // ==========================================
 // Types
 // ==========================================
-export type AccountType = z.infer<typeof UserSchema>;
+export type AccountType = z.TypeOf<typeof UserSchema>;
 
 export type RegisterBodyType = z.TypeOf<typeof RegisterBody>;
 export type RegisterResType = z.TypeOf<typeof AuthRes>;
