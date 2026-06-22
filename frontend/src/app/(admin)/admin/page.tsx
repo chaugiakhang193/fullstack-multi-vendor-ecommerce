@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import {
   TrendingUp,
   Store,
@@ -6,39 +8,79 @@ import {
   Layers,
   ArrowUpRight,
   Shield,
+  ShoppingBag,
 } from "lucide-react";
+import { toast } from "sonner";
+import adminStatsApiRequest from "@/apiRequests/statistics/admin-stats";
+import { AdminStatsType } from "@/schemaValidations/statistics/admin-stats.schema";
+import { getErrorMessage } from "@/lib/http";
+import { formatVnd } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboardPage() {
-  const stats = [
-    {
-      title: "Tổng số cửa hàng",
-      value: "54",
-      change: "+4 cửa hàng mới tháng này",
-      icon: <Store className="h-6 w-6 text-violet-500" />,
-      gradient: "from-violet-500/10 to-indigo-500/10 border-violet-500/20",
-    },
-    {
-      title: "Cửa hàng chờ duyệt",
-      value: "8",
-      change: "Cần xử lý phê duyệt ngay",
-      icon: <Shield className="h-6 w-6 text-amber-500" />,
-      gradient: "from-amber-500/10 to-orange-500/10 border-amber-500/20",
-    },
-    {
-      title: "Tổng người dùng",
-      value: "1,248",
-      change: "+12.5% từ tháng trước",
-      icon: <Users className="h-6 w-6 text-blue-500" />,
-      gradient: "from-blue-500/10 to-cyan-500/10 border-blue-500/20",
-    },
-    {
-      title: "Tổng danh mục",
-      value: "16",
-      change: "Đã phân cấp đa cấp",
-      icon: <Layers className="h-6 w-6 text-pink-500" />,
-      gradient: "from-pink-500/10 to-rose-500/10 border-pink-500/20",
-    },
-  ];
+  const [stats, setStats] = useState<AdminStatsType | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await adminStatsApiRequest.getOverview();
+        setStats(response.data);
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  const statCards = stats
+    ? [
+        {
+          title: "Tổng người dùng",
+          value: stats.total_users.toLocaleString("vi-VN"),
+          change: "Toàn sàn",
+          icon: <Users className="h-6 w-6 text-blue-500" />,
+          gradient: "from-blue-500/10 to-cyan-500/10 border-blue-500/20",
+        },
+        {
+          title: "Tổng cửa hàng",
+          value: stats.total_shops.toLocaleString("vi-VN"),
+          change: "Toàn sàn",
+          icon: <Store className="h-6 w-6 text-violet-500" />,
+          gradient: "from-violet-500/10 to-indigo-500/10 border-violet-500/20",
+        },
+        {
+          title: "Cửa hàng chờ duyệt",
+          value: stats.pending_shops.toLocaleString("vi-VN"),
+          change: "Cần phê duyệt",
+          icon: <Shield className="h-6 w-6 text-amber-500" />,
+          gradient: "from-amber-500/10 to-orange-500/10 border-amber-500/20",
+        },
+        {
+          title: "Tổng danh mục",
+          value: stats.total_categories.toLocaleString("vi-VN"),
+          change: "Toàn sàn",
+          icon: <Layers className="h-6 w-6 text-pink-500" />,
+          gradient: "from-pink-500/10 to-rose-500/10 border-pink-500/20",
+        },
+        {
+          title: "Tổng đơn hàng",
+          value: stats.total_orders.toLocaleString("vi-VN"),
+          change: "Toàn sàn",
+          icon: <ShoppingBag className="h-6 w-6 text-emerald-500" />,
+          gradient: "from-emerald-500/10 to-teal-500/10 border-emerald-500/20",
+        },
+        {
+          title: "Doanh thu (đã giao)",
+          value: formatVnd.format(stats.total_revenue),
+          change: "Đơn giao thành công",
+          icon: <TrendingUp className="h-6 w-6 text-rose-500" />,
+          gradient: "from-rose-500/10 to-red-500/10 border-rose-500/20",
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -54,31 +96,51 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className={`rounded-xl border bg-gradient-to-br ${stat.gradient} p-6 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
-          >
-            <div className="flex items-center justify-between space-y-0 pb-2">
-              <span className="text-base font-semibold text-muted-foreground">
-                {stat.title}
-              </span>
-              <div className="p-2.5 rounded-lg bg-background/50 backdrop-blur-sm border shadow-sm">
-                {stat.icon}
+      {loading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border p-6 shadow-sm bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col justify-between h-[146px]"
+            >
+              <div className="flex items-center justify-between pb-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-11 w-11 rounded-lg" />
+              </div>
+              <div className="mt-2 space-y-2">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-20" />
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-3xl font-extrabold tracking-tight">
-                {stat.value}
-              </span>
-              <p className="text-sm text-muted-foreground mt-1">
-                {stat.change}
-              </p>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {statCards.map((stat, idx) => (
+            <div
+              key={idx}
+              className={`rounded-xl border bg-gradient-to-br ${stat.gradient} p-6 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
+            >
+              <div className="flex items-center justify-between space-y-0 pb-2">
+                <span className="text-base font-semibold text-muted-foreground">
+                  {stat.title}
+                </span>
+                <div className="p-2.5 rounded-lg bg-background/50 backdrop-blur-sm border shadow-sm">
+                  {stat.icon}
+                </div>
+              </div>
+              <div className="mt-2">
+                <span className="text-3xl font-extrabold tracking-tight">
+                  {stat.value}
+                </span>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {stat.change}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Detailed Section */}
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
