@@ -1,4 +1,5 @@
 import z from "zod";
+import type { ApiEnvelope } from "@/lib/http";
 
 // Schema cho từng gợi ý địa chỉ trả về từ backend proxy (LocationIQ / Nominatim)
 export const AddressSuggestion = z.object({
@@ -8,12 +9,7 @@ export const AddressSuggestion = z.object({
   lon: z.string(),
 });
 
-// Schema cho envelope response của endpoint /geocoding/autocomplete
-export const AutocompleteResponse = z.object({
-  message: z.string().optional(),
-  data: z.array(AddressSuggestion),
-});
 
 // Types
 export type AddressSuggestionType = z.TypeOf<typeof AddressSuggestion>;
-export type AutocompleteResponseType = z.TypeOf<typeof AutocompleteResponse>;
+export type AutocompleteResponseType = ApiEnvelope<AddressSuggestionType[]>;

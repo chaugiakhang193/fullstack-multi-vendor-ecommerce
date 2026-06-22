@@ -1,5 +1,6 @@
 import z from "zod";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 type CreateAddressDto = components["schemas"]["CreateAddressDto"];
 type UpdateAddressDto = components["schemas"]["UpdateAddressDto"];
@@ -47,20 +48,10 @@ export const AddressResponse = z.object({
   updated_at: z.string(),
 });
 
-export const AddressListResponse = z.object({
-  message: z.string().optional(),
-  data: z.array(AddressResponse),
-});
-
-export const AddressItemResponse = z.object({
-  message: z.string().optional(),
-  data: AddressResponse,
-});
-
 // ===== Types =====
 export type CreateAddressBodyType = z.TypeOf<typeof CreateAddressBody>;
 export type UpdateAddressBodyType = z.TypeOf<typeof UpdateAddressBody>;
 export type AddressFormBodyType = z.TypeOf<typeof AddressFormBody>;
 export type AddressResponseType = z.TypeOf<typeof AddressResponse>;
-export type AddressListResponseType = z.TypeOf<typeof AddressListResponse>;
-export type AddressItemResponseType = z.TypeOf<typeof AddressItemResponse>;
+export type AddressListResponseType = ApiEnvelope<AddressResponseType[]>;
+export type AddressItemResponseType = ApiEnvelope<AddressResponseType>;

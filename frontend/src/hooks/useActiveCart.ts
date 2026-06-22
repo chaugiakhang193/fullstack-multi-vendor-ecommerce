@@ -10,15 +10,20 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 // API requests
 import cartApiRequest from "@/apiRequests/carts/carts";
-import { CartGenericResponseType } from "@/schemaValidations/carts/carts.schema";
+import {
+  CartGenericResponseType,
+  CartResponseType,
+  CartItemResponseType,
+  CartShopGroupType,
+} from "@/schemaValidations/carts/carts.schema";
 import { getErrorMessage } from "@/lib/http";
 
 // Types
 import type { components } from "@/lib/api/api-schema";
 
-type CartResponseDto = components["schemas"]["CartResponseDto"];
-type CartItemResponseDto = components["schemas"]["CartItemResponseDto"];
-type CartShopGroupDto = components["schemas"]["CartShopGroupDto"];
+type CartResponseDto = CartResponseType;
+type CartItemResponseDto = CartItemResponseType;
+type CartShopGroupDto = CartShopGroupType;
 
 /**
  * Helper to map guest cart items from Zustand to the CartResponseDto structure.

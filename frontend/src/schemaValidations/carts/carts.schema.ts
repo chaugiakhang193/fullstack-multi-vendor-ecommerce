@@ -1,6 +1,7 @@
 import z from "zod";
 import { CART_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 type AddCartItemDto = components["schemas"]["AddCartItemDto"];
 type UpdateCartItemDto = components["schemas"]["UpdateCartItemDto"];
@@ -97,11 +98,6 @@ export const CartResponse = z.object({
   total_amount: z.number(),
 }) satisfies z.ZodType<CartResponseDto, any, any>;
 
-export const CartGenericResponse = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: CartResponse,
-});
 // ==========================================
 // Types
 // ==========================================
@@ -111,4 +107,7 @@ export type GuestCartItemType = z.TypeOf<typeof GuestCartItem>;
 export type MergeCartBodyType = z.TypeOf<typeof MergeCartBody>;
 
 export type CartResponseType = z.TypeOf<typeof CartResponse>;
-export type CartGenericResponseType = z.TypeOf<typeof CartGenericResponse>;
+export type CartGenericResponseType = ApiEnvelope<CartResponseType>;
+
+export type CartItemResponseType = z.TypeOf<typeof CartItemResponse>;
+export type CartShopGroupType = z.TypeOf<typeof CartShopGroup>;

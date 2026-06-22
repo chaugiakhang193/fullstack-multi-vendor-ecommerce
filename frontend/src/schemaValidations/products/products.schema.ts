@@ -1,6 +1,7 @@
 import z from "zod";
 import { PRODUCT_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 // Trích xuất backend types để đảm bảo đồng bộ compile-time
 type CreateProductVariantDto = components["schemas"]["CreateProductVariantDto"];
@@ -208,22 +209,12 @@ export const PaginationMetaSchema = z.object({
   totalItems: z.number(),
   totalPages: z.number(),
 });
-// Schema response danh sách sản phẩm
-export const ProductListResponse = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: z.object({
-    items: z.array(ProductResponse),
-    meta: PaginationMetaSchema,
-  }),
+
+export const ProductListData = z.object({
+  items: z.array(ProductResponse),
+  meta: PaginationMetaSchema,
 });
 
-// Schema response 1 sản phẩm
-export const SingleProductResponse = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: ProductResponse,
-});
 // ==========================================
 // Types
 // ==========================================
@@ -242,5 +233,6 @@ export type ProductVariantResponseType = z.TypeOf<
 >;
 export type ProductResponseType = z.TypeOf<typeof ProductResponse>;
 
-export type ProductListResponseType = z.TypeOf<typeof ProductListResponse>;
-export type SingleProductResponseType = z.TypeOf<typeof SingleProductResponse>;
+export type ProductListResponseType = ApiEnvelope<z.TypeOf<typeof ProductListData>>;
+export type SingleProductResponseType = ApiEnvelope<ProductResponseType>;
+

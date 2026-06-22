@@ -2,6 +2,7 @@ import z from "zod";
 import { UserRole, AccountStatus } from "@/constants/enum";
 import { AUTH_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 type LoginDto = components["schemas"]["LoginDto"];
 type ForgotPasswordDto = components["schemas"]["ForgotPasswordDto"];
@@ -158,18 +159,11 @@ export const VerifyEmailBody = z.object({
 }) satisfies z.ZodType<VerifyEmailDto, any, any>;
 
 export const AuthRes = z.object({
-  //statusCode: z.number().optional(),
-  data: z.object({
-    access_token: z.string(),
-    user: UserSchema,
-  }),
-  message: z.string(),
+  access_token: z.string(),
+  user: UserSchema,
 });
 
-export const AccountRes = z.object({
-  data: UserSchema,
-  message: z.string(),
-});
+export const AccountRes = UserSchema;
 
 // ==========================================
 // Types
@@ -177,26 +171,27 @@ export const AccountRes = z.object({
 export type AccountType = z.TypeOf<typeof UserSchema>;
 
 export type RegisterBodyType = z.TypeOf<typeof RegisterBody>;
-export type RegisterResType = z.TypeOf<typeof AuthRes>;
+export type RegisterResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type LoginBodyType = z.TypeOf<typeof LoginBody>;
-export type LoginResType = z.TypeOf<typeof AuthRes>;
+export type LoginResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type ForgotPasswordBodyType = z.TypeOf<typeof ForgotPasswordBody>;
-export type ForgotPasswordResType = z.TypeOf<typeof AuthRes>;
+export type ForgotPasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type ResetPasswordBodyType = z.TypeOf<typeof ResetPasswordBody>;
-export type ResetPasswordResType = z.TypeOf<typeof AuthRes>;
+export type ResetPasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type ChangePasswordBodyType = z.TypeOf<typeof ChangePasswordBody>;
-export type ChangePasswordResType = z.TypeOf<typeof AuthRes>;
+export type ChangePasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type ResendVerificationBodyType = z.TypeOf<
   typeof ResendVerificationBody
 >;
-export type ResendVerificationResType = z.TypeOf<typeof AuthRes>;
+export type ResendVerificationResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type VerifyEmailBodyType = z.TypeOf<typeof VerifyEmailBody>;
-export type VerifyEmailResType = z.TypeOf<typeof AuthRes>;
+export type VerifyEmailResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
-export type AccountResType = z.TypeOf<typeof AccountRes>;
+export type AccountResType = ApiEnvelope<z.TypeOf<typeof AccountRes>>;
+

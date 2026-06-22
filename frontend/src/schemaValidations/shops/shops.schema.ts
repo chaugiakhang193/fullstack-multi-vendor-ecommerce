@@ -108,11 +108,6 @@ export const ShopResponse = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
-export const ShopResponseRes = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: ShopResponse,
-});
 // ==========================================
 // Types
 // ==========================================
@@ -121,7 +116,7 @@ export type UpdateShopBodyType = z.TypeOf<typeof UpdateShopBody>;
 export type RejectShopBodyType = z.TypeOf<typeof RejectShopBody>;
 
 export type ShopResponseType = z.TypeOf<typeof ShopResponse>;
-export type ShopResponseResType = z.TypeOf<typeof ShopResponseRes>;
+export type ShopResponseResType = ApiEnvelope<ShopResponseType>;
 
 export type ShopType = components["schemas"]["ShopResponseDto"];
 export type GetPendingShopsResType = ApiEnvelope<ShopType[]>;

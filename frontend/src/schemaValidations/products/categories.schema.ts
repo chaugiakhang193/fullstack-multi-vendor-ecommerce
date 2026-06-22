@@ -1,6 +1,7 @@
 import z from "zod";
 import { CATEGORY_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
+import type { ApiEnvelope } from "@/lib/http";
 
 type OriginalCreateCategoryDto = components["schemas"]["CreateCategoryDto"];
 type OriginalUpdateCategoryDto = components["schemas"]["UpdateCategoryDto"];
@@ -71,17 +72,7 @@ export const CategoryResponse = z.object({
   children: z.array(z.any()).optional(),
   created_at: z.string(),
 });
-export const CategoryListResponse = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: z.array(CategoryResponse),
-});
 
-export const SingleCategoryResponse = z.object({
-  // statusCode: z.number().optional(),
-  message: z.string().optional(),
-  data: CategoryResponse,
-});
 // ==========================================
 // Types
 // ==========================================
@@ -89,7 +80,5 @@ export type CreateCategoryBodyType = z.TypeOf<typeof CreateCategoryBody>;
 export type UpdateCategoryBodyType = z.TypeOf<typeof UpdateCategoryBody>;
 
 export type CategoryResponseType = z.TypeOf<typeof CategoryResponse>;
-export type CategoryListResponseType = z.TypeOf<typeof CategoryListResponse>;
-export type SingleCategoryResponseType = z.TypeOf<
-  typeof SingleCategoryResponse
->;
+export type CategoryListResponseType = ApiEnvelope<CategoryResponseType[]>;
+export type SingleCategoryResponseType = ApiEnvelope<CategoryResponseType>;
