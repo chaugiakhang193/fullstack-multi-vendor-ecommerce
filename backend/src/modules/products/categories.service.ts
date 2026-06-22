@@ -198,4 +198,9 @@ export class CategoriesService {
   private generateSlug(name: string): string {
     return slugify(name, { lower: true, locale: 'vi' });
   }
+
+  async countAll(): Promise<number> {
+    return this.categoriesRepository.count();
+  }
 }
+

@@ -544,4 +544,13 @@ export class UsersService {
       return savedAddress;
     });
   }
+
+  async countAll(): Promise<number> {
+    return this.usersRepository.count();
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    return this.usersRepository.count({ where: { role } });
+  }
 }
+

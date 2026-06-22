@@ -20,6 +20,7 @@ import { EngagementsModule } from '@/modules/engagements/engagements.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
+import { StatisticsModule } from '@/modules/statistics/statistics.module';
 
 //entities
 import { User } from '@/modules/users/entities/user.entity';
@@ -75,6 +76,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     PaymentsModule,
     EngagementsModule,
     GeocodingModule,
+    StatisticsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

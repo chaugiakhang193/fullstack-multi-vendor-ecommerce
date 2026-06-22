@@ -1642,4 +1642,19 @@ export class OrdersService {
     const fallbackMsg = 'Đã xảy ra lỗi trong quá trình đặt hàng';
     return new InternalServerErrorException(fallbackMsg);
   }
+
+  async countAll(): Promise<number> {
+    return this.ordersRepository.count();
+  }
+
+  async getDeliveredRevenue(): Promise<number> {
+    const raw = await this.ordersRepository
+      .createQueryBuilder('o')
+      .select('COALESCE(SUM(o.total_amount), 0)', 'sum')
+      .where('o.status = :st', { st: OrderStatus.DELIVERED })
+      .getRawOne<{ sum: string }>();
+
+    return Number(raw?.sum ?? 0);
+  }
 }
+

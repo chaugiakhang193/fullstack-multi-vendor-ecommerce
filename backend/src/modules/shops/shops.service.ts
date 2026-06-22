@@ -715,4 +715,13 @@ export class ShopsService {
       throw new InternalServerErrorException(errorMsg);
     }
   }
+
+  async countAll(): Promise<number> {
+    return this.shopsRepository.count();
+  }
+
+  async countByStatus(status: AccountStatus): Promise<number> {
+    return this.shopsRepository.count({ where: { status } });
+  }
 }
+
