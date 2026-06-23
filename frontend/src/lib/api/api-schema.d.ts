@@ -1216,6 +1216,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/seller/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy thống kê tổng quan (Seller) */
+        get: operations["SellerStatsController_getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2546,6 +2563,40 @@ export interface components {
             total_categories: number;
             total_orders: number;
             total_revenue: number;
+        };
+        StatusCountsDto: {
+            /** @description Số đơn chờ xác nhận */
+            pending: number;
+            /** @description Số đơn đang xử lý */
+            processing: number;
+            /** @description Số đơn đang giao */
+            shipping: number;
+            /** @description Số đơn đã giao */
+            delivered: number;
+            /** @description Số đơn đã hủy */
+            cancelled: number;
+            /** @description Số đơn đã trả */
+            returned: number;
+        };
+        BestSellerItemDto: {
+            /** @description ID sản phẩm */
+            product_id: string;
+            /** @description Tên sản phẩm */
+            product_name: string;
+            /** @description Ảnh đại diện sản phẩm */
+            product_thumbnail: Record<string, never> | null;
+            /** @description Tổng số lượng đã bán */
+            total_sold: number;
+        };
+        SellerStatsResponseDto: {
+            /** @description Tổng doanh thu từ các đơn hàng đã hoàn thành */
+            total_revenue: number;
+            /** @description Tổng số đơn hàng của shop */
+            total_orders: number;
+            /** @description Thống kê đơn hàng theo trạng thái */
+            status_counts: components["schemas"]["StatusCountsDto"];
+            /** @description Top 5 sản phẩm bán chạy của shop */
+            best_sellers: components["schemas"]["BestSellerItemDto"][];
         };
     };
     responses: never;
@@ -5864,6 +5915,46 @@ export interface operations {
                 content?: never;
             };
             /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerStatsController_getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lấy thống kê tổng quan thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Lấy thống kê tổng quan thành công */
+                        message?: string;
+                        data?: components["schemas"]["SellerStatsResponseDto"];
+                    };
+                };
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền SELLER hoặc tài khoản shop chưa được duyệt/kích hoạt. */
             403: {
                 headers: {
                     [name: string]: unknown;
