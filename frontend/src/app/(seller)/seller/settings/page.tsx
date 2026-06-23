@@ -26,46 +26,13 @@ import {
 import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
 import userApiRequest from "@/apiRequests/users/users";
 import { useAuthStore } from "@/store/useAuthStore";
-import { ShopResponseType } from "@/schemaValidations/shops/shops.schema";
+import { ShopResponseType, UpdateSettingsBody, UpdateSettingsBodyType } from "@/schemaValidations/shops/shops.schema";
 import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import z from "zod";
 import { getErrorMessage } from "@/lib/http";
-
-const updateSettingsSchema = z.object({
-  name: z
-    .string()
-    .min(3, "Tên gian hàng phải từ 3 ký tự trở lên.")
-    .max(50, "Tên gian hàng không được vượt quá 50 ký tự.")
-    .trim(),
-  description: z
-    .string()
-    .max(500, "Mô tả gian hàng không quá 500 ký tự.")
-    .trim()
-    .optional()
-    .or(z.literal("")),
-  pickup_address: z
-    .string()
-    .min(
-      10,
-      "Vui lòng nhập chi tiết địa chỉ lấy hàng (Số nhà, đường, xã/phường...).",
-    )
-    .trim(),
-  bank_name: z.string().min(2, "Vui lòng nhập hoặc chọn tên ngân hàng."),
-  account_number: z
-    .string()
-    .min(6, "Số tài khoản ngân hàng không hợp lệ.")
-    .regex(/^[0-9]+$/, "Số tài khoản chỉ được phép chứa các chữ số."),
-  account_holder: z
-    .string()
-    .min(1, "Vui lòng nhập tên chủ tài khoản ngân hàng (viết hoa không dấu).")
-    .transform((val) => val.toUpperCase()),
-});
-
-type UpdateSettingsFormType = z.infer<typeof updateSettingsSchema>;
 
 export default function SellerSettingsPage() {
   const [shop, setShop] = useState<ShopResponseType | null>(null);
@@ -127,8 +94,8 @@ export default function SellerSettingsPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<UpdateSettingsFormType>({
-    resolver: zodResolver(updateSettingsSchema),
+  } = useForm<UpdateSettingsBodyType>({
+    resolver: zodResolver(UpdateSettingsBody),
     defaultValues: {
       name: "",
       description: "",
@@ -336,7 +303,7 @@ export default function SellerSettingsPage() {
   };
 
   // Submit profile changes (including Multipart files)
-  const onSubmit = async (data: UpdateSettingsFormType) => {
+  const onSubmit = async (data: UpdateSettingsBodyType) => {
     setIsSaving(true);
     const formData = new FormData();
 

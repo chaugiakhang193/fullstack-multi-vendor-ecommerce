@@ -111,6 +111,37 @@ export const ShopResponse = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
+
+export const UpdateSettingsBody = z.object({
+  name: z
+    .string()
+    .min(SHOP_LIMITS.UPDATE.NAME_MIN_LENGTH, `Tên gian hàng phải từ ${SHOP_LIMITS.UPDATE.NAME_MIN_LENGTH} ký tự trở lên.`)
+    .max(SHOP_LIMITS.SHOP_NAME_MAX_LENGTH, `Tên gian hàng không được vượt quá ${SHOP_LIMITS.SHOP_NAME_MAX_LENGTH} ký tự.`)
+    .trim(),
+  description: z
+    .string()
+    .max(SHOP_LIMITS.SHOP_DESCRIPTION_MAX_LENGTH, `Mô tả gian hàng không quá ${SHOP_LIMITS.SHOP_DESCRIPTION_MAX_LENGTH} ký tự.`)
+    .trim()
+    .optional()
+    .or(z.literal("")),
+  pickup_address: z
+    .string()
+    .min(
+      SHOP_LIMITS.UPDATE.PICKUP_ADDRESS_MIN_LENGTH,
+      "Vui lòng nhập chi tiết địa chỉ lấy hàng (Số nhà, đường, xã/phường...).",
+    )
+    .trim(),
+  bank_name: z.string().min(SHOP_LIMITS.CREATE.BANK_NAME_MIN_LENGTH, "Vui lòng nhập hoặc chọn tên ngân hàng."),
+  account_number: z
+    .string()
+    .min(SHOP_LIMITS.CREATE.BANK_ACCOUNT_NUMBER_MIN_LENGTH, "Số tài khoản ngân hàng không hợp lệ.")
+    .regex(/^[0-9]+$/, "Số tài khoản chỉ được phép chứa các chữ số."),
+  account_holder: z
+    .string()
+    .min(SHOP_LIMITS.CREATE.BANK_ACCOUNT_NAME_MIN_LENGTH, "Vui lòng nhập tên chủ tài khoản ngân hàng (viết hoa không dấu).")
+    .transform((val) => val.toUpperCase()),
+});
+
 // ==========================================
 // Types
 // ==========================================
@@ -124,3 +155,5 @@ export type ShopResponseResType = ApiEnvelope<ShopResponseType>;
 export type ShopType = components["schemas"]["ShopResponseDto"];
 export type GetPendingShopsResType = ApiEnvelope<ShopType[]>;
 export type ActionShopResType = ApiEnvelope<ShopType>;
+
+export type UpdateSettingsBodyType = z.TypeOf<typeof UpdateSettingsBody>;
