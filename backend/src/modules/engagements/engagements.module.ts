@@ -49,5 +49,6 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     NotificationService,
     OutboxWorker,
   ],
+  exports: [NotificationService, NotificationGateway],
 })
 export class EngagementsModule {}

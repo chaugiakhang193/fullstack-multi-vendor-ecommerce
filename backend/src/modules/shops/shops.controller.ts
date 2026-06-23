@@ -5,7 +5,7 @@ import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { ShopsService } from '@/modules/shops/shops.service';
 
 // DTOs
-import { ShopResponseDto } from '@/modules/shops/dto/shop-response.dto';
+import { ShopResponseDto, PublicShopResponseDto } from '@/modules/shops/dto/shop-response.dto';
 
 // Guards & Decorators
 import { ResponseMessage, Public } from '@/decorator/customize';
@@ -22,7 +22,7 @@ export class ShopsController {
   @ApiOperation({
     summary: 'Lấy chi tiết một gian hàng cho khách hàng (Public)',
   })
-  @ApiGenericResponse(ShopResponseDto, 'Lấy chi tiết gian hàng thành công.')
+  @ApiGenericResponse(PublicShopResponseDto, 'Lấy chi tiết gian hàng thành công.')
   @ApiResponse({ status: 404, description: 'Không tìm thấy gian hàng.' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.shopsService.findOneByShopId(id, true);

@@ -104,12 +104,7 @@ export class PayoutsService {
         throw new BadRequestException(errorMsg);
       }
 
-      let bankSnapshot: Record<string, any>;
-      try {
-        bankSnapshot = JSON.parse(bankInfo);
-      } catch {
-        bankSnapshot = { raw_bank_info: bankInfo };
-      }
+      const bankSnapshot = bankInfo;
 
       const createOptions = {
         shop,

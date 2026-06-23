@@ -36,8 +36,12 @@ export class Shop {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'text', nullable: true })
-  bank_account_info: string;
+  @Column({ type: 'jsonb', nullable: true })
+  bank_account_info: {
+    bank_name: string;
+    account_number: string;
+    account_holder: string;
+  } | null;
 
   @Column({ type: 'text', nullable: true })
   pickup_address: string;

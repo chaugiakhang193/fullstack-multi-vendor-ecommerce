@@ -8,9 +8,27 @@ import {
   ArrayNotEmpty,
   IsUrl,
   IsNumber,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+
+export class BankAccountInfoDto {
+  @ApiProperty({ example: 'Vietcombank', description: 'Tên ngân hàng' })
+  @IsNotEmpty({ message: 'Tên ngân hàng không được để trống' })
+  @IsString({ message: 'Tên ngân hàng phải là chuỗi ký tự' })
+  bank_name: string;
+
+  @ApiProperty({ example: '123456789', description: 'Số tài khoản' })
+  @IsNotEmpty({ message: 'Số tài khoản không được để trống' })
+  @IsString({ message: 'Số tài khoản phải là chuỗi ký tự' })
+  account_number: string;
+
+  @ApiProperty({ example: 'NGUYEN VAN A', description: 'Tên chủ tài khoản' })
+  @IsNotEmpty({ message: 'Tên chủ tài khoản không được để trống' })
+  @IsString({ message: 'Tên chủ tài khoản phải là chuỗi ký tự' })
+  account_holder: string;
+}
 
 export class CreateShopDto {
   @ApiProperty({
@@ -83,13 +101,21 @@ export class CreateShopDto {
   @IsUrl({}, { message: 'Banner URL phải là định dạng URL hợp lệ' })
   banner_url?: string;
 
-  @ApiProperty({
-    example: 'VCB - 123456789 - NGUYEN VAN A',
-    description: 'Thông tin tài khoản ngân hàng',
+  @ApiProperty({ type: BankAccountInfoDto, description: 'Thông tin tài khoản ngân hàng' })
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    try {
+      const parsedObj = JSON.parse(value);
+      const instance = plainToInstance(BankAccountInfoDto, parsedObj);
+      return instance;
+    } catch {
+      return value;
+    }
   })
   @IsNotEmpty({ message: 'Thông tin ngân hàng không được để trống' })
-  @IsString({ message: 'Thông tin ngân hàng phải là chuỗi ký tự' })
-  bank_account_info: string;
+  @ValidateNested()
+  @Type(() => BankAccountInfoDto)
+  bank_account_info: BankAccountInfoDto;
 
   @ApiProperty({
     example: ['uuid-category-1', 'uuid-category-2'],

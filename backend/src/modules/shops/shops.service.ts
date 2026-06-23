@@ -292,6 +292,11 @@ export class ShopsService {
     if (!shop) throw new NotFoundException('Không tìm thấy gian hàng');
 
     this.filterShopGallery(shop);
+
+    if (isPublic) {
+      shop.bank_account_info = null;
+    }
+
     return shop;
   }
 

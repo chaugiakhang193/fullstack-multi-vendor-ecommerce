@@ -1,6 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { CategoryResponseDto } from '@/modules/products/dto/category-response.dto';
 import { AccountStatus, AssetType } from '@/common/enums';
+
+export class BankAccountInfoResponseDto {
+  @ApiProperty({ example: 'Vietcombank' })
+  bank_name: string;
+
+  @ApiProperty({ example: '123456789' })
+  account_number: string;
+
+  @ApiProperty({ example: 'NGUYEN VAN A' })
+  account_holder: string;
+}
 
 export class UserResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
@@ -60,8 +71,8 @@ export class ShopResponseDto {
   })
   description: string | null;
 
-  @ApiProperty({ example: 'Vietcombank - 123456789' })
-  bank_account_info: string;
+  @ApiProperty({ type: BankAccountInfoResponseDto, nullable: true })
+  bank_account_info: BankAccountInfoResponseDto | null;
 
   @ApiProperty({ example: '123 Đường ABC, Quận 1, TP.HCM' })
   pickup_address: string;
@@ -94,3 +105,5 @@ export class ShopResponseDto {
   @ApiProperty({ example: '2024-03-20T11:00:00Z' })
   updated_at: Date;
 }
+
+export class PublicShopResponseDto extends OmitType(ShopResponseDto, ['bank_account_info'] as const) {}

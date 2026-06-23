@@ -266,11 +266,11 @@ async function seed() {
         'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
       status: AccountStatus.ACTIVE,
       pickup_address: '123 Đường Láng, Láng Thượng, Đống Đa, Hà Nội',
-      bank_account_info: JSON.stringify({
+      bank_account_info: {
         bank_name: 'Techcombank',
-        bank_account_number: '190345678910',
-        bank_account_name: 'NGUYEN VAN A',
-      }),
+        account_number: '190345678910',
+        account_holder: 'NGUYEN VAN A',
+      },
     });
     await shopRepository.save(devShop);
 
@@ -286,11 +286,11 @@ async function seed() {
         'https://images.unsplash.com/photo-1468436139062-f60a71c5c892?w=1200',
       status: AccountStatus.ACTIVE,
       pickup_address: '456 Đường Nguyễn Trãi, Thanh Xuân, Hà Nội',
-      bank_account_info: JSON.stringify({
+      bank_account_info: {
         bank_name: 'Vietcombank',
-        bank_account_number: '1902222333444',
-        bank_account_name: 'NGUYEN VAN B',
-      }),
+        account_number: '1902222333444',
+        account_holder: 'NGUYEN VAN B',
+      },
     });
     await shopRepository.save(devShop2);
 
