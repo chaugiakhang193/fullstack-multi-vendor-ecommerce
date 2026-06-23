@@ -5,6 +5,7 @@ import { CategoriesService } from '@/modules/products/categories.service';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { UserRole, AccountStatus } from '@/common/enums';
 import { AdminStatsResponseDto } from './dto/admin-stats-response.dto';
+import { SellerStatsResponseDto } from './dto/seller-stats-response.dto';
 
 @Injectable()
 export class StatisticsService {
@@ -47,4 +48,12 @@ export class StatisticsService {
       total_revenue,
     };
   }
+
+  async getSellerOverview(sellerId: string): Promise<SellerStatsResponseDto> {
+    const shop = await this.shopsService.findOneByUserId(sellerId);
+    const shopId = shop.id;
+    const stats = await this.ordersService.getShopStats(shopId);
+    return stats;
+  }
 }
+

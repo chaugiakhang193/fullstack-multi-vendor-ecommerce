@@ -1346,6 +1346,104 @@ export class OrdersService {
     return subOrder;
   }
 
+  /** Lấy thống kê tổng quan của Shop (doanh thu, đơn hàng, trạng thái, bán chạy). */
+  async getShopStats(shopId: string): Promise<{
+    total_revenue: number;
+    total_orders: number;
+    status_counts: Record<OrderStatus, number>;
+    best_sellers: Array<{
+      product_id: string;
+      product_name: string;
+      product_thumbnail: string | null;
+      total_sold: number;
+    }>;
+  }> {
+    const subOrderRepository = this.dataSource.getRepository(SubOrder);
+    const orderItemRepository = this.dataSource.getRepository(OrderItem);
+
+    const queryShopIdStr = 'subOrder.shop_id = :shopId';
+    const shopIdParam = { shopId };
+    
+    const queryStatusStr = 'subOrder.status = :status';
+    const deliveredStatusParam = { status: OrderStatus.DELIVERED };
+
+    // 1. Tính tổng doanh thu (chỉ tính sub-order có status = DELIVERED)
+    const revenueResult = await subOrderRepository
+      .createQueryBuilder('subOrder')
+      .select('SUM(subOrder.total_amount)', 'sum')
+      .where(queryShopIdStr, shopIdParam)
+      .andWhere(queryStatusStr, deliveredStatusParam)
+      .getRawOne();
+    const total_revenue = Number(revenueResult?.sum) || 0;
+
+    // 2. Thống kê số lượng đơn hàng theo từng trạng thái
+    const statusCountsRaw = await subOrderRepository
+      .createQueryBuilder('subOrder')
+      .select('subOrder.status', 'status')
+      .addSelect('COUNT(subOrder.id)', 'count')
+      .where(queryShopIdStr, shopIdParam)
+      .groupBy('subOrder.status')
+      .getRawMany();
+
+    const status_counts: Record<OrderStatus, number> = {
+      [OrderStatus.PENDING]: 0,
+      [OrderStatus.PROCESSING]: 0,
+      [OrderStatus.SHIPPING]: 0,
+      [OrderStatus.DELIVERED]: 0,
+      [OrderStatus.CANCELLED]: 0,
+      [OrderStatus.RETURNED]: 0,
+    };
+
+    let total_orders = 0;
+    for (const item of statusCountsRaw) {
+      const count = Number(item.count) || 0;
+      if (item.status in status_counts) {
+        status_counts[item.status as OrderStatus] = count;
+      }
+      total_orders += count;
+    }
+
+    // 3. Lấy top 5 sản phẩm bán chạy nhất (cộng dồn quantity từ các OrderItem thuộc sub-order DELIVERED)
+    const bestSellersRaw = await orderItemRepository
+      .createQueryBuilder('item')
+      .innerJoin('item.sub_order', 'subOrder')
+      .select([
+        'item.product_id AS product_id',
+        'item.product_name AS product_name',
+        'item.product_thumbnail AS product_thumbnail',
+      ])
+      .addSelect('SUM(item.quantity)', 'total_sold')
+      .where(queryShopIdStr, shopIdParam)
+      .andWhere(queryStatusStr, deliveredStatusParam)
+      .groupBy('item.product_id')
+      .addGroupBy('item.product_name')
+      .addGroupBy('item.product_thumbnail')
+      .orderBy('total_sold', 'DESC')
+      .limit(5)
+      .getRawMany();
+
+    const best_sellers = bestSellersRaw.map((item) => {
+      const productId = item.product_id;
+      const productName = item.product_name;
+      const productThumbnail = item.product_thumbnail || null;
+      const totalSold = Number(item.total_sold) || 0;
+      return {
+        product_id: productId,
+        product_name: productName,
+        product_thumbnail: productThumbnail,
+        total_sold: totalSold,
+      };
+    });
+
+    return {
+      total_revenue,
+      total_orders,
+      status_counts,
+      best_sellers,
+    };
+  }
+
+
   /**
    * Seller đổi trạng thái 1 sub-order theo State Machine. Nếu → CANCELLED thì
    * hoàn kho + hoàn coupon + recompute Master. Ghi outbox 'order.status_updated'.
