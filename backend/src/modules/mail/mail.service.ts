@@ -65,4 +65,45 @@ export class MailService {
       throw new BadRequestException(error);
     }
   }
+
+  async sendPayoutStatusEmail(
+    user: any,
+    shopName: string,
+    amount: number,
+    status: string,
+    reason?: string | null,
+  ) {
+    try {
+      const isApproved = status === 'completed';
+      const locale = 'vi-VN';
+      const amountNumber = Number(amount);
+      const amountText = amountNumber.toLocaleString(locale);
+      
+      const subject = isApproved
+        ? `[Giang Kha Shop] Yêu cầu rút tiền trị giá ${amountText}đ đã được phê duyệt`
+        : `[Giang Kha Shop] Yêu cầu rút tiền trị giá ${amountText}đ bị từ chối`;
+
+      const template = isApproved ? 'approve-payout' : 'reject-payout';
+      const userEmail = user.email;
+      const username = user.username;
+      const defaultReason = 'Thông tin tài khoản không chính xác hoặc không đủ điều kiện đối soát.';
+      const resolvedReason = reason || defaultReason;
+
+      const mailOptions = {
+        to: userEmail,
+        subject: subject,
+        template: template,
+        context: {
+          name: username,
+          shopName: shopName,
+          amount: amountText,
+          reason: resolvedReason,
+        },
+      };
+
+      await this.mailerService.sendMail(mailOptions);
+    } catch (error) {
+      console.error('[MailService.sendPayoutStatusEmail] Error:', error);
+    }
+  }
 }

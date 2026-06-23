@@ -21,6 +21,7 @@ import { MailModule } from '@/modules/mail/mail.module';
 import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
 import { StatisticsModule } from '@/modules/statistics/statistics.module';
+import { PayoutsModule } from '@/modules/payouts/payouts.module';
 
 //entities
 import { User } from '@/modules/users/entities/user.entity';
@@ -28,7 +29,7 @@ import { Address } from '@/modules/users/entities/address.entity';
 import { Session } from '@/auth/entities/session.entity';
 import { VerificationToken } from '@/auth/entities/verification-token.entity';
 import { Shop } from '@/modules/shops/entities/shop.entity';
-import { Payout } from '@/modules/shops/entities/payout.entity';
+import { Payout } from '@/modules/payouts/entities/payout.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 import { Category } from '@/modules/products/entities/category.entity';
@@ -77,6 +78,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     EngagementsModule,
     GeocodingModule,
     StatisticsModule,
+    PayoutsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

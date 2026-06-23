@@ -72,6 +72,7 @@ import {
   OrderCancelledPayload,
   OrderStatusUpdatedPayload,
 } from '@/common/constants/outbox.constants';
+import { SYSTEM_CONSTANTS } from '@/common/constants/system.constant';
 import { SellerOrderQueryDto } from '@/modules/orders/dto/seller-order-query.dto';
 import { CheckoutPreviewDto } from '@/modules/orders/dto/checkout-preview.dto';
 import {
@@ -1753,6 +1754,40 @@ export class OrdersService {
       .getRawOne<{ sum: string }>();
 
     return Number(raw?.sum ?? 0);
+  }
+
+  /** Tính tổng doanh thu thực nhận của Shop (SubOrder DELIVERED, đã trừ 5% hoa hồng toàn sàn) */
+  async getShopDeliveredRevenue(
+    shopId: string,
+    manager?: EntityManager,
+  ): Promise<number> {
+    const repo = manager
+      ? manager.getRepository(SubOrder)
+      : this.dataSource.getRepository(SubOrder);
+
+    const alias = 'subOrder';
+    const selectSql = 'SUM(subOrder.sub_total - subOrder.discount_amount)';
+    const selectAlias = 'revenue';
+    const whereShopIdStr = 'subOrder.shop_id = :shopId';
+    const whereShopIdParam = { shopId };
+    const whereStatusStr = 'subOrder.status = :status';
+    const whereStatusParam = { status: OrderStatus.DELIVERED };
+
+    const result = await repo
+      .createQueryBuilder(alias)
+      .select(selectSql, selectAlias)
+      .where(whereShopIdStr, whereShopIdParam)
+      .andWhere(whereStatusStr, whereStatusParam)
+      .getRawOne();
+
+    const rawRevenue = Number(result?.revenue) || 0;
+
+    // Áp dụng hoa hồng toàn sàn (Phương án A)
+    const commissionRate = SYSTEM_CONSTANTS.COMMISSION_RATE;
+    const netRevenue = rawRevenue * (1 - commissionRate);
+
+    // round2 là helper module-scope có sẵn trong chính file orders.service.ts
+    return round2(netRevenue);
   }
 }
 
