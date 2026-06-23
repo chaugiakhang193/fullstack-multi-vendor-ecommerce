@@ -53,3 +53,23 @@ export const SHOP_LIMITS = {
     REASON_MIN_LENGTH: 5,
   },
 } as const;
+
+export const COUPON_LIMITS = {
+  CODE_MIN_LENGTH: 3,
+  CODE_MAX_LENGTH: 20,
+} as const;
+
+export const USER_LIMITS = {
+  FULL_NAME_MAX_LENGTH: 50,
+} as const;
+
+export const ORDER_LIMITS = {
+  MAX_SHOP_COUPONS: 50,
+} as const;
+
+export const REVIEW_LIMITS = {
+  MIN_RATING: 1,
+  MAX_RATING: 5,
+  COMMENT_MAX_LENGTH: 2000,
+  REPLY_MAX_LENGTH: 2000,
+} as const;

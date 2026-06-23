@@ -1,4 +1,5 @@
 import z from "zod";
+import { ORDER_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
 import type { ApiEnvelope } from "@/lib/http";
 
@@ -56,14 +57,14 @@ export const CheckoutBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
   payment_method: z.literal("cod"),
   global_coupon_code: z.string().optional(),
-  shop_coupons: z.array(ShopCouponBody).max(50).optional(),
+  shop_coupons: z.array(ShopCouponBody).max(ORDER_LIMITS.MAX_SHOP_COUPONS).optional(),
 }) satisfies z.ZodType<CreateOrderDto, any, any>;
 
 // ===== Checkout Preview (POST /orders/checkout/preview) =====
 export const CheckoutPreviewBody = z.object({
   address_id: z.string().uuid("Địa chỉ không hợp lệ"),
   global_coupon_code: z.string().optional(),
-  shop_coupons: z.array(ShopCouponBody).max(50).optional(),
+  shop_coupons: z.array(ShopCouponBody).max(ORDER_LIMITS.MAX_SHOP_COUPONS).optional(),
 }) satisfies z.ZodType<CheckoutPreviewDto, any, any>;
 
 // ===== Query lịch sử đơn / seller orders =====

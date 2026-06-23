@@ -1,5 +1,6 @@
 import z from "zod";
 import { CouponType, DiscountType } from "@/constants/enum";
+import { COUPON_LIMITS } from "@/constants/limits";
 import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 
@@ -54,7 +55,10 @@ const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
   );
 
 export const CouponBodyObject = z.object({
-  code: z.string().min(3, "Mã giảm giá phải có tối thiểu 3 ký tự").max(20, "Mã giảm giá tối đa 20 ký tự"),
+  code: z
+    .string()
+    .min(COUPON_LIMITS.CODE_MIN_LENGTH, `Mã giảm giá phải có tối thiểu ${COUPON_LIMITS.CODE_MIN_LENGTH} ký tự.`)
+    .max(COUPON_LIMITS.CODE_MAX_LENGTH, `Mã giảm giá tối đa ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự.`),
   discount_type: z.nativeEnum(DiscountType),
   discount_value: z.coerce.number().positive("Giá trị giảm phải lớn hơn 0"),
   min_order_value: optionalNumber(z.coerce.number().nonnegative("Giá trị đơn hàng tối thiểu không được âm").optional()),

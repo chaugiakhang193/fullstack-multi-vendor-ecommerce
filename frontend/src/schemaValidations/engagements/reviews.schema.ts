@@ -1,4 +1,5 @@
 import z from "zod";
+import { REVIEW_LIMITS } from "@/constants/limits";
 import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 
@@ -12,7 +13,7 @@ type ReplyReviewDto = components["schemas"]["ReplyReviewDto"];
 
 export const ReviewSchema = z.object({
   id: z.string().uuid(),
-  rating: z.number().int().min(1).max(5),
+  rating: z.number().int().min(REVIEW_LIMITS.MIN_RATING).max(REVIEW_LIMITS.MAX_RATING),
   comment: z.string().nullable().optional(),
   reply_from_seller: z.string().nullable().optional(),
   created_at: z.string(),
@@ -48,12 +49,22 @@ export const ReviewableItemSchema = z.object({
 
 export const CreateReviewBody = z.object({
   order_item_id: z.string().uuid("ID sản phẩm đặt hàng không hợp lệ"),
-  rating: z.number().int().min(1, "Vui lòng chọn số sao từ 1 đến 5").max(5, "Đánh giá tối đa là 5 sao"),
-  comment: z.string().max(2000, "Đánh giá không được vượt quá 2000 ký tự").optional(),
+  rating: z
+    .number()
+    .int()
+    .min(REVIEW_LIMITS.MIN_RATING, `Vui lòng chọn số sao từ ${REVIEW_LIMITS.MIN_RATING} đến ${REVIEW_LIMITS.MAX_RATING}`)
+    .max(REVIEW_LIMITS.MAX_RATING, `Đánh giá tối đa là ${REVIEW_LIMITS.MAX_RATING} sao`),
+  comment: z
+    .string()
+    .max(REVIEW_LIMITS.COMMENT_MAX_LENGTH, `Đánh giá không được vượt quá ${REVIEW_LIMITS.COMMENT_MAX_LENGTH} ký tự`)
+    .optional(),
 }) satisfies z.ZodType<CreateReviewDto, any, any>;
 
 export const SellerReplyBody = z.object({
-  reply: z.string().min(1, "Phản hồi không được để trống").max(2000, "Phản hồi tối đa 2000 ký tự"),
+  reply: z
+    .string()
+    .min(1, "Phản hồi không được để trống")
+    .max(REVIEW_LIMITS.REPLY_MAX_LENGTH, `Phản hồi tối đa ${REVIEW_LIMITS.REPLY_MAX_LENGTH} ký tự`),
 }) satisfies z.ZodType<ReplyReviewDto, any, any>;
 
 // ==========================================

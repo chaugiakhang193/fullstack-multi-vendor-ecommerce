@@ -1,4 +1,5 @@
 import z from "zod";
+import { USER_LIMITS } from "@/constants/limits";
 import type { components } from "@/lib/api/api-schema";
 
 type UpdateProfileDto = components["schemas"]["UpdateProfileDto"];
@@ -8,7 +9,7 @@ type UpdateProfileDto = components["schemas"]["UpdateProfileDto"];
 export const UpdateProfileBody = z.object({
   full_name: z
     .string()
-    .max(50, "Họ tên không được vượt quá 50 ký tự")
+    .max(USER_LIMITS.FULL_NAME_MAX_LENGTH, `Họ tên không được vượt quá ${USER_LIMITS.FULL_NAME_MAX_LENGTH} ký tự`)
     .trim()
     .optional()
     .or(z.literal("")),
