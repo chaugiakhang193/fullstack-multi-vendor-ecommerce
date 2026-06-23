@@ -1233,6 +1233,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/seller/payouts/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lấy số dư khả dụng và thống kê tiền rút của Shop */
+        get: operations["SellerPayoutsController_getSellerBalance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Seller gửi yêu cầu rút tiền */
+        post: operations["SellerPayoutsController_requestPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/payouts/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seller xem lịch sử yêu cầu rút tiền */
+        get: operations["SellerPayoutsController_getSellerPayoutHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin xem danh sách tất cả yêu cầu rút tiền */
+        get: operations["AdminPayoutsController_getAdminPayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payouts/{payoutId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin phê duyệt yêu cầu rút tiền */
+        patch: operations["AdminPayoutsController_approvePayout"];
+        trace?: never;
+    };
+    "/api/v1/admin/payouts/{payoutId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin từ chối yêu cầu rút tiền */
+        patch: operations["AdminPayoutsController_rejectPayout"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1511,7 +1613,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
-        ShopResponseDto: {
+        PublicShopResponseDto: {
             /** @example 550e8400-e29b-41d4-a716-446655440001 */
             id: string;
             /** @description Thông tin chủ cửa hàng */
@@ -1524,8 +1626,6 @@ export interface components {
             banner_url: string;
             /** @example Chuyên cung cấp sản phẩm chất lượng */
             description: Record<string, never> | null;
-            /** @example Vietcombank - 123456789 */
-            bank_account_info: string;
             /** @example 123 Đường ABC, Quận 1, TP.HCM */
             pickup_address: string;
             /** @example Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ. */
@@ -1549,6 +1649,69 @@ export interface components {
              * @example 2024-03-20T11:00:00Z
              */
             updated_at: string;
+        };
+        BankAccountInfoResponseDto: {
+            /** @example Vietcombank */
+            bank_name: string;
+            /** @example 123456789 */
+            account_number: string;
+            /** @example NGUYEN VAN A */
+            account_holder: string;
+        };
+        ShopResponseDto: {
+            /** @example 550e8400-e29b-41d4-a716-446655440001 */
+            id: string;
+            /** @description Thông tin chủ cửa hàng */
+            seller?: components["schemas"]["UserResponseDto"] | null;
+            /** @example Cửa hàng quần áo ABC */
+            name: string;
+            /** @example https://res.cloudinary.com/.../logo.jpg */
+            logo_url: string;
+            /** @example https://res.cloudinary.com/.../banner.jpg */
+            banner_url: string;
+            /** @example Chuyên cung cấp sản phẩm chất lượng */
+            description: Record<string, never> | null;
+            bank_account_info: components["schemas"]["BankAccountInfoResponseDto"] | null;
+            /** @example 123 Đường ABC, Quận 1, TP.HCM */
+            pickup_address: string;
+            /** @example Hồ sơ thiếu hình ảnh bộ sưu tập hoặc logo mờ. */
+            reject_reason?: Record<string, never> | null;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /** @description Các danh mục kinh doanh */
+            categories: components["schemas"]["CategoryResponseDto"][];
+            /** @description Bộ sưu tập ảnh của shop */
+            gallery: components["schemas"]["MediaAssetResponseDto"][];
+            /**
+             * Format: date-time
+             * @example 2024-03-20T10:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @example 2024-03-20T11:00:00Z
+             */
+            updated_at: string;
+        };
+        BankAccountInfoDto: {
+            /**
+             * @description Tên ngân hàng
+             * @example Vietcombank
+             */
+            bank_name: string;
+            /**
+             * @description Số tài khoản
+             * @example 123456789
+             */
+            account_number: string;
+            /**
+             * @description Tên chủ tài khoản
+             * @example NGUYEN VAN A
+             */
+            account_holder: string;
         };
         SetupShopSwaggerDto: {
             /**
@@ -1586,11 +1749,8 @@ export interface components {
              * @example https://cloudinary.com/banner.png
              */
             banner_url?: string;
-            /**
-             * @description Thông tin tài khoản ngân hàng
-             * @example VCB - 123456789 - NGUYEN VAN A
-             */
-            bank_account_info: string;
+            /** @description Thông tin tài khoản ngân hàng */
+            bank_account_info: components["schemas"]["BankAccountInfoDto"];
             /**
              * @description Danh sách các ID danh mục mà shop kinh doanh
              * @example [
@@ -1648,11 +1808,8 @@ export interface components {
              * @example https://cloudinary.com/banner.png
              */
             banner_url?: string;
-            /**
-             * @description Thông tin tài khoản ngân hàng
-             * @example VCB - 123456789 - NGUYEN VAN A
-             */
-            bank_account_info?: string;
+            /** @description Thông tin tài khoản ngân hàng */
+            bank_account_info?: components["schemas"]["BankAccountInfoDto"];
             /**
              * @description Danh sách các ID danh mục mà shop kinh doanh
              * @example [
@@ -2598,6 +2755,34 @@ export interface components {
             /** @description Top 5 sản phẩm bán chạy của shop */
             best_sellers: components["schemas"]["BestSellerItemDto"][];
         };
+        PayoutResponseDto: {
+            id: string;
+            amount: number;
+            commission_fee: number;
+            /** @enum {string} */
+            status: "pending" | "processing" | "completed" | "failed" | "rejected";
+            reject_reason: Record<string, never> | null;
+            bank_info_snapshot: {
+                [key: string]: unknown;
+            };
+            resolved_at: Record<string, never> | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        CreatePayoutDto: {
+            /**
+             * @description Số tiền muốn rút (tối thiểu 50.000đ)
+             * @example 100000
+             */
+            amount: number;
+        };
+        RejectPayoutDto: {
+            /**
+             * @description Lý do từ chối yêu cầu rút tiền
+             * @example Thông tin tài khoản ngân hàng sai
+             */
+            reason: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3130,7 +3315,7 @@ export interface operations {
                         statusCode?: number;
                         /** @example Lấy chi tiết gian hàng thành công. */
                         message?: string;
-                        data?: components["schemas"]["ShopResponseDto"];
+                        data?: components["schemas"]["PublicShopResponseDto"];
                     };
                 };
             };
@@ -5960,6 +6145,167 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    SellerPayoutsController_getSellerBalance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerPayoutsController_requestPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePayoutDto"];
+            };
+        };
+        responses: {
+            /** @description Yêu cầu rút tiền đã được gửi. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Yêu cầu rút tiền đã được gửi. */
+                        message?: string;
+                        data?: components["schemas"]["PayoutResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    SellerPayoutsController_getSellerPayoutHistory: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPayoutsController_getAdminPayouts: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPayoutsController_approvePayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID của yêu cầu rút tiền */
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Yêu cầu rút tiền được chấp nhận. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Yêu cầu rút tiền được chấp nhận. */
+                        message?: string;
+                        data?: components["schemas"]["PayoutResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    AdminPayoutsController_rejectPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID của yêu cầu rút tiền */
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectPayoutDto"];
+            };
+        };
+        responses: {
+            /** @description Yêu cầu rút tiền đã bị từ chối. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Yêu cầu rút tiền đã bị từ chối. */
+                        message?: string;
+                        data?: components["schemas"]["PayoutResponseDto"];
+                    };
+                };
             };
         };
     };

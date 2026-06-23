@@ -106,8 +106,8 @@ export default function SellerSetupPage() {
       name: "",
       description: "",
       pickup_address: "",
-      bank_account_name: "",
-      bank_account_number: "",
+      account_holder: "",
+      account_number: "",
       bank_name: "",
       categoryIds: [],
     },
@@ -158,40 +158,14 @@ export default function SellerSetupPage() {
           setExistingGallery(shop.gallery || []);
 
           // Prefill values
-          let bank_name = "";
-          let bank_account_number = "";
-          let bank_account_name = "";
-          if (shop.bank_account_info) {
-            try {
-              const parsed = JSON.parse(shop.bank_account_info);
-              if (parsed && typeof parsed === "object") {
-                if (Array.isArray(parsed)) {
-                  const flatArray = parsed.map((item: any) =>
-                    Array.isArray(item) ? item[0] : item,
-                  );
-                  bank_name = String(flatArray[0] || "");
-                  bank_account_number = String(flatArray[1] || "");
-                  bank_account_name = String(flatArray[2] || "");
-                } else {
-                  bank_name = parsed.bank_name || "";
-                  bank_account_number = parsed.bank_account_number || "";
-                  bank_account_name = parsed.bank_account_name || "";
-                }
-              }
-            } catch (e) {
-              const parts = shop.bank_account_info.split(" - ");
-              bank_name = parts[0] || "";
-              bank_account_number = parts[1] || "";
-              bank_account_name = parts[2] || "";
-            }
-          }
+          const info = shop.bank_account_info;
           reset({
             name: shop.name,
             description: shop.description || "",
             pickup_address: shop.pickup_address || "",
-            bank_name,
-            bank_account_number,
-            bank_account_name,
+            bank_name: info?.bank_name ?? "",
+            account_number: info?.account_number ?? "",
+            account_holder: info?.account_holder ?? "",
             categoryIds: shop.categories?.map((c: any) => c.id) || [],
           });
           if (shop.lat && shop.lng) {
@@ -259,14 +233,14 @@ export default function SellerSetupPage() {
         formData.append("description", values.description);
       }
 
-      // 🔴 MERGE 3 trường ngân hàng thành 1 trường bank_account_info
+      // MERGE 3 trường ngân hàng thành 1 trường bank_account_info
       // Lưu dưới dạng chuỗi JSON object
-      const bankAccountInfo = JSON.stringify({
+      const bankAccountInfoObj = {
         bank_name: values.bank_name,
-        bank_account_number: values.bank_account_number,
-        bank_account_name: values.bank_account_name,
-      });
-      formData.append("bank_account_info", bankAccountInfo);
+        account_number: values.account_number,
+        account_holder: values.account_holder,
+      };
+      formData.append("bank_account_info", JSON.stringify(bankAccountInfoObj));
 
       // Append categoryIds (Backend expects array)
       values.categoryIds.forEach((id) => {
@@ -477,13 +451,13 @@ export default function SellerSetupPage() {
                     Số tài khoản <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("bank_account_number")}
+                    {...register("account_number")}
                     placeholder="VD: 123456789"
                     disabled={isSubmitting}
                   />
-                  {errors.bank_account_number && (
+                  {errors.account_number && (
                     <FieldError>
-                      {errors.bank_account_number.message}
+                      {errors.account_number.message}
                     </FieldError>
                   )}
                 </Field>
@@ -493,15 +467,15 @@ export default function SellerSetupPage() {
                     Tên chủ tài khoản <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("bank_account_name")}
+                    {...register("account_holder")}
                     placeholder="VD: NGUYEN VAN A (viết hoa không dấu)"
                     disabled={isSubmitting}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Tên sẽ tự động chuyển thành chữ IN HOA
                   </p>
-                  {errors.bank_account_name && (
-                    <FieldError>{errors.bank_account_name.message}</FieldError>
+                  {errors.account_holder && (
+                    <FieldError>{errors.account_holder.message}</FieldError>
                   )}
                 </Field>
               </div>

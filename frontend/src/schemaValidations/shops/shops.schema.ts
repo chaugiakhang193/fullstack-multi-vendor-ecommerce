@@ -5,6 +5,12 @@ import type { ApiEnvelope } from "@/lib/http";
 
 type UpdateShopSwaggerDto = components["schemas"]["UpdateShopSwaggerDto"];
 type RejectShopDto = components["schemas"]["RejectShopDto"];
+export const BankAccountInfoSchema = z.object({
+  bank_name: z.string().min(1, "Tên ngân hàng không được để trống"),
+  account_number: z.string().min(1, "Số tài khoản không được để trống"),
+  account_holder: z.string().min(1, "Tên chủ tài khoản không được để trống"),
+});
+
 // Schema cho form tạo gian hàng lần đầu (Setup Shop)
 // Frontend có 3 input riêng cho thông tin ngân hàng, sẽ merge thành bank_account_info khi gửi API
 export const CreateShopBody = z
@@ -27,11 +33,11 @@ export const CreateShopBody = z
         "Vui lòng nhập chi tiết địa chỉ lấy hàng (Số nhà, đường, xã/phường...).",
       )
       .trim(),
-    bank_account_name: z
+    account_holder: z
       .string()
       .min(SHOP_LIMITS.CREATE.BANK_ACCOUNT_NAME_MIN_LENGTH, "Vui lòng nhập tên chủ tài khoản ngân hàng (viết hoa không dấu).")
       .transform((val) => val.toUpperCase()), // Tự động convert chữ hoa cho chuẩn tài chính
-    bank_account_number: z
+    account_number: z
       .string()
       .min(SHOP_LIMITS.CREATE.BANK_ACCOUNT_NUMBER_MIN_LENGTH, "Số tài khoản ngân hàng không hợp lệ.")
       .regex(/^[0-9]+$/, "Số tài khoản chỉ được phép chứa các chữ số."),
@@ -58,10 +64,7 @@ export const UpdateShopBody = z
       .string()
       .min(SHOP_LIMITS.UPDATE.PICKUP_ADDRESS_MIN_LENGTH, "Địa chỉ lấy hàng phải từ 10 ký tự trở lên.")
       .optional(),
-    bank_account_info: z
-      .string()
-      .min(SHOP_LIMITS.UPDATE.BANK_ACCOUNT_INFO_MIN_LENGTH, "Thông tin ngân hàng phải từ 5 ký tự trở lên.")
-      .optional(),
+    bank_account_info: BankAccountInfoSchema.optional(),
     logo: z.any().optional() as any,
     banner: z.any().optional() as any,
     gallery: z
@@ -86,7 +89,7 @@ export const ShopResponse = z.object({
   logo_url: z.string().nullable().optional(),
   banner_url: z.string().nullable().optional(),
   description: z.any().nullable().optional(),
-  bank_account_info: z.string().nullable().optional(),
+  bank_account_info: BankAccountInfoSchema.nullable().optional(),
   pickup_address: z.string().nullable().optional(),
   lat: z.string().nullable().optional(),
   lng: z.string().nullable().optional(),
