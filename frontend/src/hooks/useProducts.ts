@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import productsApiRequest from "@/apiRequests/products/products";
-import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
-import { productKeys, STALE_TIME } from "@/constants/query-keys";
+import { useQuery } from '@tanstack/react-query';
+import productsApiRequest from '@/apiRequests/products/products';
+import sellerProductsApiRequest from '@/apiRequests/products/seller-products';
+import { productKeys, STALE_TIME } from '@/constants/query-keys';
 
 type PublicProductsParams = {
   page?: number;
@@ -11,7 +11,7 @@ type PublicProductsParams = {
   min_price?: number;
   max_price?: number;
   sort?: string;
-  order?: "ASC" | "DESC";
+  order?: 'ASC' | 'DESC';
 };
 
 /** Danh sách sản phẩm của Seller (Inventory). */
@@ -26,7 +26,7 @@ export const useSellerInventory = () => {
 /** Danh sách sản phẩm công khai (Public). */
 export const useProducts = (
   params?: PublicProductsParams,
-  options?: { placeholderData?: (previousData: any) => any }
+  options?: { placeholderData?: (previousData: any) => any },
 ) => {
   return useQuery({
     queryKey: productKeys.list(params),

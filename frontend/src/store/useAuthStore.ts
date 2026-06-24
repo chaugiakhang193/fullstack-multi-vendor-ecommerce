@@ -1,26 +1,26 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { AccountType } from "@/schemaValidations/auth/auth.schema";
-import authApiRequest from "@/apiRequests/auth/auth";
-import Cookies from "js-cookie";
-import { useCartStore } from "@/store/useCartStore";
-import { queryClient } from "@/lib/query-client";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { AccountType } from '@/schemaValidations/auth/auth.schema';
+import authApiRequest from '@/apiRequests/auth/auth';
+import Cookies from 'js-cookie';
+import { useCartStore } from '@/store/useCartStore';
+import { queryClient } from '@/lib/query-client';
 
 // Cấu hình cookie đồng bộ, an toàn cho cả Client và Middleware Server
 const setAuthCookies = (role: string, status: string) => {
   const cookieOptions: Cookies.CookieAttributes = {
-    path: "/",
+    path: '/',
     expires: 30, // Đồng bộ với REFRESH_TOKEN_EXPIRATION=30d trong backend
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production", // Chỉ bật secure trên production
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production', // Chỉ bật secure trên production
   };
-  Cookies.set("user_role", role, cookieOptions);
-  Cookies.set("user_status", status, cookieOptions);
+  Cookies.set('user_role', role, cookieOptions);
+  Cookies.set('user_status', status, cookieOptions);
 };
 
 const clearAuthCookies = () => {
-  Cookies.remove("user_role", { path: "/" });
-  Cookies.remove("user_status", { path: "/" });
+  Cookies.remove('user_role', { path: '/' });
+  Cookies.remove('user_status', { path: '/' });
 };
 
 interface AuthState {
@@ -75,26 +75,29 @@ export const useAuthStore = create<AuthState>()(
             get().setAuth(user, newAccessToken);
 
             // Phòng thủ: Nếu status thay đổi + đang kẹt sai trang → soft redirect
-            if (router && typeof window !== "undefined") {
+            if (router && typeof window !== 'undefined') {
               const currentPath = window.location.pathname;
 
               // Đã được duyệt nhưng kẹt ở /seller/pending
-              if (user.status === "active" && currentPath === "/seller/pending") {
-                router.push("/seller");
+              if (
+                user.status === 'active' &&
+                currentPath === '/seller/pending'
+              ) {
+                router.push('/seller');
               }
               // Bị reject nhưng kẹt ở /seller/pending
               else if (
-                user.status === "rejected" &&
-                currentPath === "/seller/pending"
+                user.status === 'rejected' &&
+                currentPath === '/seller/pending'
               ) {
-                router.push("/seller/rejected");
+                router.push('/seller/rejected');
               }
               // Đang chờ duyệt nhưng kẹt ở /seller/rejected
               else if (
-                user.status === "pending_approval" &&
-                currentPath === "/seller/rejected"
+                user.status === 'pending_approval' &&
+                currentPath === '/seller/rejected'
               ) {
-                router.push("/seller/pending");
+                router.push('/seller/pending');
               }
             }
 
@@ -109,8 +112,8 @@ export const useAuthStore = create<AuthState>()(
               get().logout();
 
               // Lưu flag cảnh báo bảo mật nếu là 401 (Token không hợp lệ)
-              if (status === 401 && typeof window !== "undefined") {
-                sessionStorage.setItem("auth_security_warning", "true");
+              if (status === 401 && typeof window !== 'undefined') {
+                sessionStorage.setItem('auth_security_warning', 'true');
               }
             } else {
               // Khách vãng lai: chỉ dọn dẹp cookies phụ nếu có mà không động vào cache queryClient
@@ -134,14 +137,14 @@ export const useAuthStore = create<AuthState>()(
         clearAuthCookies();
 
         // Dọn dẹp cache Client-side để tránh rò rỉ dữ liệu và đồng bộ giỏ hàng
-        if (typeof window !== "undefined") {
+        if (typeof window !== 'undefined') {
           queryClient.clear();
           useCartStore.getState().clearCart();
         }
       },
     }),
     {
-      name: "auth-storage",
+      name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

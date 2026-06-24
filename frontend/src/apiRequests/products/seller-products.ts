@@ -1,14 +1,14 @@
-import http from "@/lib/http";
+import http from '@/lib/http';
 import {
   ProductListResponseType,
   SingleProductResponseType,
-} from "@/schemaValidations/products/products.schema";
+} from '@/schemaValidations/products/products.schema';
 
 const sellerProductsApiRequest = {
   // === C: Create ===
   // Seller tạo sản phẩm mới (multipart/form-data)
   createProduct: (body: FormData) => {
-    return http.post<SingleProductResponseType>("/seller/products", body);
+    return http.post<SingleProductResponseType>('/seller/products', body);
   },
 
   // === R: Read ===
@@ -18,20 +18,22 @@ const sellerProductsApiRequest = {
     limit?: number;
     q?: string;
     is_hidden?: boolean;
-    stock_status?: "all" | "in_stock" | "out_of_stock";
+    stock_status?: 'all' | 'in_stock' | 'out_of_stock';
   }) => {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", String(params.page));
-    if (params?.limit) queryParams.append("limit", String(params.limit));
-    if (params?.q) queryParams.append("q", params.q);
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.q) queryParams.append('q', params.q);
     if (params?.is_hidden !== undefined) {
-      queryParams.append("is_hidden", String(params.is_hidden));
+      queryParams.append('is_hidden', String(params.is_hidden));
     }
-    if (params?.stock_status && params.stock_status !== "all") {
-      queryParams.append("stock_status", params.stock_status);
+    if (params?.stock_status && params.stock_status !== 'all') {
+      queryParams.append('stock_status', params.stock_status);
     }
     const queryString = queryParams.toString();
-    const url = queryString ? `/seller/products?${queryString}` : "/seller/products";
+    const url = queryString
+      ? `/seller/products?${queryString}`
+      : '/seller/products';
     return http.get<ProductListResponseType>(url);
   },
 

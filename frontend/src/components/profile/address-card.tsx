@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { MapPin, Phone, Pencil, Trash2, Star } from "lucide-react";
+import { useState } from 'react';
+import { MapPin, Phone, Pencil, Trash2, Star } from 'lucide-react';
 
 // Components
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,13 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 // Hooks
-import { useAddresses } from "@/hooks/useAddresses";
+import { useAddresses } from '@/hooks/useAddresses';
 
 // Types
-import { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
+import { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
 
 interface AddressCardProps {
   address: AddressResponseType;
@@ -57,20 +57,22 @@ export function AddressCard({ address, onEdit }: AddressCardProps) {
     setConfirmOpen(closeFlag);
   };
 
-  const titleText = "Xóa địa chỉ này?";
+  const titleText = 'Xóa địa chỉ này?';
   const descText = `Hành động này không thể hoàn tác. Địa chỉ "${address.address_line}" sẽ bị xóa khỏi sổ địa chỉ.`;
-  const defaultLabel = "Mặc định";
-  const defaultBtnText = "Đặt mặc định";
-  const editBtnText = "Sửa";
-  const deleteBtnText = "Xóa";
-  const cancelBtnText = "Hủy";
-  const deleteConfirmBtnText = busy ? "Đang xóa..." : "Xóa";
+  const defaultLabel = 'Mặc định';
+  const defaultBtnText = 'Đặt mặc định';
+  const editBtnText = 'Sửa';
+  const deleteBtnText = 'Xóa';
+  const cancelBtnText = 'Hủy';
+  const deleteConfirmBtnText = busy ? 'Đang xóa...' : 'Xóa';
 
   return (
     <div className="rounded-xl border p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card shadow-sm hover:shadow-md transition duration-200">
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-bold text-base md:text-lg text-foreground">{address.recipient_name}</span>
+          <span className="font-bold text-base md:text-lg text-foreground">
+            {address.recipient_name}
+          </span>
           {address.is_default && (
             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full">
               <Star className="w-3 h-3 fill-current" /> {defaultLabel}
@@ -99,7 +101,11 @@ export function AddressCard({ address, onEdit }: AddressCardProps) {
             {defaultBtnText}
           </Button>
         )}
-        <Button variant="ghost" onClick={handleEditClick} className="text-sm font-semibold h-9 px-3">
+        <Button
+          variant="ghost"
+          onClick={handleEditClick}
+          className="text-sm font-semibold h-9 px-3"
+        >
           <Pencil className="w-4 h-4 mr-1.5" /> {editBtnText}
         </Button>
         <Button
@@ -116,16 +122,10 @@ export function AddressCard({ address, onEdit }: AddressCardProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{titleText}</DialogTitle>
-            <DialogDescription>
-              {descText}
-            </DialogDescription>
+            <DialogDescription>{descText}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={cancelDelete}
-              disabled={busy}
-            >
+            <Button variant="outline" onClick={cancelDelete} disabled={busy}>
               {cancelBtnText}
             </Button>
             <Button

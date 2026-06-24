@@ -1,0 +1,11 @@
+# Chuẩn hoá line endings: luôn LF trong repo, tránh thrash CRLF trên Windows.
+* text=auto eol=lf
+
+# File nhị phân không đụng
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -1,11 +1,11 @@
-import http from "@/lib/http";
-import { buildQuery } from "@/lib/utils";
+import http from '@/lib/http';
+import { buildQuery } from '@/lib/utils';
 import {
   NotificationListQueryType,
   NotificationListEnvelope,
   NotificationItemEnvelope,
   MarkAllReadEnvelope,
-} from "@/schemaValidations/engagements/notifications.schema";
+} from '@/schemaValidations/engagements/notifications.schema';
 
 const notificationApiRequest = {
   // GET /notifications — phân trang { items, meta }, lọc is_read.
@@ -18,7 +18,7 @@ const notificationApiRequest = {
 
   // PATCH /notifications/read-all → { updated: N }
   markAllAsRead: () =>
-    http.patch<MarkAllReadEnvelope>("/notifications/read-all", {}),
+    http.patch<MarkAllReadEnvelope>('/notifications/read-all', {}),
 };
 
 export default notificationApiRequest;

@@ -1,25 +1,28 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Package,
   ShoppingCart,
   Activity,
   ArrowUpRight,
-} from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 // Requests & Validation
-import sellerStatsApiRequest from "@/apiRequests/statistics/seller-stats";
-import { SellerStatsType } from "@/schemaValidations/statistics/seller-stats.schema";
+import sellerStatsApiRequest from '@/apiRequests/statistics/seller-stats';
+import { SellerStatsType } from '@/schemaValidations/statistics/seller-stats.schema';
 
 // Helpers & Utilities
-import { getErrorMessage } from "@/lib/http";
-import { formatVnd } from "@/lib/format";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ORDER_STATUS_LABELS, type OrderStatusType } from "@/schemaValidations/orders/orders.schema";
+import { getErrorMessage } from '@/lib/http';
+import { formatVnd } from '@/lib/format';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  ORDER_STATUS_LABELS,
+  type OrderStatusType,
+} from '@/schemaValidations/orders/orders.schema';
 
 export default function SellerDashboardPage() {
   const [stats, setStats] = useState<SellerStatsType | null>(null);
@@ -81,7 +84,10 @@ export default function SellerDashboardPage() {
             </div>
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="flex items-center justify-between py-3 px-3">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between py-3 px-3"
+                >
                   <div className="flex items-center space-x-4 w-full">
                     <Skeleton className="h-12 w-12 rounded-xl" />
                     <div className="space-y-2 flex-1">
@@ -125,7 +131,8 @@ export default function SellerDashboardPage() {
         <Package className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-bold">Không tải được dữ liệu thống kê</h3>
         <p className="text-muted-foreground mt-2 max-w-sm">
-          Vui lòng tải lại trang hoặc liên hệ bộ phận hỗ trợ kỹ thuật nếu lỗi tiếp tục xảy ra.
+          Vui lòng tải lại trang hoặc liên hệ bộ phận hỗ trợ kỹ thuật nếu lỗi
+          tiếp tục xảy ra.
         </p>
       </div>
     );
@@ -135,7 +142,7 @@ export default function SellerDashboardPage() {
   const totalRevenueVal = stats.total_revenue;
   const formattedRevenue = formatVnd.format(totalRevenueVal);
 
-  const localeCode = "vi-VN";
+  const localeCode = 'vi-VN';
   const totalOrdersVal = stats.total_orders;
   const formattedTotalOrders = totalOrdersVal.toLocaleString(localeCode);
 
@@ -147,51 +154,51 @@ export default function SellerDashboardPage() {
 
   const statsCards = [
     {
-      title: "Tổng doanh thu",
+      title: 'Tổng doanh thu',
       value: formattedRevenue,
-      change: "Đơn giao thành công",
+      change: 'Đơn giao thành công',
       icon: <TrendingUp className="h-5 w-5 text-violet-500" />,
-      gradient: "from-violet-500/10 to-purple-500/10 border-violet-500/20",
+      gradient: 'from-violet-500/10 to-purple-500/10 border-violet-500/20',
     },
     {
-      title: "Tổng đơn hàng",
+      title: 'Tổng đơn hàng',
       value: formattedTotalOrders,
-      change: "Tất cả trạng thái",
+      change: 'Tất cả trạng thái',
       icon: <ShoppingCart className="h-5 w-5 text-emerald-500" />,
-      gradient: "from-emerald-500/10 to-teal-500/10 border-emerald-500/20",
+      gradient: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20',
     },
     {
-      title: "Chờ xác nhận",
+      title: 'Chờ xác nhận',
       value: formattedPending,
-      change: "Cần duyệt gấp",
+      change: 'Cần duyệt gấp',
       icon: <Activity className="h-5 w-5 text-amber-500" />,
-      gradient: "from-amber-500/10 to-orange-500/10 border-amber-500/20",
+      gradient: 'from-amber-500/10 to-orange-500/10 border-amber-500/20',
     },
     {
-      title: "Đang xử lý",
+      title: 'Đang xử lý',
       value: formattedProcessing,
-      change: "Đang chuẩn bị hàng",
+      change: 'Đang chuẩn bị hàng',
       icon: <Package className="h-5 w-5 text-blue-500" />,
-      gradient: "from-blue-500/10 to-cyan-500/10 border-blue-500/20",
+      gradient: 'from-blue-500/10 to-cyan-500/10 border-blue-500/20',
     },
   ];
 
   const statusOrder: OrderStatusType[] = [
-    "pending",
-    "processing",
-    "shipping",
-    "delivered",
-    "cancelled",
-    "returned",
+    'pending',
+    'processing',
+    'shipping',
+    'delivered',
+    'cancelled',
+    'returned',
   ];
 
   const statusColors: Record<OrderStatusType, string> = {
-    pending: "bg-amber-500",
-    processing: "bg-blue-500",
-    shipping: "bg-indigo-500",
-    delivered: "bg-emerald-500",
-    cancelled: "bg-rose-500",
-    returned: "bg-zinc-500",
+    pending: 'bg-amber-500',
+    processing: 'bg-blue-500',
+    shipping: 'bg-indigo-500',
+    delivered: 'bg-emerald-500',
+    cancelled: 'bg-rose-500',
+    returned: 'bg-zinc-500',
   };
 
   return (
@@ -218,7 +225,7 @@ export default function SellerDashboardPage() {
                 {stat.title}
               </span>
               <div className="p-3 rounded-xl bg-background/50 backdrop-blur-sm border shadow-sm">
-                {React.cloneElement(stat.icon, { className: "h-7 w-7" })}
+                {React.cloneElement(stat.icon, { className: 'h-7 w-7' })}
               </div>
             </div>
             <div className="mt-3">
@@ -235,7 +242,6 @@ export default function SellerDashboardPage() {
 
       {/* Detailed Information Grid */}
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
-        
         {/* Top Selling Products Card */}
         <div className="col-span-4 rounded-2xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col justify-between">
           <div>
@@ -263,10 +269,13 @@ export default function SellerDashboardPage() {
                 </div>
               ) : (
                 stats.best_sellers.map((item) => {
-                  const itemThumbnailUrl = item.product_thumbnail as unknown as string | null;
+                  const itemThumbnailUrl = item.product_thumbnail as unknown as
+                    | string
+                    | null;
                   const itemTotalSold = item.total_sold;
-                  const formattedItemSold = itemTotalSold.toLocaleString(localeCode);
-                  
+                  const formattedItemSold =
+                    itemTotalSold.toLocaleString(localeCode);
+
                   return (
                     <div
                       key={item.product_id}
@@ -332,17 +341,20 @@ export default function SellerDashboardPage() {
                 const formattedCount = count.toLocaleString(localeCode);
                 const label = ORDER_STATUS_LABELS[status];
                 const colorClass = statusColors[status];
-                
-                const percentage = stats.total_orders > 0 
-                  ? (count / stats.total_orders) * 100 
-                  : 0;
+
+                const percentage =
+                  stats.total_orders > 0
+                    ? (count / stats.total_orders) * 100
+                    : 0;
                 const percentStr = `${percentage}%`;
 
                 return (
                   <div key={status} className="space-y-2">
                     <div className="flex justify-between text-sm font-bold">
                       <span className="text-muted-foreground">{label}</span>
-                      <span className="text-foreground">{formattedCount} đơn</span>
+                      <span className="text-foreground">
+                        {formattedCount} đơn
+                      </span>
                     </div>
                     <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
                       <div

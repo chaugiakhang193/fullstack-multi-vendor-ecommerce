@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 // Libraries
-import React, { useState } from "react";
-import { Layers, Eye, Smartphone, Monitor } from "lucide-react";
+import React, { useState } from 'react';
+import { Layers, Eye, Smartphone, Monitor } from 'lucide-react';
 
 // Components
-import { Pagination } from "@/components/shared/pagination";
-import { Button } from "@/components/ui/button";
+import { Pagination } from '@/components/shared/pagination';
+import { Button } from '@/components/ui/button';
 
 export default function TestPaginationPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,7 +24,7 @@ export default function TestPaginationPage() {
       const mockProduct = {
         id: `prod-${i}`,
         name: `Sản phẩm Premium #${i}`,
-        price: `${(i * 15000).toLocaleString("vi-VN")} đ`,
+        price: `${(i * 15000).toLocaleString('vi-VN')} đ`,
         sku: `SKU-PRM-${1000 + i}`,
       };
       list.push(mockProduct);
@@ -54,7 +54,8 @@ export default function TestPaginationPage() {
           Kiểm thử Component Phân Trang (Pagination)
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Trang demo và kiểm tra thiết kế responsive, các trạng thái hoạt động của component Pagination dùng chung.
+          Trang demo và kiểm tra thiết kế responsive, các trạng thái hoạt động
+          của component Pagination dùng chung.
         </p>
       </div>
 
@@ -65,25 +66,26 @@ export default function TestPaginationPage() {
           <span>Cấu hình tổng số trang</span>
         </h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Nhấp chọn một cấu hình dưới đây để thay đổi số trang tối đa và kiểm tra xem logic hiển thị dấu ba chấm `...` có chạy đúng không:
+          Nhấp chọn một cấu hình dưới đây để thay đổi số trang tối đa và kiểm
+          tra xem logic hiển thị dấu ba chấm `...` có chạy đúng không:
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={totalPages === 5 ? "default" : "outline"}
+            variant={totalPages === 5 ? 'default' : 'outline'}
             onClick={() => changeTotalPages(5)}
             className="text-xs font-semibold rounded-lg transition"
           >
             Tổng 5 trang (Không có dấu ...)
           </Button>
           <Button
-            variant={totalPages === 12 ? "default" : "outline"}
+            variant={totalPages === 12 ? 'default' : 'outline'}
             onClick={() => changeTotalPages(12)}
             className="text-xs font-semibold rounded-lg transition"
           >
             Tổng 12 trang (Dấu ... đơn)
           </Button>
           <Button
-            variant={totalPages === 30 ? "default" : "outline"}
+            variant={totalPages === 30 ? 'default' : 'outline'}
             onClick={() => changeTotalPages(30)}
             className="text-xs font-semibold rounded-lg transition"
           >
@@ -113,8 +115,12 @@ export default function TestPaginationPage() {
                 className="p-4 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors flex items-center justify-between"
               >
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
-                  <p className="text-xs font-mono text-muted-foreground mt-0.5">{product.sku}</p>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {product.name}
+                  </h4>
+                  <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                    {product.sku}
+                  </p>
                 </div>
                 <div className="text-sm font-bold text-violet-600 dark:text-violet-400">
                   {product.price}
@@ -148,13 +154,17 @@ export default function TestPaginationPage() {
           <li className="flex items-start gap-2">
             <Monitor className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Chế độ Desktop:</strong> Kiểm tra xem dấu ba chấm `...` hiển thị chính xác ở trang đầu, giữa và cuối khi chuyển trang.
+              <strong>Chế độ Desktop:</strong> Kiểm tra xem dấu ba chấm `...`
+              hiển thị chính xác ở trang đầu, giữa và cuối khi chuyển trang.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <Smartphone className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Chế độ Mobile (nhỏ hơn 640px):</strong> Dùng Chrome DevTools giả lập thiết bị di động. Kiểm tra xem các nút số trang có ẩn đi và thay thế bằng văn bản <em>"Trang X / Y"</em> để giữ giao diện nhỏ gọn, không bị tràn viền không.
+              <strong>Chế độ Mobile (nhỏ hơn 640px):</strong> Dùng Chrome
+              DevTools giả lập thiết bị di động. Kiểm tra xem các nút số trang
+              có ẩn đi và thay thế bằng văn bản <em>"Trang X / Y"</em> để giữ
+              giao diện nhỏ gọn, không bị tràn viền không.
             </span>
           </li>
         </ul>

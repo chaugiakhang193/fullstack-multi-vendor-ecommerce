@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Ticket,
   Loader2,
@@ -10,14 +10,14 @@ import {
   ShoppingBag,
   AlertTriangle,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { useBrowseCoupons, useClaimCoupon } from "@/hooks/useCoupons";
-import { useAuthStore } from "@/store/useAuthStore";
-import { CouponTypeObj } from "@/schemaValidations/promotions/coupons.schema";
-import { CouponType, DiscountType } from "@/constants/enum";
-import { formatVnd } from "@/lib/format";
-import { Button } from "@/components/ui/button";
+import { useBrowseCoupons, useClaimCoupon } from '@/hooks/useCoupons';
+import { useAuthStore } from '@/store/useAuthStore';
+import { CouponTypeObj } from '@/schemaValidations/promotions/coupons.schema';
+import { CouponType, DiscountType } from '@/constants/enum';
+import { formatVnd } from '@/lib/format';
+import { Button } from '@/components/ui/button';
 
 // Guard ở module scope: nhớ các coupon đã auto-claim trong phiên tab này.
 // Sống sót qua remount/StrictMode (khác useRef bị reset khi component mount lại),
@@ -31,7 +31,12 @@ function CustomerCouponsContent() {
 
   // Fetch claimable coupons. Backend tự gắn cờ is_claimed theo user đang đăng nhập
   // (guest → false), nên không cần tải ví để đối chiếu ở trang này.
-  const { data: browseEnvelope, isLoading: isBrowseLoading, isError: isBrowseError, refetch } = useBrowseCoupons({ limit: 100 });
+  const {
+    data: browseEnvelope,
+    isLoading: isBrowseLoading,
+    isError: isBrowseError,
+    refetch,
+  } = useBrowseCoupons({ limit: 100 });
   const coupons = browseEnvelope?.data?.items ?? [];
 
   const claimMutation = useClaimCoupon();
@@ -46,7 +51,7 @@ function CustomerCouponsContent() {
   };
 
   // Auto-claim logic after redirect back from login
-  const claimCouponId = searchParams.get("claimCouponId");
+  const claimCouponId = searchParams.get('claimCouponId');
 
   useEffect(() => {
     if (!claimCouponId) return;
@@ -65,16 +70,16 @@ function CustomerCouponsContent() {
 
     // Dọn URL NGAY (trước khi mutate) để về /coupons sạch query và tránh claim lại khi F5.
     // Toast thành công / "đã nhận rồi" (backend 409) do useClaimCoupon xử lý ở mức hook.
-    router.replace("/coupons", { scroll: false });
+    router.replace('/coupons', { scroll: false });
     claimMutation.mutate(claimCouponId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, claimCouponId]);
 
   const getDaysLeft = (endDateStr: string | null) => {
-    if (!endDateStr) return "Không giới hạn thời gian";
+    if (!endDateStr) return 'Không giới hạn thời gian';
     const diffTime = new Date(endDateStr).getTime() - new Date().getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 0) return "Hết hạn";
+    if (diffDays <= 0) return 'Hết hạn';
     return `Còn lại ${diffDays} ngày`;
   };
 
@@ -88,7 +93,8 @@ function CustomerCouponsContent() {
           Mã Khuyến Mãi
         </h1>
         <p className="text-sm text-muted-foreground font-semibold">
-          Lưu các voucher hot từ sàn và cửa hàng để áp dụng giảm giá khi mua hàng.
+          Lưu các voucher hot từ sàn và cửa hàng để áp dụng giảm giá khi mua
+          hàng.
         </p>
       </div>
 
@@ -100,8 +106,12 @@ function CustomerCouponsContent() {
         <div className="text-center py-20 border rounded-2xl bg-card space-y-4">
           <AlertTriangle className="h-16 w-16 text-amber-400 mx-auto" />
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-foreground">Không thể tải mã giảm giá</h3>
-            <p className="text-sm text-muted-foreground">Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.</p>
+            <h3 className="text-lg font-bold text-foreground">
+              Không thể tải mã giảm giá
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.
+            </p>
           </div>
           <Button variant="outline" onClick={() => refetch()} className="mt-2">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -112,8 +122,12 @@ function CustomerCouponsContent() {
         <div className="text-center py-20 border rounded-2xl bg-card space-y-4">
           <Ticket className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mx-auto" />
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-foreground">Không có mã giảm giá nào</h3>
-            <p className="text-sm text-muted-foreground">Hiện tại chưa có chương trình khuyến mãi nào được phát hành.</p>
+            <h3 className="text-lg font-bold text-foreground">
+              Không có mã giảm giá nào
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Hiện tại chưa có chương trình khuyến mãi nào được phát hành.
+            </p>
           </div>
         </div>
       ) : (
@@ -125,10 +139,12 @@ function CustomerCouponsContent() {
               ? `Giảm ${coupon.discount_value}%`
               : `Giảm ${formatVnd.format(coupon.discount_value)}`;
             const isShop = coupon.type === CouponType.SHOP;
-            const shopName = coupon.shop?.name ?? "Mã toàn sàn";
+            const shopName = coupon.shop?.name ?? 'Mã toàn sàn';
 
             // Limit details
-            const isFull = coupon.usage_limit ? coupon.used_count >= coupon.usage_limit : false;
+            const isFull = coupon.usage_limit
+              ? coupon.used_count >= coupon.usage_limit
+              : false;
             const daysLeft = getDaysLeft(coupon.end_date);
 
             // Chỉ coupon đang được claim mới quay spinner (tránh tất cả nút cùng loading)
@@ -155,24 +171,31 @@ function CustomerCouponsContent() {
                           Toàn sàn
                         </span>
                       )}
-                      <span className="text-[10px] font-semibold text-zinc-400">{daysLeft}</span>
+                      <span className="text-[10px] font-semibold text-zinc-400">
+                        {daysLeft}
+                      </span>
                     </div>
 
                     <h3 className="text-base font-black text-zinc-800 dark:text-zinc-100 truncate mt-1">
                       {discountLabel}
                     </h3>
                     <p className="text-xs text-muted-foreground font-semibold">
-                      Đơn tối thiểu {formatVnd.format(coupon.min_order_value ?? 0)}
+                      Đơn tối thiểu{' '}
+                      {formatVnd.format(coupon.min_order_value ?? 0)}
                     </p>
                     {isPct && coupon.max_discount_value && (
                       <p className="text-[10px] text-muted-foreground italic">
-                        Giảm tối đa {formatVnd.format(coupon.max_discount_value)}
+                        Giảm tối đa{' '}
+                        {formatVnd.format(coupon.max_discount_value)}
                       </p>
                     )}
                   </div>
 
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">
-                    Code: <span className="text-violet-600 dark:text-violet-400 font-extrabold">{coupon.code}</span>
+                    Code:{' '}
+                    <span className="text-violet-600 dark:text-violet-400 font-extrabold">
+                      {coupon.code}
+                    </span>
                   </div>
                 </div>
 
@@ -196,7 +219,9 @@ function CustomerCouponsContent() {
                       <span className="text-xs font-black">Đã lưu</span>
                     </div>
                   ) : isFull ? (
-                    <span className="text-xs font-bold text-muted-foreground">Hết lượt</span>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      Hết lượt
+                    </span>
                   ) : (
                     <Button
                       onClick={() => handleClaim(coupon)}
@@ -206,7 +231,7 @@ function CustomerCouponsContent() {
                       {isClaiming ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        "Lưu mã"
+                        'Lưu mã'
                       )}
                     </Button>
                   )}

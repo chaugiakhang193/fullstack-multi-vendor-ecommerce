@@ -12,11 +12,16 @@ interface LiveTrackingMapProps {
 
 function toNum(v: string | number | null | undefined): number | null {
   if (v === null || v === undefined) return null;
-  const n = typeof v === "number" ? v : parseFloat(v);
+  const n = typeof v === 'number' ? v : parseFloat(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
@@ -30,8 +35,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 export function LiveTrackingMap({
   id,
-  originLabel = "Cửa hàng",
-  destinationLabel = "Nơi nhận",
+  originLabel = 'Cửa hàng',
+  destinationLabel = 'Nơi nhận',
   shopLat,
   shopLng,
   userLat,
@@ -42,13 +47,14 @@ export function LiveTrackingMap({
   const sLng = toNum(shopLng);
   const uLat = toNum(userLat);
   const uLng = toNum(userLng);
-  const hasBoth = sLat !== null && sLng !== null && uLat !== null && uLng !== null;
+  const hasBoth =
+    sLat !== null && sLng !== null && uLat !== null && uLng !== null;
   const distanceLabel = hasBoth
     ? `Khoảng ${haversineKm(sLat as number, sLng as number, uLat as number, uLng as number).toFixed(1)} km`
     : null;
 
   // Đường cong cố định (stylized) — animateMotion chạy shipper dọc path này.
-  const routeD = "M 44 110 Q 200 24 356 110";
+  const routeD = 'M 44 110 Q 200 24 356 110';
 
   return (
     <div className="rounded-xl border bg-gradient-to-b from-sky-50 to-emerald-50/40 dark:from-sky-950/20 dark:to-emerald-950/10 p-4">

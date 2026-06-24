@@ -1,21 +1,21 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import orderApiRequest from "@/apiRequests/orders/orders";
-import { customerOrderKeys, STALE_TIME } from "@/constants/query-keys";
-import { type OrderStatusType } from "@/schemaValidations/orders/orders.schema";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import orderApiRequest from '@/apiRequests/orders/orders';
+import { customerOrderKeys, STALE_TIME } from '@/constants/query-keys';
+import { type OrderStatusType } from '@/schemaValidations/orders/orders.schema';
 
 const LIMIT = 10;
 
 /** Lịch sử đơn customer theo tab + page (chỉ chạy khi đã đăng nhập + hydrated). */
 export const useCustomerOrdersList = (
-  activeTab: OrderStatusType | "all",
+  activeTab: OrderStatusType | 'all',
   page: number,
-  enabled: boolean
+  enabled: boolean,
 ) => {
   return useQuery({
     queryKey: customerOrderKeys.list({ tab: activeTab, page }),
     queryFn: () => {
-      const status = activeTab === "all" ? undefined : activeTab;
+      const status = activeTab === 'all' ? undefined : activeTab;
       return orderApiRequest.getOrders({ page, limit: LIMIT, status });
     },
     enabled,
@@ -36,14 +36,17 @@ export const useCustomerOrderDetail = (id: string) => {
 /** Hủy 1 sub-order. Refetch là nguồn sự thật (không đọc response body). */
 export const useCancelSubOrder = (
   orderId: string,
-  callbacks?: { onSettled?: () => void }
+  callbacks?: { onSettled?: () => void },
 ) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (subOrderId: string) => orderApiRequest.cancelSubOrder(subOrderId),
+    mutationFn: (subOrderId: string) =>
+      orderApiRequest.cancelSubOrder(subOrderId),
     onSuccess: () => {
-      toast.success("Đã hủy đơn hàng và hoàn kho thành công");
-      queryClient.invalidateQueries({ queryKey: customerOrderKeys.detail(orderId) });
+      toast.success('Đã hủy đơn hàng và hoàn kho thành công');
+      queryClient.invalidateQueries({
+        queryKey: customerOrderKeys.detail(orderId),
+      });
       queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
     },
     onSettled: () => callbacks?.onSettled?.(),

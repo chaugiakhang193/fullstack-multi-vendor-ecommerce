@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 /**
  * Custom hook giúp debounce một giá trị bất kỳ sau một khoảng thời gian trễ nhất định.
- * 
+ *
  * @param value Giá trị cần trì hoãn đổi mới.
  * @param delay Thời gian trễ (mili giây), mặc định là 300ms.
  */

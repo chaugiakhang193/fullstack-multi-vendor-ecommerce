@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import categoriesApiRequest from "@/apiRequests/products/categories";
-import { categoryKeys, STALE_TIME } from "@/constants/query-keys";
+import { useQuery } from '@tanstack/react-query';
+import categoriesApiRequest from '@/apiRequests/products/categories';
+import { categoryKeys, STALE_TIME } from '@/constants/query-keys';
 
 /**
  * Hook truy vấn tất cả danh mục sản phẩm (Public) của khách hàng.

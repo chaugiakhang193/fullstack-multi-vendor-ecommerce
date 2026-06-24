@@ -1,38 +1,45 @@
-import { normalizePath } from "./utils";
-import { useAuthStore } from "@/store/useAuthStore";
-import { AUTH_API_ENDPOINTS } from "@/constants/routes";
-import { HTTP_STATUS } from "@/constants/http-status";
+import { normalizePath } from './utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import { AUTH_API_ENDPOINTS } from '@/constants/routes';
+import { HTTP_STATUS } from '@/constants/http-status';
 
 export type ApiEnvelope<T> = { message?: string; data: T };
-
 
 // Custom phần báo lỗi
 export class HttpError extends Error {
   status: number;
   payload: any;
   constructor({ status, payload }: { status: number; payload: any }) {
-    super("Http Error");
+    super('Http Error');
     this.status = status;
     this.payload = payload;
   }
 }
 
 export class EntityError extends HttpError {
-  constructor({ status, payload }: { status: typeof HTTP_STATUS.UNPROCESSABLE_ENTITY | typeof HTTP_STATUS.BAD_REQUEST; payload: any }) {
+  constructor({
+    status,
+    payload,
+  }: {
+    status:
+      | typeof HTTP_STATUS.UNPROCESSABLE_ENTITY
+      | typeof HTTP_STATUS.BAD_REQUEST;
+    payload: any;
+  }) {
     super({ status, payload });
   }
 }
 
 // Biến môi trường
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-export const isClient = () => typeof window !== "undefined";
+export const isClient = () => typeof window !== 'undefined';
 
 // Cờ chặn gọi refresh nhiều lần
 let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
 // Lấy hết của RequestInit NGOẠI TRỪ "method"
-type CustomOptions = Omit<RequestInit, "method"> & {
+type CustomOptions = Omit<RequestInit, 'method'> & {
   baseUrl?: string;
   isInternal?: boolean;
   timeout?: number;
@@ -46,37 +53,40 @@ export function getErrorMessage(error: any): string {
     const timeoutCode = HTTP_STATUS.REQUEST_TIMEOUT;
 
     if (status === rateLimitCode) {
-      const rateLimitMsg = "Bạn đang thao tác quá nhanh. Vui lòng đợi một lát và thử lại!";
+      const rateLimitMsg =
+        'Bạn đang thao tác quá nhanh. Vui lòng đợi một lát và thử lại!';
       return rateLimitMsg;
     }
     if (status === timeoutCode) {
-      const timeoutMsg = "Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!";
+      const timeoutMsg =
+        'Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!';
       return timeoutMsg;
     }
 
     const payload = error.payload;
     if (payload) {
-      if (typeof payload.message === "string") {
+      if (typeof payload.message === 'string') {
         const msgStr = payload.message;
         return msgStr;
       }
       if (Array.isArray(payload.message)) {
-        const delimiter = ", ";
+        const delimiter = ', ';
         const msgArrStr = payload.message.join(delimiter);
         return msgArrStr;
       }
-      if (payload.error && typeof payload.error === "string") {
+      if (payload.error && typeof payload.error === 'string') {
         const errStr = payload.error;
         return errStr;
       }
     }
   }
-  const defaultErrMessage = error?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!";
+  const defaultErrMessage =
+    error?.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
   return defaultErrMessage;
 }
 
 const request = async <Response>(
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   url: string,
   options?: CustomOptions,
 ) => {
@@ -90,7 +100,7 @@ const request = async <Response>(
 
   // Nếu là kiểu formdate thì cho browser tự ép kiểu, còn không thì code ép kiểu
   const baseHeaders: { [key: string]: string } =
-    body instanceof FormData ? {} : { "Content-Type": "application/json" };
+    body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
 
   // lấy acccessToken lưu trong ram (nhận được từ backend khi đăng nhập hoặc refresh ở lần trước)
   const authState = useAuthStore.getState();
@@ -105,12 +115,12 @@ const request = async <Response>(
   // Truyền chuỗi tuyệt đối thì bắt đầu bằng http là được
 
   const currentBaseUrl =
-    options?.baseUrl !== undefined ? options.baseUrl : BASE_URL || "";
+    options?.baseUrl !== undefined ? options.baseUrl : BASE_URL || '';
   const safeCurrentBaseUrl = currentBaseUrl.trim();
 
   //Xử lý URL chuẩn bị cho fetch
   const urlPath = normalizePath(url);
-  const fullUrl = url.startsWith("http")
+  const fullUrl = url.startsWith('http')
     ? url.trim()
     : `${safeCurrentBaseUrl}/${urlPath}`;
 
@@ -131,13 +141,16 @@ const request = async <Response>(
       headers: fetchHeaders,
       body,
       method,
-      credentials: "include",
+      credentials: 'include',
       signal: controller.signal,
     });
   } catch (error: any) {
-    if (error.name === "AbortError") {
+    if (error.name === 'AbortError') {
       const errStatus = HTTP_STATUS.REQUEST_TIMEOUT;
-      const errPayload = { message: "Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!" };
+      const errPayload = {
+        message:
+          'Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!',
+      };
       throw new HttpError({
         status: errStatus,
         payload: errPayload,
@@ -156,32 +169,36 @@ const request = async <Response>(
   });
 
   // REFRESH TOKEN TỰ ĐỘNG (Lỗi 401) - Chỉ áp dụng cho các API cần xác thực
-  if (res.status === HTTP_STATUS.UNAUTHORIZED && isClient() && !isAuthPublicEndpoint) {
+  if (
+    res.status === HTTP_STATUS.UNAUTHORIZED &&
+    isClient() &&
+    !isAuthPublicEndpoint
+  ) {
     if (!isRefreshing) {
       isRefreshing = true;
       // Trình duyệt tự mang HttpOnly Cookie (RefreshToken) đi xin token mới
       const refreshUrl = `${BASE_URL}/auth/refresh`;
-      const refreshHeaders = { "Content-Type": "application/json" };
+      const refreshHeaders = { 'Content-Type': 'application/json' };
       refreshPromise = fetch(refreshUrl, {
-        method: "POST",
+        method: 'POST',
         headers: refreshHeaders,
-        credentials: "include",
+        credentials: 'include',
       })
         .then(async (refreshRes) => {
           // Xử lý 403 (Session hết hạn - bình thường)
           if (refreshRes.status === HTTP_STATUS.FORBIDDEN) {
-            const expErr = new Error("SESSION_EXPIRED");
+            const expErr = new Error('SESSION_EXPIRED');
             throw expErr;
           }
 
           // Xử lý 401 (Token không hợp lệ - nguy hiểm)
           if (refreshRes.status === HTTP_STATUS.UNAUTHORIZED) {
-            const invErr = new Error("INVALID_TOKEN");
+            const invErr = new Error('INVALID_TOKEN');
             throw invErr;
           }
 
           if (!refreshRes.ok) {
-            const failErr = new Error("Refresh failed");
+            const failErr = new Error('Refresh failed');
             throw failErr;
           }
 
@@ -194,7 +211,7 @@ const request = async <Response>(
             const authStateStore = useAuthStore.getState();
             authStateStore.setAuth(user, accessToken);
           } else {
-            const invResErr = new Error("Invalid refresh response data");
+            const invResErr = new Error('Invalid refresh response data');
             throw invResErr;
           }
           return accessToken;
@@ -226,13 +243,16 @@ const request = async <Response>(
           headers: newHeaders as any,
           body,
           method,
-          credentials: "include",
+          credentials: 'include',
           signal: retryController.signal,
         });
       } catch (error: any) {
-        if (error.name === "AbortError") {
+        if (error.name === 'AbortError') {
           const errStatus = HTTP_STATUS.REQUEST_TIMEOUT;
-          const errPayload = { message: "Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!" };
+          const errPayload = {
+            message:
+              'Kết nối mạng quá hạn (Timeout). Vui lòng kiểm tra lại đường truyền!',
+          };
           throw new HttpError({
             status: errStatus,
             payload: errPayload,
@@ -244,7 +264,7 @@ const request = async <Response>(
       }
     } catch (error: any) {
       // Phân biệt loại lỗi
-      const errorMessage = error?.message || "";
+      const errorMessage = error?.message || '';
 
       const logoutStore = useAuthStore.getState();
       // Chỉ logout (kéo theo clearCart) + đá về login khi user VỐN đang đăng nhập.
@@ -257,16 +277,18 @@ const request = async <Response>(
         logoutStore.logout();
 
         const currentPath = window.location.pathname;
-        const isAuthPage = typeof window !== "undefined" && ["/login", "/register"].includes(currentPath);
-        if (typeof window !== "undefined" && !isAuthPage) {
+        const isAuthPage =
+          typeof window !== 'undefined' &&
+          ['/login', '/register'].includes(currentPath);
+        if (typeof window !== 'undefined' && !isAuthPage) {
           const fullPath = window.location.pathname + window.location.search;
           const redirectPath = encodeURIComponent(fullPath);
 
           // Hiển thị cảnh báo bảo mật nếu token không hợp lệ
-          if (errorMessage === "INVALID_TOKEN") {
+          if (errorMessage === 'INVALID_TOKEN') {
             // Lưu flag vào sessionStorage để AppProvider hiển thị toast
-            const sessionFlag = "auth_security_warning";
-            sessionStorage.setItem(sessionFlag, "true");
+            const sessionFlag = 'auth_security_warning';
+            sessionStorage.setItem(sessionFlag, 'true');
           }
 
           const loginRedirectUrl = `/login?redirect=${redirectPath}`;
@@ -274,8 +296,10 @@ const request = async <Response>(
         }
       }
 
-      const isExpired = errorMessage === "SESSION_EXPIRED";
-      const userErrMessage = isExpired ? "Phiên đăng nhập đã hết hạn" : "Phiên đăng nhập không hợp lệ";
+      const isExpired = errorMessage === 'SESSION_EXPIRED';
+      const userErrMessage = isExpired
+        ? 'Phiên đăng nhập đã hết hạn'
+        : 'Phiên đăng nhập không hợp lệ';
       const errStatus = HTTP_STATUS.UNAUTHORIZED;
       const errPayload = { message: userErrMessage };
       throw new HttpError({
@@ -291,8 +315,13 @@ const request = async <Response>(
   if (!res.ok) {
     const errorStatus = res.status;
     // Nếu là lỗi Validation từ NestJS (Class Validator thường trả 400, một số trường hợp là 422)
-    if (res.status === HTTP_STATUS.UNPROCESSABLE_ENTITY || res.status === HTTP_STATUS.BAD_REQUEST) {
-      const formErrStatus = res.status as typeof HTTP_STATUS.UNPROCESSABLE_ENTITY | typeof HTTP_STATUS.BAD_REQUEST;
+    if (
+      res.status === HTTP_STATUS.UNPROCESSABLE_ENTITY ||
+      res.status === HTTP_STATUS.BAD_REQUEST
+    ) {
+      const formErrStatus = res.status as
+        | typeof HTTP_STATUS.UNPROCESSABLE_ENTITY
+        | typeof HTTP_STATUS.BAD_REQUEST;
       throw new EntityError({ status: formErrStatus, payload });
     }
     if (res.status === HTTP_STATUS.UNAUTHORIZED) {
@@ -301,7 +330,7 @@ const request = async <Response>(
         throw new HttpError({ status: errorStatus, payload });
       }
       // Các API khác bị 401 -> thông báo phiên hết hạn
-      const expiredPayload = { message: "Phiên đăng nhập đã hết hạn" };
+      const expiredPayload = { message: 'Phiên đăng nhập đã hết hạn' };
       throw new HttpError({
         status: errorStatus,
         payload: expiredPayload,
@@ -315,31 +344,31 @@ const request = async <Response>(
 
 // Xuất ra object http dễ sử dụng
 const http = {
-  get<Response>(url: string, options?: Omit<CustomOptions, "body">) {
-    return request<Response>("GET", url, options);
+  get<Response>(url: string, options?: Omit<CustomOptions, 'body'>) {
+    return request<Response>('GET', url, options);
   },
   post<Response>(
     url: string,
     body: any,
-    options?: Omit<CustomOptions, "body">,
+    options?: Omit<CustomOptions, 'body'>,
   ) {
     const reqOptions = { ...options, body };
-    return request<Response>("POST", url, reqOptions);
+    return request<Response>('POST', url, reqOptions);
   },
-  put<Response>(url: string, body: any, options?: Omit<CustomOptions, "body">) {
+  put<Response>(url: string, body: any, options?: Omit<CustomOptions, 'body'>) {
     const reqOptions = { ...options, body };
-    return request<Response>("PUT", url, reqOptions);
+    return request<Response>('PUT', url, reqOptions);
   },
   patch<Response>(
     url: string,
     body: any,
-    options?: Omit<CustomOptions, "body">,
+    options?: Omit<CustomOptions, 'body'>,
   ) {
     const reqOptions = { ...options, body };
-    return request<Response>("PATCH", url, reqOptions);
+    return request<Response>('PATCH', url, reqOptions);
   },
-  delete<Response>(url: string, options?: Omit<CustomOptions, "body">) {
-    return request<Response>("DELETE", url, { ...options });
+  delete<Response>(url: string, options?: Omit<CustomOptions, 'body'>) {
+    return request<Response>('DELETE', url, { ...options });
   },
 };
 

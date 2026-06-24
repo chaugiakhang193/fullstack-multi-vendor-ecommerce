@@ -1,14 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import { SlidersHorizontal, X, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { StarRating } from "@/components/shared/star-rating";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  SlidersHorizontal,
+  X,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
+import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
+import { StarRating } from '@/components/shared/star-rating';
+import { cn } from '@/lib/utils';
 
 // Định nghĩa types cho Filter
 export interface FilterState {
@@ -34,17 +40,19 @@ export function FilterSidebar({
   className,
 }: FilterSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [localMin, setLocalMin] = useState(filters.minPrice?.toString() || "");
-  const [localMax, setLocalMax] = useState(filters.maxPrice?.toString() || "");
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [localMin, setLocalMin] = useState(filters.minPrice?.toString() || '');
+  const [localMax, setLocalMax] = useState(filters.maxPrice?.toString() || '');
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({});
 
   const desktopMinInputRef = useRef<HTMLInputElement>(null);
   const mobileMinInputRef = useRef<HTMLInputElement>(null);
 
   // Đồng bộ giá trị input khoảng giá khi filter thay đổi từ bên ngoài (ví dụ reset)
   useEffect(() => {
-    const minValStr = filters.minPrice?.toString() || "";
-    const maxValStr = filters.maxPrice?.toString() || "";
+    const minValStr = filters.minPrice?.toString() || '';
+    const maxValStr = filters.maxPrice?.toString() || '';
     setLocalMin(minValStr);
     setLocalMax(maxValStr);
   }, [filters.minPrice, filters.maxPrice]);
@@ -57,7 +65,7 @@ export function FilterSidebar({
       let hasChanges = false;
       categories.forEach((parent) => {
         const hasActiveChild = parent.children?.some((child: any) =>
-          filters.categoryIds.includes(child.id)
+          filters.categoryIds.includes(child.id),
         );
         if (hasActiveChild && !updated[parent.id]) {
           updated[parent.id] = true;
@@ -107,10 +115,10 @@ export function FilterSidebar({
     const maxVal = localMax ? Number(localMax) : undefined;
 
     if (minVal !== undefined && maxVal !== undefined && minVal > maxVal) {
-      const errorText = "Giá tối thiểu không được lớn hơn giá tối đa!";
+      const errorText = 'Giá tối thiểu không được lớn hơn giá tối đa!';
       toast.error(errorText);
-      setLocalMin("");
-      setLocalMax("");
+      setLocalMin('');
+      setLocalMax('');
       if (isMobileOpen) {
         mobileMinInputRef.current?.focus();
       } else {
@@ -156,16 +164,22 @@ export function FilterSidebar({
           </h4>
           <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
             {categories.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Không có danh mục nào</p>
+              <p className="text-xs text-muted-foreground italic">
+                Không có danh mục nào
+              </p>
             ) : (
               categories.map((parent) => {
                 const parentId = parent.id;
                 const isParentChecked = filters.categoryIds.includes(parentId);
-                const hasChildren = parent.children && parent.children.length > 0;
+                const hasChildren =
+                  parent.children && parent.children.length > 0;
                 const isExpanded = !!expandedCategories[parentId];
 
                 return (
-                  <div key={parentId} className="space-y-1.5 border-b border-zinc-100/50 dark:border-zinc-900/50 pb-1.5 last:border-0 last:pb-0">
+                  <div
+                    key={parentId}
+                    className="space-y-1.5 border-b border-zinc-100/50 dark:border-zinc-900/50 pb-1.5 last:border-0 last:pb-0"
+                  >
                     {/* Danh mục cha */}
                     <div className="flex items-center justify-between group">
                       <label className="flex items-center gap-2 py-0.5 text-xs font-bold cursor-pointer text-foreground hover:text-violet-600 dark:hover:text-violet-400 flex-1">
@@ -182,7 +196,7 @@ export function FilterSidebar({
                           type="button"
                           onClick={() => toggleExpandCategory(parentId)}
                           className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors text-muted-foreground hover:text-foreground"
-                          aria-label={isExpanded ? "Collapse" : "Expand"}
+                          aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         >
                           {isExpanded ? (
                             <ChevronDown className="h-3.5 w-3.5" />
@@ -198,7 +212,8 @@ export function FilterSidebar({
                       <div className="space-y-1.5 pl-5 pt-0.5 flex flex-col">
                         {parent.children.map((child: any) => {
                           const childId = child.id;
-                          const isChildChecked = filters.categoryIds.includes(childId);
+                          const isChildChecked =
+                            filters.categoryIds.includes(childId);
 
                           return (
                             <label
@@ -250,7 +265,11 @@ export function FilterSidebar({
                 className="w-full text-xs border rounded-lg p-2 bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
               />
             </div>
-            <Button onClick={() => handleApplyPrice()} variant="outline" className="w-full text-xs h-8">
+            <Button
+              onClick={() => handleApplyPrice()}
+              variant="outline"
+              className="w-full text-xs h-8"
+            >
               Áp dụng
             </Button>
           </div>
@@ -272,16 +291,16 @@ export function FilterSidebar({
                   key={starVal}
                   onClick={() => handleRatingClick(starVal)}
                   className={cn(
-                    "w-full flex items-center justify-between p-2 rounded-lg text-xs font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left border",
+                    'w-full flex items-center justify-between p-2 rounded-lg text-xs font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left border',
                     isSelected
-                      ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/40"
-                      : "border-transparent"
+                      ? 'bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/40'
+                      : 'border-transparent',
                   )}
                 >
                   <div className="flex items-center gap-1.5">
                     <StarRating rating={starVal} size="sm" />
                     <span className="text-muted-foreground font-semibold">
-                      {starVal === 5 ? "5 sao" : `Từ ${starVal} sao`}
+                      {starVal === 5 ? '5 sao' : `Từ ${starVal} sao`}
                     </span>
                   </div>
                   {isSelected && (
@@ -313,8 +332,8 @@ export function FilterSidebar({
       {/* Giao diện Desktop (Mặc định hiển thị trên màn hình >= md) */}
       <div
         className={cn(
-          "hidden md:block w-64 shrink-0 rounded-xl border bg-card p-5 shadow-xs space-y-5",
-          className
+          'hidden md:block w-64 shrink-0 rounded-xl border bg-card p-5 shadow-xs space-y-5',
+          className,
         )}
       >
         <div className="flex items-center justify-between border-b pb-3">

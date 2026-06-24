@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // Components
 import {
@@ -12,21 +12,21 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
 
 // Hooks
-import { useAddresses } from "@/hooks/useAddresses";
+import { useAddresses } from '@/hooks/useAddresses';
 
 // Schema & Types
 import {
   AddressFormBody,
   AddressFormBodyType,
   AddressResponseType,
-} from "@/schemaValidations/users/addresses.schema";
+} from '@/schemaValidations/users/addresses.schema';
 
 interface AddressFormModalProps {
   open: boolean;
@@ -46,7 +46,7 @@ export function AddressFormModal({
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const initialValues = { recipient_name: "", phone: "", address_line: "" };
+  const initialValues = { recipient_name: '', phone: '', address_line: '' };
 
   const {
     register,
@@ -113,8 +113,12 @@ export function AddressFormModal({
     }
   };
 
-  const handleSelectAutocomplete = (coords: { display_name: string; lat: number; lng: number }) => {
-    const valName = "address_line";
+  const handleSelectAutocomplete = (coords: {
+    display_name: string;
+    lat: number;
+    lng: number;
+  }) => {
+    const valName = 'address_line';
     const displayName = coords.display_name;
     const configOpts = { shouldValidate: true };
     setValue(valName, displayName, configOpts);
@@ -125,13 +129,18 @@ export function AddressFormModal({
 
   const handleQueryChangeAutocomplete = (value: string) => {
     setSelectedCoords(null);
-    setValue("address_line", value, { shouldValidate: true });
+    setValue('address_line', value, { shouldValidate: true });
   };
 
-  const dialogTitleText = editing ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới";
-  const descText = "Nhập thông tin người nhận. Bạn có thể chọn địa chỉ từ gợi ý hoặc nhập tay — hệ thống sẽ tự xác định tọa độ.";
-  const cancelBtnText = "Hủy";
-  const submitBtnText = submitting ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Thêm địa chỉ";
+  const dialogTitleText = editing ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới';
+  const descText =
+    'Nhập thông tin người nhận. Bạn có thể chọn địa chỉ từ gợi ý hoặc nhập tay — hệ thống sẽ tự xác định tọa độ.';
+  const cancelBtnText = 'Hủy';
+  const submitBtnText = submitting
+    ? 'Đang lưu...'
+    : editing
+      ? 'Lưu thay đổi'
+      : 'Thêm địa chỉ';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -151,7 +160,7 @@ export function AddressFormModal({
               Họ tên người nhận <span className="text-rose-500">*</span>
             </FieldLabel>
             <Input
-              {...register("recipient_name")}
+              {...register('recipient_name')}
               placeholder="Nguyễn Văn A"
               disabled={submitting}
               className="py-4 px-4 h-12 text-lg md:text-lg rounded-xl focus:ring-violet-500/20 focus:border-violet-500"
@@ -165,11 +174,12 @@ export function AddressFormModal({
             </FieldLabel>
             {(() => {
               const registerOptions = {
-                setValueAs: (v: unknown) => (typeof v === "string" ? v.replace(/[\s.-]/g, "") : v),
+                setValueAs: (v: unknown) =>
+                  typeof v === 'string' ? v.replace(/[\s.-]/g, '') : v,
               };
               return (
                 <Input
-                  {...register("phone", registerOptions)}
+                  {...register('phone', registerOptions)}
                   placeholder="0901234567"
                   disabled={submitting}
                   className="py-4 px-4 h-12 text-lg md:text-lg rounded-xl focus:ring-violet-500/20 focus:border-violet-500"
@@ -184,7 +194,7 @@ export function AddressFormModal({
               Địa chỉ chi tiết <span className="text-rose-500">*</span>
             </FieldLabel>
             <AddressAutocomplete
-              value={watch("address_line")}
+              value={watch('address_line')}
               onSelect={handleSelectAutocomplete}
               onQueryChange={handleQueryChangeAutocomplete}
               placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"

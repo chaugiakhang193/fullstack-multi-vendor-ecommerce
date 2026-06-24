@@ -1,9 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import couponApiRequest from "@/apiRequests/promotions/coupons";
-import { couponKeys, STALE_TIME } from "@/constants/query-keys";
-import { useAuthStore } from "@/store/useAuthStore";
-import { CreateCouponBodyType, UpdateCouponBodyType, CouponQueryType } from "@/schemaValidations/promotions/coupons.schema";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import couponApiRequest from '@/apiRequests/promotions/coupons';
+import { couponKeys, STALE_TIME } from '@/constants/query-keys';
+import { useAuthStore } from '@/store/useAuthStore';
+import {
+  CreateCouponBodyType,
+  UpdateCouponBodyType,
+  CouponQueryType,
+} from '@/schemaValidations/promotions/coupons.schema';
 
 // Admin Hooks
 export const useAdminCoupons = (query?: CouponQueryType) => {
@@ -17,9 +21,10 @@ export const useAdminCoupons = (query?: CouponQueryType) => {
 export const useAdminCreateCoupon = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateCouponBodyType) => couponApiRequest.adminCreate(body),
+    mutationFn: (body: CreateCouponBodyType) =>
+      couponApiRequest.adminCreate(body),
     onSuccess: () => {
-      toast.success("Tạo mã giảm giá toàn sàn thành công");
+      toast.success('Tạo mã giảm giá toàn sàn thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -28,9 +33,10 @@ export const useAdminCreateCoupon = () => {
 export const useAdminUpdateCoupon = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: UpdateCouponBodyType) => couponApiRequest.adminUpdate(id, body),
+    mutationFn: (body: UpdateCouponBodyType) =>
+      couponApiRequest.adminUpdate(id, body),
     onSuccess: () => {
-      toast.success("Cập nhật mã giảm giá thành công");
+      toast.success('Cập nhật mã giảm giá thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -41,7 +47,7 @@ export const useAdminDeleteCoupon = () => {
   return useMutation({
     mutationFn: (id: string) => couponApiRequest.adminDelete(id),
     onSuccess: () => {
-      toast.success("Xóa mã giảm giá thành công");
+      toast.success('Xóa mã giảm giá thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -59,9 +65,10 @@ export const useSellerCoupons = (query?: CouponQueryType) => {
 export const useSellerCreateCoupon = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateCouponBodyType) => couponApiRequest.sellerCreate(body),
+    mutationFn: (body: CreateCouponBodyType) =>
+      couponApiRequest.sellerCreate(body),
     onSuccess: () => {
-      toast.success("Tạo mã giảm giá shop thành công");
+      toast.success('Tạo mã giảm giá shop thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -70,9 +77,10 @@ export const useSellerCreateCoupon = () => {
 export const useSellerUpdateCoupon = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: UpdateCouponBodyType) => couponApiRequest.sellerUpdate(id, body),
+    mutationFn: (body: UpdateCouponBodyType) =>
+      couponApiRequest.sellerUpdate(id, body),
     onSuccess: () => {
-      toast.success("Cập nhật mã giảm giá shop thành công");
+      toast.success('Cập nhật mã giảm giá shop thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -83,7 +91,7 @@ export const useSellerDeleteCoupon = () => {
   return useMutation({
     mutationFn: (id: string) => couponApiRequest.sellerDelete(id),
     onSuccess: () => {
-      toast.success("Xóa mã giảm giá thành công");
+      toast.success('Xóa mã giảm giá thành công');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });
@@ -126,7 +134,7 @@ export const useClaimCoupon = () => {
     // ở đây để tránh toast TRÙNG với handler tập trung.
     meta: { showToastOnError: true },
     onSuccess: () => {
-      toast.success("Lưu mã giảm giá vào ví thành công!");
+      toast.success('Lưu mã giảm giá vào ví thành công!');
       queryClient.invalidateQueries({ queryKey: couponKeys.all });
     },
   });

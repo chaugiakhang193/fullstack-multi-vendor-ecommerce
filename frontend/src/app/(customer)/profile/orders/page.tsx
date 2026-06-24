@@ -1,34 +1,40 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Loader2, Package, AlertTriangle, ChevronRight, ShoppingBag } from "lucide-react";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import {
+  Loader2,
+  Package,
+  AlertTriangle,
+  ChevronRight,
+  ShoppingBag,
+} from 'lucide-react';
 
-import { getErrorMessage } from "@/lib/http";
-import { useCustomerOrdersList } from "@/hooks/useCustomerOrders";
-import { cn } from "@/lib/utils";
+import { getErrorMessage } from '@/lib/http';
+import { useCustomerOrdersList } from '@/hooks/useCustomerOrders';
+import { cn } from '@/lib/utils';
 import {
   type OrderStatusType,
   type CustomerOrderType,
-} from "@/schemaValidations/orders/orders.schema";
-import useHydrated from "@/hooks/useHydrated";
-import { useAuthStore } from "@/store/useAuthStore";
-import { Pagination } from "@/components/shared/pagination";
-import { EmptyOrders } from "@/components/shared/empty-state";
-import { OrderStatusBadge } from "@/components/orders/seller-order-status";
-import { formatVnd, formatDateTime, shortId } from "@/lib/format";
+} from '@/schemaValidations/orders/orders.schema';
+import useHydrated from '@/hooks/useHydrated';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Pagination } from '@/components/shared/pagination';
+import { EmptyOrders } from '@/components/shared/empty-state';
+import { OrderStatusBadge } from '@/components/orders/seller-order-status';
+import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 const LIMIT = 10;
 
-const TABS: { label: string; value: OrderStatusType | "all" }[] = [
-  { label: "Tất cả", value: "all" },
-  { label: "Chờ xác nhận", value: "pending" },
-  { label: "Đang xử lý", value: "processing" },
-  { label: "Đang giao", value: "shipping" },
-  { label: "Đã giao", value: "delivered" },
-  { label: "Đã hủy", value: "cancelled" },
+const TABS: { label: string; value: OrderStatusType | 'all' }[] = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Chờ xác nhận', value: 'pending' },
+  { label: 'Đang xử lý', value: 'processing' },
+  { label: 'Đang giao', value: 'shipping' },
+  { label: 'Đã giao', value: 'delivered' },
+  { label: 'Đã hủy', value: 'cancelled' },
 ];
 
 export default function CustomerOrdersPage() {
@@ -36,19 +42,23 @@ export default function CustomerOrdersPage() {
   const isHydrated = useHydrated();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const [activeTab, setActiveTab] = useState<OrderStatusType | "all">("all");
+  const [activeTab, setActiveTab] = useState<OrderStatusType | 'all'>('all');
   const [page, setPage] = useState(1);
 
   // Guard client-side (mirror /checkout) — redirect sau hydrate để tránh nhấp nháy.
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
-      router.replace("/login?redirect=%2Fprofile%2Forders");
+      router.replace('/login?redirect=%2Fprofile%2Forders');
     }
   }, [isHydrated, isAuthenticated, router]);
 
-  const listQuery = useCustomerOrdersList(activeTab, page, isHydrated && isAuthenticated);
+  const listQuery = useCustomerOrdersList(
+    activeTab,
+    page,
+    isHydrated && isAuthenticated,
+  );
 
-  const handleTabChange = (value: OrderStatusType | "all") => {
+  const handleTabChange = (value: OrderStatusType | 'all') => {
     setActiveTab(value);
     setPage(1);
   };
@@ -89,10 +99,10 @@ export default function CustomerOrdersPage() {
             key={tab.value}
             onClick={() => handleTabChange(tab.value)}
             className={cn(
-              "whitespace-nowrap px-5 py-3 text-base font-bold rounded-t-xl transition border-b-2",
+              'whitespace-nowrap px-5 py-3 text-base font-bold rounded-t-xl transition border-b-2',
               tab.value === activeTab
-                ? "border-violet-600 text-violet-600 bg-violet-50/40 dark:bg-violet-950/20"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? 'border-violet-600 text-violet-600 bg-violet-50/40 dark:bg-violet-950/20'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
             {tab.label}
@@ -198,7 +208,7 @@ function OrderCard({ order }: { order: CustomerOrderType }) {
         <div className="min-w-0 flex items-center gap-1.5 text-sm text-muted-foreground">
           <Package className="h-4 w-4 shrink-0" />
           <span className="truncate">
-            {shopNames.length > 0 ? shopNames.join(" · ") : "—"}
+            {shopNames.length > 0 ? shopNames.join(' · ') : '—'}
           </span>
         </div>
       </div>
@@ -206,8 +216,10 @@ function OrderCard({ order }: { order: CustomerOrderType }) {
       {/* Bottom: tổng tiền + CTA */}
       <div className="flex items-center justify-between border-t pt-3">
         <span className="text-sm text-muted-foreground">
-          Tổng cộng:{" "}
-          <span className="font-black text-foreground">{formatVnd.format(total)}</span>
+          Tổng cộng:{' '}
+          <span className="font-black text-foreground">
+            {formatVnd.format(total)}
+          </span>
         </span>
         <span className="flex items-center gap-1 text-sm font-semibold text-violet-600 dark:text-violet-400 group-hover:gap-2 transition-all">
           Xem chi tiết <ChevronRight className="h-4 w-4" />

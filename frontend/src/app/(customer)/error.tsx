@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import Link from "next/link";
-import { AlertTriangle, Home, RefreshCw } from "lucide-react";
-import { useQueryErrorResetBoundary } from "@tanstack/react-query";
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -15,7 +15,7 @@ export default function CustomerError({ error, reset }: ErrorProps) {
 
   useEffect(() => {
     // Log lỗi để hỗ trợ debug trong quá trình phát triển
-    console.error("Customer route error:", error);
+    console.error('Customer route error:', error);
   }, [error]);
 
   const handleTryAgain = () => {
@@ -31,7 +31,7 @@ export default function CustomerError({ error, reset }: ErrorProps) {
         <div className="max-w-md w-full space-y-8 p-8 rounded-2xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient accent */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-indigo-500" />
-          
+
           <div className="text-center space-y-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/50">
               <AlertTriangle className="h-7 w-7" />
@@ -40,14 +40,17 @@ export default function CustomerError({ error, reset }: ErrorProps) {
               Đã xảy ra sự cố hệ thống
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Trang web gặp sự cố khi tải dữ liệu. Đừng lo lắng, chúng tôi đã ghi nhận lỗi này và đang tiến hành khắc phục.
+              Trang web gặp sự cố khi tải dữ liệu. Đừng lo lắng, chúng tôi đã
+              ghi nhận lỗi này và đang tiến hành khắc phục.
             </p>
           </div>
 
           {/* Digest for debugging */}
           {error.digest && (
             <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border dark:border-zinc-800/80 space-y-1">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mã sự cố</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Mã sự cố
+              </p>
               <code className="text-xs font-mono text-zinc-600 dark:text-zinc-400 block break-all select-all">
                 {error.digest}
               </code>

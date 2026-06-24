@@ -1,22 +1,29 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
-import { Camera, Loader2, Save, User as UserIcon, Mail, Phone } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
+import {
+  Camera,
+  Loader2,
+  Save,
+  User as UserIcon,
+  Mail,
+  Phone,
+} from 'lucide-react';
 
-import { useAuthStore } from "@/store/useAuthStore";
-import userApiRequest from "@/apiRequests/users/users";
+import { useAuthStore } from '@/store/useAuthStore';
+import userApiRequest from '@/apiRequests/users/users';
 import {
   UpdateProfileBody,
   UpdateProfileBodyType,
-} from "@/schemaValidations/users/profile.schema";
-import { getErrorMessage } from "@/lib/http";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+} from '@/schemaValidations/users/profile.schema';
+import { getErrorMessage } from '@/lib/http';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -43,7 +50,7 @@ export default function ProfilePage() {
     formState: { errors },
   } = useForm<UpdateProfileBodyType>({
     resolver: zodResolver(UpdateProfileBody),
-    defaultValues: { full_name: "", phone: "" },
+    defaultValues: { full_name: '', phone: '' },
   });
 
   // Lấy dữ liệu mới nhất từ server, đồng bộ store + form
@@ -55,8 +62,8 @@ export default function ProfilePage() {
         if (!active) return;
         setUser(res.data);
         reset({
-          full_name: res.data.full_name ?? "",
-          phone: res.data.phone ?? "",
+          full_name: res.data.full_name ?? '',
+          phone: res.data.phone ?? '',
         });
       } catch (error: any) {
         toast.error(getErrorMessage(error));
@@ -69,7 +76,7 @@ export default function ProfilePage() {
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { "image/*": [] },
+    accept: { 'image/*': [] },
     multiple: false,
     maxSize: 10 * 1024 * 1024,
     onDrop: (accepted) => {
@@ -81,10 +88,10 @@ export default function ProfilePage() {
     onDropRejected: (rejections) => {
       rejections.forEach((r) =>
         r.errors.forEach((err) => {
-          if (err.code === "file-too-large") {
-            toast.error("Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.");
-          } else if (err.code === "file-invalid-type") {
-            toast.error("File không đúng định dạng. Chỉ chấp nhận ảnh.");
+          if (err.code === 'file-too-large') {
+            toast.error('Ảnh vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.');
+          } else if (err.code === 'file-invalid-type') {
+            toast.error('File không đúng định dạng. Chỉ chấp nhận ảnh.');
           } else {
             toast.error(`Lỗi tải file: ${err.message}`);
           }
@@ -97,10 +104,10 @@ export default function ProfilePage() {
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
       const res = await userApiRequest.uploadAvatar(formData);
       setUser(res.data);
-      toast.success("Cập nhật ảnh đại diện thành công!");
+      toast.success('Cập nhật ảnh đại diện thành công!');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -113,11 +120,11 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       const res = await userApiRequest.updateProfile({
-        full_name: data.full_name?.trim() || "",
-        phone: data.phone?.trim() || "",
+        full_name: data.full_name?.trim() || '',
+        phone: data.phone?.trim() || '',
       });
       setUser(res.data);
-      toast.success("Cập nhật hồ sơ thành công!");
+      toast.success('Cập nhật hồ sơ thành công!');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -187,13 +194,21 @@ export default function ProfilePage() {
             <FieldLabel className="text-sm font-bold flex items-center gap-2">
               <UserIcon className="h-4 w-4 text-violet-500" /> Tên đăng nhập
             </FieldLabel>
-            <Input value={user?.username ?? ""} disabled className="py-3 rounded-xl" />
+            <Input
+              value={user?.username ?? ''}
+              disabled
+              className="py-3 rounded-xl"
+            />
           </Field>
           <Field>
             <FieldLabel className="text-sm font-bold flex items-center gap-2">
               <Mail className="h-4 w-4 text-violet-500" /> Email
             </FieldLabel>
-            <Input value={user?.email ?? ""} disabled className="py-3 rounded-xl" />
+            <Input
+              value={user?.email ?? ''}
+              disabled
+              className="py-3 rounded-xl"
+            />
           </Field>
         </div>
 
@@ -205,7 +220,7 @@ export default function ProfilePage() {
           <Input
             id="full_name"
             placeholder="Ví dụ: Nguyễn Văn A"
-            {...register("full_name")}
+            {...register('full_name')}
             className="py-3 rounded-xl"
             aria-invalid={!!errors.full_name}
           />
@@ -215,13 +230,16 @@ export default function ProfilePage() {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="phone" className="text-sm font-bold flex items-center gap-2">
+          <FieldLabel
+            htmlFor="phone"
+            className="text-sm font-bold flex items-center gap-2"
+          >
             <Phone className="h-4 w-4 text-violet-500" /> Số điện thoại
           </FieldLabel>
           <Input
             id="phone"
             placeholder="Ví dụ: 0901234567"
-            {...register("phone")}
+            {...register('phone')}
             className="py-3 rounded-xl"
             aria-invalid={!!errors.phone}
           />

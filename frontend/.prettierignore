@@ -1,0 +1,11 @@
+# Build output
+.next/
+out/
+node_modules/
+
+# Lockfile
+package-lock.json
+
+# Auto-generated — KHÔNG format (script sinh ra, prettier sẽ phá CI drift guard)
+src/constants/*.generated.ts
+src/lib/api/api-schema.d.ts

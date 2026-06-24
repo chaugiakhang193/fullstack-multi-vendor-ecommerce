@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { getErrorMessage } from "@/lib/http";
+import * as React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { getErrorMessage } from '@/lib/http';
 
 import {
   Card,
@@ -16,25 +16,25 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   ForgotPasswordBody,
   ForgotPasswordBodyType,
-} from "@/schemaValidations/auth/auth.schema";
+} from '@/schemaValidations/auth/auth.schema';
 
 export function ForgotPasswordForm({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [cooldown, setCooldown] = useState<number>(0);
   const [hasSent, setHasSent] = useState<boolean>(false);
@@ -49,9 +49,9 @@ export function ForgotPasswordForm({
 
   const form = useForm<ForgotPasswordBodyType>({
     resolver: zodResolver(ForgotPasswordBody),
-    mode: "onTouched",
+    mode: 'onTouched',
     defaultValues: {
-      email: "",
+      email: '',
     },
   });
 
@@ -59,16 +59,16 @@ export function ForgotPasswordForm({
     try {
       setIsLoading(true);
       const res = await authApiRequest.forgotPassword(data);
-      toast.success("Thành công", {
+      toast.success('Thành công', {
         description:
           res.message ||
-          "Vui lòng kiểm tra email của bạn để lấy liên kết khôi phục mật khẩu.",
+          'Vui lòng kiểm tra email của bạn để lấy liên kết khôi phục mật khẩu.',
       });
       setHasSent(true);
       setCooldown(60);
     } catch (error) {
       const errMsg = getErrorMessage(error);
-      const failTitle = "Thất bại";
+      const failTitle = 'Thất bại';
       toast.error(failTitle, {
         description: errMsg,
       });
@@ -78,10 +78,12 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
+    <div className={cn('flex flex-col gap-4 w-full', className)} {...props}>
       <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
         <CardHeader className="text-center pb-6 sm:pb-8">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">Quên mật khẩu</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl font-bold">
+            Quên mật khẩu
+          </CardTitle>
           <CardDescription className="text-base sm:text-lg">
             Nhập email của bạn để nhận liên kết khôi phục mật khẩu.
           </CardDescription>
@@ -97,7 +99,10 @@ export function ForgotPasswordForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="email" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="email"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Email
                     </FieldLabel>
                     <Input
@@ -127,9 +132,9 @@ export function ForgotPasswordForm({
                   ) : cooldown > 0 ? (
                     `Gửi lại liên kết khôi phục (${cooldown}s)`
                   ) : hasSent ? (
-                    "Gửi lại liên kết khôi phục"
+                    'Gửi lại liên kết khôi phục'
                   ) : (
-                    "Gửi liên kết khôi phục"
+                    'Gửi liên kết khôi phục'
                   )}
                 </Button>
 
@@ -138,7 +143,7 @@ export function ForgotPasswordForm({
                   variant="outline"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading}
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push('/login')}
                 >
                   Quay lại đăng nhập
                 </Button>

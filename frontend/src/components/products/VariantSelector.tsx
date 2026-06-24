@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import React, { useEffect, useMemo } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 // Types
-import type { ProductVariantResponseType } from "@/schemaValidations/products/products.schema";
+import type { ProductVariantResponseType } from '@/schemaValidations/products/products.schema';
 
 interface VariantSelectorProps {
   variants: ProductVariantResponseType[];
@@ -14,18 +14,18 @@ interface VariantSelectorProps {
 
 // Color map helper for visual color swatches
 const COLOR_MAP: Record<string, string> = {
-  "Đen": "#18181b",
-  "Đen Nhám": "#27272a",
-  "Trắng": "#ffffff",
-  "Trắng thanh lịch": "#ffffff",
-  "Đỏ": "#ef4444",
-  "Xanh": "#3b82f6",
-  "Xanh Dương": "#2563eb",
-  "Xanh Lá": "#10b981",
-  "Vàng": "#f59e0b",
-  "Titan Tự Nhiên": "#a1a1aa",
-  "Xám": "#71717a",
-  "Hồng": "#ec4899",
+  Đen: '#18181b',
+  'Đen Nhám': '#27272a',
+  Trắng: '#ffffff',
+  'Trắng thanh lịch': '#ffffff',
+  Đỏ: '#ef4444',
+  Xanh: '#3b82f6',
+  'Xanh Dương': '#2563eb',
+  'Xanh Lá': '#10b981',
+  Vàng: '#f59e0b',
+  'Titan Tự Nhiên': '#a1a1aa',
+  Xám: '#71717a',
+  Hồng: '#ec4899',
 };
 
 export default function VariantSelector({
@@ -79,7 +79,9 @@ export default function VariantSelector({
   const activeVariant = useMemo(() => {
     const match = variants.find((v) => {
       if (!v.attributes) return false;
-      return allAttrKeys.every((key) => v.attributes?.[key] === selectedAttributes[key]);
+      return allAttrKeys.every(
+        (key) => v.attributes?.[key] === selectedAttributes[key],
+      );
     });
     return match || null;
   }, [variants, selectedAttributes, allAttrKeys]);
@@ -87,18 +89,18 @@ export default function VariantSelector({
   // Truyền variant được chọn lên component cha và cập nhật param variant tương ứng
   useEffect(() => {
     onVariantSelect(activeVariant);
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       if (activeVariant) {
         const params = new URLSearchParams(window.location.search);
-        if (params.get("variant") !== activeVariant.id) {
-          params.set("variant", activeVariant.id);
+        if (params.get('variant') !== activeVariant.id) {
+          params.set('variant', activeVariant.id);
           const newUrl = `${pathname}?${params.toString()}`;
           router.replace(newUrl, { scroll: false });
         }
       } else {
         const params = new URLSearchParams(window.location.search);
-        if (params.has("variant")) {
-          params.delete("variant");
+        if (params.has('variant')) {
+          params.delete('variant');
           const newUrl = `${pathname}?${params.toString()}`;
           router.replace(newUrl, { scroll: false });
         }
@@ -108,7 +110,7 @@ export default function VariantSelector({
 
   // 5. Thiết lập lựa chọn mặc định khi tải trang nếu có param variant
   useEffect(() => {
-    const variantIdFromQuery = searchParams.get("variant");
+    const variantIdFromQuery = searchParams.get('variant');
 
     if (variantIdFromQuery && variants.length > 0) {
       // Nếu có variant id trong URL, đồng bộ hóa các attributes của variant đó vào URL search params
@@ -143,8 +145,9 @@ export default function VariantSelector({
     if (!exactMatchExists) {
       // Tìm variant đầu tiên chứa thuộc tính vừa click, ưu tiên còn hàng
       const backupVariant =
-        variants.find((v) => v.attributes?.[key] === value && v.stock_quantity > 0) ||
-        variants.find((v) => v.attributes?.[key] === value);
+        variants.find(
+          (v) => v.attributes?.[key] === value && v.stock_quantity > 0,
+        ) || variants.find((v) => v.attributes?.[key] === value);
 
       if (backupVariant?.attributes) {
         Object.entries(backupVariant.attributes).forEach(([k, val]) => {
@@ -171,11 +174,11 @@ export default function VariantSelector({
   // Dịch tên thuộc tính sang Tiếng Việt hiển thị
   const translateKey = (key: string) => {
     const map: Record<string, string> = {
-      color: "Màu sắc",
-      size: "Kích thước",
-      storage: "Dung lượng",
-      ram: "RAM",
-      cpu: "Vi xử lý",
+      color: 'Màu sắc',
+      size: 'Kích thước',
+      storage: 'Dung lượng',
+      ram: 'RAM',
+      cpu: 'Vi xử lý',
     };
     return map[key] || key;
   };
@@ -186,7 +189,7 @@ export default function VariantSelector({
     <div className="space-y-6">
       {allAttrKeys.map((key) => {
         const options = attrOptions[key];
-        const isColor = key === "color";
+        const isColor = key === 'color';
 
         return (
           <div key={key} className="space-y-3">
@@ -195,7 +198,7 @@ export default function VariantSelector({
                 {translateKey(key)}:
               </span>
               <span className="text-sm font-extrabold text-foreground">
-                {selectedAttributes[key] || "Chưa chọn"}
+                {selectedAttributes[key] || 'Chưa chọn'}
               </span>
             </div>
 
@@ -206,8 +209,8 @@ export default function VariantSelector({
 
                 if (isColor) {
                   // Render Color Swatches
-                  const hexColor = COLOR_MAP[option] || "#e4e4e7";
-                  const isWhite = option.toLowerCase().includes("trắng");
+                  const hexColor = COLOR_MAP[option] || '#e4e4e7';
+                  const isWhite = option.toLowerCase().includes('trắng');
 
                   return (
                     <button
@@ -216,17 +219,17 @@ export default function VariantSelector({
                       disabled={isDisabled}
                       onClick={() => handleSelectAttribute(key, option)}
                       className={cn(
-                        "relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 border-2 cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed",
+                        'relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 border-2 cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed',
                         isSelected
-                          ? "border-violet-600 scale-110 ring-2 ring-violet-500/20"
-                          : "border-zinc-200 dark:border-zinc-800 hover:scale-105"
+                          ? 'border-violet-600 scale-110 ring-2 ring-violet-500/20'
+                          : 'border-zinc-200 dark:border-zinc-800 hover:scale-105',
                       )}
                       title={option}
                     >
                       <span
                         className={cn(
-                          "w-7 h-7 rounded-full block border",
-                          isWhite ? "border-zinc-200" : "border-transparent"
+                          'w-7 h-7 rounded-full block border',
+                          isWhite ? 'border-zinc-200' : 'border-transparent',
                         )}
                         style={{ backgroundColor: hexColor }}
                       />
@@ -234,7 +237,7 @@ export default function VariantSelector({
                       {isSelected && (
                         <span
                           className={cn(
-                            "absolute inset-0 rounded-full border-2 border-white pointer-events-none"
+                            'absolute inset-0 rounded-full border-2 border-white pointer-events-none',
                           )}
                         />
                       )}
@@ -256,11 +259,12 @@ export default function VariantSelector({
                     disabled={isDisabled}
                     onClick={() => handleSelectAttribute(key, option)}
                     className={cn(
-                      "min-w-12 h-10 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center cursor-pointer select-none disabled:cursor-not-allowed",
+                      'min-w-12 h-10 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center cursor-pointer select-none disabled:cursor-not-allowed',
                       isSelected
-                        ? "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/10"
-                        : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900",
-                      isDisabled && "opacity-30 line-through bg-zinc-100 dark:bg-zinc-900 border-zinc-200 text-muted-foreground"
+                        ? 'bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/10'
+                        : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',
+                      isDisabled &&
+                        'opacity-30 line-through bg-zinc-100 dark:bg-zinc-900 border-zinc-200 text-muted-foreground',
                     )}
                   >
                     {option}

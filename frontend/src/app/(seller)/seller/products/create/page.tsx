@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
 import {
   Plus,
   Trash2,
@@ -12,16 +12,16 @@ import {
   ChevronLeft,
   Package,
   X,
-} from "lucide-react";
+} from 'lucide-react';
 
-import sellerProductsApiRequest from "@/apiRequests/products/seller-products";
-import categoriesApiRequest from "@/apiRequests/products/categories";
-import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
-import { getErrorMessage } from "@/lib/http";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import sellerProductsApiRequest from '@/apiRequests/products/seller-products';
+import categoriesApiRequest from '@/apiRequests/products/categories';
+import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
+import { getErrorMessage } from '@/lib/http';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 // Kiểu dữ liệu cho 1 row biến thể trong form (UI state, không phải DTO)
 type VariantFormItem = {
@@ -49,8 +49,8 @@ type FormErrors = {
 // Tạo 1 row biến thể rỗng mặc định
 function createEmptyVariant(): VariantFormItem {
   return {
-    name: "",
-    sku: "",
+    name: '',
+    sku: '',
     additional_price: 0,
     stock_quantity: 0,
     images: [],
@@ -75,7 +75,7 @@ function VariantImageDropzone({
   const remainingSlots = 3 - images.length;
 
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { "image/*": [] },
+    accept: { 'image/*': [] },
     multiple: true,
     maxFiles: remainingSlots,
     disabled: remainingSlots <= 0,
@@ -88,10 +88,14 @@ function VariantImageDropzone({
       fileRejections.forEach((rejection) => {
         const { file, errors } = rejection;
         errors.forEach((err) => {
-          if (err.code === "file-too-large") {
-            toast.error(`Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-          } else if (err.code === "file-invalid-type") {
-            toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+          if (err.code === 'file-too-large') {
+            toast.error(
+              `Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+            );
+          } else if (err.code === 'file-invalid-type') {
+            toast.error(
+              `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+            );
           } else {
             toast.error(`Lỗi tải file: ${err.message}`);
           }
@@ -147,19 +151,19 @@ export default function CreateProductPage() {
 
   // State danh mục
   const [categories, setCategories] = useState<CategoryResponseType[]>([]);
-  const [selectedParentId, setSelectedParentId] = useState<string>("");
+  const [selectedParentId, setSelectedParentId] = useState<string>('');
 
   // State form cơ bản
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [sku, setSku] = useState("");
-  const [weight, setWeight] = useState<string>("");
-  const [length, setLength] = useState<string>("");
-  const [width, setWidth] = useState<string>("");
-  const [height, setHeight] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<string>("");
-  const [stockQuantity, setStockQuantity] = useState<string>("");
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState<string>('');
+  const [sku, setSku] = useState('');
+  const [weight, setWeight] = useState<string>('');
+  const [length, setLength] = useState<string>('');
+  const [width, setWidth] = useState<string>('');
+  const [height, setHeight] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [stockQuantity, setStockQuantity] = useState<string>('');
   const [hasVariants, setHasVariants] = useState(false);
 
   // State ảnh
@@ -184,7 +188,7 @@ export default function CreateProductPage() {
         const res = await categoriesApiRequest.getAll();
         setCategories(res.data ?? []);
       } catch {
-        toast.error("Không thể tải danh sách danh mục.");
+        toast.error('Không thể tải danh sách danh mục.');
       }
     };
     fetchCategories();
@@ -214,7 +218,7 @@ export default function CreateProductPage() {
   // Khi chọn parent → reset child selection
   const handleParentChange = (parentId: string) => {
     setSelectedParentId(parentId);
-    setCategoryId("");
+    setCategoryId('');
     if (errors.category_id) {
       setErrors((prev) => ({ ...prev, category_id: undefined }));
     }
@@ -252,7 +256,7 @@ export default function CreateProductPage() {
   const handleToggleVariants = (checked: boolean) => {
     setHasVariants(checked);
     if (checked) {
-      setStockQuantity("");
+      setStockQuantity('');
       if (variants.length === 0) setVariants([createEmptyVariant()]);
       if (errors.stock_quantity) {
         setErrors((prev) => ({ ...prev, stock_quantity: undefined }));
@@ -268,7 +272,7 @@ export default function CreateProductPage() {
   // Dropzone thumbnail
   const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: false,
       maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
@@ -285,10 +289,14 @@ export default function CreateProductPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -301,7 +309,7 @@ export default function CreateProductPage() {
   const remainingGallerySlots = 5 - galleryFiles.length;
   const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: true,
       disabled: remainingGallerySlots <= 0,
       maxSize: 10 * 1024 * 1024,
@@ -318,10 +326,14 @@ export default function CreateProductPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -361,7 +373,7 @@ export default function CreateProductPage() {
 
   const handleVariantChange = (
     index: number,
-    field: keyof Omit<VariantFormItem, "images" | "imagePreviews">,
+    field: keyof Omit<VariantFormItem, 'images' | 'imagePreviews'>,
     value: string | number,
   ) => {
     setVariants((prev) =>
@@ -371,10 +383,10 @@ export default function CreateProductPage() {
     // Clear dynamic error key when modified
     const errKeyName = `variant_${index}_name`;
     const errKeyStock = `variant_${index}_stock`;
-    if (field === "name" && errors[errKeyName]) {
+    if (field === 'name' && errors[errKeyName]) {
       setErrors((prev) => ({ ...prev, [errKeyName]: undefined }));
     }
-    if (field === "stock_quantity" && errors[errKeyStock]) {
+    if (field === 'stock_quantity' && errors[errKeyStock]) {
       setErrors((prev) => ({ ...prev, [errKeyStock]: undefined }));
     }
     if (errors.variants) {
@@ -421,35 +433,35 @@ export default function CreateProductPage() {
   // Validate form trước khi submit
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!name.trim()) newErrors.name = "Tên sản phẩm không được để trống.";
+    if (!name.trim()) newErrors.name = 'Tên sản phẩm không được để trống.';
     if (!price || parseFloat(price) < 0)
-      newErrors.price = "Giá sản phẩm không hợp lệ.";
+      newErrors.price = 'Giá sản phẩm không hợp lệ.';
     if (!weight || parseFloat(weight) < 1)
-      newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
-    if (!categoryId) newErrors.category_id = "Vui lòng chọn danh mục.";
-    if (!thumbnailFile) newErrors.thumbnail = "Vui lòng chọn ảnh đại diện.";
+      newErrors.weight = 'Trọng lượng phải ít nhất 1 gram.';
+    if (!categoryId) newErrors.category_id = 'Vui lòng chọn danh mục.';
+    if (!thumbnailFile) newErrors.thumbnail = 'Vui lòng chọn ảnh đại diện.';
     if (galleryFiles.length === 0)
-      newErrors.general_gallery = "Vui lòng chọn ít nhất 1 ảnh bộ sưu tập.";
+      newErrors.general_gallery = 'Vui lòng chọn ít nhất 1 ảnh bộ sưu tập.';
 
     if (!hasVariants) {
       if (!stockQuantity || parseInt(stockQuantity) < 0) {
-        newErrors.stock_quantity = "Tồn kho không hợp lệ.";
+        newErrors.stock_quantity = 'Tồn kho không hợp lệ.';
       }
     } else {
       if (variants.length === 0) {
-        newErrors.variants = "Cần ít nhất 1 biến thể.";
+        newErrors.variants = 'Cần ít nhất 1 biến thể.';
       } else {
         for (let i = 0; i < variants.length; i++) {
           const variant = variants[i];
           if (!variant.name.trim()) {
             newErrors[`variant_${i}_name`] =
-              "Tên biến thể không được để trống.";
+              'Tên biến thể không được để trống.';
           }
           if (variant.stock_quantity < 0) {
-            newErrors[`variant_${i}_stock`] = "Tồn kho không được âm.";
+            newErrors[`variant_${i}_stock`] = 'Tồn kho không được âm.';
           }
           if (variant.images.length === 0) {
-            newErrors[`variant_${i}_images`] = "Biến thể cần ít nhất 1 ảnh.";
+            newErrors[`variant_${i}_images`] = 'Biến thể cần ít nhất 1 ảnh.';
           }
         }
       }
@@ -463,7 +475,7 @@ export default function CreateProductPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) {
-      toast.error("Vui lòng kiểm tra lại các trường bắt buộc.");
+      toast.error('Vui lòng kiểm tra lại các trường bắt buộc.');
       return;
     }
 
@@ -472,29 +484,29 @@ export default function CreateProductPage() {
       const formData = new FormData();
 
       // Append các trường cơ bản
-      formData.append("name", name.trim());
+      formData.append('name', name.trim());
       if (description.trim())
-        formData.append("description", description.trim());
-      formData.append("price", price);
-      if (sku.trim()) formData.append("sku", sku.trim());
-      formData.append("weight", weight);
-      if (length) formData.append("length", length);
-      if (width) formData.append("width", width);
-      if (height) formData.append("height", height);
-      formData.append("category_id", categoryId);
-      formData.append("has_variants", String(hasVariants));
+        formData.append('description', description.trim());
+      formData.append('price', price);
+      if (sku.trim()) formData.append('sku', sku.trim());
+      formData.append('weight', weight);
+      if (length) formData.append('length', length);
+      if (width) formData.append('width', width);
+      if (height) formData.append('height', height);
+      formData.append('category_id', categoryId);
+      formData.append('has_variants', String(hasVariants));
 
       // Append tồn kho gốc (chỉ khi không có biến thể)
       if (!hasVariants && stockQuantity) {
-        formData.append("stock_quantity", stockQuantity);
+        formData.append('stock_quantity', stockQuantity);
       }
 
       // Append file ảnh thumbnail (bắt buộc)
-      formData.append("thumbnail", thumbnailFile!);
+      formData.append('thumbnail', thumbnailFile!);
 
       // Append ảnh gallery
       galleryFiles.forEach((file) => {
-        formData.append("general_gallery", file);
+        formData.append('general_gallery', file);
       });
 
       // Append biến thể và ảnh biến thể (flatten array theo đúng cơ chế BE)
@@ -507,19 +519,19 @@ export default function CreateProductPage() {
           stock_quantity: v.stock_quantity,
           imageCount: v.images.length,
         }));
-        formData.append("variants", JSON.stringify(variantsData));
+        formData.append('variants', JSON.stringify(variantsData));
 
         // Flatten tất cả ảnh biến thể vào 1 key theo đúng thứ tự
         variants.forEach((v) => {
           v.images.forEach((imageFile) => {
-            formData.append("variant_images", imageFile);
+            formData.append('variant_images', imageFile);
           });
         });
       }
 
       await sellerProductsApiRequest.createProduct(formData);
-      toast.success("Tạo sản phẩm thành công!");
-      router.push("/seller/products");
+      toast.success('Tạo sản phẩm thành công!');
+      router.push('/seller/products');
     } catch (error: any) {
       const msg = getErrorMessage(error);
       toast.error(msg);
@@ -806,10 +818,10 @@ export default function CreateProductPage() {
               </span>
               <div
                 onClick={() => handleToggleVariants(!hasVariants)}
-                className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${hasVariants ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${hasVariants ? 'bg-violet-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? "translate-x-5" : "translate-x-0"}`}
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </div>
             </label>
@@ -869,7 +881,7 @@ export default function CreateProductPage() {
                         placeholder="Ví dụ: Đỏ, Size L"
                         value={variant.name}
                         onChange={(e) =>
-                          handleVariantChange(idx, "name", e.target.value)
+                          handleVariantChange(idx, 'name', e.target.value)
                         }
                         aria-invalid={!!errors[`variant_${idx}_name`]}
                       />
@@ -885,7 +897,7 @@ export default function CreateProductPage() {
                         placeholder="SKU-RED-L"
                         value={variant.sku}
                         onChange={(e) =>
-                          handleVariantChange(idx, "sku", e.target.value)
+                          handleVariantChange(idx, 'sku', e.target.value)
                         }
                       />
                     </div>
@@ -901,7 +913,7 @@ export default function CreateProductPage() {
                         onChange={(e) =>
                           handleVariantChange(
                             idx,
-                            "additional_price",
+                            'additional_price',
                             parseFloat(e.target.value) || 0,
                           )
                         }
@@ -919,7 +931,7 @@ export default function CreateProductPage() {
                         onChange={(e) =>
                           handleVariantChange(
                             idx,
-                            "stock_quantity",
+                            'stock_quantity',
                             parseInt(e.target.value) || 0,
                           )
                         }

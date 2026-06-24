@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { getErrorMessage } from "@/lib/http";
+import * as React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { getErrorMessage } from '@/lib/http';
 
 import {
   Card,
@@ -16,25 +16,25 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   ResendVerificationBody,
   ResendVerificationBodyType,
-} from "@/schemaValidations/auth/auth.schema";
+} from '@/schemaValidations/auth/auth.schema';
 
 export function ResendVerificationForm({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [cooldown, setCooldown] = useState<number>(0);
   const [hasSent, setHasSent] = useState<boolean>(false);
@@ -49,9 +49,9 @@ export function ResendVerificationForm({
 
   const form = useForm<ResendVerificationBodyType>({
     resolver: zodResolver(ResendVerificationBody),
-    mode: "onTouched",
+    mode: 'onTouched',
     defaultValues: {
-      email: "",
+      email: '',
     },
   });
 
@@ -59,17 +59,17 @@ export function ResendVerificationForm({
     try {
       setIsLoading(true);
       const res = await authApiRequest.resendVerification(data);
-      toast.success("Thành công", {
+      toast.success('Thành công', {
         description:
           res.message ||
-          "Một mã xác thực mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.",
+          'Một mã xác thực mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
       });
       setHasSent(true);
       setCooldown(60);
-      router.push("/verify-email");
+      router.push('/verify-email');
     } catch (error) {
       const errMsg = getErrorMessage(error);
-      const failTitle = "Thất bại";
+      const failTitle = 'Thất bại';
       toast.error(failTitle, {
         description: errMsg,
       });
@@ -79,10 +79,12 @@ export function ResendVerificationForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
+    <div className={cn('flex flex-col gap-4 w-full', className)} {...props}>
       <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
         <CardHeader className="text-center pb-6 sm:pb-8">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">Xác thực tài khoản</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl font-bold">
+            Xác thực tài khoản
+          </CardTitle>
           <CardDescription className="text-base sm:text-lg">
             Nhập email của bạn để nhận lại mã xác thực tài khoản.
           </CardDescription>
@@ -98,7 +100,10 @@ export function ResendVerificationForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="email" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="email"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Email
                     </FieldLabel>
                     <Input
@@ -128,9 +133,9 @@ export function ResendVerificationForm({
                   ) : cooldown > 0 ? (
                     `Gửi lại mã xác thực (${cooldown}s)`
                   ) : hasSent ? (
-                    "Gửi lại mã xác thực"
+                    'Gửi lại mã xác thực'
                   ) : (
-                    "Gửi mã xác thực"
+                    'Gửi mã xác thực'
                   )}
                 </Button>
 
@@ -139,7 +144,7 @@ export function ResendVerificationForm({
                   variant="outline"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
                   disabled={isLoading}
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push('/login')}
                 >
                   Quay lại đăng nhập
                 </Button>

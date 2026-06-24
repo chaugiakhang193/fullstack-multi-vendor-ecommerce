@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React from "react";
-import Link from "next/link";
-import { Store } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import { Store } from 'lucide-react';
 
 // Components & Helpers
-import CartItemRow from "./CartItemRow";
-import { cn } from "@/lib/utils";
-import { CartItem } from "@/store/useCartStore";
+import CartItemRow from './CartItemRow';
+import { cn } from '@/lib/utils';
+import { CartItem } from '@/store/useCartStore';
 
 interface CartShopGroupProps {
   shopId: string;
@@ -16,14 +16,22 @@ interface CartShopGroupProps {
   selectedItemIds: string[];
   onToggleSelectItem: (item: CartItem) => void;
   onToggleSelectShop: (shopId: string, checkState: boolean) => void;
-  onUpdateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
+  onUpdateQuantity: (
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+  ) => void;
   onRemove: (productId: string, variantId: string | null) => void;
-  onUpdateVariant: (productId: string, oldVariantId: string | null, newVariantId: string | null) => void;
+  onUpdateVariant: (
+    productId: string,
+    oldVariantId: string | null,
+    newVariantId: string | null,
+  ) => void;
 }
 
-const priceFormatterObj = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatterObj = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -43,7 +51,7 @@ export default function CartShopGroup({
 }: CartShopGroupProps) {
   // Determine availability of items to check if shop group has selectables
   const availableItems = items.filter((item) => {
-    const isDbItem = "isAvailable" in item;
+    const isDbItem = 'isAvailable' in item;
     if (isDbItem) {
       const dbIsAvailable = (item as any).isAvailable;
       return dbIsAvailable;
@@ -62,7 +70,7 @@ export default function CartShopGroup({
   const allAvailableSelected =
     hasAvailable &&
     availableItems.every((item) => {
-      const itemKey = `${item.productId}_${item.variantId || "none"}`;
+      const itemKey = `${item.productId}_${item.variantId || 'none'}`;
       const isIncluded = selectedItemIds.includes(itemKey);
       return isIncluded;
     });
@@ -124,7 +132,7 @@ export default function CartShopGroup({
       {/* Shop Item Rows */}
       <div className="space-y-3">
         {items.map((item) => {
-          const itemKey = `${item.productId}_${item.variantId || "none"}`;
+          const itemKey = `${item.productId}_${item.variantId || 'none'}`;
           const isSelected = selectedItemIds.includes(itemKey);
 
           return (

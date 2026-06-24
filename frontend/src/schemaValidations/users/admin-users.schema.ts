@@ -1,8 +1,8 @@
-import z from "zod";
-import { UserRole, AccountStatus } from "@/constants/enum";
-import type { components } from "@/lib/api/api-schema";
+import z from 'zod';
+import { UserRole, AccountStatus } from '@/constants/enum';
+import type { components } from '@/lib/api/api-schema';
 
-type UpdateUserStatusDto = components["schemas"]["UpdateUserStatusDto"];
+type UpdateUserStatusDto = components['schemas']['UpdateUserStatusDto'];
 
 // Body input neo vào DTO openapi qua `satisfies` (xem UpdateUserStatusBody).
 // Response item hand-write zod theo entity (không bắt buộc satisfies — mirror cách
@@ -38,10 +38,12 @@ export const AdminUserListData = z.object({
 export const UpdateUserStatusBody = z.object({
   // string-literal (không nativeEnum): khớp StatusValue ở page.tsx và DTO openapi
   // (openapi sinh union literal, không phải TS enum).
-  status: z.enum(["active", "suspended", "banned"]),
+  status: z.enum(['active', 'suspended', 'banned']),
 }) satisfies z.ZodType<UpdateUserStatusDto, any, any>;
 
 export type AdminUserItemType = z.TypeOf<typeof AdminUserItemSchema>;
 export type AdminUserListDataType = z.TypeOf<typeof AdminUserListData>;
-export type AdminUserPaginationMetaType = z.TypeOf<typeof AdminUserPaginationMeta>;
+export type AdminUserPaginationMetaType = z.TypeOf<
+  typeof AdminUserPaginationMeta
+>;
 export type UpdateUserStatusBodyType = z.TypeOf<typeof UpdateUserStatusBody>;

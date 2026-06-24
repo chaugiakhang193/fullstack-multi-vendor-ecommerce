@@ -1,7 +1,7 @@
-import z from "zod";
-import type { components } from "@/lib/api/api-schema";
+import z from 'zod';
+import type { components } from '@/lib/api/api-schema';
 
-type SellerStatsResponseDto = components["schemas"]["SellerStatsResponseDto"];
+type SellerStatsResponseDto = components['schemas']['SellerStatsResponseDto'];
 
 export const BestSellerItemSchema = z.object({
   product_id: z.string(),

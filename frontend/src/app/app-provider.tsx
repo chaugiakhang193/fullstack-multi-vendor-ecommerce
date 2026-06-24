@@ -1,17 +1,23 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useRouter, usePathname } from "next/navigation";
-import { toast } from "sonner";
-import { tabId } from "@/lib/utils";
-import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { queryClient } from "@/lib/query-client";
-import { SocketProvider } from "@/components/providers/socket-provider";
-import { GUEST_ONLY_PATHS, REQUIRED_AUTH_PATH_PREFIXES } from "@/constants/routes";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
-import { UserRole } from "@/constants/enum";
+import { useEffect, useRef } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useRouter, usePathname } from 'next/navigation';
+import { toast } from 'sonner';
+import { tabId } from '@/lib/utils';
+import {
+  QueryClientProvider,
+  QueryErrorResetBoundary,
+} from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { queryClient } from '@/lib/query-client';
+import { SocketProvider } from '@/components/providers/socket-provider';
+import {
+  GUEST_ONLY_PATHS,
+  REQUIRED_AUTH_PATH_PREFIXES,
+} from '@/constants/routes';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
+import { UserRole } from '@/constants/enum';
 
 export default function AppProvider({
   children,
@@ -36,16 +42,16 @@ export default function AppProvider({
       isMounted.current = true;
 
       // Kiểm tra cảnh báo bảo mật từ session trước
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         const hasSecurityWarning = sessionStorage.getItem(
-          "auth_security_warning",
+          'auth_security_warning',
         );
-        if (hasSecurityWarning === "true") {
+        if (hasSecurityWarning === 'true') {
           toast.error(
-            "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại để bảo mật tài khoản.",
+            'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại để bảo mật tài khoản.',
             { duration: 5000 },
           );
-          sessionStorage.removeItem("auth_security_warning");
+          sessionStorage.removeItem('auth_security_warning');
         }
       }
 
@@ -69,28 +75,28 @@ export default function AppProvider({
         // Gọi silentRefresh để lấy accessToken mới cập nhật vào Zustand
         const isSuccess = await silentRefresh(router);
         if (isSuccess) {
-          toast.info("Đã đăng nhập thành công từ tab khác!");
+          toast.info('Đã đăng nhập thành công từ tab khác!');
           const isGuestPath = GUEST_ONLY_PATHS.includes(currentPath as any);
           if (isGuestPath) {
             const redirectUrl =
               user?.role === UserRole.SELLER
-                ? "/seller"
+                ? '/seller'
                 : user?.role === UserRole.ADMIN
-                  ? "/admin"
-                  : "/";
+                  ? '/admin'
+                  : '/';
             router.push(redirectUrl);
           }
         }
       } else if (data.type === BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS) {
         logout();
-        toast.info("Đã đăng xuất tài khoản từ tab khác!");
-        
+        toast.info('Đã đăng xuất tài khoản từ tab khác!');
+
         // Thêm /profile và /orders vào danh sách các trang yêu cầu đăng nhập
         const isAuthRequired = REQUIRED_AUTH_PATH_PREFIXES.some((prefix) =>
-          currentPath.startsWith(prefix)
+          currentPath.startsWith(prefix),
         );
         if (isAuthRequired) {
-          const loginUrl = "/login";
+          const loginUrl = '/login';
           router.push(loginUrl);
         }
       }

@@ -1,7 +1,7 @@
-"use client"; // Định nghĩa đây là một Client Component trong Next.js (chạy phía trình duyệt, sử dụng React Hooks)
+'use client'; // Định nghĩa đây là một Client Component trong Next.js (chạy phía trình duyệt, sử dụng React Hooks)
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 // Import các biểu tượng từ thư viện lucide-react để dựng giao diện trực quan
 import {
   Plus,
@@ -14,21 +14,21 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-} from "lucide-react";
-import { toast } from "sonner"; // Thư viện dùng để hiển thị thông báo (toast notification) dạng pop-up
+} from 'lucide-react';
+import { toast } from 'sonner'; // Thư viện dùng để hiển thị thông báo (toast notification) dạng pop-up
 
-import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // File định nghĩa các hàm gọi API đến backend cho seller
-import { ProductResponseType } from "@/schemaValidations/products/products.schema"; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
-import { getErrorMessage } from "@/lib/http";
-import { Button } from "@/components/ui/button"; // Component nút bấm dùng chung từ Shadcn UI
+import sellerProductsApiRequest from '@/apiRequests/products/seller-products'; // File định nghĩa các hàm gọi API đến backend cho seller
+import { ProductResponseType } from '@/schemaValidations/products/products.schema'; // Kiểu dữ liệu TypeScript của sản phẩm từ schema validation
+import { getErrorMessage } from '@/lib/http';
+import { Button } from '@/components/ui/button'; // Component nút bấm dùng chung từ Shadcn UI
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // Component Dialog (Hộp thoại xác nhận) từ Shadcn UI
-import { Pagination } from "@/components/shared/pagination"; // Component phân trang dùng chung
+} from '@/components/ui/dialog'; // Component Dialog (Hộp thoại xác nhận) từ Shadcn UI
+import { Pagination } from '@/components/shared/pagination'; // Component phân trang dùng chung
 
 /**
  * Hàm hỗ trợ tính tổng lượng tồn kho của một sản phẩm.
@@ -48,9 +48,9 @@ function getTotalStock(product: ProductResponseType): number {
  * Ví dụ: 100000 -> 100.000 ₫
  */
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
   }).format(price);
 }
 
@@ -76,13 +76,13 @@ export default function SellerProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Từ khóa tìm kiếm nhập bởi người dùng (để tìm theo tên hoặc SKU)
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   // Bộ lọc tồn kho: 'all' (Tất cả), 'in_stock' (Còn hàng), 'out_of_stock' (Hết hàng)
   const [stockFilter, setStockFilter] = useState<
-    "all" | "in_stock" | "out_of_stock"
-  >("all");
+    'all' | 'in_stock' | 'out_of_stock'
+  >('all');
 
   // Lưu ID của sản phẩm đang được thay đổi trạng thái Ẩn/Hiện (để hiển thị vòng quay loading tương ứng)
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -111,7 +111,11 @@ export default function SellerProductsPage() {
   }, [debouncedSearchQuery, stockFilter]);
 
   // --- HÀM GỌI API LẤY DANH SÁCH SẢN PHẨM ---
-  const fetchProducts = async (currentPage: number, search: string, stock: typeof stockFilter) => {
+  const fetchProducts = async (
+    currentPage: number,
+    search: string,
+    stock: typeof stockFilter,
+  ) => {
     setIsLoading(true);
     try {
       // Gọi API lấy kho hàng của Seller hiện tại kèm các tham số phân trang & lọc
@@ -148,7 +152,7 @@ export default function SellerProductsPage() {
     try {
       const formData = new FormData();
       const newIsHidden = !product.is_hidden; // Đảo trạng thái ẩn/hiện hiện tại
-      formData.append("is_hidden", String(newIsHidden));
+      formData.append('is_hidden', String(newIsHidden));
 
       // Gọi API cập nhật
       await sellerProductsApiRequest.updateProduct(productId, formData);
@@ -160,7 +164,7 @@ export default function SellerProductsPage() {
         ),
       );
       // Hiển thị thông báo thành công tương ứng
-      toast.success(newIsHidden ? "Đã ẩn sản phẩm." : "Đã hiện sản phẩm.");
+      toast.success(newIsHidden ? 'Đã ẩn sản phẩm.' : 'Đã hiện sản phẩm.');
     } catch (error: any) {
       const msg = getErrorMessage(error);
       toast.error(msg);
@@ -236,7 +240,8 @@ export default function SellerProductsPage() {
             Quản lý Sản phẩm
           </h1>
           <p className="text-muted-foreground text-base mt-2">
-            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của bạn.
+            Thêm, chỉnh sửa và quản lý danh sách sản phẩm trong cửa hàng của
+            bạn.
           </p>
         </div>
         {/* Đường dẫn chuyển hướng đến trang tạo sản phẩm mới */}
@@ -282,12 +287,12 @@ export default function SellerProductsPage() {
         <div className="flex flex-col items-center justify-center py-20 rounded-xl border bg-card text-center gap-3">
           <Package className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
           <p className="text-base font-semibold text-foreground">
-            {searchQuery || stockFilter !== "all"
-              ? "Không tìm thấy sản phẩm phù hợp."
-              : "Chưa có sản phẩm nào. Thêm sản phẩm đầu tiên!"}
+            {searchQuery || stockFilter !== 'all'
+              ? 'Không tìm thấy sản phẩm phù hợp.'
+              : 'Chưa có sản phẩm nào. Thêm sản phẩm đầu tiên!'}
           </p>
           {/* Chỉ hiện nút tạo nếu cửa hàng chưa có bất kỳ sản phẩm nào (không phải do bộ lọc tìm kiếm) */}
-          {!searchQuery && stockFilter === "all" && (
+          {!searchQuery && stockFilter === 'all' && (
             <Link href="/seller/products/create">
               <button className="flex items-center text-xs font-semibold px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20 mt-1">
                 <Plus className="h-4 w-4 mr-1.5" /> Thêm sản phẩm đầu tiên
@@ -358,14 +363,14 @@ export default function SellerProductsPage() {
 
                       {/* Cột 3: Mã định danh sản phẩm (SKU) */}
                       <td className="p-6 font-mono text-sm text-muted-foreground">
-                        {typeof product.sku === "string" && product.sku
+                        {typeof product.sku === 'string' && product.sku
                           ? product.sku
-                          : "—"}
+                          : '—'}
                       </td>
 
                       {/* Cột 4: Tên danh mục của sản phẩm */}
                       <td className="p-6 text-sm text-muted-foreground">
-                        {product.category?.name ?? "—"}
+                        {product.category?.name ?? '—'}
                       </td>
 
                       {/* Cột 5: Giá bán lẻ (Được định dạng sang tiền VND) */}
@@ -378,10 +383,10 @@ export default function SellerProductsPage() {
                         <span
                           className={`font-bold text-base ${
                             isOutOfStock
-                              ? "text-rose-600 dark:text-rose-400" // Đỏ khi hết hàng
+                              ? 'text-rose-600 dark:text-rose-400' // Đỏ khi hết hàng
                               : totalStock <= 5
-                                ? "text-amber-600 dark:text-amber-400" // Cam khi sắp hết hàng (<= 5)
-                                : "text-foreground" // Bình thường
+                                ? 'text-amber-600 dark:text-amber-400' // Cam khi sắp hết hàng (<= 5)
+                                : 'text-foreground' // Bình thường
                           }`}
                         >
                           {totalStock}
@@ -393,11 +398,11 @@ export default function SellerProductsPage() {
                         <span
                           className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                             isOutOfStock
-                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                           }`}
                         >
-                          {isOutOfStock ? "Hết hàng" : "Còn hàng"}
+                          {isOutOfStock ? 'Hết hàng' : 'Còn hàng'}
                         </span>
                       </td>
 
@@ -408,13 +413,13 @@ export default function SellerProductsPage() {
                           disabled={isToggling}
                           title={
                             product.is_hidden
-                              ? "Đang ẩn — Nhấn để hiện"
-                              : "Đang hiện — Nhấn để ẩn"
+                              ? 'Đang ẩn — Nhấn để hiện'
+                              : 'Đang hiện — Nhấn để ẩn'
                           }
                           className={`p-2 rounded-lg transition ${
                             product.is_hidden
-                              ? "text-zinc-400 hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-950"
-                              : "text-emerald-600 hover:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                              ? 'text-zinc-400 hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-950'
+                              : 'text-emerald-600 hover:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900'
                           }`}
                         >
                           {isToggling ? (
@@ -459,10 +464,10 @@ export default function SellerProductsPage() {
           {/* Dưới bảng: Hiển thị tóm tắt số lượng sản phẩm được lọc thành công */}
           <div className="px-4 py-3 border-t bg-muted/20 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              Hiển thị{" "}
+              Hiển thị{' '}
               <span className="font-bold text-foreground">
                 {products.length}
-              </span>{" "}
+              </span>{' '}
               / {meta?.totalItems ?? 0} sản phẩm
             </div>
           </div>
@@ -493,7 +498,7 @@ export default function SellerProductsPage() {
               Xác nhận xóa sản phẩm
             </DialogTitle>
             <DialogDescription className="text-center text-sm">
-              Bạn có chắc chắn muốn xóa sản phẩm{" "}
+              Bạn có chắc chắn muốn xóa sản phẩm{' '}
               <span className="font-semibold text-foreground">
                 &ldquo;{deletingProduct?.name}&rdquo;
               </span>
@@ -514,7 +519,7 @@ export default function SellerProductsPage() {
                   Đang xóa...
                 </>
               ) : (
-                "Xóa sản phẩm"
+                'Xóa sản phẩm'
               )}
             </Button>
             {/* Nút hủy để tắt hộp thoại */}

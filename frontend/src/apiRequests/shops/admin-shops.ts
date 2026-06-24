@@ -1,14 +1,14 @@
-import http from "@/lib/http";
+import http from '@/lib/http';
 import {
   RejectShopBodyType,
   GetPendingShopsResType,
   ActionShopResType,
-} from "@/schemaValidations/shops/shops.schema";
+} from '@/schemaValidations/shops/shops.schema';
 
 const adminShopsApiRequest = {
   // === R: Read ===
   getPendingShops: () => {
-    return http.get<GetPendingShopsResType>("/admin/shops/pending");
+    return http.get<GetPendingShopsResType>('/admin/shops/pending');
   },
 
   // === U: Update (Approve / Reject) ===

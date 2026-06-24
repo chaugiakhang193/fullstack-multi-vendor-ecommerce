@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
+import React, { useState, useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
 import {
   Save,
   Store,
@@ -21,24 +21,31 @@ import {
   ShieldCheck,
   ShieldAlert,
   User as UserIcon,
-} from "lucide-react";
+} from 'lucide-react';
 
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import userApiRequest from "@/apiRequests/users/users";
-import { useAuthStore } from "@/store/useAuthStore";
-import { ShopResponseType, UpdateSettingsBody, UpdateSettingsBodyType } from "@/schemaValidations/shops/shops.schema";
-import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import { getErrorMessage } from "@/lib/http";
+import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
+import userApiRequest from '@/apiRequests/users/users';
+import { useAuthStore } from '@/store/useAuthStore';
+import {
+  ShopResponseType,
+  UpdateSettingsBody,
+  UpdateSettingsBodyType,
+} from '@/schemaValidations/shops/shops.schema';
+import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+import { getErrorMessage } from '@/lib/http';
 
 export default function SellerSettingsPage() {
   const [shop, setShop] = useState<ShopResponseType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedCoords, setSelectedCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   // Upload file states
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -97,12 +104,12 @@ export default function SellerSettingsPage() {
   } = useForm<UpdateSettingsBodyType>({
     resolver: zodResolver(UpdateSettingsBody),
     defaultValues: {
-      name: "",
-      description: "",
-      pickup_address: "",
-      bank_name: "",
-      account_number: "",
-      account_holder: "",
+      name: '',
+      description: '',
+      pickup_address: '',
+      bank_name: '',
+      account_number: '',
+      account_holder: '',
     },
   });
 
@@ -119,14 +126,17 @@ export default function SellerSettingsPage() {
       // Pre-fill form fields
       reset({
         name: shopData.name,
-        description: shopData.description || "",
-        pickup_address: shopData.pickup_address || "",
-        bank_name: info?.bank_name ?? "",
-        account_number: info?.account_number ?? "",
-        account_holder: info?.account_holder ?? "",
+        description: shopData.description || '',
+        pickup_address: shopData.pickup_address || '',
+        bank_name: info?.bank_name ?? '',
+        account_number: info?.account_number ?? '',
+        account_holder: info?.account_holder ?? '',
       });
       if (shopData.lat && shopData.lng) {
-        setSelectedCoords({ lat: parseFloat(shopData.lat), lng: parseFloat(shopData.lng) });
+        setSelectedCoords({
+          lat: parseFloat(shopData.lat),
+          lng: parseFloat(shopData.lng),
+        });
       }
     } catch (error: any) {
       const errMsg = getErrorMessage(error);
@@ -143,7 +153,7 @@ export default function SellerSettingsPage() {
   // Dropzone for Logo
   const { getRootProps: getLogoProps, getInputProps: getLogoInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: false,
       maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
@@ -155,10 +165,14 @@ export default function SellerSettingsPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh logo "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh logo "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -173,10 +187,10 @@ export default function SellerSettingsPage() {
     setAvatarFile(file);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append('file', file);
       const res = await userApiRequest.uploadAvatar(fd);
       setAuthUser(res.data);
-      toast.success("Cập nhật ảnh đại diện thành công!");
+      toast.success('Cập nhật ảnh đại diện thành công!');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -187,7 +201,7 @@ export default function SellerSettingsPage() {
 
   const { getRootProps: getAvatarProps, getInputProps: getAvatarInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: false,
       maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
@@ -198,10 +212,12 @@ export default function SellerSettingsPage() {
       onDropRejected: (fileRejections) => {
         fileRejections.forEach((rejection) => {
           rejection.errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error("Ảnh đại diện vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.");
-            } else if (err.code === "file-invalid-type") {
-              toast.error("File không đúng định dạng. Chỉ chấp nhận ảnh.");
+            if (err.code === 'file-too-large') {
+              toast.error(
+                'Ảnh đại diện vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.',
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error('File không đúng định dạng. Chỉ chấp nhận ảnh.');
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -215,7 +231,7 @@ export default function SellerSettingsPage() {
   // Dropzone for Banner
   const { getRootProps: getBannerProps, getInputProps: getBannerInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: false,
       maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
@@ -227,10 +243,14 @@ export default function SellerSettingsPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh banner "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh banner "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -248,7 +268,7 @@ export default function SellerSettingsPage() {
 
   const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: true,
       maxFiles: remainingGallerySlots,
       disabled: remainingGallerySlots <= 0,
@@ -271,11 +291,15 @@ export default function SellerSettingsPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
-            } else if (err.code === "too-many-files") {
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
+            } else if (err.code === 'too-many-files') {
               toast.error(`Bạn vượt quá số lượng ảnh cho phép của bộ sưu tập.`);
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
@@ -289,7 +313,7 @@ export default function SellerSettingsPage() {
   const handleDeleteExistingImage = async (assetId: string) => {
     try {
       await sellerShopsApiRequest.deleteGalleryImage(assetId);
-      toast.success("Xóa ảnh khỏi bộ sưu tập thành công!");
+      toast.success('Xóa ảnh khỏi bộ sưu tập thành công!');
       fetchShopData();
     } catch (error: any) {
       const errMsg = getErrorMessage(error);
@@ -308,12 +332,12 @@ export default function SellerSettingsPage() {
     const formData = new FormData();
 
     // Append text fields
-    formData.append("name", data.name);
-    formData.append("description", data.description || "");
-    formData.append("pickup_address", data.pickup_address);
+    formData.append('name', data.name);
+    formData.append('description', data.description || '');
+    formData.append('pickup_address', data.pickup_address);
     if (selectedCoords) {
-      formData.append("lat", String(selectedCoords.lat));
-      formData.append("lng", String(selectedCoords.lng));
+      formData.append('lat', String(selectedCoords.lat));
+      formData.append('lng', String(selectedCoords.lng));
     }
 
     const bankAccountInfoObj = {
@@ -321,24 +345,24 @@ export default function SellerSettingsPage() {
       account_number: data.account_number,
       account_holder: data.account_holder,
     };
-    formData.append("bank_account_info", JSON.stringify(bankAccountInfoObj));
+    formData.append('bank_account_info', JSON.stringify(bankAccountInfoObj));
 
     // Append file fields
     if (logoFile) {
-      formData.append("logo", logoFile);
+      formData.append('logo', logoFile);
     }
     if (bannerFile) {
-      formData.append("banner", bannerFile);
+      formData.append('banner', bannerFile);
     }
     if (newGalleryFiles.length > 0) {
       newGalleryFiles.forEach((file) => {
-        formData.append("gallery", file);
+        formData.append('gallery', file);
       });
     }
 
     try {
       await sellerShopsApiRequest.updateMyShop(formData);
-      toast.success("Cập nhật thông tin cửa hàng thành công!");
+      toast.success('Cập nhật thông tin cửa hàng thành công!');
       // Reset file upload states
       setLogoFile(null);
       setBannerFile(null);
@@ -461,7 +485,7 @@ export default function SellerSettingsPage() {
             <input {...getBannerInputProps()} />
             {bannerPreviewUrl || shop.banner_url ? (
               <img
-                src={bannerPreviewUrl || shop.banner_url || ""}
+                src={bannerPreviewUrl || shop.banner_url || ''}
                 alt="Shop Banner"
                 className="w-full h-full object-cover transition group-hover:opacity-90"
               />
@@ -491,7 +515,7 @@ export default function SellerSettingsPage() {
                 <input {...getLogoInputProps()} />
                 {logoPreviewUrl || shop.logo_url ? (
                   <img
-                    src={logoPreviewUrl || shop.logo_url || ""}
+                    src={logoPreviewUrl || shop.logo_url || ''}
                     alt="Shop Logo"
                     className="w-full h-full object-cover"
                   />
@@ -510,7 +534,7 @@ export default function SellerSettingsPage() {
                 <h2 className="text-2xl md:text-3xl font-black text-foreground">
                   {shop.name}
                 </h2>
-                {shop.status === "active" ? (
+                {shop.status === 'active' ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                     <ShieldCheck className="h-4 w-4" /> Hoạt động
                   </span>
@@ -545,7 +569,7 @@ export default function SellerSettingsPage() {
               <Input
                 id="shop-name"
                 placeholder="Nhập tên shop..."
-                {...register("name")}
+                {...register('name')}
                 className="py-3 text-base rounded-xl"
                 aria-invalid={!!errors.name}
               />
@@ -563,9 +587,11 @@ export default function SellerSettingsPage() {
                 *
               </FieldLabel>
               <AddressAutocomplete
-                value={watch("pickup_address")}
+                value={watch('pickup_address')}
                 onSelect={(coords) => {
-                  setValue("pickup_address", coords.display_name, { shouldValidate: true });
+                  setValue('pickup_address', coords.display_name, {
+                    shouldValidate: true,
+                  });
                   setSelectedCoords({ lat: coords.lat, lng: coords.lng });
                 }}
                 onQueryChange={() => setSelectedCoords(null)}
@@ -593,7 +619,7 @@ export default function SellerSettingsPage() {
                   <Input
                     id="bank-name"
                     placeholder="Ví dụ: Vietcombank, Techcombank..."
-                    {...register("bank_name")}
+                    {...register('bank_name')}
                     className="py-3 text-base rounded-xl"
                     aria-invalid={!!errors.bank_name}
                   />
@@ -614,7 +640,7 @@ export default function SellerSettingsPage() {
                   <Input
                     id="account-number"
                     placeholder="Ví dụ: 1903456789..."
-                    {...register("account_number")}
+                    {...register('account_number')}
                     className="py-3 text-base rounded-xl"
                     aria-invalid={!!errors.account_number}
                   />
@@ -636,7 +662,7 @@ export default function SellerSettingsPage() {
                 <Input
                   id="account-holder"
                   placeholder="Ví dụ: NGUYEN VAN A"
-                  {...register("account_holder")}
+                  {...register('account_holder')}
                   className="py-3 text-base rounded-xl"
                   aria-invalid={!!errors.account_holder}
                 />
@@ -663,7 +689,7 @@ export default function SellerSettingsPage() {
                 id="shop-description"
                 placeholder="Mô tả các sản phẩm nổi bật hoặc chính sách của shop..."
                 rows={6}
-                {...register("description")}
+                {...register('description')}
                 className="resize-none py-3.5 text-base rounded-xl"
                 aria-invalid={!!errors.description}
               />
@@ -759,7 +785,7 @@ export default function SellerSettingsPage() {
               <ul className="list-disc pl-4 space-y-1">
                 <li>Bấm vào khung ảnh tương ứng để chọn ảnh mới thay thế.</li>
                 <li>
-                  Hệ thống tự động lưu Logo và Banner mới khi bấm{" "}
+                  Hệ thống tự động lưu Logo và Banner mới khi bấm{' '}
                   <strong>"Lưu thay đổi"</strong>.
                 </li>
                 <li>

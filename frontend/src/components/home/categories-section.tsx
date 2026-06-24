@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 // React & Next
-import React from "react";
-import { useRouter } from "next/navigation";
+import React from 'react';
+import { useRouter } from 'next/navigation';
 
 // Icons
 import {
@@ -17,30 +17,33 @@ import {
   Activity,
   AlertCircle,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Hooks & Services
-import { useCategories } from "@/hooks/useCategories";
-import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
+import { useCategories } from '@/hooks/useCategories';
+import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
 
 // Components
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 // Bản đồ ánh xạ slug của Category sang Lucide Icon tương ứng
-const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  "dien-thoai-may-tinh-bang": Smartphone,
-  "laptop-thiet-bi-it": Laptop,
-  "thoi-trang-phu-kien": Shirt,
-  "sach-van-phong-pham": BookOpen,
-  "suc-khoe-sac-dep": HeartPulse,
-  "nha-cua-doi-song": Home,
-  "thiet-bi-dien-tu": Tv,
-  "the-thao-da-ngoai": Activity,
+const CATEGORY_ICON_MAP: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  'dien-thoai-may-tinh-bang': Smartphone,
+  'laptop-thiet-bi-it': Laptop,
+  'thoi-trang-phu-kien': Shirt,
+  'sach-van-phong-pham': BookOpen,
+  'suc-khoe-sac-dep': HeartPulse,
+  'nha-cua-doi-song': Home,
+  'thiet-bi-dien-tu': Tv,
+  'the-thao-da-ngoai': Activity,
 };
 
 export default function CategoriesSection() {
   const router = useRouter();
-  
+
   // Gọi custom hook để fetch tất cả categories
   const categoriesQuery = useCategories();
   const { data: categoriesRes, isLoading, isError, refetch } = categoriesQuery;

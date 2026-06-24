@@ -1,4 +1,4 @@
-import z from "zod";
+import z from 'zod';
 
 export const envSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string(),
@@ -11,7 +11,7 @@ if (!configProject.success) {
   console.error(configProject);
   console.error(configProject.error.format());
   throw new Error(
-    "Các giá trị trong file .env không hợp lệ. Vui lòng kiểm tra lại.",
+    'Các giá trị trong file .env không hợp lệ. Vui lòng kiểm tra lại.',
   );
 }
 

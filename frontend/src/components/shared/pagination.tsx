@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 // Libraries
-import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Utilities
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 export interface PaginationProps {
   currentPage: number;
@@ -18,7 +18,7 @@ export interface PaginationProps {
 function getPaginationRange(
   currentPage: number,
   totalPages: number,
-  siblingCount: number = 1
+  siblingCount: number = 1,
 ) {
   const totalPageNumbers = siblingCount * 2 + 5;
 
@@ -57,7 +57,7 @@ function getPaginationRange(
     for (let i = 1; i <= leftItemCount; i++) {
       leftRange.push(i);
     }
-    const rightEllipsis = "...";
+    const rightEllipsis = '...';
     return [...leftRange, rightEllipsis, lastPageIndex];
   }
 
@@ -68,7 +68,7 @@ function getPaginationRange(
     for (let i = totalPages - rightItemCount + 1; i <= totalPages; i++) {
       rightRange.push(i);
     }
-    const leftEllipsis = "...";
+    const leftEllipsis = '...';
     return [firstPageIndex, leftEllipsis, ...rightRange];
   }
 
@@ -78,9 +78,15 @@ function getPaginationRange(
     for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
       middleRange.push(i);
     }
-    const leftEllipsis = "...";
-    const rightEllipsis = "...";
-    return [firstPageIndex, leftEllipsis, ...middleRange, rightEllipsis, lastPageIndex];
+    const leftEllipsis = '...';
+    const rightEllipsis = '...';
+    return [
+      firstPageIndex,
+      leftEllipsis,
+      ...middleRange,
+      rightEllipsis,
+      lastPageIndex,
+    ];
   }
 
   return [];
@@ -97,7 +103,7 @@ export function Pagination(props: PaginationProps) {
   // Memoize dải trang dựa trên các biến phụ thuộc
   const paginationRange = React.useMemo(
     () => getPaginationRange(currentPage, totalPages, siblingCount),
-    [currentPage, totalPages, siblingCount]
+    [currentPage, totalPages, siblingCount],
   );
 
   // Điều hướng trang trước
@@ -119,18 +125,34 @@ export function Pagination(props: PaginationProps) {
   const isLastPage = currentPage === totalPages;
 
   // Cấu hình CSS cho các nút
-  const baseBtnStyles = "flex items-center justify-center text-xs font-semibold rounded-lg transition-all duration-150 border cursor-pointer select-none focus:outline-none";
-  const activeStyles = "border-transparent bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20";
-  const inactiveStyles = "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-950 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900";
-  const disabledStyles = "opacity-50 cursor-not-allowed pointer-events-none bg-zinc-100 border-zinc-200 text-zinc-400 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-600";
+  const baseBtnStyles =
+    'flex items-center justify-center text-xs font-semibold rounded-lg transition-all duration-150 border cursor-pointer select-none focus:outline-none';
+  const activeStyles =
+    'border-transparent bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20';
+  const inactiveStyles =
+    'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-950 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900';
+  const disabledStyles =
+    'opacity-50 cursor-not-allowed pointer-events-none bg-zinc-100 border-zinc-200 text-zinc-400 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-600';
 
   // Tạo class name sử dụng helper cn
-  const prevButtonClass = cn(baseBtnStyles, "px-3 h-9", isFirstPage ? disabledStyles : inactiveStyles);
-  const nextButtonClass = cn(baseBtnStyles, "px-3 h-9", isLastPage ? disabledStyles : inactiveStyles);
-  const dotsClass = "flex items-center justify-center h-9 w-9 text-xs font-semibold text-zinc-400 dark:text-zinc-600 select-none";
+  const prevButtonClass = cn(
+    baseBtnStyles,
+    'px-3 h-9',
+    isFirstPage ? disabledStyles : inactiveStyles,
+  );
+  const nextButtonClass = cn(
+    baseBtnStyles,
+    'px-3 h-9',
+    isLastPage ? disabledStyles : inactiveStyles,
+  );
+  const dotsClass =
+    'flex items-center justify-center h-9 w-9 text-xs font-semibold text-zinc-400 dark:text-zinc-600 select-none';
 
   return (
-    <nav className="flex items-center justify-center space-x-2 py-6 animate-fade-in" aria-label="Phân trang">
+    <nav
+      className="flex items-center justify-center space-x-2 py-6 animate-fade-in"
+      aria-label="Phân trang"
+    >
       {/* Nút Trước */}
       <button
         onClick={handlePrev}
@@ -144,7 +166,7 @@ export function Pagination(props: PaginationProps) {
       {/* Danh sách trang (Chỉ hiển thị trên Desktop) */}
       <div className="hidden sm:flex items-center space-x-1.5">
         {paginationRange.map((pageItem, index) => {
-          if (pageItem === "...") {
+          if (pageItem === '...') {
             const dotsKey = `dots-${index}`;
             return (
               <span key={dotsKey} className={dotsClass}>
@@ -155,7 +177,11 @@ export function Pagination(props: PaginationProps) {
 
           const pageNumber = Number(pageItem);
           const isActive = pageNumber === currentPage;
-          const buttonClass = cn(baseBtnStyles, "h-9 w-9", isActive ? activeStyles : inactiveStyles);
+          const buttonClass = cn(
+            baseBtnStyles,
+            'h-9 w-9',
+            isActive ? activeStyles : inactiveStyles,
+          );
           const buttonKey = `page-${pageNumber}`;
 
           return (

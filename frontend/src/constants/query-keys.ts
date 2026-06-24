@@ -1,26 +1,26 @@
 // Root scopes — GIỮ string cũ để invalidate theo prefix (socket-provider, notification-bell)
 // vẫn match. Thêm các root còn thiếu cho shop/product detail/recommend/category/seller inventory.
 export const QUERY_KEYS = {
-  CART: "cart",
-  CATEGORIES: "categories",
-  CATEGORY_DETAIL: "category-detail",
-  PRODUCTS: "products",
-  PRODUCT_DETAIL: "product-detail",
-  PRODUCT_SUGGESTIONS: "product-suggestions",
-  RECOMMEND_PRODUCTS: "recommend-products",
-  SELLER_INVENTORY: "seller-inventory",
-  MY_SHOP: "my-shop",
-  SHOP_DETAIL: "shop-detail",
-  SHOP_CATALOG: "shop-catalog",
-  ADDRESSES: "addresses",
-  CHECKOUT_PREVIEW: "checkout-preview",
-  SELLER_ORDERS: "seller-orders",
-  SELLER_ORDER_DETAIL: "seller-order-detail",
-  CUSTOMER_ORDERS: "customer-orders",
-  CUSTOMER_ORDER_DETAIL: "customer-order-detail",
-  NOTIFICATIONS: "notifications",
-  COUPONS: "coupons",
-  REVIEWS: "reviews",
+  CART: 'cart',
+  CATEGORIES: 'categories',
+  CATEGORY_DETAIL: 'category-detail',
+  PRODUCTS: 'products',
+  PRODUCT_DETAIL: 'product-detail',
+  PRODUCT_SUGGESTIONS: 'product-suggestions',
+  RECOMMEND_PRODUCTS: 'recommend-products',
+  SELLER_INVENTORY: 'seller-inventory',
+  MY_SHOP: 'my-shop',
+  SHOP_DETAIL: 'shop-detail',
+  SHOP_CATALOG: 'shop-catalog',
+  ADDRESSES: 'addresses',
+  CHECKOUT_PREVIEW: 'checkout-preview',
+  SELLER_ORDERS: 'seller-orders',
+  SELLER_ORDER_DETAIL: 'seller-order-detail',
+  CUSTOMER_ORDERS: 'customer-orders',
+  CUSTOMER_ORDER_DETAIL: 'customer-order-detail',
+  NOTIFICATIONS: 'notifications',
+  COUPONS: 'coupons',
+  REVIEWS: 'reviews',
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -37,7 +37,7 @@ export const STALE_TIME = {
 export const productKeys = {
   all: [QUERY_KEYS.PRODUCTS] as const,
   list: (params?: Record<string, unknown>) =>
-    [QUERY_KEYS.PRODUCTS, "list", params ?? {}] as const,
+    [QUERY_KEYS.PRODUCTS, 'list', params ?? {}] as const,
   detail: (id: string) => [QUERY_KEYS.PRODUCT_DETAIL, id] as const,
   recommend: (limit: number) => [QUERY_KEYS.RECOMMEND_PRODUCTS, limit] as const,
   sellerInventory: (params?: Record<string, unknown>) =>
@@ -59,7 +59,7 @@ export const shopKeys = {
 export const sellerOrderKeys = {
   all: [QUERY_KEYS.SELLER_ORDERS] as const,
   list: (filter: { tab: string; page: number }) =>
-    [QUERY_KEYS.SELLER_ORDERS, "list", filter] as const,
+    [QUERY_KEYS.SELLER_ORDERS, 'list', filter] as const,
   detailAll: [QUERY_KEYS.SELLER_ORDER_DETAIL] as const,
   detail: (id: string) => [QUERY_KEYS.SELLER_ORDER_DETAIL, id] as const,
 };
@@ -67,28 +67,34 @@ export const sellerOrderKeys = {
 export const customerOrderKeys = {
   all: [QUERY_KEYS.CUSTOMER_ORDERS] as const,
   list: (filter: { tab: string; page: number }) =>
-    [QUERY_KEYS.CUSTOMER_ORDERS, "list", filter] as const,
+    [QUERY_KEYS.CUSTOMER_ORDERS, 'list', filter] as const,
   detail: (id: string) => [QUERY_KEYS.CUSTOMER_ORDER_DETAIL, id] as const,
 };
 
 export const notificationKeys = {
   all: [QUERY_KEYS.NOTIFICATIONS] as const,
-  list: [QUERY_KEYS.NOTIFICATIONS, "list"] as const,
-  unreadCount: [QUERY_KEYS.NOTIFICATIONS, "unread-count"] as const,
+  list: [QUERY_KEYS.NOTIFICATIONS, 'list'] as const,
+  unreadCount: [QUERY_KEYS.NOTIFICATIONS, 'unread-count'] as const,
 };
 
 export const couponKeys = {
   all: [QUERY_KEYS.COUPONS] as const,
-  adminList: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "admin-list", query ?? {}] as const,
-  sellerList: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "seller-list", query ?? {}] as const,
-  browse: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "browse", query ?? {}] as const,
-  wallet: (query?: Record<string, unknown>) => [QUERY_KEYS.COUPONS, "wallet", query ?? {}] as const,
+  adminList: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.COUPONS, 'admin-list', query ?? {}] as const,
+  sellerList: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.COUPONS, 'seller-list', query ?? {}] as const,
+  browse: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.COUPONS, 'browse', query ?? {}] as const,
+  wallet: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.COUPONS, 'wallet', query ?? {}] as const,
 };
 
 export const reviewKeys = {
   all: [QUERY_KEYS.REVIEWS] as const,
   productReviews: (productId: string, query?: Record<string, unknown>) =>
-    [QUERY_KEYS.REVIEWS, "product", productId, query ?? {}] as const,
-  reviewable: (query?: Record<string, unknown>) => [QUERY_KEYS.REVIEWS, "reviewable", query ?? {}] as const,
-  sellerReviews: (query?: Record<string, unknown>) => [QUERY_KEYS.REVIEWS, "seller-list", query ?? {}] as const,
+    [QUERY_KEYS.REVIEWS, 'product', productId, query ?? {}] as const,
+  reviewable: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.REVIEWS, 'reviewable', query ?? {}] as const,
+  sellerReviews: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.REVIEWS, 'seller-list', query ?? {}] as const,
 };

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import Link from "next/link";
-import { AlertCircle, LifeBuoy, RefreshCw } from "lucide-react";
-import { useQueryErrorResetBoundary } from "@tanstack/react-query";
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { AlertCircle, LifeBuoy, RefreshCw } from 'lucide-react';
+import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -14,7 +14,7 @@ export default function SellerError({ error, reset }: ErrorProps) {
   const { reset: resetQueries } = useQueryErrorResetBoundary();
 
   useEffect(() => {
-    console.error("Seller dashboard error:", error);
+    console.error('Seller dashboard error:', error);
   }, [error]);
 
   const handleTryAgain = () => {
@@ -38,14 +38,17 @@ export default function SellerError({ error, reset }: ErrorProps) {
               Kênh Người Bán gặp sự cố
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Trang quản trị bán hàng của bạn tạm thời không thể hiển thị nội dung này do lỗi xử lý dữ liệu.
+              Trang quản trị bán hàng của bạn tạm thời không thể hiển thị nội
+              dung này do lỗi xử lý dữ liệu.
             </p>
           </div>
 
           {/* Technical Info (Digest) */}
           {error.digest && (
             <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 space-y-1.5">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Mã chẩn đoán lỗi (Digest)</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Mã chẩn đoán lỗi (Digest)
+              </span>
               <code className="text-xs font-mono text-zinc-600 dark:text-zinc-400 block break-all select-all">
                 {error.digest}
               </code>
@@ -62,7 +65,11 @@ export default function SellerError({ error, reset }: ErrorProps) {
               <span>Thử lại</span>
             </button>
 
-            <Link href="https://support.giangkha.com" target="_blank" className="flex-1">
+            <Link
+              href="https://support.giangkha.com"
+              target="_blank"
+              className="flex-1"
+            >
               <button className="w-full flex items-center justify-center space-x-1.5 py-2.5 px-4 border rounded-lg text-xs font-semibold hover:bg-muted transition active:scale-[0.98] cursor-pointer bg-background">
                 <LifeBuoy className="h-4 w-4" />
                 <span>Liên hệ hỗ trợ</span>

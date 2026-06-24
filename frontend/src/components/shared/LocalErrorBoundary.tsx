@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { ErrorInfo } from "react";
-import { AlertCircle } from "lucide-react";
+import React, { ErrorInfo } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 interface Props {
   children: React.ReactNode;
@@ -27,10 +27,10 @@ export class LocalErrorBoundary extends React.Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error(
       `[LocalErrorBoundary] Error caught in component ${
-        this.props.componentName || "Unknown"
+        this.props.componentName || 'Unknown'
       }:`,
       error,
-      errorInfo
+      errorInfo,
     );
   }
 
@@ -47,7 +47,8 @@ export class LocalErrorBoundary extends React.Component<Props, State> {
           <div className="space-y-0.5">
             <p className="font-bold">Khối nội dung bị lỗi</p>
             <p className="opacity-90 leading-relaxed">
-              Không thể tải phần này của trang. Vui lòng thử tải lại trang hoặc liên hệ bộ phận kỹ thuật nếu lỗi tiếp tục diễn ra.
+              Không thể tải phần này của trang. Vui lòng thử tải lại trang hoặc
+              liên hệ bộ phận kỹ thuật nếu lỗi tiếp tục diễn ra.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 // Next 15: searchParams là Promise — bắt buộc await.
 interface CheckoutSuccessPageProps {
@@ -31,7 +31,7 @@ export default async function CheckoutSuccessPage({
             style={{
               strokeDasharray: 226,
               strokeDashoffset: 226,
-              animation: "draw-circle 0.6s ease-out forwards",
+              animation: 'draw-circle 0.6s ease-out forwards',
             }}
           />
           <path
@@ -43,7 +43,7 @@ export default async function CheckoutSuccessPage({
             style={{
               strokeDasharray: 60,
               strokeDashoffset: 60,
-              animation: "draw-check 0.4s 0.5s ease-out forwards",
+              animation: 'draw-check 0.4s 0.5s ease-out forwards',
             }}
           />
         </svg>
@@ -56,14 +56,22 @@ export default async function CheckoutSuccessPage({
         </p>
         {orderNumber && (
           <p className="text-sm mb-6">
-            Mã đơn hàng:{" "}
+            Mã đơn hàng:{' '}
             <span className="font-bold text-foreground">{orderNumber}</span>
           </p>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 mt-2 w-full sm:w-auto">
           {/* Xem chi tiết đơn vừa đặt */}
-          <Button render={<Link href={orderId ? `/profile/orders/${orderId}` : "/profile/orders"} />}>
+          <Button
+            render={
+              <Link
+                href={
+                  orderId ? `/profile/orders/${orderId}` : '/profile/orders'
+                }
+              />
+            }
+          >
             Xem đơn hàng
           </Button>
           <Button variant="outline" render={<Link href="/products" />}>

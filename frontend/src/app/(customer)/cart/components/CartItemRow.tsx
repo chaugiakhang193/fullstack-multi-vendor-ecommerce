@@ -1,27 +1,35 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Trash2, ChevronDown, Minus, Plus } from "lucide-react";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Trash2, ChevronDown, Minus, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Helpers & Types
-import { cn } from "@/lib/utils";
-import { CartItem } from "@/store/useCartStore";
+import { cn } from '@/lib/utils';
+import { CartItem } from '@/store/useCartStore';
 
 interface CartItemRowProps {
   item: CartItem;
   isSelected: boolean;
   onToggleSelect: (item: CartItem) => void;
-  onUpdateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
+  onUpdateQuantity: (
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+  ) => void;
   onRemove: (productId: string, variantId: string | null) => void;
-  onUpdateVariant: (productId: string, oldVariantId: string | null, newVariantId: string | null) => void;
+  onUpdateVariant: (
+    productId: string,
+    oldVariantId: string | null,
+    newVariantId: string | null,
+  ) => void;
 }
 
-const priceFormatterObj = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatterObj = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -63,7 +71,7 @@ export default function CartItemRow({
 
   // Helper to determine availability and reason
   const getAvailability = () => {
-    const isDbItem = "isAvailable" in item;
+    const isDbItem = 'isAvailable' in item;
     if (isDbItem) {
       const dbIsAvailable = (item as any).isAvailable;
       const dbReason = (item as any).reason;
@@ -79,7 +87,7 @@ export default function CartItemRow({
       : null;
     const stockVal = variantInfo ? variantInfo.stock_quantity : item.baseStock;
     const isAvail = stockVal > 0;
-    const mappedReason = isAvail ? undefined : "out_of_stock";
+    const mappedReason = isAvail ? undefined : 'out_of_stock';
     const guestResult = {
       isAvailable: isAvail,
       reason: mappedReason,
@@ -91,28 +99,31 @@ export default function CartItemRow({
   const isAvailable = availability.isAvailable;
   const reason = availability.reason;
 
-  let badgeText = "";
-  let badgeColor = "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"; // Semantic color matching rules
+  let badgeText = '';
+  let badgeColor =
+    'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'; // Semantic color matching rules
 
   if (!isAvailable) {
     switch (reason) {
-      case "out_of_stock":
-      case "insufficient_stock":
-        badgeText = "Hết hàng";
+      case 'out_of_stock':
+      case 'insufficient_stock':
+        badgeText = 'Hết hàng';
         break;
-      case "product_hidden":
-        badgeText = "Sản phẩm tạm ẩn";
-        badgeColor = "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+      case 'product_hidden':
+        badgeText = 'Sản phẩm tạm ẩn';
+        badgeColor =
+          'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
         break;
-      case "product_deleted":
-        badgeText = "Sản phẩm ngừng bán";
+      case 'product_deleted':
+        badgeText = 'Sản phẩm ngừng bán';
         break;
-      case "shop_inactive":
-        badgeText = "Cửa hàng tạm ngưng";
-        badgeColor = "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+      case 'shop_inactive':
+        badgeText = 'Cửa hàng tạm ngưng';
+        badgeColor =
+          'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
         break;
       default:
-        badgeText = "Không khả dụng";
+        badgeText = 'Không khả dụng';
     }
   }
 
@@ -166,7 +177,7 @@ export default function CartItemRow({
 
     if (match) {
       if (match.stock_quantity <= 0) {
-        const errorMsg = "Phiên bản này hiện đã hết hàng!";
+        const errorMsg = 'Phiên bản này hiện đã hết hàng!';
         toast.error(errorMsg);
         return;
       }
@@ -177,12 +188,13 @@ export default function CartItemRow({
       setIsEditing(false);
     } else {
       const backup =
-        item.variants.find((v) => v.attributes?.[key] === val && v.stock_quantity > 0) ||
-        item.variants.find((v) => v.attributes?.[key] === val);
+        item.variants.find(
+          (v) => v.attributes?.[key] === val && v.stock_quantity > 0,
+        ) || item.variants.find((v) => v.attributes?.[key] === val);
 
       if (backup) {
         if (backup.stock_quantity <= 0) {
-          const errorMsg = "Phiên bản này hiện đã hết hàng!";
+          const errorMsg = 'Phiên bản này hiện đã hết hàng!';
           toast.error(errorMsg);
           return;
         }
@@ -192,7 +204,7 @@ export default function CartItemRow({
         onUpdateVariant(prodId, oldVarId, newVarId);
         setIsEditing(false);
       } else {
-        const errorMsg = "Không tìm thấy phiên bản phù hợp!";
+        const errorMsg = 'Không tìm thấy phiên bản phù hợp!';
         toast.error(errorMsg);
       }
     }
@@ -204,10 +216,10 @@ export default function CartItemRow({
   const rowSubtotal = finalPrice * item.quantity;
   const formattedSubtotal = formatPrice(rowSubtotal);
 
-  const opacityClass = !isAvailable ? "opacity-60" : "";
+  const opacityClass = !isAvailable ? 'opacity-60' : '';
   const containerClass = cn(
-    "flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-900 rounded-xl transition-all duration-200 shadow-xs hover:shadow-md",
-    opacityClass
+    'flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-900 rounded-xl transition-all duration-200 shadow-xs hover:shadow-md',
+    opacityClass,
   );
 
   return (
@@ -228,7 +240,7 @@ export default function CartItemRow({
         {/* Thumbnail Image */}
         <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-white border dark:border-zinc-800 shadow-inner">
           <Image
-            src={item.thumbnailUrl || "/placeholder-product.png"}
+            src={item.thumbnailUrl || '/placeholder-product.png'}
             alt={item.name}
             fill
             sizes="80px"
@@ -239,7 +251,11 @@ export default function CartItemRow({
         {/* Text Details */}
         <div className="flex-1 min-w-0 space-y-1">
           <Link
-            href={item.variantId ? `/products/${item.productSlug}?variant=${item.variantId}` : `/products/${item.productSlug}`}
+            href={
+              item.variantId
+                ? `/products/${item.productSlug}?variant=${item.variantId}`
+                : `/products/${item.productSlug}`
+            }
             className="block text-sm font-extrabold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-snug truncate"
             title={item.name}
           >
@@ -249,7 +265,12 @@ export default function CartItemRow({
           {/* Badges for unavailable items */}
           {!isAvailable && (
             <div className="pt-0.5">
-              <span className={cn("inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider", badgeColor)}>
+              <span
+                className={cn(
+                  'inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider',
+                  badgeColor,
+                )}
+              >
                 {badgeText}
               </span>
             </div>
@@ -286,8 +307,8 @@ export default function CartItemRow({
                   <span>Thay đổi</span>
                   <ChevronDown
                     className={cn(
-                      "h-3 w-3 transition-transform",
-                      isEditing && "rotate-180"
+                      'h-3 w-3 transition-transform',
+                      isEditing && 'rotate-180',
                     )}
                   />
                 </button>
@@ -296,50 +317,61 @@ export default function CartItemRow({
           )}
 
           {/* Expandable Inline Variant Quick Swap Panel (Zustand Guest only) */}
-          {isEditing && item.variantId && isAvailable && item.variants.length > 0 && (
-            <div className="p-3 mt-2 rounded-lg border border-violet-100 dark:border-violet-950/30 bg-violet-50/5 dark:bg-violet-950/5 space-y-2.5 max-w-sm animate-fade-in">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-                Chọn phân loại mới:
-              </p>
-              <div className="space-y-2">
-                {itemAttributeKeys.map((key) => {
-                  const options = getAttrOptions(key);
-                  const currentVal = itemAttributes[key];
-                  return (
-                    <div key={key} className="flex items-center justify-between gap-4 text-xs">
-                      <span className="text-[10px] font-bold text-muted-foreground capitalize">
-                        {key === "color" ? "Màu sắc" : key === "size" ? "Kích thước" : key}:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {options.map((opt) => {
-                          const isSelectedOpt = opt === currentVal;
-                          const optClass = cn(
-                            "px-2.5 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer",
-                            isSelectedOpt
-                              ? "bg-violet-600 border-violet-600 text-white shadow-xs"
-                              : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                          );
-                          const handleOptionClick = () => {
-                            handleSwapAttribute(key, opt);
-                          };
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={handleOptionClick}
-                              className={optClass}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
+          {isEditing &&
+            item.variantId &&
+            isAvailable &&
+            item.variants.length > 0 && (
+              <div className="p-3 mt-2 rounded-lg border border-violet-100 dark:border-violet-950/30 bg-violet-50/5 dark:bg-violet-950/5 space-y-2.5 max-w-sm animate-fade-in">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                  Chọn phân loại mới:
+                </p>
+                <div className="space-y-2">
+                  {itemAttributeKeys.map((key) => {
+                    const options = getAttrOptions(key);
+                    const currentVal = itemAttributes[key];
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-4 text-xs"
+                      >
+                        <span className="text-[10px] font-bold text-muted-foreground capitalize">
+                          {key === 'color'
+                            ? 'Màu sắc'
+                            : key === 'size'
+                              ? 'Kích thước'
+                              : key}
+                          :
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {options.map((opt) => {
+                            const isSelectedOpt = opt === currentVal;
+                            const optClass = cn(
+                              'px-2.5 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer',
+                              isSelectedOpt
+                                ? 'bg-violet-600 border-violet-600 text-white shadow-xs'
+                                : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',
+                            );
+                            const handleOptionClick = () => {
+                              handleSwapAttribute(key, opt);
+                            };
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={handleOptionClick}
+                                className={optClass}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
 
@@ -347,13 +379,19 @@ export default function CartItemRow({
       <div className="flex flex-row md:flex-row items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-zinc-900">
         {/* Unit Price (Hidden on mobile grid, shown nicely) */}
         <div className="text-right hidden sm:block md:w-28">
-          <div className="text-xs text-muted-foreground font-semibold">Đơn giá</div>
-          <div className="text-sm font-bold text-foreground mt-0.5">{formattedPrice}</div>
+          <div className="text-xs text-muted-foreground font-semibold">
+            Đơn giá
+          </div>
+          <div className="text-sm font-bold text-foreground mt-0.5">
+            {formattedPrice}
+          </div>
         </div>
 
         {/* Quantity Stepper */}
         <div className="flex flex-col items-start gap-1">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block sm:hidden">Số lượng</span>
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block sm:hidden">
+            Số lượng
+          </span>
           <div className="flex items-center border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden h-8 bg-white dark:bg-zinc-950 shrink-0">
             <button
               type="button"
@@ -379,7 +417,9 @@ export default function CartItemRow({
 
         {/* Subtotal */}
         <div className="text-right md:w-32">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block sm:hidden">Tạm tính</span>
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block sm:hidden">
+            Tạm tính
+          </span>
           <div className="text-sm font-black text-violet-600 dark:text-violet-400 sm:mt-0.5">
             {formattedSubtotal}
           </div>

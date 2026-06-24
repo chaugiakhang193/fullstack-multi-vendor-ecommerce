@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import { AlertCircle, RefreshCw, Trash2 } from "lucide-react";
+import React from 'react';
+import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -11,16 +11,16 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   const emergencyReset = () => {
     // Chỉ xóa các key thực tế của dự án để tránh ảnh hưởng đến các ứng dụng khác trên localhost
-    const keysToReset = ["cart", "recently-viewed", "auth-storage"];
+    const keysToReset = ['cart', 'recently-viewed', 'auth-storage'];
     keysToReset.forEach((key) => {
       try {
         localStorage.removeItem(key);
       } catch (e) {
-        console.error("Lỗi khi xóa key:", key, e);
+        console.error('Lỗi khi xóa key:', key, e);
       }
     });
     // Load lại trang hoàn toàn để đưa app về trạng thái ban đầu
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   return (
@@ -42,14 +42,17 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               Đã xảy ra sự cố nghiêm trọng
             </h1>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Ứng dụng gặp lỗi không thể tự khắc phục. Vui lòng chọn thử tải lại trang hoặc khôi phục cài đặt gốc để giải quyết sự cố.
+              Ứng dụng gặp lỗi không thể tự khắc phục. Vui lòng chọn thử tải lại
+              trang hoặc khôi phục cài đặt gốc để giải quyết sự cố.
             </p>
           </div>
 
           {/* Technical Info */}
           {error.digest && (
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 space-y-1.5 relative z-10">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Mã định danh lỗi (Digest)</p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                Mã định danh lỗi (Digest)
+              </p>
               <code className="text-xs font-mono text-zinc-300 block break-all select-all">
                 {error.digest}
               </code>

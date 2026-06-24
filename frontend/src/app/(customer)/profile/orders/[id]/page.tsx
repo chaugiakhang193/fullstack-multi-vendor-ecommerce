@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Loader2,
@@ -14,30 +14,33 @@ import {
   CreditCard,
   Store,
   X,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { getErrorMessage } from "@/lib/http";
-import { useCustomerOrderDetail, useCancelSubOrder } from "@/hooks/useCustomerOrders";
-import { type CustomerOrderSubOrderType } from "@/schemaValidations/orders/orders.schema";
-import { Button } from "@/components/ui/button";
+import { getErrorMessage } from '@/lib/http';
+import {
+  useCustomerOrderDetail,
+  useCancelSubOrder,
+} from '@/hooks/useCustomerOrders';
+import { type CustomerOrderSubOrderType } from '@/schemaValidations/orders/orders.schema';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
-import { LiveTrackingMap } from "@/components/orders/live-tracking-map";
-import { OrderStatusBadge } from "@/components/orders/seller-order-status";
-import { formatVnd, formatDateTime, shortId } from "@/lib/format";
+} from '@/components/ui/dialog';
+import { OrderStatusTimeline } from '@/components/orders/order-status-timeline';
+import { LiveTrackingMap } from '@/components/orders/live-tracking-map';
+import { OrderStatusBadge } from '@/components/orders/seller-order-status';
+import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 export default function CustomerOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
-
-  const [cancelTarget, setCancelTarget] = useState<CustomerOrderSubOrderType | null>(null);
+  const [cancelTarget, setCancelTarget] =
+    useState<CustomerOrderSubOrderType | null>(null);
 
   const detailQuery = useCustomerOrderDetail(id);
 
@@ -77,7 +80,9 @@ export default function CustomerOrderDetailPage() {
         {backButton}
         <div className="rounded-xl border border-rose-200 dark:border-rose-900/40 bg-card p-8 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 shrink-0" />
-          {detailQuery.error ? getErrorMessage(detailQuery.error) : "Không tìm thấy đơn hàng."}
+          {detailQuery.error
+            ? getErrorMessage(detailQuery.error)
+            : 'Không tìm thấy đơn hàng.'}
         </div>
       </div>
     );
@@ -89,13 +94,13 @@ export default function CustomerOrderDetailPage() {
   const subOrders = order.sub_orders ?? [];
   const grandTotal = order.total_amount ?? 0;
   const paymentLabel =
-    order.payment_method === "cod" || !order.payment_method
-      ? "Thanh toán khi nhận hàng (COD)"
+    order.payment_method === 'cod' || !order.payment_method
+      ? 'Thanh toán khi nhận hàng (COD)'
       : order.payment_method;
 
   const cancelTargetName = cancelTarget
     ? (cancelTarget.shop?.name ?? shortId(cancelTarget.id))
-    : "";
+    : '';
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -121,9 +126,13 @@ export default function CustomerOrderDetailPage() {
               <MapPin className="h-5 w-5 text-violet-600 dark:text-violet-400" />
               Địa chỉ giao hàng
             </h2>
-            <p className="font-bold text-foreground">{address.recipient_name}</p>
+            <p className="font-bold text-foreground">
+              {address.recipient_name}
+            </p>
             <p className="text-sm text-muted-foreground">{address.phone}</p>
-            <p className="text-sm text-foreground/80 leading-relaxed">{address.address_line}</p>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              {address.address_line}
+            </p>
           </section>
         )}
 
@@ -149,9 +158,10 @@ export default function CustomerOrderDetailPage() {
           const subTotal = subOrder.sub_total ?? 0;
           const shippingFee = subOrder.shipping_fee ?? 0;
           const discount = subOrder.discount_amount ?? 0;
-          const subGrandTotal = subOrder.total_amount ?? subTotal + shippingFee - discount;
-          const shopName = subOrder.shop?.name ?? "Cửa hàng";
-          const canCancel = subOrder.status === "pending";
+          const subGrandTotal =
+            subOrder.total_amount ?? subTotal + shippingFee - discount;
+          const shopName = subOrder.shop?.name ?? 'Cửa hàng';
+          const canCancel = subOrder.status === 'pending';
           const isCancelling =
             cancelMutation.isPending && cancelTarget?.id === subOrder.id;
 
@@ -164,7 +174,9 @@ export default function CustomerOrderDetailPage() {
               <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-6 py-4">
                 <div className="flex items-center gap-2 min-w-0">
                   <Package className="h-5 w-5 text-violet-600 dark:text-violet-400 shrink-0" />
-                  <span className="font-bold text-foreground truncate">{shopName}</span>
+                  <span className="font-bold text-foreground truncate">
+                    {shopName}
+                  </span>
                 </div>
                 <OrderStatusBadge status={subOrder.status} />
               </div>
@@ -175,7 +187,7 @@ export default function CustomerOrderDetailPage() {
               </div>
 
               {/* Live-Tracking Map — chỉ khi sub-order đang giao */}
-              {subOrder.status === "shipping" && (
+              {subOrder.status === 'shipping' && (
                 <div className="px-6 pt-4">
                   <LiveTrackingMap
                     id={subOrder.id}
@@ -238,12 +250,16 @@ export default function CustomerOrderDetailPage() {
               <div className="border-t bg-muted/20 px-6 py-4 space-y-2">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Tạm tính</span>
-                  <span className="text-foreground">{formatVnd.format(subTotal)}</span>
+                  <span className="text-foreground">
+                    {formatVnd.format(subTotal)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Phí vận chuyển</span>
                   <span className="text-foreground">
-                    {shippingFee > 0 ? formatVnd.format(shippingFee) : "Miễn phí"}
+                    {shippingFee > 0
+                      ? formatVnd.format(shippingFee)
+                      : 'Miễn phí'}
                   </span>
                 </div>
                 {discount > 0 && (
@@ -276,7 +292,8 @@ export default function CustomerOrderDetailPage() {
                       )}
                       Hủy đơn
                     </Button>
-                  ) : subOrder.status === "processing" || subOrder.status === "shipping" ? (
+                  ) : subOrder.status === 'processing' ||
+                    subOrder.status === 'shipping' ? (
                     <div className="flex flex-col items-end gap-1.5">
                       <div className="flex items-center gap-2">
                         <Button
@@ -291,7 +308,9 @@ export default function CustomerOrderDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            render={<Link href={`/shops/${subOrder.shop.id}`} />}
+                            render={
+                              <Link href={`/shops/${subOrder.shop.id}`} />
+                            }
                           >
                             <Store className="h-4 w-4" /> Liên hệ Shop
                           </Button>
@@ -310,14 +329,21 @@ export default function CustomerOrderDetailPage() {
       </div>
 
       {/* Confirm cancel dialog */}
-      <Dialog open={!!cancelTarget} onOpenChange={(open) => { if (!open) setCancelTarget(null); }}>
+      <Dialog
+        open={!!cancelTarget}
+        onOpenChange={(open) => {
+          if (!open) setCancelTarget(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hủy đơn hàng?</DialogTitle>
             <DialogDescription>
-              Bạn chắc chắn muốn hủy đơn của shop{" "}
-              <span className="font-bold text-foreground">{cancelTargetName}</span>?
-              Tồn kho sẽ được hoàn lại và hành động này không thể hoàn tác.
+              Bạn chắc chắn muốn hủy đơn của shop{' '}
+              <span className="font-bold text-foreground">
+                {cancelTargetName}
+              </span>
+              ? Tồn kho sẽ được hoàn lại và hành động này không thể hoàn tác.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-2">
@@ -338,7 +364,7 @@ export default function CustomerOrderDetailPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Đang hủy...
                 </>
               ) : (
-                "Xác nhận hủy"
+                'Xác nhận hủy'
               )}
             </Button>
           </div>

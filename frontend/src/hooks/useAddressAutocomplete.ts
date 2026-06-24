@@ -16,7 +16,8 @@ export function useAddressAutocomplete() {
   const initialQuery = '';
   const [query, setQuery] = useState(initialQuery);
   const initialSuggestions: AddressSuggestionType[] = [];
-  const [suggestions, setSuggestions] = useState<AddressSuggestionType[]>(initialSuggestions);
+  const [suggestions, setSuggestions] =
+    useState<AddressSuggestionType[]>(initialSuggestions);
   const initialLoading = false;
   const [isLoading, setIsLoading] = useState(initialLoading);
 
@@ -49,6 +50,12 @@ export function useAddressAutocomplete() {
     return cleanupFn;
   }, [query]);
 
-  const hookResult = { query, setQuery, suggestions, setSuggestions, isLoading };
+  const hookResult = {
+    query,
+    setQuery,
+    suggestions,
+    setSuggestions,
+    isLoading,
+  };
   return hookResult;
 }

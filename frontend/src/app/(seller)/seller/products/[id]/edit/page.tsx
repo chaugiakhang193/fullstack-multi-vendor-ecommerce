@@ -1,9 +1,9 @@
-"use client"; // Chạy dưới dạng Client Component để xử lý logic tương tác trên trình duyệt
+'use client'; // Chạy dưới dạng Client Component để xử lý logic tương tác trên trình duyệt
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { useDropzone } from "react-dropzone"; // Thư viện kéo thả file
-import { toast } from "sonner"; // Thông báo dạng pop-up
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useDropzone } from 'react-dropzone'; // Thư viện kéo thả file
+import { toast } from 'sonner'; // Thông báo dạng pop-up
 import {
   Plus,
   Trash2,
@@ -13,17 +13,17 @@ import {
   Package,
   X,
   Save,
-} from "lucide-react"; // Bộ biểu tượng SVG
+} from 'lucide-react'; // Bộ biểu tượng SVG
 
-import sellerProductsApiRequest from "@/apiRequests/products/seller-products"; // API liên quan đến seller
-import categoriesApiRequest from "@/apiRequests/products/categories"; // API liên quan đến danh mục
-import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
-import { getErrorMessage } from "@/lib/http";
-import { ProductResponseType } from "@/schemaValidations/products/products.schema";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import sellerProductsApiRequest from '@/apiRequests/products/seller-products'; // API liên quan đến seller
+import categoriesApiRequest from '@/apiRequests/products/categories'; // API liên quan đến danh mục
+import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
+import { getErrorMessage } from '@/lib/http';
+import { ProductResponseType } from '@/schemaValidations/products/products.schema';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 // Định nghĩa kiểu dữ liệu cho một biến thể trong Form Chỉnh sửa
 type EditVariantFormItem = {
@@ -51,8 +51,8 @@ type FormErrors = {
 // Hàm khởi tạo một đối tượng biến thể trống rỗng
 function createEmptyEditVariant(): EditVariantFormItem {
   return {
-    name: "",
-    sku: "",
+    name: '',
+    sku: '',
     additional_price: 0,
     stock_quantity: 0,
     existingImages: [],
@@ -87,7 +87,7 @@ function EditVariantImageDropzone({
 
   // Cấu hình Dropzone kéo thả ảnh cho biến thể
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { "image/*": [] }, // Chỉ nhận các file ảnh
+    accept: { 'image/*': [] }, // Chỉ nhận các file ảnh
     multiple: true, // Cho phép chọn nhiều ảnh cùng lúc
     disabled: remainingSlots <= 0, // Vô hiệu hóa kéo thả nếu đã đủ 3 ảnh
     maxSize: 10 * 1024 * 1024,
@@ -100,10 +100,14 @@ function EditVariantImageDropzone({
       fileRejections.forEach((rejection) => {
         const { file, errors } = rejection;
         errors.forEach((err) => {
-          if (err.code === "file-too-large") {
-            toast.error(`Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-          } else if (err.code === "file-invalid-type") {
-            toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+          if (err.code === 'file-too-large') {
+            toast.error(
+              `Ảnh biến thể "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+            );
+          } else if (err.code === 'file-invalid-type') {
+            toast.error(
+              `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+            );
           } else {
             toast.error(`Lỗi tải file: ${err.message}`);
           }
@@ -198,19 +202,19 @@ export default function EditProductPage() {
 
   // --- CÁC TRẠNG THÁI LIÊN QUAN ĐẾN DANH MỤC ---
   const [categories, setCategories] = useState<CategoryResponseType[]>([]); // Toàn bộ danh mục hệ thống
-  const [selectedParentId, setSelectedParentId] = useState<string>(""); // ID danh mục cha được chọn
+  const [selectedParentId, setSelectedParentId] = useState<string>(''); // ID danh mục cha được chọn
 
   // --- CÁC TRẠNG THÁI THÔNG TIN CƠ BẢN SẢN PHẨM ---
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [sku, setSku] = useState("");
-  const [weight, setWeight] = useState<string>("");
-  const [length, setLength] = useState<string>("");
-  const [width, setWidth] = useState<string>("");
-  const [height, setHeight] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<string>(""); // ID danh mục con (lưu trữ chính thức vào sản phẩm)
-  const [stockQuantity, setStockQuantity] = useState<string>(""); // Số lượng tồn kho nếu không có biến thể
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState<string>('');
+  const [sku, setSku] = useState('');
+  const [weight, setWeight] = useState<string>('');
+  const [length, setLength] = useState<string>('');
+  const [width, setWidth] = useState<string>('');
+  const [height, setHeight] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>(''); // ID danh mục con (lưu trữ chính thức vào sản phẩm)
+  const [stockQuantity, setStockQuantity] = useState<string>(''); // Số lượng tồn kho nếu không có biến thể
   const [hasVariants, setHasVariants] = useState(false); // Đánh dấu sản phẩm có phân loại biến thể hay không
 
   // --- CÁC TRẠNG THÁI ẢNH ĐẠI DIỆN (THUMBNAIL) ---
@@ -247,7 +251,7 @@ export default function EditProductPage() {
   useEffect(() => {
     if (name) {
       window.dispatchEvent(
-        new CustomEvent("update-breadcrumb", {
+        new CustomEvent('update-breadcrumb', {
           detail: { key: productId, label: name },
         }),
       );
@@ -272,7 +276,7 @@ export default function EditProductPage() {
       } catch (error: any) {
         const msg = getErrorMessage(error);
         toast.error(msg);
-        router.push("/seller/products"); // Gặp lỗi thì đẩy người dùng về trang danh sách
+        router.push('/seller/products'); // Gặp lỗi thì đẩy người dùng về trang danh sách
       } finally {
         setIsLoadingProduct(false);
       }
@@ -287,21 +291,21 @@ export default function EditProductPage() {
   ) => {
     setName(product.name);
     setDescription(
-      typeof product.description === "string" ? product.description : "",
+      typeof product.description === 'string' ? product.description : '',
     );
     setPrice(String(product.price));
-    setSku(typeof product.sku === "string" ? product.sku : "");
+    setSku(typeof product.sku === 'string' ? product.sku : '');
     setWeight(String(product.weight));
-    setLength(product.length != null ? String(product.length) : "");
-    setWidth(product.width != null ? String(product.width) : "");
-    setHeight(product.height != null ? String(product.height) : "");
+    setLength(product.length != null ? String(product.length) : '');
+    setWidth(product.width != null ? String(product.width) : '');
+    setHeight(product.height != null ? String(product.height) : '');
     setHasVariants(product.has_variants);
     setStockQuantity(
-      product.has_variants ? "" : String(product.stock_quantity),
+      product.has_variants ? '' : String(product.stock_quantity),
     );
 
     // Gán URL thumbnail cũ
-    if (product.thumbnail_url && typeof product.thumbnail_url === "string") {
+    if (product.thumbnail_url && typeof product.thumbnail_url === 'string') {
       setExistingThumbnailUrl(product.thumbnail_url);
     }
 
@@ -329,7 +333,7 @@ export default function EditProductPage() {
       const editVariants: EditVariantFormItem[] = product.variants.map((v) => ({
         id: v.id,
         name: v.name,
-        sku: v.sku || "",
+        sku: v.sku || '',
         additional_price: v.additional_price,
         stock_quantity: v.stock_quantity,
         existingImages: v.images, // Các ảnh cũ của biến thể
@@ -352,7 +356,7 @@ export default function EditProductPage() {
   // Khi danh mục cha thay đổi thì reset danh mục con đã chọn
   const handleParentChange = (parentId: string) => {
     setSelectedParentId(parentId);
-    setCategoryId("");
+    setCategoryId('');
     if (errors.category_id) {
       setErrors((prev) => ({ ...prev, category_id: undefined }));
     }
@@ -389,7 +393,7 @@ export default function EditProductPage() {
   // Cấu hình Dropzone ảnh đại diện (Thumbnail)
   const { getRootProps: getThumbProps, getInputProps: getThumbInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: false, // Chỉ cho chọn 1 ảnh đại diện duy nhất
       maxSize: 10 * 1024 * 1024,
       onDrop: (acceptedFiles) => {
@@ -404,10 +408,14 @@ export default function EditProductPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh đại diện "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -423,7 +431,7 @@ export default function EditProductPage() {
 
   const { getRootProps: getGalleryProps, getInputProps: getGalleryInputProps } =
     useDropzone({
-      accept: { "image/*": [] },
+      accept: { 'image/*': [] },
       multiple: true,
       disabled: remainingGallerySlots <= 0, // Đầy slot thì khóa tính năng
       maxSize: 10 * 1024 * 1024,
@@ -437,10 +445,14 @@ export default function EditProductPage() {
         fileRejections.forEach((rejection) => {
           const { file, errors } = rejection;
           errors.forEach((err) => {
-            if (err.code === "file-too-large") {
-              toast.error(`Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`);
-            } else if (err.code === "file-invalid-type") {
-              toast.error(`File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`);
+            if (err.code === 'file-too-large') {
+              toast.error(
+                `Ảnh bộ sưu tập "${file.name}" vượt quá 10MB. Vui lòng chọn ảnh nhỏ hơn.`,
+              );
+            } else if (err.code === 'file-invalid-type') {
+              toast.error(
+                `File "${file.name}" không đúng định dạng. Chỉ chấp nhận các file ảnh.`,
+              );
             } else {
               toast.error(`Lỗi tải file: ${err.message}`);
             }
@@ -493,7 +505,7 @@ export default function EditProductPage() {
     index: number,
     field: keyof Omit<
       EditVariantFormItem,
-      "id" | "existingImages" | "newImages" | "newImagePreviews"
+      'id' | 'existingImages' | 'newImages' | 'newImagePreviews'
     >,
     value: string | number,
   ) => {
@@ -504,10 +516,10 @@ export default function EditProductPage() {
     // Clear dynamic error keys when modified
     const errKeyName = `variant_${index}_name`;
     const errKeyStock = `variant_${index}_stock`;
-    if (field === "name" && errors[errKeyName]) {
+    if (field === 'name' && errors[errKeyName]) {
       setErrors((prev) => ({ ...prev, [errKeyName]: undefined }));
     }
-    if (field === "stock_quantity" && errors[errKeyStock]) {
+    if (field === 'stock_quantity' && errors[errKeyStock]) {
       setErrors((prev) => ({ ...prev, [errKeyStock]: undefined }));
     }
     if (errors.variants) {
@@ -580,37 +592,37 @@ export default function EditProductPage() {
   // --- HÀM VALIDATE FORM TRƯỚC KHI SUBMIT ---
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!name.trim()) newErrors.name = "Tên sản phẩm không được để trống.";
+    if (!name.trim()) newErrors.name = 'Tên sản phẩm không được để trống.';
     if (!price || parseFloat(price) < 0)
-      newErrors.price = "Giá sản phẩm không hợp lệ.";
+      newErrors.price = 'Giá sản phẩm không hợp lệ.';
     if (!weight || parseFloat(weight) < 1)
-      newErrors.weight = "Trọng lượng phải ít nhất 1 gram.";
-    if (!categoryId) newErrors.category_id = "Vui lòng chọn danh mục.";
+      newErrors.weight = 'Trọng lượng phải ít nhất 1 gram.';
+    if (!categoryId) newErrors.category_id = 'Vui lòng chọn danh mục.';
 
     if (!hasVariants) {
       // Nếu KHÔNG có biến thể, thì kiểm tra số lượng tồn kho sản phẩm gốc
       if (!stockQuantity || parseInt(stockQuantity) < 0) {
-        newErrors.stock_quantity = "Tồn kho không hợp lệ.";
+        newErrors.stock_quantity = 'Tồn kho không hợp lệ.';
       }
     } else {
       // Nếu CÓ biến thể, kiểm tra từng dòng biến thể
       if (variants.length === 0) {
-        newErrors.variants = "Cần ít nhất 1 biến thể.";
+        newErrors.variants = 'Cần ít nhất 1 biến thể.';
       } else {
         for (let i = 0; i < variants.length; i++) {
           const variant = variants[i];
           if (!variant.name.trim()) {
             newErrors[`variant_${i}_name`] =
-              "Tên biến thể không được để trống.";
+              'Tên biến thể không được để trống.';
           }
           if (variant.stock_quantity < 0) {
-            newErrors[`variant_${i}_stock`] = "Tồn kho không được âm.";
+            newErrors[`variant_${i}_stock`] = 'Tồn kho không được âm.';
           }
           // Yêu cầu bắt buộc mỗi phân loại phải có ít nhất 1 ảnh (cũ hoặc mới)
           const totalVariantImages =
             variant.existingImages.length + variant.newImages.length;
           if (totalVariantImages === 0) {
-            newErrors[`variant_${i}_images`] = "Biến thể cần ít nhất 1 ảnh.";
+            newErrors[`variant_${i}_images`] = 'Biến thể cần ít nhất 1 ảnh.';
           }
         }
       }
@@ -624,7 +636,7 @@ export default function EditProductPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // Ngăn trình duyệt load lại trang mặc định
     if (!validate()) {
-      toast.error("Vui lòng kiểm tra lại các trường bắt buộc.");
+      toast.error('Vui lòng kiểm tra lại các trường bắt buộc.');
       return;
     }
 
@@ -634,35 +646,35 @@ export default function EditProductPage() {
       const formData = new FormData();
 
       // Đưa các thông tin cơ bản vào FormData
-      formData.append("name", name.trim());
-      formData.append("description", description.trim());
-      formData.append("price", price);
-      if (sku.trim()) formData.append("sku", sku.trim());
-      formData.append("weight", weight);
-      if (length) formData.append("length", length);
-      if (width) formData.append("width", width);
-      if (height) formData.append("height", height);
-      formData.append("category_id", categoryId);
-      formData.append("has_variants", String(hasVariants));
+      formData.append('name', name.trim());
+      formData.append('description', description.trim());
+      formData.append('price', price);
+      if (sku.trim()) formData.append('sku', sku.trim());
+      formData.append('weight', weight);
+      if (length) formData.append('length', length);
+      if (width) formData.append('width', width);
+      if (height) formData.append('height', height);
+      formData.append('category_id', categoryId);
+      formData.append('has_variants', String(hasVariants));
 
       // Lưu trữ tồn kho của sản phẩm không có biến thể
       if (!hasVariants && stockQuantity) {
-        formData.append("stock_quantity", stockQuantity);
+        formData.append('stock_quantity', stockQuantity);
       }
 
       // Đính kèm ảnh Thumbnail mới nếu người dùng vừa đổi ảnh đại diện
       if (newThumbnailFile) {
-        formData.append("thumbnail", newThumbnailFile);
+        formData.append('thumbnail', newThumbnailFile);
       }
 
       // Gửi danh sách các URL ảnh cũ của bộ sưu tập còn được giữ lại dưới dạng chuỗi JSON
       formData.append(
-        "existingGalleryImages",
+        'existingGalleryImages',
         JSON.stringify(existingGalleryImages),
       );
       // Đính kèm từng file ảnh phụ mới tải lên dưới cùng 1 tên key để Backend nhận diện dạng mảng
       newGalleryFiles.forEach((file) => {
-        formData.append("general_gallery", file);
+        formData.append('general_gallery', file);
       });
 
       // Xử lý đính kèm mảng biến thể
@@ -678,21 +690,21 @@ export default function EditProductPage() {
           existingImages: v.existingImages, // Ảnh cũ được giữ lại của biến thể này
           imageCount: v.newImages.length, // Số lượng file ảnh mới của biến thể này
         }));
-        formData.append("variants", JSON.stringify(variantsData));
+        formData.append('variants', JSON.stringify(variantsData));
 
         // Duỗi phẳng (flatten) tất cả các file ảnh của mọi biến thể và đẩy lên cùng key 'variant_images'.
         // Backend dựa trên thứ tự xuất hiện và trường 'imageCount' bên trên để gán ảnh đúng vào biến thể.
         variants.forEach((v) => {
           v.newImages.forEach((imageFile) => {
-            formData.append("variant_images", imageFile);
+            formData.append('variant_images', imageFile);
           });
         });
       }
 
       // Gọi API gửi yêu cầu cập nhật sản phẩm
       await sellerProductsApiRequest.updateProduct(productId, formData);
-      toast.success("Cập nhật sản phẩm thành công!");
-      router.push("/seller/products"); // Chuyển về trang danh sách quản lý
+      toast.success('Cập nhật sản phẩm thành công!');
+      router.push('/seller/products'); // Chuyển về trang danh sách quản lý
     } catch (error: any) {
       const msg = getErrorMessage(error);
       toast.error(msg);
@@ -1025,10 +1037,10 @@ export default function EditProductPage() {
               </span>
               <div
                 onClick={() => setHasVariants(!hasVariants)}
-                className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors duration-200 ${hasVariants ? "bg-violet-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors duration-200 ${hasVariants ? 'bg-violet-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? "translate-x-5" : "translate-x-0"}`}
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${hasVariants ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </div>
             </div>
@@ -1099,7 +1111,7 @@ export default function EditProductPage() {
                         placeholder="Ví dụ: Đỏ, Size L"
                         value={variant.name}
                         onChange={(e) =>
-                          handleVariantChange(idx, "name", e.target.value)
+                          handleVariantChange(idx, 'name', e.target.value)
                         }
                         aria-invalid={!!errors[`variant_${idx}_name`]}
                       />
@@ -1115,7 +1127,7 @@ export default function EditProductPage() {
                         placeholder="SKU-RED-L"
                         value={variant.sku}
                         onChange={(e) =>
-                          handleVariantChange(idx, "sku", e.target.value)
+                          handleVariantChange(idx, 'sku', e.target.value)
                         }
                       />
                     </div>
@@ -1130,7 +1142,7 @@ export default function EditProductPage() {
                         onChange={(e) =>
                           handleVariantChange(
                             idx,
-                            "additional_price",
+                            'additional_price',
                             parseFloat(e.target.value) || 0,
                           )
                         }
@@ -1147,7 +1159,7 @@ export default function EditProductPage() {
                         onChange={(e) =>
                           handleVariantChange(
                             idx,
-                            "stock_quantity",
+                            'stock_quantity',
                             parseInt(e.target.value) || 0,
                           )
                         }

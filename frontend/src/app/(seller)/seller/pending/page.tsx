@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Clock, LogOut, ArrowLeft, Store, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Clock, LogOut, ArrowLeft, Store, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
-import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { tabId } from "@/lib/utils";
-import { toast } from "sonner";
-import { AccountStatus } from "@/constants/enum";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
+} from '@/components/ui/card';
+import { useAuthStore } from '@/store/useAuthStore';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { tabId } from '@/lib/utils';
+import { toast } from 'sonner';
+import { AccountStatus } from '@/constants/enum';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle, Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SellerPendingPage() {
   const router = useRouter();
@@ -38,17 +38,20 @@ export default function SellerPendingPage() {
     try {
       await authApiRequest.logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error('Lỗi đăng xuất:', error);
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
-      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+      channel.postMessage({
+        type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS,
+        senderTabId: tabId,
+      });
       channel.close();
 
-      toast.success("Đăng xuất thành công");
+      toast.success('Đăng xuất thành công');
       setIsLogoutConfirmOpen(false);
-      router.push("/login");
+      router.push('/login');
       router.refresh();
       setIsLoggingOut(false);
     }
@@ -68,18 +71,18 @@ export default function SellerPendingPage() {
         if (newStatus !== currentStatus) {
           // Trạng thái đã thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
           await useAuthStore.getState().silentRefresh();
-          
+
           if (newStatus === AccountStatus.ACTIVE) {
-            const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
+            const successMsg = 'Cửa hàng của bạn đã được phê duyệt!';
             toast.success(successMsg);
-            const targetPath = "/seller";
+            const targetPath = '/seller';
             router.push(targetPath);
             router.refresh();
             return;
           } else if (newStatus === AccountStatus.REJECTED) {
-            const errorMsg = "Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.";
+            const errorMsg = 'Yêu cầu đăng ký bán hàng của bạn đã bị từ chối.';
             toast.error(errorMsg);
-            const targetPath = "/seller/rejected";
+            const targetPath = '/seller/rejected';
             router.push(targetPath);
             router.refresh();
             return;
@@ -87,24 +90,24 @@ export default function SellerPendingPage() {
         } else {
           // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
           if (newStatus === AccountStatus.ACTIVE) {
-            const targetPath = "/seller";
+            const targetPath = '/seller';
             router.push(targetPath);
             router.refresh();
             return;
           } else if (newStatus === AccountStatus.REJECTED) {
-            const targetPath = "/seller/rejected";
+            const targetPath = '/seller/rejected';
             router.push(targetPath);
             router.refresh();
             return;
           }
         }
       }
-      const infoMsg = "Tài khoản vẫn đang trong quá trình phê duyệt.";
+      const infoMsg = 'Tài khoản vẫn đang trong quá trình phê duyệt.';
       toast.info(infoMsg);
     } catch (error) {
-      const logTitle = "Lỗi kiểm tra trạng thái:";
+      const logTitle = 'Lỗi kiểm tra trạng thái:';
       console.error(logTitle, error);
-      const errMsg = "Không thể kết nối đến máy chủ.";
+      const errMsg = 'Không thể kết nối đến máy chủ.';
       toast.error(errMsg);
     } finally {
       setIsRefreshing(false);
@@ -147,7 +150,7 @@ export default function SellerPendingPage() {
               disabled={isRefreshing}
             >
               <RefreshCw
-                className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
               />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
@@ -155,7 +158,7 @@ export default function SellerPendingPage() {
             <div className="grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
-                onClick={() => router.push("/")}
+                onClick={() => router.push('/')}
                 className="h-14 flex items-center justify-center gap-2.5 text-base font-bold rounded-xl"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -203,7 +206,7 @@ export default function SellerPendingPage() {
                   Đang đăng xuất...
                 </>
               ) : (
-                "Đăng xuất"
+                'Đăng xuất'
               )}
             </Button>
             <Button

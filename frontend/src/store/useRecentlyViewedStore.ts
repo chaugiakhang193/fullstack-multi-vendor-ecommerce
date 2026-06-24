@@ -1,8 +1,8 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // Types
-import { ProductResponseType } from "@/schemaValidations/products/products.schema";
+import { ProductResponseType } from '@/schemaValidations/products/products.schema';
 
 // Interfaces
 interface RecentlyViewedState {
@@ -43,7 +43,7 @@ export const useRecentlyViewedStore = create<RecentlyViewedState>()(
       },
     }),
     {
-      name: "recently-viewed", // Tên key lưu trong localStorage
-    }
-  )
+      name: 'recently-viewed', // Tên key lưu trong localStorage
+    },
+  ),
 );

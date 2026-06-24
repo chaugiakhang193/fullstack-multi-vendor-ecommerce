@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, use, useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import React, { useState, useEffect, use, useRef } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   ShoppingCart,
   Star,
@@ -17,38 +17,41 @@ import {
   Sparkles,
   Loader2,
   MessageSquare,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 // Services, Stores & Hooks
-import { useCartStore } from "@/store/useCartStore";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
-import { useActiveCart } from "@/hooks/useActiveCart";
-import { useProductDetail } from "@/hooks/useProducts";
-import { useMyShop } from "@/hooks/useShop";
-import { StarRating } from "@/components/shared/star-rating";
-import { useProductReviews } from "@/hooks/useReviews";
+import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useRecentlyViewedStore } from '@/store/useRecentlyViewedStore';
+import { useActiveCart } from '@/hooks/useActiveCart';
+import { useProductDetail } from '@/hooks/useProducts';
+import { useMyShop } from '@/hooks/useShop';
+import { StarRating } from '@/components/shared/star-rating';
+import { useProductReviews } from '@/hooks/useReviews';
 
 // Components
-import VariantSelector from "@/components/products/VariantSelector";
-import dynamic from "next/dynamic";
-const RecentlyViewedCarousel = dynamic(() => import("@/components/products/recently-viewed-carousel"), {
-  ssr: false,
-});
-import { Button } from "@/components/ui/button";
+import VariantSelector from '@/components/products/VariantSelector';
+import dynamic from 'next/dynamic';
+const RecentlyViewedCarousel = dynamic(
+  () => import('@/components/products/recently-viewed-carousel'),
+  {
+    ssr: false,
+  },
+);
+import { Button } from '@/components/ui/button';
 
 // Types
-import type { ProductVariantResponseType } from "@/schemaValidations/products/products.schema";
+import type { ProductVariantResponseType } from '@/schemaValidations/products/products.schema';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ variant?: string; entry?: string }>;
 }
 
-const priceFormatter = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -58,12 +61,15 @@ const formatPrice = (val: number) => {
 // Helper to extract UUID from the SEO slug (e.g. "ao-thun-premium-i.uuid")
 const extractProductId = (slug: string): string => {
   const match = slug.match(
-    /-i\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+    /-i\.([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/,
   );
   return match ? match[1] : slug;
 };
 
-export default function ProductDetailClient({ params, searchParams }: PageProps) {
+export default function ProductDetailClient({
+  params,
+  searchParams,
+}: PageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const resolvedParams = use(params);
@@ -73,12 +79,17 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   const productId = extractProductId(rawSlug);
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariantResponseType | null>(null);
+  const [selectedVariant, setSelectedVariant] =
+    useState<ProductVariantResponseType | null>(null);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
-  const [activeTab, setActiveTab] = useState<"description" | "reviews">("description");
+  const [activeTab, setActiveTab] = useState<'description' | 'reviews'>(
+    'description',
+  );
   const [reviewPage, setReviewPage] = useState(1);
-  const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
+  const [selectedRating, setSelectedRating] = useState<number | undefined>(
+    undefined,
+  );
 
   const mainImageRef = useRef<HTMLImageElement>(null);
   const initialCheckRef = useRef(false);
@@ -92,13 +103,18 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   const product = detailRes?.data;
 
   // Fetch product reviews
-  const { data: reviewsRes, isLoading: isReviewsLoading } = useProductReviews(product?.id || "", {
-    page: reviewPage,
-    limit: 10,
-    rating: selectedRating,
-  });
+  const { data: reviewsRes, isLoading: isReviewsLoading } = useProductReviews(
+    product?.id || '',
+    {
+      page: reviewPage,
+      limit: 10,
+      rating: selectedRating,
+    },
+  );
   const reviewsData = reviewsRes?.data;
-  const addProductToRecentlyViewed = useRecentlyViewedStore((state) => state.addProduct);
+  const addProductToRecentlyViewed = useRecentlyViewedStore(
+    (state) => state.addProduct,
+  );
 
   // Lưu sản phẩm vào danh sách vừa xem gần đây
   useEffect(() => {
@@ -108,12 +124,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   }, [product, addProductToRecentlyViewed]);
 
   // Fetch seller's own shop if logged in as seller using hook
-  const { data: myShopRes } = useMyShop(user?.role === "seller");
+  const { data: myShopRes } = useMyShop(user?.role === 'seller');
   const myShop = myShopRes?.data;
 
-  const isOwnProduct = product && myShop
-    ? product.shop?.id === myShop.id
-    : false;
+  const isOwnProduct =
+    product && myShop ? product.shop?.id === myShop.id : false;
 
   // Logic scroll ẩn/hiện Sticky Bar trên Mobile
   useEffect(() => {
@@ -125,9 +140,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
         setShowStickyBar(false);
       }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -162,17 +177,17 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
 
   // Restore last selected variant from localStorage if not coming from catalog (entry=catalog)
   useEffect(() => {
-    if (typeof window !== "undefined" && product && !initialCheckRef.current) {
+    if (typeof window !== 'undefined' && product && !initialCheckRef.current) {
       initialCheckRef.current = true;
 
-      const comingFromCatalog = resolvedSearchParams.entry === "catalog";
+      const comingFromCatalog = resolvedSearchParams.entry === 'catalog';
 
       if (comingFromCatalog) {
         // Strip entry=catalog from URL immediately to keep address bar clean
         const params = new URLSearchParams(window.location.search);
-        params.delete("entry");
+        params.delete('entry');
         const cleanedQuery = params.toString();
-        const newUrl = `${pathname}${cleanedQuery ? `?${cleanedQuery}` : ""}`;
+        const newUrl = `${pathname}${cleanedQuery ? `?${cleanedQuery}` : ''}`;
         router.replace(newUrl, { scroll: false });
         return;
       }
@@ -180,12 +195,12 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
       // Check if there are any variant / attribute parameters in the current URL
       const params = new URLSearchParams(window.location.search);
       const hasAnyParams =
-        params.has("variant") ||
-        params.has("color") ||
-        params.has("size") ||
-        params.has("cpu") ||
-        params.has("ram") ||
-        params.has("storage");
+        params.has('variant') ||
+        params.has('color') ||
+        params.has('size') ||
+        params.has('cpu') ||
+        params.has('ram') ||
+        params.has('storage');
 
       // If no query parameters, check localStorage and restore the last selection
       if (!hasAnyParams) {
@@ -199,9 +214,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
 
   // Save selected variant to localStorage
   useEffect(() => {
-    if (product && selectedVariant && typeof window !== "undefined") {
+    if (product && selectedVariant && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      params.delete("entry");
+      params.delete('entry');
       const queryString = params.toString();
       if (queryString) {
         localStorage.setItem(`last_variant_${product.id}`, `?${queryString}`);
@@ -211,7 +226,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
 
   // When variant changes, update active main image to variant's first image (if available)
   useEffect(() => {
-    if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
+    if (
+      selectedVariant &&
+      selectedVariant.images &&
+      selectedVariant.images.length > 0
+    ) {
       const variantImage = selectedVariant.images[0];
       setActiveImageUrl(variantImage);
     } else if (product) {
@@ -229,7 +248,10 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
             <div className="aspect-square bg-zinc-200 dark:bg-zinc-800 rounded-2xl animate-pulse" />
             <div className="flex gap-2.5">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-20 h-20 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+                <div
+                  key={i}
+                  className="w-20 h-20 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"
+                />
               ))}
             </div>
           </div>
@@ -250,7 +272,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   if (error || !product) {
     return (
       <div className="max-w-7xl mx-auto py-16 text-center space-y-4">
-        <h2 className="text-2xl font-extrabold text-rose-600">Lỗi tải sản phẩm</h2>
+        <h2 className="text-2xl font-extrabold text-rose-600">
+          Lỗi tải sản phẩm
+        </h2>
         <p className="text-muted-foreground text-sm">
           Không tìm thấy sản phẩm hoặc đường dẫn không hợp lệ.
         </p>
@@ -292,7 +316,7 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
       const nextQty = quantity + 1;
       setQuantity(nextQty);
     } else {
-      const limitMsg = "Số lượng đã đạt giới hạn tồn kho của phiên bản này!";
+      const limitMsg = 'Số lượng đã đạt giới hạn tồn kho của phiên bản này!';
       toast.warning(limitMsg);
     }
   };
@@ -300,23 +324,25 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
   // Fly-to-cart animation logic
   const triggerFlyToCartAnimation = () => {
     const mainImg = mainImageRef.current;
-    const cartEl = document.querySelector('button[id="header-cart-btn"]') || document.querySelector('a[href="/cart"]');
-    
+    const cartEl =
+      document.querySelector('button[id="header-cart-btn"]') ||
+      document.querySelector('a[href="/cart"]');
+
     if (mainImg && cartEl) {
       const imgRect = mainImg.getBoundingClientRect();
       const cartRect = cartEl.getBoundingClientRect();
 
-      const clone = document.createElement("img");
+      const clone = document.createElement('img');
       clone.src = mainImg.src;
-      clone.style.position = "fixed";
+      clone.style.position = 'fixed';
       clone.style.left = `${imgRect.left}px`;
       clone.style.top = `${imgRect.top}px`;
       clone.style.width = `${imgRect.width}px`;
       clone.style.height = `${imgRect.height}px`;
-      clone.style.borderRadius = "16px";
-      clone.style.zIndex = "9999";
-      clone.style.pointerEvents = "none";
-      clone.style.transition = "all 0.8s cubic-bezier(0.25, 1, 0.5, 1)";
+      clone.style.borderRadius = '16px';
+      clone.style.zIndex = '9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.transition = 'all 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
 
       document.body.appendChild(clone);
 
@@ -325,18 +351,26 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
 
       clone.style.left = `${cartRect.left + cartRect.width / 2 - 15}px`;
       clone.style.top = `${cartRect.top + cartRect.height / 2 - 15}px`;
-      clone.style.width = "30px";
-      clone.style.height = "30px";
-      clone.style.opacity = "0.1";
-      clone.style.transform = "scale(0.1) rotate(360deg)";
+      clone.style.width = '30px';
+      clone.style.height = '30px';
+      clone.style.opacity = '0.1';
+      clone.style.transform = 'scale(0.1) rotate(360deg)';
 
       setTimeout(() => {
         clone.remove();
         // Scale bounce effect on cart button
-        const targetBtn = cartEl.querySelector("button") || cartEl;
-        targetBtn.classList.add("scale-110", "bg-violet-100", "dark:bg-violet-900/30");
+        const targetBtn = cartEl.querySelector('button') || cartEl;
+        targetBtn.classList.add(
+          'scale-110',
+          'bg-violet-100',
+          'dark:bg-violet-900/30',
+        );
         setTimeout(() => {
-          targetBtn.classList.remove("scale-110", "bg-violet-100", "dark:bg-violet-900/30");
+          targetBtn.classList.remove(
+            'scale-110',
+            'bg-violet-100',
+            'dark:bg-violet-900/30',
+          );
           // Open the Cart Drawer after fly animation completes
           setIsOpen(true);
         }, 200);
@@ -346,22 +380,22 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
       setIsOpen(true);
     }
   };
-  
+
   const handleAddToCart = () => {
     if (isOwnProduct) {
-      const ownProductMsg = "Bạn không thể mua sản phẩm của chính shop mình!";
+      const ownProductMsg = 'Bạn không thể mua sản phẩm của chính shop mình!';
       toast.error(ownProductMsg);
       return;
     }
 
     if (isOutOfStock) {
-      const errorMsg = "Sản phẩm hiện đang tạm hết hàng!";
+      const errorMsg = 'Sản phẩm hiện đang tạm hết hàng!';
       toast.error(errorMsg);
       return;
     }
 
     if (product.has_variants && !selectedVariant) {
-      const warningMsg = "Vui lòng chọn đầy đủ các phân loại phiên bản!";
+      const warningMsg = 'Vui lòng chọn đầy đủ các phân loại phiên bản!';
       toast.warning(warningMsg);
       return;
     }
@@ -371,9 +405,10 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
       variantId: selectedVariant ? selectedVariant.id : null,
       name: product.name,
       price: Number(finalPrice),
-      thumbnailUrl: activeImageUrl || product.thumbnail_url || "/placeholder-product.png",
-      shopId: product.shop?.id || "default-shop",
-      shopName: product.shop?.name || "Cửa hàng",
+      thumbnailUrl:
+        activeImageUrl || product.thumbnail_url || '/placeholder-product.png',
+      shopId: product.shop?.id || 'default-shop',
+      shopName: product.shop?.name || 'Cửa hàng',
       productSlug: rawSlug,
       variants: product.variants || [],
       basePrice: Number(product.price),
@@ -392,13 +427,13 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
     if (isOwnProduct) return;
 
     if (product.has_variants && !selectedVariant) {
-      const warningMsg = "Vui lòng chọn phiên bản sản phẩm!";
+      const warningMsg = 'Vui lòng chọn phiên bản sản phẩm!';
       toast.warning(warningMsg);
-      const selectorEl = document.getElementById("variant-selector-section");
+      const selectorEl = document.getElementById('variant-selector-section');
       if (selectorEl) {
         const scrollOptions: ScrollIntoViewOptions = {
-          behavior: "smooth",
-          block: "center",
+          behavior: 'smooth',
+          block: 'center',
         };
         selectorEl.scrollIntoView(scrollOptions);
       }
@@ -416,7 +451,7 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
         </Link>
         <ChevronRight className="h-3 w-3" />
         <span className="hover:text-violet-600 transition-colors">
-          {product.category?.name || "Sản phẩm"}
+          {product.category?.name || 'Sản phẩm'}
         </span>
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground truncate max-w-[280px]">
@@ -441,9 +476,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                 priority
               />
             ) : (
-              <div className="text-muted-foreground text-sm italic">Không có hình ảnh</div>
+              <div className="text-muted-foreground text-sm italic">
+                Không có hình ảnh
+              </div>
             )}
-            
+
             {/* Out of Stock Label */}
             {isOutOfStock && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center text-white text-base font-black uppercase tracking-widest">
@@ -463,7 +500,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                     type="button"
                     onClick={() => setActiveImageUrl(url)}
                     className={`relative w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 bg-white dark:bg-zinc-950 transition-all ${
-                      isActive ? "border-violet-600 scale-105" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-400"
+                      isActive
+                        ? 'border-violet-600 scale-105'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-400'
                     }`}
                   >
                     <Image
@@ -487,7 +526,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
             <div className="flex items-center justify-between gap-4 border-b pb-4">
               <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-widest">
                 <Store className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
-                <span className="truncate">{product.shop?.name || "Cửa hàng"}</span>
+                <span className="truncate">
+                  {product.shop?.name || 'Cửa hàng'}
+                </span>
               </div>
               <Link
                 href={`/shops/${product.shop?.id}`}
@@ -506,13 +547,17 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
             <div className="flex items-center gap-1.5 pt-1">
               <StarRating rating={Number(product.avg_rating || 0)} size="sm" />
               <span className="text-xs font-bold text-muted-foreground ml-1">
-                {Number(product.avg_rating || 0).toFixed(1)} ({product.review_count || 0} đánh giá)
+                {Number(product.avg_rating || 0).toFixed(1)} (
+                {product.review_count || 0} đánh giá)
               </span>
             </div>
 
             {isOwnProduct && (
               <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs text-amber-700 dark:text-amber-400 font-bold flex items-center gap-2 animate-pulse">
-                <span>⚠️ Bạn đang xem sản phẩm thuộc sở hữu của shop bạn. Tính năng mua hàng bị vô hiệu hóa.</span>
+                <span>
+                  ⚠️ Bạn đang xem sản phẩm thuộc sở hữu của shop bạn. Tính năng
+                  mua hàng bị vô hiệu hóa.
+                </span>
               </div>
             )}
           </div>
@@ -525,22 +570,30 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
             <div className="text-3xl font-black text-violet-600 dark:text-violet-400">
               {formatPrice(finalPrice)}
             </div>
-            {selectedVariant && Number(selectedVariant.additional_price) > 0 && (
-              <span className="text-[10px] text-muted-foreground font-semibold">
-                (Đã gồm {formatPrice(Number(selectedVariant.additional_price))} phụ phí phiên bản)
-              </span>
-            )}
+            {selectedVariant &&
+              Number(selectedVariant.additional_price) > 0 && (
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  (Đã gồm{' '}
+                  {formatPrice(Number(selectedVariant.additional_price))} phụ
+                  phí phiên bản)
+                </span>
+              )}
           </div>
 
           {/* Variant Selectors Section */}
-          {product.has_variants && product.variants && product.variants.length > 0 && (
-            <div id="variant-selector-section" className="border-t border-zinc-100 dark:border-zinc-900/60 pt-5">
-              <VariantSelector
-                variants={product.variants}
-                onVariantSelect={setSelectedVariant}
-              />
-            </div>
-          )}
+          {product.has_variants &&
+            product.variants &&
+            product.variants.length > 0 && (
+              <div
+                id="variant-selector-section"
+                className="border-t border-zinc-100 dark:border-zinc-900/60 pt-5"
+              >
+                <VariantSelector
+                  variants={product.variants}
+                  onVariantSelect={setSelectedVariant}
+                />
+              </div>
+            )}
 
           {/* Quantity Selector Section */}
           <div className="border-t border-zinc-100 dark:border-zinc-900/60 pt-5 space-y-3">
@@ -548,7 +601,10 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
               <span>Số lượng mua:</span>
               {!isOutOfStock && !isOwnProduct && (
                 <span className="text-xs text-muted-foreground font-semibold">
-                  Tồn kho khả dụng: <strong className="text-foreground">{maxStock} sản phẩm</strong>
+                  Tồn kho khả dụng:{' '}
+                  <strong className="text-foreground">
+                    {maxStock} sản phẩm
+                  </strong>
                 </span>
               )}
             </div>
@@ -568,7 +624,9 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                 </span>
                 <button
                   type="button"
-                  disabled={quantity >= maxStock || isOutOfStock || isOwnProduct}
+                  disabled={
+                    quantity >= maxStock || isOutOfStock || isOwnProduct
+                  }
                   onClick={handleQtyPlus}
                   className="w-12 h-full flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent transition text-muted-foreground hover:text-foreground border-l dark:border-zinc-800"
                 >
@@ -585,11 +643,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
               >
                 <ShoppingCart className="h-4 w-4" />
                 <span>
-                  {isOwnProduct 
-                    ? "Sản phẩm của Shop bạn" 
-                    : isOutOfStock 
-                      ? "Tạm hết hàng" 
-                      : "Thêm vào giỏ hàng"}
+                  {isOwnProduct
+                    ? 'Sản phẩm của Shop bạn'
+                    : isOutOfStock
+                      ? 'Tạm hết hàng'
+                      : 'Thêm vào giỏ hàng'}
                 </span>
               </button>
             </div>
@@ -618,29 +676,29 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
         <div className="border-b pb-4 flex gap-8">
           <button
             type="button"
-            onClick={() => setActiveTab("description")}
+            onClick={() => setActiveTab('description')}
             className={`text-base font-extrabold pb-4 -mb-[18px] flex items-center gap-1.5 border-b-2 transition-all ${
-              activeTab === "description"
-                ? "text-violet-600 border-violet-600"
-                : "text-muted-foreground border-transparent hover:text-foreground"
+              activeTab === 'description'
+                ? 'text-violet-600 border-violet-600'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
             }`}
           >
             <Sparkles className="h-4 w-4" /> Chi tiết sản phẩm
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("reviews")}
+            onClick={() => setActiveTab('reviews')}
             className={`text-base font-extrabold pb-4 -mb-[18px] flex items-center gap-1.5 border-b-2 transition-all ${
-              activeTab === "reviews"
-                ? "text-violet-600 border-violet-600"
-                : "text-muted-foreground border-transparent hover:text-foreground"
+              activeTab === 'reviews'
+                ? 'text-violet-600 border-violet-600'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
             }`}
           >
             <Star className="h-4 w-4" /> Đánh giá ({product.review_count || 0})
           </button>
         </div>
 
-        {activeTab === "description" ? (
+        {activeTab === 'description' ? (
           <div className="space-y-4 pt-2">
             {product.description ? (
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -659,19 +717,28 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
               </h4>
               <div className="divide-y text-xs border rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/10">
                 <div className="flex p-3">
-                  <span className="w-1/3 text-muted-foreground font-semibold">Trọng lượng</span>
-                  <span className="w-2/3 text-foreground font-bold">{product.weight}g</span>
-                </div>
-                <div className="flex p-3">
-                  <span className="w-1/3 text-muted-foreground font-semibold">Kích thước hộp</span>
+                  <span className="w-1/3 text-muted-foreground font-semibold">
+                    Trọng lượng
+                  </span>
                   <span className="w-2/3 text-foreground font-bold">
-                    {product.length || 20} x {product.width || 15} x {product.height || 10} cm
+                    {product.weight}g
                   </span>
                 </div>
                 <div className="flex p-3">
-                  <span className="w-1/3 text-muted-foreground font-semibold">Mã SKU gốc</span>
+                  <span className="w-1/3 text-muted-foreground font-semibold">
+                    Kích thước hộp
+                  </span>
+                  <span className="w-2/3 text-foreground font-bold">
+                    {product.length || 20} x {product.width || 15} x{' '}
+                    {product.height || 10} cm
+                  </span>
+                </div>
+                <div className="flex p-3">
+                  <span className="w-1/3 text-muted-foreground font-semibold">
+                    Mã SKU gốc
+                  </span>
                   <span className="w-2/3 text-foreground font-mono font-bold">
-                    {product.sku || "N/A"}
+                    {product.sku || 'N/A'}
                   </span>
                 </div>
               </div>
@@ -687,7 +754,10 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                   {Number(product.avg_rating || 0).toFixed(1)}
                 </span>
                 <div className="mt-2">
-                  <StarRating rating={Number(product.avg_rating || 0)} size="md" />
+                  <StarRating
+                    rating={Number(product.avg_rating || 0)}
+                    size="md"
+                  />
                 </div>
                 <span className="mt-2 text-xs font-bold text-muted-foreground">
                   {product.review_count || 0} đánh giá
@@ -697,13 +767,28 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
               {/* Distribution bars */}
               <div className="md:col-span-8 flex flex-col gap-2">
                 {[5, 4, 3, 2, 1].map((stars) => {
-                  const distribution = reviewsData?.distribution || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
-                  const count = distribution[stars.toString() as keyof typeof distribution] || 0;
-                  const total = Object.values(distribution).reduce((a, b) => a + b, 0) || 1;
+                  const distribution = reviewsData?.distribution || {
+                    '1': 0,
+                    '2': 0,
+                    '3': 0,
+                    '4': 0,
+                    '5': 0,
+                  };
+                  const count =
+                    distribution[
+                      stars.toString() as keyof typeof distribution
+                    ] || 0;
+                  const total =
+                    Object.values(distribution).reduce((a, b) => a + b, 0) || 1;
                   const percent = Math.round((count / total) * 100);
                   return (
-                    <div key={stars} className="flex items-center gap-3 text-xs">
-                      <span className="w-12 font-bold text-muted-foreground text-right shrink-0">{stars} sao</span>
+                    <div
+                      key={stars}
+                      className="flex items-center gap-3 text-xs"
+                    >
+                      <span className="w-12 font-bold text-muted-foreground text-right shrink-0">
+                        {stars} sao
+                      </span>
                       <div className="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                         <div
                           className="h-full bg-amber-400 rounded-full"
@@ -729,8 +814,8 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border ${
                   selectedRating === undefined
-                    ? "bg-violet-600 text-white border-violet-600"
-                    : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
                 }`}
               >
                 Tất cả
@@ -745,8 +830,8 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                   }}
                   className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border flex items-center gap-1 ${
                     selectedRating === stars
-                      ? "bg-violet-600 text-white border-violet-600"
-                      : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
                   }`}
                 >
                   {stars} sao
@@ -771,7 +856,7 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <div className="text-sm font-extrabold text-foreground">
-                          {review.user?.username || "Người dùng ẩn danh"}
+                          {review.user?.username || 'Người dùng ẩn danh'}
                         </div>
                         <div className="mt-1 flex items-center gap-2">
                           <StarRating rating={review.rating} size="sm" />
@@ -783,11 +868,14 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                         </div>
                       </div>
                       <span className="text-xs font-bold text-muted-foreground">
-                        {new Date(review.created_at).toLocaleDateString("vi-VN", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        {new Date(review.created_at).toLocaleDateString(
+                          'vi-VN',
+                          {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          },
+                        )}
                       </span>
                     </div>
 
@@ -802,7 +890,8 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
                     {review.reply_from_seller && (
                       <div className="p-4 rounded-xl bg-violet-50/50 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/30 ml-4 space-y-1">
                         <div className="text-xs font-black text-violet-600 dark:text-violet-400 flex items-center gap-1.5 uppercase tracking-wider">
-                          <MessageSquare className="h-3.5 w-3.5" /> Phản hồi từ người bán
+                          <MessageSquare className="h-3.5 w-3.5" /> Phản hồi từ
+                          người bán
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
                           {review.reply_from_seller}
@@ -851,7 +940,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800">
               <Image
-                src={activeImageUrl || product.thumbnail_url || "/placeholder-product.png"}
+                src={
+                  activeImageUrl ||
+                  product.thumbnail_url ||
+                  '/placeholder-product.png'
+                }
                 alt={product.name}
                 fill
                 sizes="40px"
@@ -876,11 +969,11 @@ export default function ProductDetailClient({ params, searchParams }: PageProps)
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>
-              {isOwnProduct 
-                ? "Sản phẩm của Shop bạn" 
-                : isOutOfStock 
-                  ? "Tạm hết hàng" 
-                  : "Thêm vào giỏ"}
+              {isOwnProduct
+                ? 'Sản phẩm của Shop bạn'
+                : isOutOfStock
+                  ? 'Tạm hết hàng'
+                  : 'Thêm vào giỏ'}
             </span>
           </button>
         </div>

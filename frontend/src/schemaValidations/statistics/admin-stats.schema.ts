@@ -1,7 +1,7 @@
-import z from "zod";
-import type { components } from "@/lib/api/api-schema";
+import z from 'zod';
+import type { components } from '@/lib/api/api-schema';
 
-type AdminStatsResponseDto = components["schemas"]["AdminStatsResponseDto"];
+type AdminStatsResponseDto = components['schemas']['AdminStatsResponseDto'];
 
 export const AdminStatsSchema = z.object({
   total_users: z.number(),

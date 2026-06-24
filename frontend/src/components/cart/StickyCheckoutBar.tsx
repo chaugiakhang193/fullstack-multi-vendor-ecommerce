@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
-import { ArrowRight, Truck } from "lucide-react";
-import { SHIPPING_LIMITS } from "@/constants/limits.generated";
+import React, { useMemo } from 'react';
+import { ArrowRight, Truck } from 'lucide-react';
+import { SHIPPING_LIMITS } from '@/constants/limits.generated';
 
 interface StickyCheckoutBarProps {
   selectedCount: number;
@@ -11,9 +11,9 @@ interface StickyCheckoutBarProps {
   isLoading?: boolean;
 }
 
-const priceFormatterObj = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatterObj = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -30,11 +30,19 @@ export default function StickyCheckoutBar({
   isLoading = false,
 }: StickyCheckoutBarProps) {
   const isFreeship = selectedAmount >= FREE_SHIPPING_TARGET;
-  const shippingFee = selectedCount > 0 ? (isFreeship ? 0 : DEFAULT_SHIPPING_FEE) : DEFAULT_SHIPPING_FEE;
-  
+  const shippingFee =
+    selectedCount > 0
+      ? isFreeship
+        ? 0
+        : DEFAULT_SHIPPING_FEE
+      : DEFAULT_SHIPPING_FEE;
+
   // Tổng tiền thanh toán cuối cùng = Tổng tiền sản phẩm + phí vận chuyển
-  const totalPayment = selectedCount > 0 ? selectedAmount + (isFreeship ? 0 : DEFAULT_SHIPPING_FEE) : 0;
-  
+  const totalPayment =
+    selectedCount > 0
+      ? selectedAmount + (isFreeship ? 0 : DEFAULT_SHIPPING_FEE)
+      : 0;
+
   const formattedPrice = formatPrice(totalPayment);
 
   const freeShippingProgress = useMemo(() => {
@@ -58,10 +66,10 @@ export default function StickyCheckoutBar({
             <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
             {remainingForFreeShipping > 0 ? (
               <span className="text-muted-foreground text-[11px] sm:text-xs">
-                Mua thêm{" "}
+                Mua thêm{' '}
                 <strong className="text-violet-600 dark:text-violet-400">
                   {formatPrice(remainingForFreeShipping)}
-                </strong>{" "}
+                </strong>{' '}
                 để nhận freeship!
               </span>
             ) : (
@@ -95,9 +103,13 @@ export default function StickyCheckoutBar({
           <div className="flex justify-between">
             <span>Phí vận chuyển:</span>
             {selectedCount > 0 && isFreeship ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Miễn phí (Freeship)</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                Miễn phí (Freeship)
+              </span>
             ) : (
-              <span className="text-foreground font-bold">{formatPrice(shippingFee)}</span>
+              <span className="text-foreground font-bold">
+                {formatPrice(shippingFee)}
+              </span>
             )}
           </div>
           <div className="flex justify-between">

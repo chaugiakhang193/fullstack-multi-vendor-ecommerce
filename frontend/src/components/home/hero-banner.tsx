@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import Link from "next/link";
-import { ArrowRight, ShieldCheck, Zap, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import Link from 'next/link';
+import { ArrowRight, ShieldCheck, Zap, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function HeroBanner() {
   return (
@@ -14,7 +14,6 @@ export default function HeroBanner() {
 
       {/* Main Content Container */}
       <div className="relative px-6 py-16 md:py-24 sm:px-12 max-w-6xl mx-auto text-center flex flex-col items-center justify-center gap-6 animate-fade-in-up z-10">
-        
         {/* Special Tagline Badge */}
         <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-extrabold tracking-wide uppercase select-none">
           <Sparkles className="h-4.5 w-4.5 text-amber-300 animate-pulse" />
@@ -29,8 +28,8 @@ export default function HeroBanner() {
 
         {/* Subtitle */}
         <p className="text-lg md:text-2xl text-indigo-100 max-w-3xl leading-relaxed font-medium">
-          Khám phá hàng ngàn sản phẩm chính hãng chất lượng cao, ưu đãi độc quyền 
-          từ các gian hàng uy tín trên toàn quốc.
+          Khám phá hàng ngàn sản phẩm chính hãng chất lượng cao, ưu đãi độc
+          quyền từ các gian hàng uy tín trên toàn quốc.
         </p>
 
         {/* CTA Buttons */}
@@ -70,7 +69,6 @@ export default function HeroBanner() {
             <span className="text-base font-bold">Thanh Toán Bảo Mật</span>
           </div>
         </div>
-
       </div>
     </section>
   );

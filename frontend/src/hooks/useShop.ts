@@ -1,15 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import shopsApiRequest from "@/apiRequests/shops/shops";
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import productsApiRequest from "@/apiRequests/products/products";
-import { shopKeys, STALE_TIME } from "@/constants/query-keys";
+import { useQuery } from '@tanstack/react-query';
+import shopsApiRequest from '@/apiRequests/shops/shops';
+import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
+import productsApiRequest from '@/apiRequests/products/products';
+import { shopKeys, STALE_TIME } from '@/constants/query-keys';
 
 type ShopCatalogQuery = {
   page: number;
   limit: number;
   q?: string;
   sort?: string;
-  order?: "ASC" | "DESC";
+  order?: 'ASC' | 'DESC';
 };
 
 /** Chi tiết shop công khai. */

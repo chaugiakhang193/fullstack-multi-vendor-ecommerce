@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import type { Socket } from "socket.io-client";
-import { useQueryClient } from "@tanstack/react-query";
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { Socket } from 'socket.io-client';
+import { useQueryClient } from '@tanstack/react-query';
 
-import useHydrated from "@/hooks/useHydrated";
-import { useAuthStore } from "@/store/useAuthStore";
-import { QUERY_KEYS } from "@/constants/query-keys";
-import { connectSocket, disconnectSocket } from "@/lib/socket";
+import useHydrated from '@/hooks/useHydrated';
+import { useAuthStore } from '@/store/useAuthStore';
+import { QUERY_KEYS } from '@/constants/query-keys';
+import { connectSocket, disconnectSocket } from '@/lib/socket';
 
 const SocketContext = createContext<Socket | null>(null);
 
@@ -41,16 +41,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleConnect = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDERS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL],
+      });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SELLER_ORDERS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL],
+      });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
     };
 
-    s.on("connect", handleConnect);
+    s.on('connect', handleConnect);
 
     return () => {
-      s.off("connect", handleConnect);
+      s.off('connect', handleConnect);
     };
   }, [isHydrated, isAuthenticated, accessToken, queryClient]);
 

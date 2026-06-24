@@ -1,12 +1,12 @@
-import http from "@/lib/http";
+import http from '@/lib/http';
 import {
   ProductListResponseType,
   SingleProductResponseType,
-} from "@/schemaValidations/products/products.schema";
+} from '@/schemaValidations/products/products.schema';
 
 const productsApiRequest = {
   // === R: Read (Public Endpoints) ===
-  
+
   // Khách hàng lấy danh sách tất cả sản phẩm (Public)
   getPublicProducts: (params?: {
     page?: number;
@@ -16,23 +16,24 @@ const productsApiRequest = {
     min_price?: number;
     max_price?: number;
     sort?: string;
-    order?: "ASC" | "DESC";
+    order?: 'ASC' | 'DESC';
   }) => {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", String(params.page));
-    if (params?.limit) queryParams.append("limit", String(params.limit));
-    if (params?.q) queryParams.append("q", params.q);
-    if (params?.category_id) queryParams.append("category_id", params.category_id);
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.q) queryParams.append('q', params.q);
+    if (params?.category_id)
+      queryParams.append('category_id', params.category_id);
     if (params?.min_price !== undefined) {
-      queryParams.append("min_price", String(params.min_price));
+      queryParams.append('min_price', String(params.min_price));
     }
     if (params?.max_price !== undefined) {
-      queryParams.append("max_price", String(params.max_price));
+      queryParams.append('max_price', String(params.max_price));
     }
-    if (params?.sort) queryParams.append("sort", params.sort);
-    if (params?.order) queryParams.append("order", params.order);
+    if (params?.sort) queryParams.append('sort', params.sort);
+    if (params?.order) queryParams.append('order', params.order);
     const queryString = queryParams.toString();
-    const url = queryString ? `/products?${queryString}` : "/products";
+    const url = queryString ? `/products?${queryString}` : '/products';
     return http.get<ProductListResponseType>(url);
   },
 
@@ -47,22 +48,23 @@ const productsApiRequest = {
       min_price?: number;
       max_price?: number;
       sort?: string;
-      order?: "ASC" | "DESC";
+      order?: 'ASC' | 'DESC';
     },
   ) => {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", String(params.page));
-    if (params?.limit) queryParams.append("limit", String(params.limit));
-    if (params?.q) queryParams.append("q", params.q);
-    if (params?.category_id) queryParams.append("category_id", params.category_id);
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.q) queryParams.append('q', params.q);
+    if (params?.category_id)
+      queryParams.append('category_id', params.category_id);
     if (params?.min_price !== undefined) {
-      queryParams.append("min_price", String(params.min_price));
+      queryParams.append('min_price', String(params.min_price));
     }
     if (params?.max_price !== undefined) {
-      queryParams.append("max_price", String(params.max_price));
+      queryParams.append('max_price', String(params.max_price));
     }
-    if (params?.sort) queryParams.append("sort", params.sort);
-    if (params?.order) queryParams.append("order", params.order);
+    if (params?.sort) queryParams.append('sort', params.sort);
+    if (params?.order) queryParams.append('order', params.order);
     const queryString = queryParams.toString();
     const url = queryString
       ? `/products/shop/${shopId}?${queryString}`

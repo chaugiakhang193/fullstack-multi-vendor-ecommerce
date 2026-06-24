@@ -1,15 +1,15 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
-import { toast } from "sonner";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { toast } from 'sonner';
 
-import { QUERY_KEYS } from "@/constants/query-keys";
-import { getErrorMessage } from "@/lib/http";
-import addressApiRequest from "@/apiRequests/users/addresses";
-import { useAuthStore } from "@/store/useAuthStore";
+import { QUERY_KEYS } from '@/constants/query-keys';
+import { getErrorMessage } from '@/lib/http';
+import addressApiRequest from '@/apiRequests/users/addresses';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   CreateAddressBodyType,
   UpdateAddressBodyType,
-} from "@/schemaValidations/users/addresses.schema";
+} from '@/schemaValidations/users/addresses.schema';
 
 /**
  * Quản lý server-state cho sổ địa chỉ.
@@ -42,7 +42,7 @@ export function useAddresses() {
     async (body: CreateAddressBodyType) => {
       try {
         await addressApiRequest.create(body);
-        const successMsg = "Thêm địa chỉ thành công";
+        const successMsg = 'Thêm địa chỉ thành công';
         toast.success(successMsg);
         await invalidate();
         return true;
@@ -59,7 +59,7 @@ export function useAddresses() {
     async (id: string, body: UpdateAddressBodyType) => {
       try {
         await addressApiRequest.update(id, body);
-        const successMsg = "Cập nhật địa chỉ thành công";
+        const successMsg = 'Cập nhật địa chỉ thành công';
         toast.success(successMsg);
         await invalidate();
         return true;
@@ -76,7 +76,7 @@ export function useAddresses() {
     async (id: string) => {
       try {
         await addressApiRequest.remove(id);
-        const successMsg = "Đã xóa địa chỉ";
+        const successMsg = 'Đã xóa địa chỉ';
         toast.success(successMsg);
         await invalidate();
         return true;
@@ -93,7 +93,7 @@ export function useAddresses() {
     async (id: string) => {
       try {
         await addressApiRequest.setDefault(id);
-        const successMsg = "Đã đặt làm địa chỉ mặc định";
+        const successMsg = 'Đã đặt làm địa chỉ mặc định';
         toast.success(successMsg);
         await invalidate();
         return true;

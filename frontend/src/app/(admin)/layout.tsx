@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Shield,
   LayoutDashboard,
@@ -17,22 +17,22 @@ import {
   User,
   Ticket,
   UserCog,
-} from "lucide-react";
-import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { tabId } from "@/lib/utils";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
-import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { tabId } from '@/lib/utils';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
+import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle, Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -51,11 +51,11 @@ export default function AdminLayout({
   useEffect(() => {
     setIsMounted(true);
     // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Admin Dashboard
-    document.documentElement.classList.add("overflow-hidden", "h-screen");
-    document.body.classList.add("overflow-hidden", "h-screen");
+    document.documentElement.classList.add('overflow-hidden', 'h-screen');
+    document.body.classList.add('overflow-hidden', 'h-screen');
     return () => {
-      document.documentElement.classList.remove("overflow-hidden", "h-screen");
-      document.body.classList.remove("overflow-hidden", "h-screen");
+      document.documentElement.classList.remove('overflow-hidden', 'h-screen');
+      document.body.classList.remove('overflow-hidden', 'h-screen');
     };
   }, []);
 
@@ -64,17 +64,20 @@ export default function AdminLayout({
     try {
       await authApiRequest.logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error('Lỗi đăng xuất:', error);
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
-      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+      channel.postMessage({
+        type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS,
+        senderTabId: tabId,
+      });
       channel.close();
 
-      toast.success("Đăng xuất thành công");
+      toast.success('Đăng xuất thành công');
       setIsLogoutConfirmOpen(false);
-      router.push("/login");
+      router.push('/login');
       router.refresh();
       setIsLoggingOut(false);
     }
@@ -82,34 +85,34 @@ export default function AdminLayout({
 
   const menuItems = [
     {
-      label: "Tổng quan",
-      href: "/admin",
+      label: 'Tổng quan',
+      href: '/admin',
       icon: <LayoutDashboard className="h-5 w-5" />,
       exact: true,
     },
     {
-      label: "Duyệt cửa hàng",
-      href: "/admin/sellers",
+      label: 'Duyệt cửa hàng',
+      href: '/admin/sellers',
       icon: <Users className="h-5 w-5" />,
     },
     {
-      label: "Người dùng",
-      href: "/admin/users",
+      label: 'Người dùng',
+      href: '/admin/users',
       icon: <UserCog className="h-5 w-5" />,
     },
     {
-      label: "Danh mục",
-      href: "/admin/categories",
+      label: 'Danh mục',
+      href: '/admin/categories',
       icon: <Layers className="h-5 w-5" />,
     },
     {
-      label: "Sản phẩm",
-      href: "/admin/products",
+      label: 'Sản phẩm',
+      href: '/admin/products',
       icon: <Package className="h-5 w-5" />,
     },
     {
-      label: "Khuyến mãi",
-      href: "/admin/coupons",
+      label: 'Khuyến mãi',
+      href: '/admin/coupons',
       icon: <Ticket className="h-5 w-5" />,
     },
   ];
@@ -123,22 +126,22 @@ export default function AdminLayout({
   };
 
   const getBreadcrumbs = () => {
-    const paths = pathname.split("/").filter(Boolean);
+    const paths = pathname.split('/').filter(Boolean);
     const breadcrumbs = [];
 
     // Map route keys to Vietnamese titles
     const routeMap: Record<string, string> = {
-      admin: "Kênh Quản Trị",
-      sellers: "Duyệt cửa hàng",
-      users: "Người dùng",
-      categories: "Danh mục",
-      products: "Sản phẩm",
-      coupons: "Khuyến mãi",
-      create: "Tạo mới",
-      edit: "Chỉnh sửa",
+      admin: 'Kênh Quản Trị',
+      sellers: 'Duyệt cửa hàng',
+      users: 'Người dùng',
+      categories: 'Danh mục',
+      products: 'Sản phẩm',
+      coupons: 'Khuyến mãi',
+      create: 'Tạo mới',
+      edit: 'Chỉnh sửa',
     };
 
-    let currentHref = "";
+    let currentHref = '';
     const isUUID = (str: string) =>
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
         str,
@@ -196,17 +199,17 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex items-center px-5 py-4 rounded-xl text-base font-bold transition-all duration-200 relative group ${
                   active
-                    ? "bg-violet-600/10 text-violet-400"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+                    ? 'bg-violet-600/10 text-violet-400'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
                 }`}
               >
                 {active && (
                   <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-violet-500 rounded-r-full" />
                 )}
                 <span
-                  className={`mr-3.5 transition-transform duration-200 group-hover:scale-110 ${active ? "text-violet-400" : "text-zinc-400"}`}
+                  className={`mr-3.5 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-violet-400' : 'text-zinc-400'}`}
                 >
-                  {React.cloneElement(item.icon, { className: "h-6 w-6" })}
+                  {React.cloneElement(item.icon, { className: 'h-6 w-6' })}
                 </span>
                 {item.label}
               </Link>
@@ -221,7 +224,7 @@ export default function AdminLayout({
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url}
-                  alt={user?.username || ""}
+                  alt={user?.username || ''}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -232,7 +235,7 @@ export default function AdminLayout({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-base font-extrabold text-white truncate leading-none mb-1.5">
-                {user?.username || "Quản trị viên"}
+                {user?.username || 'Quản trị viên'}
               </p>
               <span className="inline-block px-2 py-0.5 text-xs font-black tracking-wide uppercase bg-violet-500/10 text-violet-400 rounded-full border border-violet-500/20">
                 Admin
@@ -293,12 +296,12 @@ export default function AdminLayout({
                     onClick={() => setIsMobileOpen(false)}
                     className={`flex items-center px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                       active
-                        ? "bg-violet-600/10 text-violet-400"
-                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+                        ? 'bg-violet-600/10 text-violet-400'
+                        : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
                     }`}
                   >
                     <span
-                      className={`mr-3 ${active ? "text-violet-400" : "text-zinc-400"}`}
+                      className={`mr-3 ${active ? 'text-violet-400' : 'text-zinc-400'}`}
                     >
                       {item.icon}
                     </span>
@@ -315,7 +318,7 @@ export default function AdminLayout({
                   {user?.avatar_url ? (
                     <img
                       src={user.avatar_url}
-                      alt={user?.username || ""}
+                      alt={user?.username || ''}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -326,7 +329,7 @@ export default function AdminLayout({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white leading-none mb-1">
-                    {user?.username || "Quản trị viên"}
+                    {user?.username || 'Quản trị viên'}
                   </p>
                   <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase bg-violet-500/10 text-violet-400 rounded-full border border-violet-500/20">
                     Admin
@@ -406,7 +409,7 @@ export default function AdminLayout({
                   {user?.avatar_url ? (
                     <img
                       src={user.avatar_url}
-                      alt={user?.username || ""}
+                      alt={user?.username || ''}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -416,7 +419,7 @@ export default function AdminLayout({
                   )}
                 </div>
                 <span className="text-base font-bold hidden sm:inline-block pr-1.5">
-                  {user?.username || "Quản trị viên"}
+                  {user?.username || 'Quản trị viên'}
                 </span>
               </button>
 
@@ -492,7 +495,7 @@ export default function AdminLayout({
                   Đang đăng xuất...
                 </>
               ) : (
-                "Đăng xuất"
+                'Đăng xuất'
               )}
             </Button>
             <Button

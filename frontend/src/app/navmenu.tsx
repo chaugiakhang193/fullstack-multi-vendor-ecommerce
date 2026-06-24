@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import Link from "next/link";
+import * as React from 'react';
+import Link from 'next/link';
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import useHydrated from "@/hooks/useHydrated";
-import { toast } from "sonner";
-import { useRouter, usePathname } from "next/navigation";
+} from '@/components/ui/navigation-menu';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import useHydrated from '@/hooks/useHydrated';
+import { toast } from 'sonner';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Loader2,
@@ -23,23 +23,23 @@ import {
   Settings,
   Store,
   User,
-} from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle } from 'lucide-react';
 
-import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { tabId } from "@/lib/utils";
-import { UserRole } from "@/constants/enum";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
-import { NotificationBell } from "@/components/notifications/notification-bell";
+import { useAuthStore } from '@/store/useAuthStore';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { tabId } from '@/lib/utils';
+import { UserRole } from '@/constants/enum';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 export function Navbar() {
   const isClient = useHydrated();
@@ -57,19 +57,22 @@ export function Navbar() {
       // Gọi API để Backend xóa Session và xóa Refresh Token Cookie
       await authApiRequest.logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error('Lỗi đăng xuất:', error);
     } finally {
       // Xóa state ở Frontend (Zustand)
       logout();
 
       // Đồng bộ đăng xuất sang các tab khác
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
-      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+      channel.postMessage({
+        type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS,
+        senderTabId: tabId,
+      });
       channel.close();
 
-      toast.success("Đăng xuất thành công");
+      toast.success('Đăng xuất thành công');
       setIsLogoutConfirmOpen(false);
-      router.push("/login");
+      router.push('/login');
       router.refresh();
       setIsLoggingOut(false);
     }
@@ -78,7 +81,7 @@ export function Navbar() {
   // Ẩn Navbar toàn cục khi đang ở các trang Seller hoặc Admin Panel
   // (các panel này có header/sidebar riêng)
   if (!isClient) return null;
-  if (pathname.startsWith("/seller") || pathname.startsWith("/admin"))
+  if (pathname.startsWith('/seller') || pathname.startsWith('/admin'))
     return null;
 
   return (
@@ -115,17 +118,18 @@ export function Navbar() {
                   </Link>
                 </NavigationMenuItem>
 
-                {user?.role !== UserRole.SELLER && user?.role !== UserRole.ADMIN && (
-                  <NavigationMenuItem>
-                    <Link href="/register-seller" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        Trở thành người bán
-                      </NavigationMenuLink>
-                    </Link>
-                  </NavigationMenuItem>
-                )}
+                {user?.role !== UserRole.SELLER &&
+                  user?.role !== UserRole.ADMIN && (
+                    <NavigationMenuItem>
+                      <Link href="/register-seller" legacyBehavior passHref>
+                        <NavigationMenuLink
+                          className={navigationMenuTriggerStyle()}
+                        >
+                          Trở thành người bán
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+                  )}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -294,7 +298,7 @@ export function Navbar() {
                   Đang đăng xuất...
                 </>
               ) : (
-                "Đăng xuất"
+                'Đăng xuất'
               )}
             </Button>
             <Button

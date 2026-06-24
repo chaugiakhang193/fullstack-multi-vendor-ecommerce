@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Home, Search } from "lucide-react";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Home, Search } from 'lucide-react';
 
 export default function CustomerNotFound() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -25,7 +25,7 @@ export default function CustomerNotFound() {
         <div className="max-w-lg w-full text-center space-y-8 p-10 md:p-12 rounded-3xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient background decoration */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-indigo-500" />
-          
+
           {/* Ambient glows inside the card */}
           <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-violet-500/10 dark:bg-violet-500/5 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-20 w-72 h-72 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl pointer-events-none" />
@@ -39,12 +39,17 @@ export default function CustomerNotFound() {
               Không tìm thấy trang yêu cầu
             </h2>
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-              Trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ, hoặc đường dẫn URL đã thay đổi. Vui lòng kiểm tra lại địa chỉ hoặc tìm kiếm sản phẩm khác dưới đây.
+              Trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ, hoặc đường
+              dẫn URL đã thay đổi. Vui lòng kiểm tra lại địa chỉ hoặc tìm kiếm
+              sản phẩm khác dưới đây.
             </p>
           </div>
 
           {/* Quick Product Search Input */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md mx-auto z-10">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative w-full max-w-md mx-auto z-10"
+          >
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"

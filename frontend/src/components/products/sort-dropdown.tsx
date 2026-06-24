@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
-export type SortOption = "newest" | "price_asc" | "price_desc" | "popular";
+export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popular';
 
 interface SortDropdownProps {
   value: SortOption;
@@ -18,10 +18,10 @@ interface SortDropdownProps {
 }
 
 const sortItems = [
-  { value: "newest", label: "🆕 Mới nhất" },
-  { value: "price_asc", label: "💰 Giá thấp → cao" },
-  { value: "price_desc", label: "💰 Giá cao → thấp" },
-  { value: "popular", label: "🔥 Phổ biến nhất" },
+  { value: 'newest', label: '🆕 Mới nhất' },
+  { value: 'price_asc', label: '💰 Giá thấp → cao' },
+  { value: 'price_desc', label: '💰 Giá cao → thấp' },
+  { value: 'popular', label: '🔥 Phổ biến nhất' },
 ];
 
 export function SortDropdown({

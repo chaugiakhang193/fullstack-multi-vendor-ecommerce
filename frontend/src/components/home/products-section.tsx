@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
 // React & Next
-import React from "react";
-import Link from "next/link";
+import React from 'react';
+import Link from 'next/link';
 
 // Icons
-import { AlertCircle, RefreshCw, ChevronRight } from "lucide-react";
+import { AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 
 // Hooks & Services
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts } from '@/hooks/useProducts';
 
 // Components
-import ProductCard from "@/components/products/product-card";
-import SkeletonProductCard from "@/components/products/skeleton-product-card";
-import { EmptyProducts } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
+import ProductCard from '@/components/products/product-card';
+import SkeletonProductCard from '@/components/products/skeleton-product-card';
+import { EmptyProducts } from '@/components/shared/empty-state';
+import { Button } from '@/components/ui/button';
 
 // Gán tham số truy vấn vào biến tường minh bên ngoài component (Tránh định nghĩa lại mỗi lần render)
 const productsQueryParams = {
-  sort: "created_at",
-  order: "DESC" as const,
+  sort: 'created_at',
+  order: 'DESC' as const,
   limit: 8,
 };
 
@@ -101,7 +101,7 @@ export default function ProductsSection() {
               return <ProductCard key={productKey} product={product} />;
             })}
           </div>
-          
+
           {/* Centered responsive See More button */}
           <div className="flex justify-center pt-2">
             <Link href="/products" className="w-full sm:w-auto">
@@ -117,7 +117,10 @@ export default function ProductsSection() {
         </div>
       ) : (
         <div className="py-6">
-          <EmptyProducts actionHref="/products" actionLabel="Xem tất cả sản phẩm" />
+          <EmptyProducts
+            actionHref="/products"
+            actionLabel="Xem tất cả sản phẩm"
+          />
         </div>
       )}
     </section>

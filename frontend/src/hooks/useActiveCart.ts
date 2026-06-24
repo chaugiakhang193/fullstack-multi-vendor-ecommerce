@@ -1,26 +1,26 @@
-import { useMemo, useCallback, useRef, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { QUERY_KEYS } from "@/constants/query-keys";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
-import { CART_LIMITS } from "@/constants/limits.generated";
+import { useMemo, useCallback, useRef, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { QUERY_KEYS } from '@/constants/query-keys';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
+import { CART_LIMITS } from '@/constants/limits.generated';
 
 // Stores
-import { useCartStore, CartItem } from "@/store/useCartStore";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useCartStore, CartItem } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // API requests
-import cartApiRequest from "@/apiRequests/carts/carts";
+import cartApiRequest from '@/apiRequests/carts/carts';
 import {
   CartGenericResponseType,
   CartResponseType,
   CartItemResponseType,
   CartShopGroupType,
-} from "@/schemaValidations/carts/carts.schema";
-import { getErrorMessage } from "@/lib/http";
+} from '@/schemaValidations/carts/carts.schema';
+import { getErrorMessage } from '@/lib/http';
 
 // Types
-import type { components } from "@/lib/api/api-schema";
+import type { components } from '@/lib/api/api-schema';
 
 type CartResponseDto = CartResponseType;
 type CartItemResponseDto = CartItemResponseType;
@@ -30,17 +30,20 @@ type CartShopGroupDto = CartShopGroupType;
  * Helper to map guest cart items from Zustand to the CartResponseDto structure.
  */
 const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
-  const groupsMap: Record<string, { shopName: string; items: CartItemResponseDto[] }> = {};
+  const groupsMap: Record<
+    string,
+    { shopName: string; items: CartItemResponseDto[] }
+  > = {};
 
   let totalItems = 0;
   let totalQuantity = 0;
   let totalAmount = 0;
 
   localItems.forEach((item) => {
-    const shopKey = item.shopId || "default-shop";
+    const shopKey = item.shopId || 'default-shop';
     if (!groupsMap[shopKey]) {
       groupsMap[shopKey] = {
-        shopName: item.shopName || "Cửa hàng",
+        shopName: item.shopName || 'Cửa hàng',
         items: [],
       };
     }
@@ -56,10 +59,10 @@ const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
 
     const stockVal = variantInfo ? variantInfo.stock_quantity : item.baseStock;
     const isAvail = stockVal > 0;
-    const mappedReason = isAvail ? undefined : ("out_of_stock" as const);
+    const mappedReason = isAvail ? undefined : ('out_of_stock' as const);
 
     const mappedItem: CartItemResponseDto = {
-      id: `${item.productId}_${item.variantId || "none"}`,
+      id: `${item.productId}_${item.variantId || 'none'}`,
       product: {
         id: item.productId,
         name: item.name,
@@ -67,12 +70,12 @@ const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
         price: item.basePrice,
         thumbnail_url: item.thumbnailUrl as any,
         is_hidden: false,
-        status: "active",
+        status: 'active',
       },
       variant: item.variantId
         ? {
             id: item.variantId,
-            name: variantInfo?.name || "Mặc định",
+            name: variantInfo?.name || 'Mặc định',
             additional_price: Number(variantInfo?.additional_price) || 0,
             images: variantInfo?.images ?? null,
           }
@@ -92,19 +95,24 @@ const mapGuestCartToDto = (localItems: CartItem[]): CartResponseDto => {
     totalAmount += subtotal;
   });
 
-  const items_by_shop: CartShopGroupDto[] = Object.entries(groupsMap).map(([shopId, group]) => {
-    const shop_subtotal = group.items.reduce((sum, item) => sum + item.subtotal, 0);
-    const mappedGroupObj: CartShopGroupDto = {
-      shop: {
-        id: shopId,
-        name: group.shopName,
-        logo_url: null,
-      },
-      items: group.items,
-      shop_subtotal,
-    };
-    return mappedGroupObj;
-  });
+  const items_by_shop: CartShopGroupDto[] = Object.entries(groupsMap).map(
+    ([shopId, group]) => {
+      const shop_subtotal = group.items.reduce(
+        (sum, item) => sum + item.subtotal,
+        0,
+      );
+      const mappedGroupObj: CartShopGroupDto = {
+        shop: {
+          id: shopId,
+          name: group.shopName,
+          logo_url: null,
+        },
+        items: group.items,
+        shop_subtotal,
+      };
+      return mappedGroupObj;
+    },
+  );
 
   const cartResponseObj: CartResponseDto = {
     items_by_shop,
@@ -126,49 +134,55 @@ export function useActiveCart() {
   const guestAddItem = useCartStore((state) => state.addItem);
 
   // Database Cart query - Only query if user is logged in AND is not an admin (admins do not have a cart)
-  const isAuthorizedToCart = isAuthenticated && user?.role !== "admin";
+  const isAuthorizedToCart = isAuthenticated && user?.role !== 'admin';
   const cartQueryConfig = {
     queryKey: [QUERY_KEYS.CART],
     queryFn: () => cartApiRequest.getCart(),
     enabled: isAuthorizedToCart,
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
   };
-  const { data: dbCartPayload, isLoading: isDbLoading, refetch } = useQuery(cartQueryConfig);
+  const {
+    data: dbCartPayload,
+    isLoading: isDbLoading,
+    refetch,
+  } = useQuery(cartQueryConfig);
 
   // Synchronize guest cart (Zustand) across tabs via storage event
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "cart") {
+      if (event.key === 'cart') {
         useCartStore.persist.rehydrate();
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
   // Synchronize database cart (React Query) across tabs using BroadcastChannel
   useEffect(() => {
-    if (typeof window === "undefined" || !isAuthenticated) return;
+    if (typeof window === 'undefined' || !isAuthenticated) return;
 
     const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
-    
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data === BROADCAST_EVENTS.CART_UPDATED) {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
         // Tab khác đổi giỏ → làm mới luôn checkout preview ở tab này (nếu đang ở /checkout).
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW] });
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW],
+        });
       }
     };
 
-    channel.addEventListener("message", handleMessage);
+    channel.addEventListener('message', handleMessage);
 
     return () => {
-      channel.removeEventListener("message", handleMessage);
+      channel.removeEventListener('message', handleMessage);
       channel.close();
     };
   }, [isAuthenticated, queryClient]);
@@ -179,13 +193,13 @@ export function useActiveCart() {
     // HIỆN TẠI (cùng queryClient) để tổng tiền & sản phẩm ở /checkout cập nhật ngay, không
     // cần F5. Gọi ngay sau invalidate CART trong mọi mutation nên phủ hết.
     queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW] });
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     try {
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
       channel.postMessage(BROADCAST_EVENTS.CART_UPDATED);
       channel.close();
     } catch (error) {
-      console.error("Failed to broadcast cart update:", error);
+      console.error('Failed to broadcast cart update:', error);
     }
   }, [queryClient]);
 
@@ -205,22 +219,27 @@ export function useActiveCart() {
         let variantImages: string[] = [];
         if (Array.isArray(rawImages)) {
           variantImages = rawImages;
-        } else if (typeof rawImages === "string" && rawImages.trim() !== "") {
-          if (rawImages.startsWith("[") && rawImages.endsWith("]")) {
+        } else if (typeof rawImages === 'string' && rawImages.trim() !== '') {
+          if (rawImages.startsWith('[') && rawImages.endsWith(']')) {
             try {
               variantImages = JSON.parse(rawImages);
             } catch (e) {
-              variantImages = rawImages.split(",").map((img: string) => img.trim());
+              variantImages = rawImages
+                .split(',')
+                .map((img: string) => img.trim());
             }
           } else {
-            variantImages = rawImages.split(",").map((img: string) => img.trim());
+            variantImages = rawImages
+              .split(',')
+              .map((img: string) => img.trim());
           }
         }
 
         const finalThumbnailUrl =
           variantImages.length > 0
             ? variantImages[0]
-            : ((dbItem.product.thumbnail_url as any) || "/placeholder-product.png");
+            : (dbItem.product.thumbnail_url as any) ||
+              '/placeholder-product.png';
 
         const item: CartItem = {
           productId: dbItem.product.id,
@@ -271,24 +290,33 @@ export function useActiveCart() {
 
   // Add Item operation
   const addItem = useCallback(
-    async (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
+    async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
       const targetQty = item.quantity ?? 1;
 
       const distinctCount = isAuthenticated
-        ? (cart.items_by_shop?.reduce((acc, s) => acc + (s.items?.length || 0), 0) ?? 0)
+        ? (cart.items_by_shop?.reduce(
+            (acc, s) => acc + (s.items?.length || 0),
+            0,
+          ) ?? 0)
         : guestItems.length;
 
       const isAlreadyInCart = isAuthenticated
-        ? cart.items_by_shop?.some(s =>
-            s.items?.some(i =>
-              i.product.id === item.productId &&
-              (i.variant?.id || null) === (item.variantId || null)
-            )
+        ? cart.items_by_shop?.some((s) =>
+            s.items?.some(
+              (i) =>
+                i.product.id === item.productId &&
+                (i.variant?.id || null) === (item.variantId || null),
+            ),
           )
-        : guestItems.some(i => i.productId === item.productId && i.variantId === item.variantId);
+        : guestItems.some(
+            (i) =>
+              i.productId === item.productId && i.variantId === item.variantId,
+          );
 
       if (!isAlreadyInCart && distinctCount >= CART_LIMITS.MAX_DISTINCT_ITEMS) {
-        toast.error(`Giỏ hàng của bạn đã đạt giới hạn tối đa ${CART_LIMITS.MAX_DISTINCT_ITEMS} sản phẩm khác nhau. Vui lòng thanh toán hoặc xóa bớt để thêm mới.`);
+        toast.error(
+          `Giỏ hàng của bạn đã đạt giới hạn tối đa ${CART_LIMITS.MAX_DISTINCT_ITEMS} sản phẩm khác nhau. Vui lòng thanh toán hoặc xóa bớt để thêm mới.`,
+        );
         return;
       }
 
@@ -306,7 +334,7 @@ export function useActiveCart() {
           quantity: targetQty,
         };
         await cartApiRequest.add(bodyObj);
-        
+
         const successMsg = `Đã thêm ${item.name} vào giỏ hàng!`;
         toast.success(successMsg);
 
@@ -321,11 +349,13 @@ export function useActiveCart() {
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, guestAddItem, queryClient, broadcastCartUpdate]
+    [isAuthenticated, guestAddItem, queryClient, broadcastCartUpdate],
   );
 
   // Debounce timers for quantity updates to avoid race conditions
-  const pendingUpdatesRef = useRef<Record<string, { timer: NodeJS.Timeout; quantity: number }>>({});
+  const pendingUpdatesRef = useRef<
+    Record<string, { timer: NodeJS.Timeout; quantity: number }>
+  >({});
 
   // Update Item Quantity operation
   const updateQuantity = useCallback(
@@ -343,13 +373,15 @@ export function useActiveCart() {
       }
 
       // Member: DB (Optimistic Update + Debounce)
-      const cartItem = items.find((i) => i.productId === productId && i.variantId === variantId);
+      const cartItem = items.find(
+        (i) => i.productId === productId && i.variantId === variantId,
+      );
       const cartItemId = cartItem ? (cartItem as any).id : null;
       if (!cartItemId) {
-        toast.error("Không tìm thấy sản phẩm trong giỏ hàng!");
+        toast.error('Không tìm thấy sản phẩm trong giỏ hàng!');
         return;
       }
-      
+
       // 1. Clear previous timer
       if (pendingUpdatesRef.current[cartItemId]) {
         const prevTimer = pendingUpdatesRef.current[cartItemId].timer;
@@ -359,7 +391,9 @@ export function useActiveCart() {
       // 2. Cancel query and modify cache immediately
       const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>([QUERY_KEYS.CART]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>([
+        QUERY_KEYS.CART,
+      ]);
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -404,7 +438,10 @@ export function useActiveCart() {
           },
         };
 
-        queryClient.setQueryData<CartGenericResponseType>([QUERY_KEYS.CART], newCartPayloadObj);
+        queryClient.setQueryData<CartGenericResponseType>(
+          [QUERY_KEYS.CART],
+          newCartPayloadObj,
+        );
       }
 
       // 3. Debounce execution
@@ -413,7 +450,7 @@ export function useActiveCart() {
         try {
           const bodyObj = { quantity: newQty };
           await cartApiRequest.updateQuantity(cartItemId, bodyObj);
-          
+
           const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
           await queryClient.invalidateQueries(queryKeyObj);
 
@@ -431,7 +468,7 @@ export function useActiveCart() {
 
       pendingUpdatesRef.current[cartItemId] = { timer, quantity: newQty };
     },
-    [isAuthenticated, queryClient, items, broadcastCartUpdate]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate],
   );
 
   // Remove Item operation
@@ -444,16 +481,20 @@ export function useActiveCart() {
       }
 
       // Member: DB (Optimistic Update)
-      const cartItem = items.find((i) => i.productId === productId && i.variantId === variantId);
+      const cartItem = items.find(
+        (i) => i.productId === productId && i.variantId === variantId,
+      );
       const cartItemId = cartItem ? (cartItem as any).id : null;
       if (!cartItemId) {
-        toast.error("Không tìm thấy sản phẩm trong giỏ hàng!");
+        toast.error('Không tìm thấy sản phẩm trong giỏ hàng!');
         return;
       }
 
       const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>([QUERY_KEYS.CART]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>([
+        QUERY_KEYS.CART,
+      ]);
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -462,13 +503,17 @@ export function useActiveCart() {
 
         const updatedGroups = oldCart.items_by_shop
           .map((shopGroup) => {
-            const currentItem = shopGroup.items.find((item) => item.id === cartItemId);
+            const currentItem = shopGroup.items.find(
+              (item) => item.id === cartItemId,
+            );
             if (currentItem) {
               removedQty = currentItem.quantity;
               removedAmount = currentItem.subtotal;
             }
 
-            const remainingItems = shopGroup.items.filter((item) => item.id !== cartItemId);
+            const remainingItems = shopGroup.items.filter(
+              (item) => item.id !== cartItemId,
+            );
             const shop_subtotal = shopGroup.shop_subtotal - removedAmount;
 
             const mappedGroupObj: CartShopGroupDto = {
@@ -491,13 +536,16 @@ export function useActiveCart() {
           },
         };
 
-        queryClient.setQueryData<CartGenericResponseType>([QUERY_KEYS.CART], newCartPayloadObj);
+        queryClient.setQueryData<CartGenericResponseType>(
+          [QUERY_KEYS.CART],
+          newCartPayloadObj,
+        );
       }
 
       try {
         await cartApiRequest.removeItem(cartItemId);
-        
-        const successMsg = "Đã xóa sản phẩm khỏi giỏ hàng!";
+
+        const successMsg = 'Đã xóa sản phẩm khỏi giỏ hàng!';
         toast.success(successMsg);
 
         const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
@@ -514,7 +562,7 @@ export function useActiveCart() {
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, queryClient, items, broadcastCartUpdate]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate],
   );
 
   // Clear Cart operation
@@ -528,8 +576,8 @@ export function useActiveCart() {
     // Member: DB
     try {
       await cartApiRequest.clearCart();
-      
-      const successMsg = "Đã làm trống giỏ hàng!";
+
+      const successMsg = 'Đã làm trống giỏ hàng!';
       toast.success(successMsg);
 
       const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
@@ -545,19 +593,27 @@ export function useActiveCart() {
 
   // Update Variant operation
   const updateVariant = useCallback(
-    async (productId: string, oldVariantId: string | null, newVariantId: string | null) => {
+    async (
+      productId: string,
+      oldVariantId: string | null,
+      newVariantId: string | null,
+    ) => {
       if (!isAuthenticated) {
         // Guest: Zustand
-        useCartStore.getState().updateVariant(productId, oldVariantId, newVariantId);
+        useCartStore
+          .getState()
+          .updateVariant(productId, oldVariantId, newVariantId);
         return;
       }
 
       // Member: DB (delete old item, add new item)
-      const cartItem = items.find((i) => i.productId === productId && i.variantId === oldVariantId);
+      const cartItem = items.find(
+        (i) => i.productId === productId && i.variantId === oldVariantId,
+      );
       const cartItemId = cartItem ? (cartItem as any).id : null;
       const quantity = cartItem ? cartItem.quantity : 1;
       if (!cartItemId) {
-        toast.error("Không tìm thấy sản phẩm trong giỏ hàng!");
+        toast.error('Không tìm thấy sản phẩm trong giỏ hàng!');
         return;
       }
 
@@ -576,14 +632,14 @@ export function useActiveCart() {
         // Broadcast to other tabs
         broadcastCartUpdate();
 
-        const successMsg = "Đã cập nhật phiên bản sản phẩm!";
+        const successMsg = 'Đã cập nhật phiên bản sản phẩm!';
         toast.success(successMsg);
       } catch (error) {
         const errorMsg = getErrorMessage(error);
         toast.error(errorMsg);
       }
     },
-    [isAuthenticated, queryClient, items, broadcastCartUpdate]
+    [isAuthenticated, queryClient, items, broadcastCartUpdate],
   );
 
   const useActiveCartResult = {

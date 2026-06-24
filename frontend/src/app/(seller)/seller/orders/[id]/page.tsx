@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useParams } from "next/navigation";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Loader2,
@@ -11,35 +11,40 @@ import {
   Package,
   ShoppingBag,
   AlertTriangle,
-} from "lucide-react";
+} from 'lucide-react';
 
 // API
-import { getErrorMessage } from "@/lib/http";
+import { getErrorMessage } from '@/lib/http';
 
 // Hooks
-import { useSellerOrderDetail, useUpdateSellerOrderStatus } from "@/hooks/useSellerOrders";
-import { type OrderStatusType, ORDER_STATUS_LABELS } from "@/schemaValidations/orders/orders.schema";
+import {
+  useSellerOrderDetail,
+  useUpdateSellerOrderStatus,
+} from '@/hooks/useSellerOrders';
+import {
+  type OrderStatusType,
+  ORDER_STATUS_LABELS,
+} from '@/schemaValidations/orders/orders.schema';
 
 // Components
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
+} from '@/components/ui/dialog';
+import { OrderStatusTimeline } from '@/components/orders/order-status-timeline';
 import {
   OrderStatusBadge,
   getTransitions,
-} from "@/components/orders/seller-order-status";
-import { formatVnd, formatDateTime, shortId } from "@/lib/format";
+} from '@/components/orders/seller-order-status';
+import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 export default function SellerOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-
 
   const [pendingTransition, setPendingTransition] = useState<{
     to: OrderStatusType;
@@ -89,7 +94,7 @@ export default function SellerOrderDetailPage() {
   if (detailQuery.isError || !detailQuery.data) {
     const errorMessage = detailQuery.error
       ? getErrorMessage(detailQuery.error)
-      : "Không tìm thấy đơn hàng.";
+      : 'Không tìm thấy đơn hàng.';
     return (
       <div className="space-y-4">
         {backLink}
@@ -110,7 +115,8 @@ export default function SellerOrderDetailPage() {
   const shippingFee = order.shipping_fee ?? 0;
   const discount = order.discount_amount ?? 0;
   const grandTotal = order.total_amount ?? subTotal - discount + shippingFee;
-  const shippingLabel = shippingFee > 0 ? formatVnd.format(shippingFee) : "Miễn phí";
+  const shippingLabel =
+    shippingFee > 0 ? formatVnd.format(shippingFee) : 'Miễn phí';
   const transitions = getTransitions(status);
   const createdAtLabel = formatDateTime(order.created_at);
   const itemCount = items.length;
@@ -198,7 +204,9 @@ export default function SellerOrderDetailPage() {
                 <MapPin className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 Địa chỉ giao hàng
               </h2>
-              <p className="font-bold text-foreground">{address.recipient_name}</p>
+              <p className="font-bold text-foreground">
+                {address.recipient_name}
+              </p>
               <p className="text-sm text-muted-foreground">{address.phone}</p>
               <p className="text-sm text-foreground/80 leading-relaxed">
                 {address.address_line}
@@ -229,7 +237,9 @@ export default function SellerOrderDetailPage() {
             )}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Phí vận chuyển</span>
-              <span className="font-medium text-foreground">{shippingLabel}</span>
+              <span className="font-medium text-foreground">
+                {shippingLabel}
+              </span>
             </div>
             <div className="flex items-center justify-between border-t pt-3">
               <span className="font-black text-foreground">Tổng cộng</span>
@@ -252,7 +262,7 @@ export default function SellerOrderDetailPage() {
                   const Icon = transition.icon;
                   const targetStatus = transition.to;
                   const buttonVariant =
-                    transition.tone === "danger" ? "destructive" : "default";
+                    transition.tone === 'danger' ? 'destructive' : 'default';
                   const handleClickAction = () => {
                     handleAction(targetStatus, transition.label);
                   };
@@ -280,19 +290,25 @@ export default function SellerOrderDetailPage() {
       </div>
 
       {/* Confirm status change dialog */}
-      <Dialog open={!!pendingTransition} onOpenChange={(open) => !open && handleCloseDialog()}>
+      <Dialog
+        open={!!pendingTransition}
+        onOpenChange={(open) => !open && handleCloseDialog()}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Xác nhận thay đổi trạng thái?</DialogTitle>
             <DialogDescription>
-              Bạn có đồng ý chuyển trạng thái đơn{" "}
-              <span className="font-bold text-foreground">{orderNumber}</span> từ{" "}
+              Bạn có đồng ý chuyển trạng thái đơn{' '}
+              <span className="font-bold text-foreground">{orderNumber}</span>{' '}
+              từ{' '}
               <span className="font-bold text-foreground">
                 {ORDER_STATUS_LABELS[status]}
-              </span>{" "}
-              sang{" "}
+              </span>{' '}
+              sang{' '}
               <span className="font-bold text-foreground">
-                {pendingTransition?.to ? ORDER_STATUS_LABELS[pendingTransition.to] : ""}
+                {pendingTransition?.to
+                  ? ORDER_STATUS_LABELS[pendingTransition.to]
+                  : ''}
               </span>
               ?
             </DialogDescription>
@@ -306,7 +322,11 @@ export default function SellerOrderDetailPage() {
               Quay lại
             </Button>
             <Button
-              variant={pendingTransition?.to === "cancelled" ? "destructive" : "default"}
+              variant={
+                pendingTransition?.to === 'cancelled'
+                  ? 'destructive'
+                  : 'default'
+              }
               disabled={updateMutation.isPending}
               onClick={handleConfirm}
             >
@@ -315,7 +335,7 @@ export default function SellerOrderDetailPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Đang xử lý...
                 </>
               ) : (
-                "Xác nhận"
+                'Xác nhận'
               )}
             </Button>
           </div>

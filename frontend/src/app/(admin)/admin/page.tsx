@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Store,
@@ -9,13 +9,13 @@ import {
   ArrowUpRight,
   Shield,
   ShoppingBag,
-} from "lucide-react";
-import { toast } from "sonner";
-import adminStatsApiRequest from "@/apiRequests/statistics/admin-stats";
-import { AdminStatsType } from "@/schemaValidations/statistics/admin-stats.schema";
-import { getErrorMessage } from "@/lib/http";
-import { formatVnd } from "@/lib/format";
-import { Skeleton } from "@/components/ui/skeleton";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import adminStatsApiRequest from '@/apiRequests/statistics/admin-stats';
+import { AdminStatsType } from '@/schemaValidations/statistics/admin-stats.schema';
+import { getErrorMessage } from '@/lib/http';
+import { formatVnd } from '@/lib/format';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStatsType | null>(null);
@@ -38,46 +38,46 @@ export default function AdminDashboardPage() {
   const statCards = stats
     ? [
         {
-          title: "Tổng người dùng",
-          value: stats.total_users.toLocaleString("vi-VN"),
-          change: "Toàn sàn",
+          title: 'Tổng người dùng',
+          value: stats.total_users.toLocaleString('vi-VN'),
+          change: 'Toàn sàn',
           icon: <Users className="h-6 w-6 text-blue-500" />,
-          gradient: "from-blue-500/10 to-cyan-500/10 border-blue-500/20",
+          gradient: 'from-blue-500/10 to-cyan-500/10 border-blue-500/20',
         },
         {
-          title: "Tổng cửa hàng",
-          value: stats.total_shops.toLocaleString("vi-VN"),
-          change: "Toàn sàn",
+          title: 'Tổng cửa hàng',
+          value: stats.total_shops.toLocaleString('vi-VN'),
+          change: 'Toàn sàn',
           icon: <Store className="h-6 w-6 text-violet-500" />,
-          gradient: "from-violet-500/10 to-indigo-500/10 border-violet-500/20",
+          gradient: 'from-violet-500/10 to-indigo-500/10 border-violet-500/20',
         },
         {
-          title: "Cửa hàng chờ duyệt",
-          value: stats.pending_shops.toLocaleString("vi-VN"),
-          change: "Cần phê duyệt",
+          title: 'Cửa hàng chờ duyệt',
+          value: stats.pending_shops.toLocaleString('vi-VN'),
+          change: 'Cần phê duyệt',
           icon: <Shield className="h-6 w-6 text-amber-500" />,
-          gradient: "from-amber-500/10 to-orange-500/10 border-amber-500/20",
+          gradient: 'from-amber-500/10 to-orange-500/10 border-amber-500/20',
         },
         {
-          title: "Tổng danh mục",
-          value: stats.total_categories.toLocaleString("vi-VN"),
-          change: "Toàn sàn",
+          title: 'Tổng danh mục',
+          value: stats.total_categories.toLocaleString('vi-VN'),
+          change: 'Toàn sàn',
           icon: <Layers className="h-6 w-6 text-pink-500" />,
-          gradient: "from-pink-500/10 to-rose-500/10 border-pink-500/20",
+          gradient: 'from-pink-500/10 to-rose-500/10 border-pink-500/20',
         },
         {
-          title: "Tổng đơn hàng",
-          value: stats.total_orders.toLocaleString("vi-VN"),
-          change: "Toàn sàn",
+          title: 'Tổng đơn hàng',
+          value: stats.total_orders.toLocaleString('vi-VN'),
+          change: 'Toàn sàn',
           icon: <ShoppingBag className="h-6 w-6 text-emerald-500" />,
-          gradient: "from-emerald-500/10 to-teal-500/10 border-emerald-500/20",
+          gradient: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20',
         },
         {
-          title: "Doanh thu (đã giao)",
+          title: 'Doanh thu (đã giao)',
           value: formatVnd.format(stats.total_revenue),
-          change: "Đơn giao thành công",
+          change: 'Đơn giao thành công',
           icon: <TrendingUp className="h-6 w-6 text-rose-500" />,
-          gradient: "from-rose-500/10 to-red-500/10 border-rose-500/20",
+          gradient: 'from-rose-500/10 to-red-500/10 border-rose-500/20',
         },
       ]
     : [];
@@ -181,9 +181,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="flex justify-between border-b pb-2.5">
                 <span className="text-muted-foreground">Cơ sở dữ liệu:</span>
-                <span className="font-bold text-emerald-600">
-                  Connected
-                </span>
+                <span className="font-bold text-emerald-600">Connected</span>
               </div>
               <div className="flex justify-between pb-2.5">
                 <span className="text-muted-foreground">Phiên bản FE:</span>

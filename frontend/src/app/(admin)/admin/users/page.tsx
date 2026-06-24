@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { toast } from "sonner";
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   Users,
   Search,
@@ -13,18 +13,18 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
-} from "lucide-react";
-import adminUsersApiRequest from "@/apiRequests/users/admin-users";
+} from 'lucide-react';
+import adminUsersApiRequest from '@/apiRequests/users/admin-users';
 import {
   AdminUserItemType,
   AdminUserPaginationMetaType,
   UpdateUserStatusBodyType,
-} from "@/schemaValidations/users/admin-users.schema";
-import { getErrorMessage } from "@/lib/http";
-import { useDebounce } from "@/hooks/useDebounce";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/schemaValidations/users/admin-users.schema';
+import { getErrorMessage } from '@/lib/http';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableHeader,
@@ -32,25 +32,25 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 const PAGE_SIZE = 10;
 
-type StatusValue = UpdateUserStatusBodyType["status"];
+type StatusValue = UpdateUserStatusBodyType['status'];
 
 // Một thao tác đổi trạng thái đang chờ xác nhận
 interface PendingAction {
@@ -60,79 +60,79 @@ interface PendingAction {
 }
 
 const roleSelectItems = [
-  { value: "all", label: "Tất cả vai trò" },
-  { value: "customer", label: "Khách hàng" },
-  { value: "seller", label: "Người bán" },
-  { value: "admin", label: "Quản trị" },
+  { value: 'all', label: 'Tất cả vai trò' },
+  { value: 'customer', label: 'Khách hàng' },
+  { value: 'seller', label: 'Người bán' },
+  { value: 'admin', label: 'Quản trị' },
 ];
 
 const statusSelectItems = [
-  { value: "all", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đang hoạt động" },
-  { value: "suspended", label: "Tạm khóa" },
-  { value: "banned", label: "Bị cấm" },
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'suspended', label: 'Tạm khóa' },
+  { value: 'banned', label: 'Bị cấm' },
 ];
 
 // Map trạng thái -> nhãn + variant Badge
 function statusMeta(status: string): {
   label: string;
-  variant: "default" | "secondary" | "destructive" | "outline";
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
   className: string;
 } {
   switch (status) {
-    case "active":
+    case 'active':
       return {
-        label: "Đang hoạt động",
-        variant: "outline",
+        label: 'Đang hoạt động',
+        variant: 'outline',
         className:
-          "border-emerald-200 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400",
+          'border-emerald-200 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400',
       };
-    case "suspended":
+    case 'suspended':
       return {
-        label: "Tạm khóa",
-        variant: "outline",
+        label: 'Tạm khóa',
+        variant: 'outline',
         className:
-          "border-amber-200 bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
+          'border-amber-200 bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400',
       };
-    case "banned":
-      return { label: "Bị cấm", variant: "destructive", className: "" };
+    case 'banned':
+      return { label: 'Bị cấm', variant: 'destructive', className: '' };
     default:
-      return { label: status, variant: "secondary", className: "" };
+      return { label: status, variant: 'secondary', className: '' };
   }
 }
 
 // Map vai trò -> nhãn + style
 function roleMeta(role: string): { label: string; className: string } {
   switch (role) {
-    case "admin":
+    case 'admin':
       return {
-        label: "Quản trị",
+        label: 'Quản trị',
         className:
-          "border-violet-200 bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400",
+          'border-violet-200 bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-400',
       };
-    case "seller":
+    case 'seller':
       return {
-        label: "Người bán",
+        label: 'Người bán',
         className:
-          "border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400",
+          'border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400',
       };
     default:
       return {
-        label: "Khách hàng",
+        label: 'Khách hàng',
         className:
-          "border-zinc-200 bg-zinc-50 text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400",
+          'border-zinc-200 bg-zinc-50 text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400',
       };
   }
 }
 
 function formatDate(dateString: string): string {
   try {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   } catch {
     return dateString;
@@ -145,14 +145,16 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState<boolean>(true);
 
   // Bộ lọc
-  const [role, setRole] = useState<string>("all");
-  const [status, setStatus] = useState<string>("all");
-  const [search, setSearch] = useState<string>("");
+  const [role, setRole] = useState<string>('all');
+  const [status, setStatus] = useState<string>('all');
+  const [search, setSearch] = useState<string>('');
   const debouncedSearch = useDebounce(search, 400);
   const [page, setPage] = useState<number>(1);
 
   // Modal xác nhận đổi trạng thái
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+    null,
+  );
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
   // Chống response cũ về trễ ghi đè response mới (đổi filter/search nhanh)
@@ -165,8 +167,8 @@ export default function AdminUsersPage() {
       const res = await adminUsersApiRequest.getUsers({
         page,
         limit: PAGE_SIZE,
-        role: role !== "all" ? role : undefined,
-        status: status !== "all" ? status : undefined,
+        role: role !== 'all' ? role : undefined,
+        status: status !== 'all' ? status : undefined,
         search: debouncedSearch || undefined,
       });
       if (myId !== reqIdRef.current) return; // bỏ response cũ
@@ -217,7 +219,7 @@ export default function AdminUsersPage() {
 
   // Các nút action theo trạng thái hiện tại (chỉ cho dòng KHÔNG phải admin)
   const renderActions = (user: AdminUserItemType) => {
-    if (user.role === "admin") {
+    if (user.role === 'admin') {
       return (
         <span className="text-xs font-medium text-muted-foreground italic">
           Tài khoản quản trị
@@ -229,42 +231,42 @@ export default function AdminUsersPage() {
     const open = (status: StatusValue, label: string) =>
       setPendingAction({ user, status, label });
 
-    if (user.status !== "active") {
+    if (user.status !== 'active') {
       buttons.push(
         <Button
           key="activate"
           variant="outline"
           size="sm"
           className="h-8 text-xs font-semibold border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-          onClick={() => open("active", "Mở lại tài khoản")}
+          onClick={() => open('active', 'Mở lại tài khoản')}
         >
           <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
           Mở lại
         </Button>,
       );
     }
-    if (user.status === "active") {
+    if (user.status === 'active') {
       buttons.push(
         <Button
           key="suspend"
           variant="outline"
           size="sm"
           className="h-8 text-xs font-semibold border-amber-200 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-          onClick={() => open("suspended", "Tạm khóa tài khoản")}
+          onClick={() => open('suspended', 'Tạm khóa tài khoản')}
         >
           <Lock className="h-3.5 w-3.5 mr-1.5" />
           Tạm khóa
         </Button>,
       );
     }
-    if (user.status !== "banned") {
+    if (user.status !== 'banned') {
       buttons.push(
         <Button
           key="ban"
           variant="destructive"
           size="sm"
           className="h-8 text-xs font-semibold"
-          onClick={() => open("banned", "Cấm tài khoản")}
+          onClick={() => open('banned', 'Cấm tài khoản')}
         >
           <Ban className="h-3.5 w-3.5 mr-1.5" />
           Cấm
@@ -307,7 +309,11 @@ export default function AdminUsersPage() {
             className="pl-9"
           />
         </div>
-        <Select value={role} onValueChange={(val) => setRole(val ?? "all")} items={roleSelectItems}>
+        <Select
+          value={role}
+          onValueChange={(val) => setRole(val ?? 'all')}
+          items={roleSelectItems}
+        >
           <SelectTrigger className="w-full md:w-[180px]" size="default">
             <SelectValue placeholder="Vai trò" />
           </SelectTrigger>
@@ -321,7 +327,7 @@ export default function AdminUsersPage() {
         </Select>
         <Select
           value={status}
-          onValueChange={(val) => setStatus(val ?? "all")}
+          onValueChange={(val) => setStatus(val ?? 'all')}
           items={statusSelectItems}
         >
           <SelectTrigger className="w-full md:w-[190px]" size="default">
@@ -422,14 +428,17 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell className="py-4">
                       <Badge variant="outline" className={rMeta.className}>
-                        {user.role === "admin" && (
+                        {user.role === 'admin' && (
                           <ShieldCheck className="h-3 w-3 mr-1" />
                         )}
                         {rMeta.label}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4">
-                      <Badge variant={sMeta.variant} className={sMeta.className}>
+                      <Badge
+                        variant={sMeta.variant}
+                        className={sMeta.className}
+                      >
                         {sMeta.label}
                       </Badge>
                     </TableCell>
@@ -454,7 +463,7 @@ export default function AdminUsersPage() {
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Trang <span className="font-bold text-foreground">{meta.page}</span>{" "}
+            Trang <span className="font-bold text-foreground">{meta.page}</span>{' '}
             / {meta.totalPages} — {meta.totalItems} người dùng
           </p>
           <div className="flex items-center gap-2">
@@ -494,16 +503,16 @@ export default function AdminUsersPage() {
             <DialogHeader>
               <div
                 className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
-                  pendingAction.status === "active"
-                    ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400"
-                    : pendingAction.status === "suspended"
-                      ? "bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400"
-                      : "bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400"
+                  pendingAction.status === 'active'
+                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400'
+                    : pendingAction.status === 'suspended'
+                      ? 'bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400'
+                      : 'bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400'
                 }`}
               >
-                {pendingAction.status === "active" ? (
+                {pendingAction.status === 'active' ? (
                   <CheckCircle2 className="h-6 w-6" />
-                ) : pendingAction.status === "suspended" ? (
+                ) : pendingAction.status === 'suspended' ? (
                   <Lock className="h-6 w-6" />
                 ) : (
                   <Ban className="h-6 w-6" />
@@ -513,16 +522,17 @@ export default function AdminUsersPage() {
                 {pendingAction.label}
               </DialogTitle>
               <DialogDescription className="text-center">
-                Xác nhận đổi trạng thái của{" "}
-                <strong>"{pendingAction.user.username}"</strong> ({pendingAction.user.email}).
-                {pendingAction.status === "banned" &&
-                  " Tài khoản bị cấm sẽ không thể thực hiện các thao tác trên sàn."}
+                Xác nhận đổi trạng thái của{' '}
+                <strong>"{pendingAction.user.username}"</strong> (
+                {pendingAction.user.email}).
+                {pendingAction.status === 'banned' &&
+                  ' Tài khoản bị cấm sẽ không thể thực hiện các thao tác trên sàn.'}
               </DialogDescription>
             </DialogHeader>
             <div className="mt-4 flex flex-col gap-2">
               <Button
                 variant={
-                  pendingAction.status === "banned" ? "destructive" : "default"
+                  pendingAction.status === 'banned' ? 'destructive' : 'default'
                 }
                 className="w-full font-bold text-xs"
                 onClick={handleConfirmAction}
@@ -534,7 +544,7 @@ export default function AdminUsersPage() {
                     Đang xử lý...
                   </>
                 ) : (
-                  "Xác nhận"
+                  'Xác nhận'
                 )}
               </Button>
               <Button

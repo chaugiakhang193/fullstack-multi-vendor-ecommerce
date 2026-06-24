@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 
-import { useAuthStore } from "@/store/useAuthStore";
-import { useNotificationStore } from "@/store/useNotificationStore";
-import { useSocket } from "@/components/providers/socket-provider";
-import { useNotificationsList, useUnreadCount } from "@/hooks/useNotifications";
-import notificationApiRequest from "@/apiRequests/engagements/notifications";
-import { QUERY_KEYS } from "@/constants/query-keys";
-import { UserRole } from "@/constants/enum";
-import { getErrorMessage } from "@/lib/http";
-import { formatDateTime } from "@/lib/format";
-import { renderNotificationData } from "@/components/notifications/notification-content";
-import type { NotificationItemType } from "@/schemaValidations/engagements/notifications.schema";
+import { useAuthStore } from '@/store/useAuthStore';
+import { useNotificationStore } from '@/store/useNotificationStore';
+import { useSocket } from '@/components/providers/socket-provider';
+import { useNotificationsList, useUnreadCount } from '@/hooks/useNotifications';
+import notificationApiRequest from '@/apiRequests/engagements/notifications';
+import { QUERY_KEYS } from '@/constants/query-keys';
+import { UserRole } from '@/constants/enum';
+import { getErrorMessage } from '@/lib/http';
+import { formatDateTime } from '@/lib/format';
+import { renderNotificationData } from '@/components/notifications/notification-content';
+import type { NotificationItemType } from '@/schemaValidations/engagements/notifications.schema';
 
 // Tên event WS — khớp backend notification.events.ts WS_EVENTS.
-const WS_ORDER_NEW = "order.new";
-const WS_ORDER_STATUS_CHANGED = "order.status_changed";
-const WS_REVIEW_NEW = "review.new";
-const WS_REVIEW_REPLIED = "review.replied";
+const WS_ORDER_NEW = 'order.new';
+const WS_ORDER_STATUS_CHANGED = 'order.status_changed';
+const WS_REVIEW_NEW = 'review.new';
+const WS_REVIEW_REPLIED = 'review.replied';
 
 interface OrderNewPayload {
   orderId: string;
@@ -51,29 +51,33 @@ interface ReviewRepliedPayload {
 }
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
-const getNotificationHref = (item: NotificationItemType, role?: string): string => {
+const getNotificationHref = (
+  item: NotificationItemType,
+  role?: string,
+): string => {
   const d = item.data;
-  if (!d) return role === UserRole.SELLER ? "/seller/orders" : "/profile/orders";
+  if (!d)
+    return role === UserRole.SELLER ? '/seller/orders' : '/profile/orders';
 
   switch (d.kind) {
-    case "order_placed":
-    case "suborder_cancelled_customer":
-    case "suborder_status_changed":
-      return d.orderId ? `/profile/orders/${d.orderId}` : "/profile/orders";
-    case "order_new_seller":
-    case "suborder_cancelled_seller":
-      return d.orderId ? `/seller/orders/${d.orderId}` : "/seller/orders";
-    case "review_new_seller":
-      return "/seller/reviews";
-    case "review_replied":
+    case 'order_placed':
+    case 'suborder_cancelled_customer':
+    case 'suborder_status_changed':
+      return d.orderId ? `/profile/orders/${d.orderId}` : '/profile/orders';
+    case 'order_new_seller':
+    case 'suborder_cancelled_seller':
+      return d.orderId ? `/seller/orders/${d.orderId}` : '/seller/orders';
+    case 'review_new_seller':
+      return '/seller/reviews';
+    case 'review_replied':
       // Dẫn về sản phẩm để xem đánh giá và phản hồi
-      return d.productId ? `/products/${d.productId}` : "/profile/orders";
+      return d.productId ? `/products/${d.productId}` : '/profile/orders';
     default:
-      return role === UserRole.SELLER ? "/seller/orders" : "/profile/orders";
+      return role === UserRole.SELLER ? '/seller/orders' : '/profile/orders';
   }
 };
 
-export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
+export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const socket = useSocket();
@@ -98,7 +102,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
   // Sync badge từ server count (nguồn sự thật, tự sửa lệch sau increment lạc quan).
   useEffect(() => {
     const total = unreadQuery.data?.data.meta.totalItems;
-    if (typeof total === "number") setCount(total);
+    if (typeof total === 'number') setCount(total);
   }, [unreadQuery.data, setCount]);
 
   // Đăng ký listener WS — toast + increment + invalidate. Navigate theo role.
@@ -111,34 +115,41 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
       // order.new thiếu subOrderId → chỉ tới được danh sách seller.
       toast.success(payload.message, {
         description: `Đơn ${payload.orderNumber}`,
-        action: { label: "Xem", onClick: () => router.push("/seller/orders") },
+        action: { label: 'Xem', onClick: () => router.push('/seller/orders') },
       });
     };
 
     const onStatusChanged = (payload: OrderStatusChangedPayload) => {
       increment();
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL],
+      });
       const href =
         role === UserRole.SELLER
           ? `/seller/orders/${payload.subOrderId}`
           : `/profile/orders/${payload.orderId}`;
       toast.info(payload.message, {
         description: `Đơn ${payload.orderNumber}`,
-        action: { label: "Xem", onClick: () => router.push(href) },
+        action: { label: 'Xem', onClick: () => router.push(href) },
       });
     };
 
     const onReviewNew = (payload: ReviewNewPayload) => {
       increment();
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
-      toast.info(`Khách hàng vừa đánh giá ${payload.rating}⭐ cho ${payload.productName}`, {
-        action: {
-          label: "Xem ngay",
-          onClick: () => router.push("/seller/reviews"),
+      toast.info(
+        `Khách hàng vừa đánh giá ${payload.rating}⭐ cho ${payload.productName}`,
+        {
+          action: {
+            label: 'Xem ngay',
+            onClick: () => router.push('/seller/reviews'),
+          },
         },
-      });
+      );
     };
 
     const onReviewReplied = (payload: ReviewRepliedPayload) => {
@@ -146,7 +157,7 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       toast.info(`Shop đã phản hồi đánh giá sản phẩm ${payload.productName}`, {
         action: {
-          label: "Xem",
+          label: 'Xem',
           onClick: () => router.push(`/products/${payload.productId}`),
         },
       });
@@ -199,16 +210,16 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
       <button
         onClick={() => setOpen((v) => !v)}
         className={
-          size === "lg"
-            ? "h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm cursor-pointer"
-            : "p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition"
+          size === 'lg'
+            ? 'h-16 w-16 rounded-2xl border-2 flex items-center justify-center relative hover:bg-zinc-100 dark:hover:bg-zinc-900 transition shadow-sm cursor-pointer'
+            : 'p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border relative transition'
         }
         aria-label="Thông báo"
       >
-        <Bell className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} />
+        <Bell className={size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold ring-2 ring-white dark:ring-zinc-950">
-            {unreadCount > 99 ? "99+" : unreadCount}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
@@ -245,7 +256,9 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
                     key={item.id}
                     onClick={() => handleItemClick(item)}
                     className={`w-full text-left px-4 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition ${
-                      item.is_read ? "" : "bg-violet-50/50 dark:bg-violet-950/10"
+                      item.is_read
+                        ? ''
+                        : 'bg-violet-50/50 dark:bg-violet-950/10'
                     }`}
                   >
                     <p className="text-base font-bold truncate">{item.title}</p>
@@ -263,7 +276,11 @@ export function NotificationBell({ size = "sm" }: { size?: "sm" | "lg" }) {
             <button
               onClick={() => {
                 setOpen(false);
-                router.push(role === UserRole.SELLER ? "/seller/orders" : "/profile/orders");
+                router.push(
+                  role === UserRole.SELLER
+                    ? '/seller/orders'
+                    : '/profile/orders',
+                );
               }}
               className="w-full px-4 py-3 text-sm font-bold text-center text-muted-foreground hover:text-foreground border-t hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
             >

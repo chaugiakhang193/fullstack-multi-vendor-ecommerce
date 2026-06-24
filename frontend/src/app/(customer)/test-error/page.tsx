@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { HttpError } from "@/lib/http";
+import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { HttpError } from '@/lib/http';
 import {
   AlertTriangle,
   Bug,
@@ -10,12 +10,14 @@ import {
   Lock,
   RefreshCw,
   Server,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Component con để kích hoạt lỗi crash JavaScript khi render
 function CrashingComponent() {
-  if (typeof window !== "undefined") {
-    throw new Error("Lỗi crash giả lập từ CrashingComponent tại trang test-error!");
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      'Lỗi crash giả lập từ CrashingComponent tại trang test-error!',
+    );
   }
   return null;
 }
@@ -29,7 +31,7 @@ export default function TestErrorPage() {
       // Ném ra HttpError 500 để trigger MutationCache.onError
       throw new HttpError({
         status: 500,
-        payload: { message: "Internal Server Error" },
+        payload: { message: 'Internal Server Error' },
       });
     },
   });
@@ -39,7 +41,7 @@ export default function TestErrorPage() {
     mutationFn: async () => {
       throw new HttpError({
         status: 403,
-        payload: { message: "Bạn không có quyền truy cập tài nguyên này." },
+        payload: { message: 'Bạn không có quyền truy cập tài nguyên này.' },
       });
     },
   });
@@ -49,7 +51,7 @@ export default function TestErrorPage() {
     mutationFn: async () => {
       throw new HttpError({
         status: 400,
-        payload: { message: "Email đã tồn tại trong hệ thống." },
+        payload: { message: 'Email đã tồn tại trong hệ thống.' },
       });
     },
   });
@@ -59,7 +61,9 @@ export default function TestErrorPage() {
     mutationFn: async () => {
       throw new HttpError({
         status: 400,
-        payload: { message: "Dữ liệu giỏ hàng không hợp lệ (Bắt buộc hiện Toast)!" },
+        payload: {
+          message: 'Dữ liệu giỏ hàng không hợp lệ (Bắt buộc hiện Toast)!',
+        },
       });
     },
     meta: {
@@ -70,7 +74,7 @@ export default function TestErrorPage() {
   // 5. Giả lập lỗi Offline (Failed to fetch)
   const mutationOffline = useMutation({
     mutationFn: async () => {
-      throw new TypeError("Failed to fetch");
+      throw new TypeError('Failed to fetch');
     },
   });
 
@@ -85,7 +89,8 @@ export default function TestErrorPage() {
           Trang Kiểm Thử Sự Cố (Diagnostic Portal)
         </h1>
         <p className="text-sm text-muted-foreground">
-          Trang ẩn chuyên biệt phục vụ kiểm nghiệm toàn diện các tầng xử lý lỗi, toast và error boundaries của ứng dụng.
+          Trang ẩn chuyên biệt phục vụ kiểm nghiệm toàn diện các tầng xử lý lỗi,
+          toast và error boundaries của ứng dụng.
         </p>
       </div>
 
@@ -97,7 +102,9 @@ export default function TestErrorPage() {
             Next.js Error Boundaries
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Kiểm nghiệm trang lỗi tùy chỉnh (Customer-level Error Boundary). Khi nhấn nút bên dưới, component con sẽ ném ra lỗi runtime JavaScript trong quá trình render.
+            Kiểm nghiệm trang lỗi tùy chỉnh (Customer-level Error Boundary). Khi
+            nhấn nút bên dưới, component con sẽ ném ra lỗi runtime JavaScript
+            trong quá trình render.
           </p>
           <button
             onClick={() => setShouldCrash(true)}
@@ -116,7 +123,9 @@ export default function TestErrorPage() {
           Centralized API Error Toasts (React Query Mutation Cache)
         </h3>
         <p className="text-xs text-muted-foreground">
-          Bấm các nút bên dưới để trigger mutation ném ra các HttpError tương ứng. Hệ thống xử lý lỗi tập trung sẽ tự động bắt lỗi và hiển thị Toast phù hợp.
+          Bấm các nút bên dưới để trigger mutation ném ra các HttpError tương
+          ứng. Hệ thống xử lý lỗi tập trung sẽ tự động bắt lỗi và hiển thị Toast
+          phù hợp.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

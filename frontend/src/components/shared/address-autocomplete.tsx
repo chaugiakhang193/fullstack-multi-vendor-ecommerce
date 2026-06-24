@@ -3,7 +3,10 @@
 import { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 // Hooks
-import { AddressCoords, useAddressAutocomplete } from '@/hooks/useAddressAutocomplete';
+import {
+  AddressCoords,
+  useAddressAutocomplete,
+} from '@/hooks/useAddressAutocomplete';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -30,7 +33,10 @@ export function AddressAutocomplete({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setSuggestions([]);
       }
     };
@@ -83,10 +89,10 @@ export function AddressAutocomplete({
         placeholder={placeholder ?? 'Nhập địa chỉ...'}
         disabled={disabled}
         className={cn(
-          "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background transition",
+          'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background transition',
           error ? 'border-rose-500' : 'border-input',
           disabled ? 'opacity-50 cursor-not-allowed' : '',
-          inputClassName
+          inputClassName,
         )}
       />
 

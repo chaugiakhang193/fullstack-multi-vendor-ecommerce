@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   X,
   ShoppingCart,
@@ -15,18 +15,18 @@ import {
   Truck,
   ShoppingBag,
   Store,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 // Hooks
-import { useCartStore, CartItem } from "@/store/useCartStore";
-import { useActiveCart } from "@/hooks/useActiveCart";
-import { SHIPPING_LIMITS } from "@/constants/limits.generated";
+import { useCartStore, CartItem } from '@/store/useCartStore';
+import { useActiveCart } from '@/hooks/useActiveCart';
+import { SHIPPING_LIMITS } from '@/constants/limits.generated';
 
 // Currency formatter
-const priceFormatter = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -48,12 +48,12 @@ export default function CartDrawer() {
   // Lock body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
-      document.body.classList.add("overflow-hidden");
+      document.body.classList.add('overflow-hidden');
     } else {
-      document.body.classList.remove("overflow-hidden");
+      document.body.classList.remove('overflow-hidden');
     }
     return () => {
-      document.body.classList.remove("overflow-hidden");
+      document.body.classList.remove('overflow-hidden');
     };
   }, [isOpen]);
 
@@ -61,9 +61,9 @@ export default function CartDrawer() {
   const groupedItems = useMemo(() => {
     const groups: Record<string, { shopName: string; items: CartItem[] }> = {};
     items.forEach((item) => {
-      const key = item.shopId || "default-shop";
+      const key = item.shopId || 'default-shop';
       if (!groups[key]) {
-        groups[key] = { shopName: item.shopName || "Cửa hàng", items: [] };
+        groups[key] = { shopName: item.shopName || 'Cửa hàng', items: [] };
       }
       groups[key].items.push(item);
     });
@@ -75,7 +75,11 @@ export default function CartDrawer() {
     const total = items.reduce((sum, item) => {
       const price = Number(item.price);
       const quantity = Number(item.quantity);
-      return sum + (Number.isNaN(price) ? 0 : price) * (Number.isNaN(quantity) ? 0 : quantity);
+      return (
+        sum +
+        (Number.isNaN(price) ? 0 : price) *
+          (Number.isNaN(quantity) ? 0 : quantity)
+      );
     }, 0);
     return total;
   }, [items]);
@@ -95,13 +99,13 @@ export default function CartDrawer() {
 
   const handleCheckoutClick = () => {
     setIsOpen(false);
-    const targetCheckout = "/checkout";
+    const targetCheckout = '/checkout';
     router.push(targetCheckout);
   };
 
   const handleViewCartClick = () => {
     setIsOpen(false);
-    const targetCart = "/cart";
+    const targetCart = '/cart';
     router.push(targetCart);
   };
 
@@ -124,11 +128,7 @@ export default function CartDrawer() {
   };
 
   // Helper to handle inline attribute selection changes
-  const handleSwapAttribute = (
-    item: CartItem,
-    key: string,
-    val: string
-  ) => {
+  const handleSwapAttribute = (item: CartItem, key: string, val: string) => {
     const currentAttrs = getItemAttributes(item);
     const targetAttrs = { ...currentAttrs, [key]: val };
 
@@ -149,7 +149,7 @@ export default function CartDrawer() {
 
     if (match) {
       if (match.stock_quantity <= 0) {
-        const errorMsg = "Phiên bản này hiện đã hết hàng!";
+        const errorMsg = 'Phiên bản này hiện đã hết hàng!';
         toast.error(errorMsg);
         return;
       }
@@ -159,19 +159,20 @@ export default function CartDrawer() {
     } else {
       // Find backup variant containing this key-value
       const backup =
-        item.variants.find((v) => v.attributes?.[key] === val && v.stock_quantity > 0) ||
-        item.variants.find((v) => v.attributes?.[key] === val);
+        item.variants.find(
+          (v) => v.attributes?.[key] === val && v.stock_quantity > 0,
+        ) || item.variants.find((v) => v.attributes?.[key] === val);
 
       if (backup) {
         if (backup.stock_quantity <= 0) {
-          const errorMsg = "Phiên bản này hiện đã hết hàng!";
+          const errorMsg = 'Phiên bản này hiện đã hết hàng!';
           toast.error(errorMsg);
           return;
         }
         updateVariant(item.productId, item.variantId, backup.id);
         setEditingItemId(null);
       } else {
-        const errorMsg = "Không tìm thấy phiên bản phù hợp!";
+        const errorMsg = 'Không tìm thấy phiên bản phù hợp!';
         toast.error(errorMsg);
       }
     }
@@ -182,8 +183,8 @@ export default function CartDrawer() {
       {/* Backdrop with Blur */}
       <div
         className={cn(
-          "fixed inset-0 bg-black/60 backdrop-blur-xs z-50 transition-opacity duration-300 pointer-events-none opacity-0",
-          isOpen && "pointer-events-auto opacity-100"
+          'fixed inset-0 bg-black/60 backdrop-blur-xs z-50 transition-opacity duration-300 pointer-events-none opacity-0',
+          isOpen && 'pointer-events-auto opacity-100',
         )}
         onClick={() => setIsOpen(false)}
       />
@@ -191,15 +192,17 @@ export default function CartDrawer() {
       {/* Drawer Panel */}
       <div
         className={cn(
-          "fixed top-0 right-0 bottom-0 w-full sm:max-w-md bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 transform translate-x-full",
-          isOpen && "translate-x-0"
+          'fixed top-0 right-0 bottom-0 w-full sm:max-w-md bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 transform translate-x-full',
+          isOpen && 'translate-x-0',
         )}
       >
         {/* Drawer Header */}
         <div className="h-16 px-6 border-b border-zinc-100 dark:border-zinc-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-            <span className="text-base font-extrabold text-foreground">Giỏ hàng của bạn</span>
+            <span className="text-base font-extrabold text-foreground">
+              Giỏ hàng của bạn
+            </span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400">
               {items.length}
             </span>
@@ -220,10 +223,10 @@ export default function CartDrawer() {
               <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400 animate-pulse" />
               {remainingForFreeShipping > 0 ? (
                 <span className="text-muted-foreground">
-                  Mua thêm{" "}
+                  Mua thêm{' '}
                   <strong className="text-violet-600 dark:text-violet-400">
                     {formatPrice(remainingForFreeShipping)}
-                  </strong>{" "}
+                  </strong>{' '}
                   để nhận freeship!
                 </span>
               ) : (
@@ -250,9 +253,12 @@ export default function CartDrawer() {
                 <ShoppingBag className="h-10 w-10" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-base font-extrabold text-foreground">Giỏ hàng trống</h4>
+                <h4 className="text-base font-extrabold text-foreground">
+                  Giỏ hàng trống
+                </h4>
                 <p className="text-xs text-muted-foreground max-w-[240px]">
-                  Hiện chưa có sản phẩm nào trong giỏ hàng của bạn. Hãy chọn sản phẩm yêu thích và thêm vào giỏ nhé!
+                  Hiện chưa có sản phẩm nào trong giỏ hàng của bạn. Hãy chọn sản
+                  phẩm yêu thích và thêm vào giỏ nhé!
                 </p>
               </div>
               <button
@@ -275,7 +281,7 @@ export default function CartDrawer() {
                 {/* Items in Shop */}
                 <div className="space-y-4">
                   {group.items.map((item) => {
-                    const itemKey = `${item.productId}-${item.variantId || "base"}`;
+                    const itemKey = `${item.productId}-${item.variantId || 'base'}`;
                     const isEditing = editingItemId === itemKey;
                     const itemAttributes = getItemAttributes(item);
                     const itemAttributeKeys = Object.keys(itemAttributes);
@@ -289,7 +295,9 @@ export default function CartDrawer() {
                           {/* Image */}
                           <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-white border dark:border-zinc-800">
                             <Image
-                              src={item.thumbnailUrl || "/placeholder-product.png"}
+                              src={
+                                item.thumbnailUrl || '/placeholder-product.png'
+                              }
                               alt={item.name}
                               fill
                               sizes="64px"
@@ -300,7 +308,11 @@ export default function CartDrawer() {
                           {/* Info */}
                           <div className="flex-1 min-w-0 space-y-1">
                             <Link
-                              href={item.variantId ? `/products/${item.productSlug}?variant=${item.variantId}` : `/products/${item.productSlug}`}
+                              href={
+                                item.variantId
+                                  ? `/products/${item.productSlug}?variant=${item.variantId}`
+                                  : `/products/${item.productSlug}`
+                              }
                               onClick={() => setIsOpen(false)}
                               className="block text-xs font-bold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-normal truncate"
                               title={item.name}
@@ -309,40 +321,48 @@ export default function CartDrawer() {
                             </Link>
 
                             {/* Attributes display */}
-                            {item.variantId && (item.variantName || item.variants.length > 0) && (
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {item.variantName ? (
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase">
-                                    {item.variantName}
-                                  </span>
-                                ) : (
-                                  Object.entries(itemAttributes).map(([k, v]) => (
-                                    <span
-                                      key={k}
-                                      className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase"
-                                    >
-                                      {v}
+                            {item.variantId &&
+                              (item.variantName ||
+                                item.variants.length > 0) && (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {item.variantName ? (
+                                    <span className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase">
+                                      {item.variantName}
                                     </span>
-                                  ))
-                                )}
-                                {/* Quick Swap Trigger */}
-                                {item.variants.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingItemId(isEditing ? null : itemKey)}
-                                    className="text-[9px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
-                                  >
-                                    <span>Đổi</span>
-                                    <ChevronDown
-                                      className={cn(
-                                        "h-2.5 w-2.5 transition-transform",
-                                        isEditing && "rotate-180"
-                                      )}
-                                    />
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                                  ) : (
+                                    Object.entries(itemAttributes).map(
+                                      ([k, v]) => (
+                                        <span
+                                          key={k}
+                                          className="inline-block px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-[9px] font-bold text-muted-foreground uppercase"
+                                        >
+                                          {v}
+                                        </span>
+                                      ),
+                                    )
+                                  )}
+                                  {/* Quick Swap Trigger */}
+                                  {item.variants.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingItemId(
+                                          isEditing ? null : itemKey,
+                                        )
+                                      }
+                                      className="text-[9px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
+                                    >
+                                      <span>Đổi</span>
+                                      <ChevronDown
+                                        className={cn(
+                                          'h-2.5 w-2.5 transition-transform',
+                                          isEditing && 'rotate-180',
+                                        )}
+                                      />
+                                    </button>
+                                  )}
+                                </div>
+                              )}
 
                             {/* Price */}
                             <div className="text-xs font-extrabold text-violet-600 dark:text-violet-400">
@@ -362,9 +382,17 @@ export default function CartDrawer() {
                                 const options = getAttrOptions(item, key);
                                 const currentVal = itemAttributes[key];
                                 return (
-                                  <div key={key} className="flex items-center justify-between gap-2 text-xs">
+                                  <div
+                                    key={key}
+                                    className="flex items-center justify-between gap-2 text-xs"
+                                  >
                                     <span className="text-[10px] font-semibold text-muted-foreground capitalize">
-                                      {key === "color" ? "Màu sắc" : key === "size" ? "Kích thước" : key}:
+                                      {key === 'color'
+                                        ? 'Màu sắc'
+                                        : key === 'size'
+                                          ? 'Kích thước'
+                                          : key}
+                                      :
                                     </span>
                                     <div className="flex flex-wrap gap-1">
                                       {options.map((opt) => {
@@ -373,12 +401,18 @@ export default function CartDrawer() {
                                           <button
                                             key={opt}
                                             type="button"
-                                            onClick={() => handleSwapAttribute(item, key, opt)}
+                                            onClick={() =>
+                                              handleSwapAttribute(
+                                                item,
+                                                key,
+                                                opt,
+                                              )
+                                            }
                                             className={cn(
-                                              "px-2 py-0.5 rounded text-[10px] font-bold border transition",
+                                              'px-2 py-0.5 rounded text-[10px] font-bold border transition',
                                               isSelected
-                                                ? "bg-violet-600 border-violet-600 text-white"
-                                                : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                                                ? 'bg-violet-600 border-violet-600 text-white'
+                                                : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',
                                             )}
                                           >
                                             {opt}
@@ -400,7 +434,11 @@ export default function CartDrawer() {
                             <button
                               type="button"
                               onClick={() =>
-                                updateQuantity(item.productId, item.variantId, item.quantity - 1)
+                                updateQuantity(
+                                  item.productId,
+                                  item.variantId,
+                                  item.quantity - 1,
+                                )
                               }
                               className="w-7 h-full flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-muted-foreground hover:text-foreground border-r dark:border-zinc-800"
                             >
@@ -412,7 +450,11 @@ export default function CartDrawer() {
                             <button
                               type="button"
                               onClick={() =>
-                                updateQuantity(item.productId, item.variantId, item.quantity + 1)
+                                updateQuantity(
+                                  item.productId,
+                                  item.variantId,
+                                  item.quantity + 1,
+                                )
                               }
                               className="w-7 h-full flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-900 transition text-muted-foreground hover:text-foreground border-l dark:border-zinc-800"
                             >
@@ -423,7 +465,9 @@ export default function CartDrawer() {
                           {/* Delete Item */}
                           <button
                             type="button"
-                            onClick={() => removeItem(item.productId, item.variantId)}
+                            onClick={() =>
+                              removeItem(item.productId, item.variantId)
+                            }
                             className="p-1 rounded-md text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition cursor-pointer"
                             title="Xóa sản phẩm"
                           >

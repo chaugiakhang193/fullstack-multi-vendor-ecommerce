@@ -1,57 +1,61 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { Eye, Loader2, Package, AlertTriangle } from "lucide-react";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Eye, Loader2, Package, AlertTriangle } from 'lucide-react';
 
 // API
-import { getErrorMessage } from "@/lib/http";
+import { getErrorMessage } from '@/lib/http';
 
 // Hooks
-import { useSellerOrdersList, useUpdateSellerOrderStatus } from "@/hooks/useSellerOrders";
-import { cn } from "@/lib/utils";
+import {
+  useSellerOrdersList,
+  useUpdateSellerOrderStatus,
+} from '@/hooks/useSellerOrders';
+import { cn } from '@/lib/utils';
 import {
   type OrderStatusType,
   type SellerOrderType,
   ORDER_STATUS_LABELS,
-} from "@/schemaValidations/orders/orders.schema";
+} from '@/schemaValidations/orders/orders.schema';
 
 // Components
-import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/shared/pagination";
-import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/shared/pagination';
+import { EmptyState } from '@/components/shared/empty-state';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   OrderStatusBadge,
   getTransitions,
-} from "@/components/orders/seller-order-status";
-import { formatVnd, formatDateTime, shortId } from "@/lib/format";
+} from '@/components/orders/seller-order-status';
+import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 const LIMIT = 10;
 
-const TABS: { label: string; value: OrderStatusType | "all" }[] = [
-  { label: "Tất cả", value: "all" },
-  { label: "Chờ xác nhận", value: "pending" },
-  { label: "Đang xử lý", value: "processing" },
-  { label: "Đang giao", value: "shipping" },
-  { label: "Đã giao", value: "delivered" },
-  { label: "Đã hủy", value: "cancelled" },
+const TABS: { label: string; value: OrderStatusType | 'all' }[] = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Chờ xác nhận', value: 'pending' },
+  { label: 'Đang xử lý', value: 'processing' },
+  { label: 'Đang giao', value: 'shipping' },
+  { label: 'Đã giao', value: 'delivered' },
+  { label: 'Đã hủy', value: 'cancelled' },
 ];
 
 // Số thực thu seller = total_amount snapshot (đã trừ giảm giá). Fallback cho row cũ.
 function subOrderAmount(order: SellerOrderType): number {
-  return order.total_amount ?? (order.sub_total ?? 0) + (order.shipping_fee ?? 0);
+  return (
+    order.total_amount ?? (order.sub_total ?? 0) + (order.shipping_fee ?? 0)
+  );
 }
 
 export default function SellerOrdersPage() {
-
-  const [activeTab, setActiveTab] = useState<OrderStatusType | "all">("all");
+  const [activeTab, setActiveTab] = useState<OrderStatusType | 'all'>('all');
   const [page, setPage] = useState(1);
   const [actingId, setActingId] = useState<string | null>(null);
   const [pendingTransition, setPendingTransition] = useState<{
@@ -74,7 +78,7 @@ export default function SellerOrdersPage() {
     setPendingTransition({ order, to });
   };
 
-  const handleTabChange = (value: OrderStatusType | "all") => {
+  const handleTabChange = (value: OrderStatusType | 'all') => {
     setActiveTab(value);
     setPage(1);
   };
@@ -98,14 +102,16 @@ export default function SellerOrdersPage() {
 
   const orders = listQuery.data?.data.items ?? [];
   const meta = listQuery.data?.data.meta;
-  const isCancelTransition = pendingTransition?.to === "cancelled";
+  const isCancelTransition = pendingTransition?.to === 'cancelled';
   const pendingOrderNumber =
     pendingTransition?.order?.order?.order_number ??
-    shortId(pendingTransition?.order?.id ?? "");
+    shortId(pendingTransition?.order?.id ?? '');
   const pendingFromLabel = pendingTransition
     ? ORDER_STATUS_LABELS[pendingTransition.order.status]
-    : "";
-  const pendingToLabel = pendingTransition ? ORDER_STATUS_LABELS[pendingTransition.to] : "";
+    : '';
+  const pendingToLabel = pendingTransition
+    ? ORDER_STATUS_LABELS[pendingTransition.to]
+    : '';
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -128,13 +134,17 @@ export default function SellerOrdersPage() {
             handleTabChange(value);
           };
           const tabClassName = cn(
-            "whitespace-nowrap px-5 py-3 text-base font-bold rounded-t-xl transition border-b-2",
+            'whitespace-nowrap px-5 py-3 text-base font-bold rounded-t-xl transition border-b-2',
             isActive
-              ? "border-violet-600 text-violet-600 bg-violet-50/40 dark:bg-violet-950/20"
-              : "border-transparent text-muted-foreground hover:text-foreground",
+              ? 'border-violet-600 text-violet-600 bg-violet-50/40 dark:bg-violet-950/20'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
           );
           return (
-            <button key={tab.value} onClick={handleClickTab} className={tabClassName}>
+            <button
+              key={tab.value}
+              onClick={handleClickTab}
+              className={tabClassName}
+            >
               {tab.label}
             </button>
           );
@@ -175,8 +185,9 @@ export default function SellerOrdersPage() {
                 <tbody className="divide-y text-base">
                   {orders.map((order) => {
                     const recipient =
-                      order.order?.shipping_address?.recipient_name ?? "—";
-                    const orderNumber = order.order?.order_number ?? shortId(order.id);
+                      order.order?.shipping_address?.recipient_name ?? '—';
+                    const orderNumber =
+                      order.order?.order_number ?? shortId(order.id);
                     const status = order.status;
                     const transitions = getTransitions(status);
                     const isActing = actingId === order.id;
@@ -217,9 +228,9 @@ export default function SellerOrdersPage() {
                               const Icon = transition.icon;
                               const targetStatus = transition.to;
                               const buttonVariant =
-                                transition.tone === "danger"
-                                  ? "destructive"
-                                  : "secondary";
+                                transition.tone === 'danger'
+                                  ? 'destructive'
+                                  : 'secondary';
                               const handleClickAction = () => {
                                 handleAction(order, targetStatus);
                               };
@@ -267,52 +278,66 @@ export default function SellerOrdersPage() {
       <Dialog open={!!pendingTransition} onOpenChange={handleDialogOpenChange}>
         {pendingTransition && (
           <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {isCancelTransition ? "Hủy đơn hàng?" : "Xác nhận thay đổi trạng thái?"}
-            </DialogTitle>
-            <DialogDescription>
-              {isCancelTransition ? (
-                <>
-                  Hành động này sẽ hoàn kho và không thể hoàn tác. Bạn chắc chắn muốn
-                  hủy đơn{" "}
-                  <span className="font-bold text-foreground">{pendingOrderNumber}</span>?
-                </>
-              ) : (
-                <>
-                  Bạn có đồng ý chuyển trạng thái đơn{" "}
-                  <span className="font-bold text-foreground">{pendingOrderNumber}</span> từ{" "}
-                  <span className="font-bold text-foreground">{pendingFromLabel}</span> sang{" "}
-                  <span className="font-bold text-foreground">{pendingToLabel}</span>?
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-3 mt-2">
-            <Button
-              variant="outline"
-              onClick={handleCloseDialog}
-              disabled={updateMutation.isPending}
-            >
-              Quay lại
-            </Button>
-            <Button
-              variant={isCancelTransition ? "destructive" : "default"}
-              disabled={updateMutation.isPending}
-              onClick={handleConfirmTransition}
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                  {isCancelTransition ? "Đang hủy..." : "Đang xử lý..."}
-                </>
-              ) : isCancelTransition ? (
-                "Xác nhận hủy"
-              ) : (
-                "Xác nhận"
-              )}
-            </Button>
-          </div>
+            <DialogHeader>
+              <DialogTitle>
+                {isCancelTransition
+                  ? 'Hủy đơn hàng?'
+                  : 'Xác nhận thay đổi trạng thái?'}
+              </DialogTitle>
+              <DialogDescription>
+                {isCancelTransition ? (
+                  <>
+                    Hành động này sẽ hoàn kho và không thể hoàn tác. Bạn chắc
+                    chắn muốn hủy đơn{' '}
+                    <span className="font-bold text-foreground">
+                      {pendingOrderNumber}
+                    </span>
+                    ?
+                  </>
+                ) : (
+                  <>
+                    Bạn có đồng ý chuyển trạng thái đơn{' '}
+                    <span className="font-bold text-foreground">
+                      {pendingOrderNumber}
+                    </span>{' '}
+                    từ{' '}
+                    <span className="font-bold text-foreground">
+                      {pendingFromLabel}
+                    </span>{' '}
+                    sang{' '}
+                    <span className="font-bold text-foreground">
+                      {pendingToLabel}
+                    </span>
+                    ?
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-3 mt-2">
+              <Button
+                variant="outline"
+                onClick={handleCloseDialog}
+                disabled={updateMutation.isPending}
+              >
+                Quay lại
+              </Button>
+              <Button
+                variant={isCancelTransition ? 'destructive' : 'default'}
+                disabled={updateMutation.isPending}
+                onClick={handleConfirmTransition}
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />{' '}
+                    {isCancelTransition ? 'Đang hủy...' : 'Đang xử lý...'}
+                  </>
+                ) : isCancelTransition ? (
+                  'Xác nhận hủy'
+                ) : (
+                  'Xác nhận'
+                )}
+              </Button>
+            </div>
           </DialogContent>
         )}
       </Dialog>

@@ -1,7 +1,7 @@
-import z from "zod";
-import type { ApiEnvelope } from "@/lib/http";
-import { NotificationType } from "@/constants/enum";
-import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
+import z from 'zod';
+import type { ApiEnvelope } from '@/lib/http';
+import { NotificationType } from '@/constants/enum';
+import { OrderStatusEnum } from '@/schemaValidations/orders/orders.schema';
 
 // Backend notifications KHÔNG khai báo @ApiResponse({ type }) → swagger để trống schema,
 // nên không có generated type để `satisfies`. Schema dưới đây viết tay theo entity
@@ -12,43 +12,43 @@ import { OrderStatusEnum } from "@/schemaValidations/orders/orders.schema";
 // Dữ liệu cấu trúc để FE render câu hiển thị (localized + bold). Mirror BE NotificationData.
 // apiRequest KHÔNG .parse() nên union này chỉ dùng để type; render switch có default fallback
 // về `content` nếu gặp kind lạ (backend thêm kind mới mà FE chưa cập nhật).
-export const NotificationData = z.discriminatedUnion("kind", [
-  z.object({ 
-    kind: z.literal("order_placed"), 
-    orderNumber: z.string(), 
+export const NotificationData = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('order_placed'),
+    orderNumber: z.string(),
     amount: z.coerce.number(),
     orderId: z.string().uuid().optional(),
   }),
-  z.object({ 
-    kind: z.literal("order_new_seller"), 
+  z.object({
+    kind: z.literal('order_new_seller'),
     orderNumber: z.string(),
     orderId: z.string().uuid().optional(),
   }),
-  z.object({ 
-    kind: z.literal("suborder_cancelled_customer"), 
+  z.object({
+    kind: z.literal('suborder_cancelled_customer'),
     orderNumber: z.string(),
     orderId: z.string().uuid().optional(),
   }),
-  z.object({ 
-    kind: z.literal("suborder_cancelled_seller"), 
+  z.object({
+    kind: z.literal('suborder_cancelled_seller'),
     orderNumber: z.string(),
     orderId: z.string().uuid().optional(),
   }),
-  z.object({ 
-    kind: z.literal("suborder_status_changed"), 
-    orderNumber: z.string(), 
+  z.object({
+    kind: z.literal('suborder_status_changed'),
+    orderNumber: z.string(),
     status: OrderStatusEnum,
     orderId: z.string().uuid().optional(),
   }),
   // Các loại thông báo Đánh giá mới
   z.object({
-    kind: z.literal("review_new_seller"),
+    kind: z.literal('review_new_seller'),
     productId: z.string().uuid().optional(),
     productName: z.string(),
     reviewId: z.string().uuid().optional(),
   }),
   z.object({
-    kind: z.literal("review_replied"),
+    kind: z.literal('review_replied'),
     productId: z.string().uuid().optional(),
     productName: z.string(),
     reviewId: z.string().uuid().optional(),
@@ -96,7 +96,8 @@ export type NotificationListType = z.TypeOf<typeof NotificationList>;
 export type MarkAllReadResultType = z.TypeOf<typeof MarkAllReadResult>;
 
 export type NotificationEnvelope<T = unknown> = ApiEnvelope<T>;
-export type NotificationListEnvelope = NotificationEnvelope<NotificationListType>;
-export type NotificationItemEnvelope = NotificationEnvelope<NotificationItemType>;
+export type NotificationListEnvelope =
+  NotificationEnvelope<NotificationListType>;
+export type NotificationItemEnvelope =
+  NotificationEnvelope<NotificationItemType>;
 export type MarkAllReadEnvelope = NotificationEnvelope<MarkAllReadResultType>;
-

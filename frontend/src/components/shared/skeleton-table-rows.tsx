@@ -1,6 +1,6 @@
-import React from "react";
-import { TableRow, TableCell } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SkeletonTableRowsProps {
   rows?: number;
@@ -15,14 +15,14 @@ export default function SkeletonTableRows({
 }: SkeletonTableRowsProps) {
   // Tập hợp các class độ rộng để giả lập độ dài khác nhau của dữ liệu thật
   const widthClasses = [
-    "w-12",
-    "w-20",
-    "w-28",
-    "w-36",
-    "w-16",
-    "w-24",
-    "w-32",
-    "w-44",
+    'w-12',
+    'w-20',
+    'w-28',
+    'w-36',
+    'w-16',
+    'w-24',
+    'w-32',
+    'w-44',
   ];
 
   return (
@@ -31,7 +31,8 @@ export default function SkeletonTableRows({
         <TableRow key={rowIndex}>
           {[...Array(columns)].map((_, colIndex) => {
             // Sử dụng thuật toán tuần tuần tự dựa trên index để tránh hydration mismatch (lỗi SSR)
-            const widthIndex = (rowIndex * 3 + colIndex * 2) % widthClasses.length;
+            const widthIndex =
+              (rowIndex * 3 + colIndex * 2) % widthClasses.length;
             const widthClass = widthClasses[widthIndex];
 
             return (

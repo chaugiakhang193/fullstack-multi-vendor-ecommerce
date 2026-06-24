@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import Link from "next/link";
-import { AlertCircle, RefreshCw, Terminal } from "lucide-react";
-import { useQueryErrorResetBoundary } from "@tanstack/react-query";
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { AlertCircle, RefreshCw, Terminal } from 'lucide-react';
+import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -14,7 +14,7 @@ export default function AdminError({ error, reset }: ErrorProps) {
   const { reset: resetQueries } = useQueryErrorResetBoundary();
 
   useEffect(() => {
-    console.error("Admin dashboard error:", error);
+    console.error('Admin dashboard error:', error);
   }, [error]);
 
   const handleTryAgain = () => {
@@ -38,7 +38,9 @@ export default function AdminError({ error, reset }: ErrorProps) {
               Hệ thống Quản trị gặp sự cố
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Trang quản trị (Admin panel) phát hiện lỗi runtime trong tiến trình xử lý giao diện. Lỗi này có thể do dữ liệu trả về từ API không khớp cấu trúc mong đợi.
+              Trang quản trị (Admin panel) phát hiện lỗi runtime trong tiến
+              trình xử lý giao diện. Lỗi này có thể do dữ liệu trả về từ API
+              không khớp cấu trúc mong đợi.
             </p>
           </div>
 
@@ -46,18 +48,28 @@ export default function AdminError({ error, reset }: ErrorProps) {
           <div className="p-5 rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 space-y-3.5">
             <div className="flex items-center space-x-2 border-b border-zinc-800 pb-2">
               <Terminal className="h-4 w-4 text-violet-400" />
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400">Diagnostic Logs</span>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400">
+                Diagnostic Logs
+              </span>
             </div>
             <div className="space-y-2 font-mono text-xs">
               {error.digest && (
                 <div className="flex items-start">
-                  <span className="w-24 shrink-0 text-zinc-500 font-bold">Digest:</span>
-                  <span className="break-all text-zinc-100 select-all">{error.digest}</span>
+                  <span className="w-24 shrink-0 text-zinc-500 font-bold">
+                    Digest:
+                  </span>
+                  <span className="break-all text-zinc-100 select-all">
+                    {error.digest}
+                  </span>
                 </div>
               )}
               <div className="flex items-start">
-                <span className="w-24 shrink-0 text-zinc-500 font-bold">Message:</span>
-                <span className="break-all text-rose-400">{error.message || "Unknown error"}</span>
+                <span className="w-24 shrink-0 text-zinc-500 font-bold">
+                  Message:
+                </span>
+                <span className="break-all text-rose-400">
+                  {error.message || 'Unknown error'}
+                </span>
               </div>
             </div>
           </div>

@@ -1,13 +1,12 @@
-import z from "zod";
-import { ORDER_LIMITS } from "@/constants/limits.generated";
-import type { components } from "@/lib/api/api-schema";
-import type { ApiEnvelope } from "@/lib/http";
+import z from 'zod';
+import { ORDER_LIMITS } from '@/constants/limits.generated';
+import type { components } from '@/lib/api/api-schema';
+import type { ApiEnvelope } from '@/lib/http';
 
-type ShopCouponDto = components["schemas"]["ShopCouponDto"];
-type CreateOrderDto = components["schemas"]["CreateOrderDto"];
-type CheckoutPreviewDto = components["schemas"]["CheckoutPreviewDto"];
-type UpdateSubOrderStatusDto = components["schemas"]["UpdateSubOrderStatusDto"];
-
+type ShopCouponDto = components['schemas']['ShopCouponDto'];
+type CreateOrderDto = components['schemas']['CreateOrderDto'];
+type CheckoutPreviewDto = components['schemas']['CheckoutPreviewDto'];
+type UpdateSubOrderStatusDto = components['schemas']['UpdateSubOrderStatusDto'];
 
 // `satisfies` đảm bảo Zod schema luôn khớp generated type từ api-schema.d.ts.
 // Nếu backend thay đổi enum/field, `npm run gen-api` + TypeScript sẽ báo lỗi ngay tại đây.
@@ -20,31 +19,34 @@ type UpdateSubOrderStatusDto = components["schemas"]["UpdateSubOrderStatusDto"];
 
 // ===== Enum + State Machine (mirror backend common/enums.ts + orders.service.ts) =====
 export const OrderStatusEnum = z.enum([
-  "pending",
-  "processing",
-  "shipping",
-  "delivered",
-  "cancelled",
-  "returned",
+  'pending',
+  'processing',
+  'shipping',
+  'delivered',
+  'cancelled',
+  'returned',
 ]);
 
 // Các trạng thái seller được phép chuyển tới từ trạng thái hiện tại.
-export const SUB_ORDER_STATE_MACHINE: Record<OrderStatusType, OrderStatusType[]> = {
-  pending: ["processing", "cancelled"],
-  processing: ["shipping", "cancelled"],
-  shipping: ["delivered"],
+export const SUB_ORDER_STATE_MACHINE: Record<
+  OrderStatusType,
+  OrderStatusType[]
+> = {
+  pending: ['processing', 'cancelled'],
+  processing: ['shipping', 'cancelled'],
+  shipping: ['delivered'],
   delivered: [],
   cancelled: [],
   returned: [],
 };
 
 export const ORDER_STATUS_LABELS: Record<OrderStatusType, string> = {
-  pending: "Chờ xác nhận",
-  processing: "Đang xử lý",
-  shipping: "Đang giao",
-  delivered: "Đã giao",
-  cancelled: "Đã hủy",
-  returned: "Đã trả hàng",
+  pending: 'Chờ xác nhận',
+  processing: 'Đang xử lý',
+  shipping: 'Đang giao',
+  delivered: 'Đã giao',
+  cancelled: 'Đã hủy',
+  returned: 'Đã trả hàng',
 };
 
 // ===== Checkout (POST /orders/checkout) =====
@@ -54,17 +56,23 @@ export const ShopCouponBody = z.object({
 }) satisfies z.ZodType<ShopCouponDto, any, any>;
 
 export const CheckoutBody = z.object({
-  address_id: z.string().uuid("Địa chỉ không hợp lệ"),
-  payment_method: z.literal("cod"),
+  address_id: z.string().uuid('Địa chỉ không hợp lệ'),
+  payment_method: z.literal('cod'),
   global_coupon_code: z.string().optional(),
-  shop_coupons: z.array(ShopCouponBody).max(ORDER_LIMITS.MAX_SHOP_COUPONS).optional(),
+  shop_coupons: z
+    .array(ShopCouponBody)
+    .max(ORDER_LIMITS.MAX_SHOP_COUPONS)
+    .optional(),
 }) satisfies z.ZodType<CreateOrderDto, any, any>;
 
 // ===== Checkout Preview (POST /orders/checkout/preview) =====
 export const CheckoutPreviewBody = z.object({
-  address_id: z.string().uuid("Địa chỉ không hợp lệ"),
+  address_id: z.string().uuid('Địa chỉ không hợp lệ'),
   global_coupon_code: z.string().optional(),
-  shop_coupons: z.array(ShopCouponBody).max(ORDER_LIMITS.MAX_SHOP_COUPONS).optional(),
+  shop_coupons: z
+    .array(ShopCouponBody)
+    .max(ORDER_LIMITS.MAX_SHOP_COUPONS)
+    .optional(),
 }) satisfies z.ZodType<CheckoutPreviewDto, any, any>;
 
 // ===== Query lịch sử đơn / seller orders =====
@@ -141,7 +149,7 @@ export const CheckoutResponse = z.object({
   order_id: z.string(),
   order_number: z.string(),
   total_amount: z.coerce.number(),
-  payment_method: z.literal("cod"),
+  payment_method: z.literal('cod'),
   shipping_address: ShippingAddressSnapshot,
   sub_orders: z.array(CheckoutResponseSubOrder),
   created_at: z.string(),
@@ -251,13 +259,17 @@ export const CancelSubOrderResult = z.object({
 // ===== Types =====
 // Toàn bộ type trích từ Zod gom ở cuối file
 export type OrderStatusType = z.TypeOf<typeof OrderStatusEnum>;
-export type ShippingAddressSnapshotType = z.TypeOf<typeof ShippingAddressSnapshot>;
+export type ShippingAddressSnapshotType = z.TypeOf<
+  typeof ShippingAddressSnapshot
+>;
 
 // Checkout preview (body → response)
 export type CheckoutPreviewBodyType = z.TypeOf<typeof CheckoutPreviewBody>;
 export type PreviewItemType = z.TypeOf<typeof PreviewItem>;
 export type PreviewShopType = z.TypeOf<typeof PreviewShop>;
-export type CheckoutPreviewResponseType = z.TypeOf<typeof CheckoutPreviewResponse>;
+export type CheckoutPreviewResponseType = z.TypeOf<
+  typeof CheckoutPreviewResponse
+>;
 
 // Checkout (body → response)
 export type ShopCouponBodyType = z.TypeOf<typeof ShopCouponBody>;
@@ -270,7 +282,9 @@ export type UpdateOrderStatusBodyType = z.TypeOf<typeof UpdateOrderStatusBody>;
 export type SellerOrderItemType = z.TypeOf<typeof SellerOrderItem>;
 export type SellerOrderType = z.TypeOf<typeof SellerOrder>;
 export type SellerOrderListType = z.TypeOf<typeof SellerOrderList>;
-export type UpdateOrderStatusResultType = z.TypeOf<typeof UpdateOrderStatusResult>;
+export type UpdateOrderStatusResultType = z.TypeOf<
+  typeof UpdateOrderStatusResult
+>;
 
 // Customer orders
 export type CustomerOrderSubOrderType = z.TypeOf<typeof CustomerOrderSubOrder>;
@@ -278,12 +292,12 @@ export type CustomerOrderType = z.TypeOf<typeof CustomerOrder>;
 export type CustomerOrderListType = z.TypeOf<typeof CustomerOrderList>;
 export type CancelSubOrderResultType = z.TypeOf<typeof CancelSubOrderResult>;
 
-
 export type CheckoutPreviewEnvelope = ApiEnvelope<CheckoutPreviewResponseType>;
 export type CheckoutEnvelope = ApiEnvelope<CheckoutResponseType>;
 export type SellerOrderListEnvelope = ApiEnvelope<SellerOrderListType>;
 export type SellerOrderEnvelope = ApiEnvelope<SellerOrderType>;
-export type UpdateOrderStatusEnvelope = ApiEnvelope<UpdateOrderStatusResultType>;
+export type UpdateOrderStatusEnvelope =
+  ApiEnvelope<UpdateOrderStatusResultType>;
 
 export type CustomerOrderListEnvelope = ApiEnvelope<CustomerOrderListType>;
 export type CustomerOrderEnvelope = ApiEnvelope<CustomerOrderType>;

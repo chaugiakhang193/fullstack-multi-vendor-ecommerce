@@ -1,10 +1,10 @@
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from 'socket.io-client';
 
 // Cùng origin với REST API — gateway không mở port riêng (chia sẻ HTTP port).
 // NEXT_PUBLIC_API_URL có path "/api/v1" → socket.io-client hiểu "/api/v1" là namespace
 // (namespace mặc định gateway là "/") → cần lấy origin thuần (bỏ path).
-const _apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-const SOCKET_URL = _apiUrl ? new URL(_apiUrl).origin : "";
+const _apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+const SOCKET_URL = _apiUrl ? new URL(_apiUrl).origin : '';
 
 let socket: Socket | null = null;
 

@@ -1,8 +1,8 @@
 // Lib
-import http from "@/lib/http";
+import http from '@/lib/http';
 
 // Schema
-import { AutocompleteResponseType } from "@/schemaValidations/geocoding/geocoding.schema";
+import { AutocompleteResponseType } from '@/schemaValidations/geocoding/geocoding.schema';
 
 const geocodingApiRequest = {
   autocomplete: (query: string) => {

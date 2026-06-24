@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { MapPin, Plus } from "lucide-react";
+import { useState } from 'react';
+import { MapPin, Plus } from 'lucide-react';
 
 // Components
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/shared/empty-state";
-import { AddressCard } from "@/components/profile/address-card";
-import { AddressFormModal } from "@/components/profile/address-form-modal";
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/empty-state';
+import { AddressCard } from '@/components/profile/address-card';
+import { AddressFormModal } from '@/components/profile/address-form-modal';
 
 // Hooks
-import { useAddresses } from "@/hooks/useAddresses";
-import { USER_LIMITS } from "@/constants/limits.generated";
+import { useAddresses } from '@/hooks/useAddresses';
+import { USER_LIMITS } from '@/constants/limits.generated';
 
 // Types
-import { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
+import { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
 
 export default function AddressesPage() {
   const { addresses = [], isLoading } = useAddresses();
@@ -39,9 +39,10 @@ export default function AddressesPage() {
   const hasAddresses = addresses.length > 0;
   const skeletonArray = [1, 2];
 
-  const emptyStateTitle = "Chưa có địa chỉ nào";
-  const emptyStateDesc = "Thêm địa chỉ giao hàng để thanh toán nhanh hơn ở những lần mua sau.";
-  const emptyStateActionLabel = "Thêm địa chỉ mới";
+  const emptyStateTitle = 'Chưa có địa chỉ nào';
+  const emptyStateDesc =
+    'Thêm địa chỉ giao hàng để thanh toán nhanh hơn ở những lần mua sau.';
+  const emptyStateActionLabel = 'Thêm địa chỉ mới';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -54,7 +55,11 @@ export default function AddressesPage() {
             onClick={openCreate}
             disabled={isLimitReached}
             className="h-10 px-5 text-sm font-bold shadow-md shadow-violet-500/10"
-            title={isLimitReached ? `Bạn đã đạt giới hạn tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ` : undefined}
+            title={
+              isLimitReached
+                ? `Bạn đã đạt giới hạn tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ`
+                : undefined
+            }
           >
             <Plus className="w-4 h-4 mr-1.5" /> Thêm địa chỉ
           </Button>

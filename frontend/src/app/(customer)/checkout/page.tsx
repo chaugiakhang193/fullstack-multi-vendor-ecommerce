@@ -1,11 +1,16 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   MapPin,
   Plus,
@@ -16,38 +21,37 @@ import {
   AlertTriangle,
   ShoppingBag,
   Check,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Components
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/shared/empty-state";
-import { AddressFormModal } from "@/components/profile/address-form-modal";
-import { AddressPicker } from "@/components/orders/address-picker";
-import { ShopCard } from "@/components/orders/shop-card";
-import { CouponPickerModal } from "@/components/orders/coupon-picker-modal";
-import { CouponType } from "@/constants/enum";
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/empty-state';
+import { AddressFormModal } from '@/components/profile/address-form-modal';
+import { AddressPicker } from '@/components/orders/address-picker';
+import { ShopCard } from '@/components/orders/shop-card';
+import { CouponPickerModal } from '@/components/orders/coupon-picker-modal';
+import { CouponType } from '@/constants/enum';
 
 // Hooks & stores
-import useHydrated from "@/hooks/useHydrated";
-import { useAddresses } from "@/hooks/useAddresses";
-import { useCartStore } from "@/store/useCartStore";
-import { useAuthStore } from "@/store/useAuthStore";
+import useHydrated from '@/hooks/useHydrated';
+import { useAddresses } from '@/hooks/useAddresses';
+import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // API
-import orderApiRequest from "@/apiRequests/orders/orders";
-import { getErrorMessage, HttpError } from "@/lib/http";
+import orderApiRequest from '@/apiRequests/orders/orders';
+import { getErrorMessage, HttpError } from '@/lib/http';
 
 // Constants & types
-import { QUERY_KEYS } from "@/constants/query-keys";
-import { HTTP_STATUS } from "@/constants/http-status";
-import { cn } from "@/lib/utils";
-import { formatVnd } from "@/lib/format";
+import { QUERY_KEYS } from '@/constants/query-keys';
+import { HTTP_STATUS } from '@/constants/http-status';
+import { cn } from '@/lib/utils';
+import { formatVnd } from '@/lib/format';
 import type {
   CheckoutBodyType,
   PreviewShopType,
-} from "@/schemaValidations/orders/orders.schema";
-import type { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
-
+} from '@/schemaValidations/orders/orders.schema';
+import type { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -58,7 +62,9 @@ export default function CheckoutPage() {
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const clearGuestCart = useCartStore((s) => s.clearCart);
 
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [globalPickerOpen, setGlobalPickerOpen] = useState(false);
   const [activeShopPicker, setActiveShopPicker] = useState<{
@@ -68,24 +74,32 @@ export default function CheckoutPage() {
   } | null>(null);
 
   // Coupon: tách "đang nhập" và "đã áp dụng" — chỉ giá trị đã áp dụng đẩy vào preview.
-  const [globalCouponInput, setGlobalCouponInput] = useState("");
-  const [globalCouponApplied, setGlobalCouponApplied] = useState("");
-  const [shopCouponInputs, setShopCouponInputs] = useState<Record<string, string>>({});
-  const [shopCouponsApplied, setShopCouponsApplied] = useState<Record<string, string>>({});
+  const [globalCouponInput, setGlobalCouponInput] = useState('');
+  const [globalCouponApplied, setGlobalCouponApplied] = useState('');
+  const [shopCouponInputs, setShopCouponInputs] = useState<
+    Record<string, string>
+  >({});
+  const [shopCouponsApplied, setShopCouponsApplied] = useState<
+    Record<string, string>
+  >({});
 
   // Coupon validation errors
-  const [globalCouponError, setGlobalCouponError] = useState<string | null>(null);
-  const [shopCouponErrors, setShopCouponErrors] = useState<Record<string, string>>({});
+  const [globalCouponError, setGlobalCouponError] = useState<string | null>(
+    null,
+  );
+  const [shopCouponErrors, setShopCouponErrors] = useState<
+    Record<string, string>
+  >({});
 
   // Idempotency-Key đại diện cho MỘT ý định đặt đơn: giữ ổn định để retry (mất response)
   // được backend dedupe, nhưng sinh key mới khi đổi địa chỉ/coupon (ý định đơn đã khác).
   // KHÔNG sinh theo mỗi click — nút đã disable khi pending nên double-click đã được chặn,
   // còn sinh-mỗi-click sẽ phá dedup và tạo đơn trùng khi response bị mất.
   const idempotencyKeyRef = useRef<string>(
-    typeof crypto !== "undefined" ? crypto.randomUUID() : "",
+    typeof crypto !== 'undefined' ? crypto.randomUUID() : '',
   );
   useEffect(() => {
-    if (typeof crypto !== "undefined") {
+    if (typeof crypto !== 'undefined') {
       idempotencyKeyRef.current = crypto.randomUUID();
     }
   }, [selectedAddressId, globalCouponApplied, shopCouponsApplied]);
@@ -93,11 +107,11 @@ export default function CheckoutPage() {
   // Redirect nếu chưa đăng nhập (sau hydrate để tránh nhấp nháy).
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
-      const message = "Vui lòng đăng nhập để thanh toán!";
+      const message = 'Vui lòng đăng nhập để thanh toán!';
       toast.error(message);
       // Kèm redirect để sau khi đăng nhập user quay lại đúng /checkout (login-form đọc
       // param `redirect`), tránh bị văng về home — đồng bộ pattern với trang orders.
-      const loginPath = "/login?redirect=%2Fcheckout";
+      const loginPath = '/login?redirect=%2Fcheckout';
       router.replace(loginPath);
     }
   }, [isHydrated, isAuthenticated, router]);
@@ -133,7 +147,8 @@ export default function CheckoutPage() {
       const body = {
         address_id: selectedAddressId as string,
         global_coupon_code: globalCouponApplied || undefined,
-        shop_coupons: shopCouponsArray.length > 0 ? shopCouponsArray : undefined,
+        shop_coupons:
+          shopCouponsArray.length > 0 ? shopCouponsArray : undefined,
       };
       return orderApiRequest.checkoutPreview(body, { signal });
     },
@@ -151,8 +166,8 @@ export default function CheckoutPage() {
   const isEmptyCartError =
     previewError instanceof HttpError &&
     previewError.status === HTTP_STATUS.BAD_REQUEST &&
-    typeof previewError.payload?.message === "string" &&
-    previewError.payload.message.includes("Giỏ hàng trống");
+    typeof previewError.payload?.message === 'string' &&
+    previewError.payload.message.includes('Giỏ hàng trống');
   const isCartEmpty =
     (previewQuery.isSuccess && shops.length === 0) || isEmptyCartError;
 
@@ -164,8 +179,8 @@ export default function CheckoutPage() {
       !(
         previewQuery.error instanceof HttpError &&
         previewQuery.error.status === HTTP_STATUS.BAD_REQUEST &&
-        typeof previewQuery.error.payload?.message === "string" &&
-        previewQuery.error.payload.message.includes("Giỏ hàng trống")
+        typeof previewQuery.error.payload?.message === 'string' &&
+        previewQuery.error.payload.message.includes('Giỏ hàng trống')
       )
     ) {
       const message = getErrorMessage(previewQuery.error);
@@ -177,12 +192,12 @@ export default function CheckoutPage() {
       ) {
         setGlobalCouponError(message);
         toast.error(message);
-        setGlobalCouponApplied(""); // Reset để tải lại checkout thành công
+        setGlobalCouponApplied(''); // Reset để tải lại checkout thành công
         return;
       }
 
       // Check if the error is related to one of the shop coupons
-      let foundShopId = "";
+      let foundShopId = '';
       for (const [shopId, code] of Object.entries(shopCouponsApplied)) {
         if (code && message.toLowerCase().includes(code.toLowerCase())) {
           foundShopId = shopId;
@@ -212,7 +227,7 @@ export default function CheckoutPage() {
   // Lưu ý: "Chỉ còn X sản phẩm" vẫn mua được nên KHÔNG chặn.
   const hasOutOfStockItem = shops.some((shop) => {
     const items = shop.items;
-    return items.some((item) => item.stock_warning === "Hết hàng");
+    return items.some((item) => item.stock_warning === 'Hết hàng');
   });
 
   // Đặt đơn.
@@ -248,11 +263,13 @@ export default function CheckoutPage() {
   };
 
   const handleGoProducts = () => {
-    const productsPath = "/products";
+    const productsPath = '/products';
     router.push(productsPath);
   };
 
-  const handleGlobalCouponInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleGlobalCouponInputChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = event.target.value;
     setGlobalCouponInput(value);
     if (globalCouponError) setGlobalCouponError(null);
@@ -267,8 +284,8 @@ export default function CheckoutPage() {
   };
 
   const handleClearGlobalCoupon = () => {
-    setGlobalCouponInput("");
-    setGlobalCouponApplied("");
+    setGlobalCouponInput('');
+    setGlobalCouponApplied('');
     setGlobalCouponError(null);
   };
 
@@ -287,7 +304,7 @@ export default function CheckoutPage() {
   };
 
   const handleApplyShopCoupon = (shopId: string) => {
-    const existingInput = shopCouponInputs[shopId] ?? "";
+    const existingInput = shopCouponInputs[shopId] ?? '';
     const code = existingInput.trim();
     if (!code) return;
     setShopCouponErrors((prev) => {
@@ -303,7 +320,7 @@ export default function CheckoutPage() {
 
   const handleClearShopCoupon = (shopId: string) => {
     setShopCouponInputs((prev) => {
-      const next = { ...prev, [shopId]: "" };
+      const next = { ...prev, [shopId]: '' };
       return next;
     });
     setShopCouponsApplied((prev) => {
@@ -320,13 +337,13 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = () => {
     if (!selectedAddressId) {
-      const message = "Vui lòng chọn địa chỉ giao hàng!";
+      const message = 'Vui lòng chọn địa chỉ giao hàng!';
       toast.error(message);
       return;
     }
     const body: CheckoutBodyType = {
       address_id: selectedAddressId,
-      payment_method: "cod",
+      payment_method: 'cod',
       global_coupon_code: globalCouponApplied || undefined,
       shop_coupons: shopCouponsArray.length > 0 ? shopCouponsArray : undefined,
     };
@@ -352,15 +369,17 @@ export default function CheckoutPage() {
   if (!isAuthenticated) return null;
 
   // Nhãn tiền tệ cho panel tóm tắt — gán biến tường minh trước khi format.
-  let totalShippingLabel = "—";
+  let totalShippingLabel = '—';
   let totalDiscountLabel = formatVnd.format(0);
-  let totalAmountLabel = "—";
+  let totalAmountLabel = '—';
   if (preview) {
     const totalShippingFee = preview.totalShippingFee;
     totalShippingLabel = formatVnd.format(totalShippingFee);
     const totalDiscount = preview.totalDiscount;
     totalDiscountLabel =
-      totalDiscount > 0 ? `- ${formatVnd.format(totalDiscount)}` : formatVnd.format(0);
+      totalDiscount > 0
+        ? `- ${formatVnd.format(totalDiscount)}`
+        : formatVnd.format(0);
     const totalAmount = preview.totalAmount;
     totalAmountLabel = formatVnd.format(totalAmount);
   }
@@ -416,8 +435,8 @@ export default function CheckoutPage() {
             ) : (
               shops.map((shop) => {
                 const shopId = shop.shopId;
-                const couponInput = shopCouponInputs[shopId] ?? "";
-                const appliedCoupon = shopCouponsApplied[shopId] ?? "";
+                const couponInput = shopCouponInputs[shopId] ?? '';
+                const appliedCoupon = shopCouponsApplied[shopId] ?? '';
                 // Closure mỏng truyền shopId (biến tường minh) vào handler cấp page.
                 const handleInputChange = (value: string) =>
                   handleShopCouponInputChange(shopId, value);
@@ -541,8 +560,8 @@ export default function CheckoutPage() {
               {hasOutOfStockItem && (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  Có sản phẩm đã hết hàng. Vui lòng quay lại giỏ hàng để bỏ trước
-                  khi đặt.
+                  Có sản phẩm đã hết hàng. Vui lòng quay lại giỏ hàng để bỏ
+                  trước khi đặt.
                 </p>
               )}
 
@@ -553,10 +572,11 @@ export default function CheckoutPage() {
               >
                 {checkoutMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Đang đặt hàng...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Đang đặt
+                    hàng...
                   </>
                 ) : (
-                  "Đặt hàng"
+                  'Đặt hàng'
                 )}
               </Button>
 
@@ -571,13 +591,19 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <AddressFormModal open={modalOpen} onOpenChange={setModalOpen} editing={null} />
+      <AddressFormModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editing={null}
+      />
 
       <CouponPickerModal
         open={globalPickerOpen}
         onOpenChange={setGlobalPickerOpen}
         type={CouponType.GLOBAL}
-        totalAmount={preview?.shops.reduce((acc, s) => acc + s.shopSubtotal, 0) ?? 0}
+        totalAmount={
+          preview?.shops.reduce((acc, s) => acc + s.shopSubtotal, 0) ?? 0
+        }
         selectedCouponCode={globalCouponApplied}
         onSelect={(code) => {
           setGlobalCouponInput(code);
@@ -594,7 +620,11 @@ export default function CheckoutPage() {
         shopId={activeShopPicker?.shopId}
         shopName={activeShopPicker?.shopName}
         totalAmount={activeShopPicker?.shopSubtotal ?? 0}
-        selectedCouponCode={activeShopPicker ? (shopCouponsApplied[activeShopPicker.shopId] ?? "") : ""}
+        selectedCouponCode={
+          activeShopPicker
+            ? (shopCouponsApplied[activeShopPicker.shopId] ?? '')
+            : ''
+        }
         onSelect={(code) => {
           if (activeShopPicker) {
             handleShopCouponInputChange(activeShopPicker.shopId, code);

@@ -1,5 +1,5 @@
-import http from "@/lib/http";
-import { ShopResponseResType } from "@/schemaValidations/shops/shops.schema";
+import http from '@/lib/http';
+import { ShopResponseResType } from '@/schemaValidations/shops/shops.schema';
 
 const shopsApiRequest = {
   // === R: Read (Public Endpoints) ===

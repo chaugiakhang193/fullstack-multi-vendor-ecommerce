@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   CheckCircle2,
   XCircle,
@@ -14,12 +14,15 @@ import {
   Calendar,
   AlertCircle,
   ExternalLink,
-} from "lucide-react";
-import adminApiRequest from "@/apiRequests/shops/admin-shops";
-import { RejectShopBody, ShopType } from "@/schemaValidations/shops/shops.schema";
-import { Badge } from "@/components/ui/badge";
-import { getErrorMessage } from "@/lib/http";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import adminApiRequest from '@/apiRequests/shops/admin-shops';
+import {
+  RejectShopBody,
+  ShopType,
+} from '@/schemaValidations/shops/shops.schema';
+import { Badge } from '@/components/ui/badge';
+import { getErrorMessage } from '@/lib/http';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableHeader,
@@ -27,7 +30,7 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +38,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 export default function AdminSellersPage() {
   const [shops, setShops] = useState<ShopType[]>([]);
@@ -46,7 +49,7 @@ export default function AdminSellersPage() {
   const [isApproveOpen, setIsApproveOpen] = useState<boolean>(false);
   const [isRejectOpen, setIsRejectOpen] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [rejectReason, setRejectReason] = useState<string>("");
+  const [rejectReason, setRejectReason] = useState<string>('');
   const [rejectError, setRejectError] = useState<string | null>(null);
 
   const fetchPendingShops = async () => {
@@ -55,7 +58,7 @@ export default function AdminSellersPage() {
       const response = await adminApiRequest.getPendingShops();
       setShops(response.data || []);
     } catch (error: any) {
-      console.error("Lỗi khi tải danh sách cửa hàng:", error);
+      console.error('Lỗi khi tải danh sách cửa hàng:', error);
       const errMsg = getErrorMessage(error);
       toast.error(errMsg);
     } finally {
@@ -80,7 +83,7 @@ export default function AdminSellersPage() {
       setIsApproveOpen(false);
       setIsDetailOpen(false);
     } catch (error: any) {
-      console.error("Lỗi phê duyệt cửa hàng:", error);
+      console.error('Lỗi phê duyệt cửa hàng:', error);
       const errMsg = getErrorMessage(error);
       toast.error(errMsg);
     } finally {
@@ -111,10 +114,10 @@ export default function AdminSellersPage() {
       setShops((prev) => prev.filter((shop) => shop.id !== selectedShop.id));
       setIsRejectOpen(false);
       setIsDetailOpen(false);
-      setRejectReason("");
+      setRejectReason('');
       setRejectError(null);
     } catch (error: any) {
-      console.error("Lỗi từ chối cửa hàng:", error);
+      console.error('Lỗi từ chối cửa hàng:', error);
       const errMsg = getErrorMessage(error);
       toast.error(errMsg);
     } finally {
@@ -124,12 +127,12 @@ export default function AdminSellersPage() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString("vi-VN", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+      return new Date(dateString).toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       });
     } catch (e) {
       return dateString;
@@ -226,13 +229,13 @@ export default function AdminSellersPage() {
                       <img
                         src={
                           shop.logo_url ||
-                          "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80"
+                          'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80'
                         }
                         alt={shop.name}
                         className="h-16 w-16 rounded-xl object-cover border bg-zinc-100 shadow-sm"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80";
+                            'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80';
                         }}
                       />
                       <div className="min-w-0">
@@ -248,7 +251,7 @@ export default function AdminSellersPage() {
                   </TableCell>
                   <TableCell className="py-6">
                     <div className="text-lg font-bold text-foreground">
-                      {shop.seller?.full_name || "Chưa cập nhật"}
+                      {shop.seller?.full_name || 'Chưa cập nhật'}
                     </div>
                     <div className="text-sm text-muted-foreground truncate max-w-[180px] mt-1">
                       {shop.seller?.username || shop.seller?.email}
@@ -360,26 +363,26 @@ export default function AdminSellersPage() {
                 <img
                   src={
                     selectedShop.banner_url ||
-                    "https://images.unsplash.com/photo-1557821552-17105176677c?w=600&q=80"
+                    'https://images.unsplash.com/photo-1557821552-17105176677c?w=600&q=80'
                   }
                   alt="Banner"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://images.unsplash.com/photo-1557821552-17105176677c?w=600&q=80";
+                      'https://images.unsplash.com/photo-1557821552-17105176677c?w=600&q=80';
                   }}
                 />
                 <div className="absolute bottom-4 left-5 flex items-center gap-4">
                   <img
                     src={
                       selectedShop.logo_url ||
-                      "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80"
+                      'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80'
                     }
                     alt="Logo"
                     className="h-20 w-20 rounded-xl object-cover border-2 border-white dark:border-zinc-950 bg-white shadow-md"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80";
+                        'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80';
                     }}
                   />
                   <div className="bg-black/60 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs font-bold shadow-md">
@@ -413,16 +416,22 @@ export default function AdminSellersPage() {
                           return (
                             <>
                               <p>
-                                <span className="text-muted-foreground text-xs font-medium">Ngân hàng:</span>{" "}
-                                {info.bank_name || "N/A"}
+                                <span className="text-muted-foreground text-xs font-medium">
+                                  Ngân hàng:
+                                </span>{' '}
+                                {info.bank_name || 'N/A'}
                               </p>
                               <p>
-                                <span className="text-muted-foreground text-xs font-medium">Số TK:</span>{" "}
-                                {info.account_number || "N/A"}
+                                <span className="text-muted-foreground text-xs font-medium">
+                                  Số TK:
+                                </span>{' '}
+                                {info.account_number || 'N/A'}
                               </p>
                               <p>
-                                <span className="text-muted-foreground text-xs font-medium">Chủ TK:</span>{" "}
-                                {info.account_holder || "N/A"}
+                                <span className="text-muted-foreground text-xs font-medium">
+                                  Chủ TK:
+                                </span>{' '}
+                                {info.account_holder || 'N/A'}
                               </p>
                             </>
                           );
@@ -453,7 +462,7 @@ export default function AdminSellersPage() {
                           Họ tên:
                         </span>
                         <p className="text-sm font-bold text-foreground leading-none mt-0.5">
-                          {selectedShop.seller?.full_name || "Chưa cập nhật"}
+                          {selectedShop.seller?.full_name || 'Chưa cập nhật'}
                         </p>
                       </div>
                       <div>
@@ -595,7 +604,7 @@ export default function AdminSellersPage() {
                 Xác nhận duyệt gian hàng
               </DialogTitle>
               <DialogDescription className="text-center">
-                Bạn có chắc chắn muốn duyệt hoạt động cho cửa hàng{" "}
+                Bạn có chắc chắn muốn duyệt hoạt động cho cửa hàng{' '}
                 <strong>"{selectedShop.name}"</strong>? Người bán sẽ được phép
                 đăng sản phẩm và giao dịch trên sàn.
               </DialogDescription>
@@ -613,7 +622,7 @@ export default function AdminSellersPage() {
                     Đang duyệt...
                   </>
                 ) : (
-                  "Đồng ý duyệt"
+                  'Đồng ý duyệt'
                 )}
               </Button>
               <Button
@@ -636,7 +645,7 @@ export default function AdminSellersPage() {
           onOpenChange={(open) => {
             setIsRejectOpen(open);
             if (!open) {
-              setRejectReason("");
+              setRejectReason('');
               setRejectError(null);
             }
           }}
@@ -650,8 +659,8 @@ export default function AdminSellersPage() {
                 Từ chối duyệt gian hàng
               </DialogTitle>
               <DialogDescription className="text-center">
-                Yêu cầu mở gian hàng của <strong>"{selectedShop.name}"</strong>{" "}
-                sẽ bị từ chối. Trạng thái tài khoản người bán sẽ chuyển thành{" "}
+                Yêu cầu mở gian hàng của <strong>"{selectedShop.name}"</strong>{' '}
+                sẽ bị từ chối. Trạng thái tài khoản người bán sẽ chuyển thành{' '}
                 <strong>BỊ TỪ CHỐI</strong>. Bạn có muốn tiếp tục?
               </DialogDescription>
             </DialogHeader>
@@ -664,8 +673,8 @@ export default function AdminSellersPage() {
               <textarea
                 className={`w-full min-h-[96px] resize-none rounded-lg border bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:border-transparent transition ${
                   rejectError
-                    ? "border-rose-500 focus:ring-rose-400"
-                    : "border-zinc-200 focus:ring-rose-400"
+                    ? 'border-rose-500 focus:ring-rose-400'
+                    : 'border-zinc-200 focus:ring-rose-400'
                 }`}
                 placeholder="Nhập lý do từ chối… (ví dụ: Hồ sơ thiếu thông tin, ảnh sản phẩm không rõ ràng…)"
                 value={rejectReason}
@@ -707,7 +716,7 @@ export default function AdminSellersPage() {
                     Đang xử lý...
                   </>
                 ) : (
-                  "Xác nhận từ chối"
+                  'Xác nhận từ chối'
                 )}
               </Button>
               <Button

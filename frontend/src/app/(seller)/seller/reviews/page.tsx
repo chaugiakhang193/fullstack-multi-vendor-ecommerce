@@ -1,17 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useSellerReviews, useSellerReplyReview } from "@/hooks/useReviews";
-import { StarRating } from "@/components/shared/star-rating";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Reply } from "lucide-react";
+import React, { useState } from 'react';
+import { useSellerReviews, useSellerReplyReview } from '@/hooks/useReviews';
+import { StarRating } from '@/components/shared/star-rating';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, MessageSquare, Reply } from 'lucide-react';
 
 export default function SellerReviewsPage() {
   const [page, setPage] = useState(1);
-  const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
+  const [selectedRating, setSelectedRating] = useState<number | undefined>(
+    undefined,
+  );
   const [replyingId, setReplyingId] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState("");
+  const [replyText, setReplyText] = useState('');
 
   const { data: reviewsRes, isLoading } = useSellerReviews({
     page,
@@ -32,18 +34,21 @@ export default function SellerReviewsPage() {
       {
         onSuccess: () => {
           setReplyingId(null);
-          setReplyText("");
+          setReplyText('');
         },
-      }
+      },
     );
   };
 
   return (
     <div className="h-full flex flex-col p-6 space-y-6 overflow-y-auto bg-white dark:bg-zinc-950">
       <div className="flex flex-col gap-1.5 border-b pb-4">
-        <h1 className="text-xl font-extrabold text-foreground">Quản lý đánh giá</h1>
+        <h1 className="text-xl font-extrabold text-foreground">
+          Quản lý đánh giá
+        </h1>
         <p className="text-xs text-muted-foreground font-semibold">
-          Xem các đánh giá từ khách hàng mua sản phẩm của cửa hàng và trả lời phản hồi của họ.
+          Xem các đánh giá từ khách hàng mua sản phẩm của cửa hàng và trả lời
+          phản hồi của họ.
         </p>
       </div>
 
@@ -57,8 +62,8 @@ export default function SellerReviewsPage() {
           }}
           className={`px-4 py-2 rounded-xl text-xs font-extrabold border transition-all ${
             selectedRating === undefined
-              ? "bg-violet-600 border-violet-600 text-white"
-              : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+              ? 'bg-violet-600 border-violet-600 text-white'
+              : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
           }`}
         >
           Tất cả
@@ -73,8 +78,8 @@ export default function SellerReviewsPage() {
             }}
             className={`px-4 py-2 rounded-xl text-xs font-extrabold border transition-all flex items-center gap-1 ${
               selectedRating === stars
-                ? "bg-violet-600 border-violet-600 text-white"
-                : "bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400"
+                ? 'bg-violet-600 border-violet-600 text-white'
+                : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
             }`}
           >
             {stars} sao
@@ -101,7 +106,7 @@ export default function SellerReviewsPage() {
                     {/* User and Stars */}
                     <div className="space-y-1">
                       <div className="text-sm font-extrabold text-foreground">
-                        Khách hàng: {review.user?.username || "Ẩn danh"}
+                        Khách hàng: {review.user?.username || 'Ẩn danh'}
                       </div>
                       <div className="flex items-center gap-2">
                         <StarRating rating={review.rating} size="sm" />
@@ -132,12 +137,12 @@ export default function SellerReviewsPage() {
                     )}
                   </div>
                   <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
-                    {new Date(review.created_at).toLocaleString("vi-VN", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                    {new Date(review.created_at).toLocaleString('vi-VN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
                     })}
                   </span>
                 </div>
@@ -161,7 +166,9 @@ export default function SellerReviewsPage() {
                   </div>
                 ) : replyingId === review.id ? (
                   <div className="space-y-3 p-4 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/10">
-                    <div className="text-xs font-bold text-foreground">Viết phản hồi cho đánh giá này:</div>
+                    <div className="text-xs font-bold text-foreground">
+                      Viết phản hồi cho đánh giá này:
+                    </div>
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
@@ -174,7 +181,7 @@ export default function SellerReviewsPage() {
                         variant="outline"
                         onClick={() => {
                           setReplyingId(null);
-                          setReplyText("");
+                          setReplyText('');
                         }}
                         disabled={replyMutation.isPending}
                         className="rounded-xl px-3 py-1.5 font-bold"
@@ -186,7 +193,7 @@ export default function SellerReviewsPage() {
                         disabled={replyMutation.isPending || !replyText.trim()}
                         className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-4 py-1.5 font-bold"
                       >
-                        {replyMutation.isPending ? "Đang gửi..." : "Gửi"}
+                        {replyMutation.isPending ? 'Đang gửi...' : 'Gửi'}
                       </Button>
                     </div>
                   </div>
@@ -196,7 +203,7 @@ export default function SellerReviewsPage() {
                       variant="outline"
                       onClick={() => {
                         setReplyingId(review.id);
-                        setReplyText("");
+                        setReplyText('');
                       }}
                       className="text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 hover:text-violet-600 hover:border-violet-600 dark:hover:text-violet-400 cursor-pointer"
                     >

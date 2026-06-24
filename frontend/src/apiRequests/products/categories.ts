@@ -1,20 +1,20 @@
-import http from "@/lib/http";
+import http from '@/lib/http';
 import {
   CreateCategoryBodyType,
   UpdateCategoryBodyType,
   CategoryListResponseType,
   SingleCategoryResponseType,
-} from "@/schemaValidations/products/categories.schema";
+} from '@/schemaValidations/products/categories.schema';
 
 const categoriesApiRequest = {
   // === C: Create ===
   create: (body: CreateCategoryBodyType) => {
-    return http.post<SingleCategoryResponseType>("/categories", body);
+    return http.post<SingleCategoryResponseType>('/categories', body);
   },
 
   // === R: Read ===
   getAll: () => {
-    return http.get<CategoryListResponseType>("/categories");
+    return http.get<CategoryListResponseType>('/categories');
   },
 
   getDetail: (id: string) => {

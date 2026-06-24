@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import React, { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Store,
   Upload,
@@ -13,35 +13,35 @@ import {
   AlertCircle,
   Image as ImageIcon,
   X,
-} from "lucide-react";
+} from 'lucide-react';
 
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import categoriesApiRequest from "@/apiRequests/products/categories";
+import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
+import categoriesApiRequest from '@/apiRequests/products/categories';
 import {
   CreateShopBody,
   CreateShopBodyType,
   ShopResponseType,
-} from "@/schemaValidations/shops/shops.schema";
-import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
-import { useAuthStore } from "@/store/useAuthStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
-import { getErrorMessage } from "@/lib/http";
-import { AddressAutocomplete } from "@/components/shared/address-autocomplete";
+} from '@/schemaValidations/shops/shops.schema';
+import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+import { getErrorMessage } from '@/lib/http';
+import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 
 export default function SellerSetupPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const isRejected = user?.status === "rejected";
+  const isRejected = user?.status === 'rejected';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingShop, setIsLoadingShop] = useState(false);
@@ -49,8 +49,13 @@ export default function SellerSetupPage() {
     null,
   );
   const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null);
-  const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
-  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(
+    null,
+  );
+  const [selectedCoords, setSelectedCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [existingGallery, setExistingGallery] = useState<
     { id: string; url: string }[]
   >([]);
@@ -82,12 +87,12 @@ export default function SellerSetupPage() {
   // Cleanup object URLs safely
   React.useEffect(() => {
     return () => {
-      if (logoPreview && logoPreview.startsWith("blob:"))
+      if (logoPreview && logoPreview.startsWith('blob:'))
         URL.revokeObjectURL(logoPreview);
-      if (bannerPreview && bannerPreview.startsWith("blob:"))
+      if (bannerPreview && bannerPreview.startsWith('blob:'))
         URL.revokeObjectURL(bannerPreview);
       galleryPreviews.forEach((url) => {
-        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
       });
     };
   }, [logoPreview, bannerPreview, galleryPreviews]);
@@ -103,17 +108,17 @@ export default function SellerSetupPage() {
   } = useForm<CreateShopBodyType>({
     resolver: zodResolver(CreateShopBody),
     defaultValues: {
-      name: "",
-      description: "",
-      pickup_address: "",
-      account_holder: "",
-      account_number: "",
-      bank_name: "",
+      name: '',
+      description: '',
+      pickup_address: '',
+      account_holder: '',
+      account_number: '',
+      bank_name: '',
       categoryIds: [],
     },
   });
 
-  const selectedCategoryIds = watch("categoryIds") || [];
+  const selectedCategoryIds = watch('categoryIds') || [];
 
   const handleCategoryToggle = (id: string) => {
     const currentIds = [...selectedCategoryIds];
@@ -123,7 +128,7 @@ export default function SellerSetupPage() {
     } else {
       currentIds.push(id);
     }
-    setValue("categoryIds", currentIds, { shouldValidate: true });
+    setValue('categoryIds', currentIds, { shouldValidate: true });
   };
 
   // Fetch business categories (only root ones, as backend restricts shops to root categories)
@@ -135,8 +140,8 @@ export default function SellerSetupPage() {
         const roots = (res.data || []).filter((c) => !c.parent);
         setCategories(roots);
       } catch (error) {
-        console.error("Lỗi lấy danh mục:", error);
-        toast.error("Không thể tải danh mục kinh doanh.");
+        console.error('Lỗi lấy danh mục:', error);
+        toast.error('Không thể tải danh mục kinh doanh.');
       } finally {
         setIsLoadingCategories(false);
       }
@@ -161,19 +166,22 @@ export default function SellerSetupPage() {
           const info = shop.bank_account_info;
           reset({
             name: shop.name,
-            description: shop.description || "",
-            pickup_address: shop.pickup_address || "",
-            bank_name: info?.bank_name ?? "",
-            account_number: info?.account_number ?? "",
-            account_holder: info?.account_holder ?? "",
+            description: shop.description || '',
+            pickup_address: shop.pickup_address || '',
+            bank_name: info?.bank_name ?? '',
+            account_number: info?.account_number ?? '',
+            account_holder: info?.account_holder ?? '',
             categoryIds: shop.categories?.map((c: any) => c.id) || [],
           });
           if (shop.lat && shop.lng) {
-            setSelectedCoords({ lat: parseFloat(shop.lat), lng: parseFloat(shop.lng) });
+            setSelectedCoords({
+              lat: parseFloat(shop.lat),
+              lng: parseFloat(shop.lng),
+            });
           }
         } catch (error) {
-          console.error("Lỗi lấy thông tin cửa hàng:", error);
-          toast.error("Không thể lấy thông tin cửa hàng cũ.");
+          console.error('Lỗi lấy thông tin cửa hàng:', error);
+          toast.error('Không thể lấy thông tin cửa hàng cũ.');
         } finally {
           setIsLoadingShop(false);
         }
@@ -187,9 +195,9 @@ export default function SellerSetupPage() {
     try {
       await sellerShopsApiRequest.deleteGalleryImage(assetId);
       setExistingGallery((prev) => prev.filter((item) => item.id !== assetId));
-      toast.success("Xóa ảnh thành công");
+      toast.success('Xóa ảnh thành công');
     } catch (error) {
-      toast.error("Không thể xóa ảnh. Vui lòng thử lại.");
+      toast.error('Không thể xóa ảnh. Vui lòng thử lại.');
     }
   };
 
@@ -201,19 +209,19 @@ export default function SellerSetupPage() {
     const totalGalleryCount = existingGallery.length + galleryFiles.length;
 
     if (!hasLogo) {
-      toast.error("Vui lòng tải lên logo cửa hàng");
+      toast.error('Vui lòng tải lên logo cửa hàng');
       return;
     }
     if (!hasBanner) {
-      toast.error("Vui lòng tải lên banner cửa hàng");
+      toast.error('Vui lòng tải lên banner cửa hàng');
       return;
     }
     if (totalGalleryCount === 0) {
-      toast.error("Vui lòng tải lên ít nhất 1 ảnh bộ sưu tập (tối đa 3 ảnh)");
+      toast.error('Vui lòng tải lên ít nhất 1 ảnh bộ sưu tập (tối đa 3 ảnh)');
       return;
     }
     if (totalGalleryCount > 3) {
-      toast.error("Tối đa 3 ảnh bộ sưu tập");
+      toast.error('Tối đa 3 ảnh bộ sưu tập');
       return;
     }
     setIsSubmitting(true);
@@ -221,16 +229,16 @@ export default function SellerSetupPage() {
       const formData = new FormData();
 
       // Append text fields
-      formData.append("name", values.name);
-      formData.append("pickup_address", values.pickup_address);
+      formData.append('name', values.name);
+      formData.append('pickup_address', values.pickup_address);
       // Chỉ gửi tọa độ khi user đã chọn từ gợi ý.
       // Nếu nhập tay (selectedCoords=null), bỏ qua → backend tự geocode pickup_address.
       if (selectedCoords) {
-        formData.append("lat", String(selectedCoords.lat));
-        formData.append("lng", String(selectedCoords.lng));
+        formData.append('lat', String(selectedCoords.lat));
+        formData.append('lng', String(selectedCoords.lng));
       }
       if (values.description) {
-        formData.append("description", values.description);
+        formData.append('description', values.description);
       }
 
       // MERGE 3 trường ngân hàng thành 1 trường bank_account_info
@@ -240,22 +248,22 @@ export default function SellerSetupPage() {
         account_number: values.account_number,
         account_holder: values.account_holder,
       };
-      formData.append("bank_account_info", JSON.stringify(bankAccountInfoObj));
+      formData.append('bank_account_info', JSON.stringify(bankAccountInfoObj));
 
       // Append categoryIds (Backend expects array)
       values.categoryIds.forEach((id) => {
-        formData.append("categoryIds[]", id);
+        formData.append('categoryIds[]', id);
       });
 
       // Append file uploads if selected
       if (logoFile) {
-        formData.append("logo", logoFile);
+        formData.append('logo', logoFile);
       }
       if (bannerFile) {
-        formData.append("banner", bannerFile);
+        formData.append('banner', bannerFile);
       }
       galleryFiles.forEach((file) => {
-        formData.append("gallery", file);
+        formData.append('gallery', file);
       });
 
       if (isRejected) {
@@ -268,15 +276,15 @@ export default function SellerSetupPage() {
       try {
         await useAuthStore.getState().silentRefresh();
       } catch (refreshError) {
-        console.error("Lỗi cập nhật phiên đăng nhập:", refreshError);
+        console.error('Lỗi cập nhật phiên đăng nhập:', refreshError);
       }
 
       toast.success(
         isRejected
-          ? "Cập nhật và nộp lại yêu cầu thành công!"
-          : "Tạo cửa hàng thành công! Vui lòng chờ admin phê duyệt.",
+          ? 'Cập nhật và nộp lại yêu cầu thành công!'
+          : 'Tạo cửa hàng thành công! Vui lòng chờ admin phê duyệt.',
       );
-      router.push("/seller/pending");
+      router.push('/seller/pending');
       router.refresh();
     } catch (error: any) {
       const errMsg = getErrorMessage(error);
@@ -291,7 +299,7 @@ export default function SellerSetupPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Logo không được vượt quá 5MB");
+        toast.error('Logo không được vượt quá 5MB');
         return;
       }
       setLogoFile(file);
@@ -302,7 +310,7 @@ export default function SellerSetupPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Banner không được vượt quá 5MB");
+        toast.error('Banner không được vượt quá 5MB');
         return;
       }
       setBannerFile(file);
@@ -314,7 +322,7 @@ export default function SellerSetupPage() {
     const totalCount =
       files.length + galleryFiles.length + existingGallery.length;
     if (totalCount > 3) {
-      toast.error("Tối đa 3 ảnh bộ sưu tập (bao gồm cả ảnh cũ đã có)");
+      toast.error('Tối đa 3 ảnh bộ sưu tập (bao gồm cả ảnh cũ đã có)');
       return;
     }
     const validFiles = files.filter((file) => {
@@ -385,7 +393,7 @@ export default function SellerSetupPage() {
                     Tên cửa hàng <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("name")}
+                    {...register('name')}
                     placeholder="VD: Cửa hàng quần áo ABC"
                     disabled={isSubmitting}
                   />
@@ -397,7 +405,7 @@ export default function SellerSetupPage() {
                 <Field>
                   <FieldLabel>Mô tả cửa hàng</FieldLabel>
                   <Textarea
-                    {...register("description")}
+                    {...register('description')}
                     placeholder="Mô tả ngắn gọn về cửa hàng của bạn..."
                     rows={3}
                     disabled={isSubmitting}
@@ -412,9 +420,11 @@ export default function SellerSetupPage() {
                     Địa chỉ lấy hàng <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <AddressAutocomplete
-                    value={watch("pickup_address")}
+                    value={watch('pickup_address')}
                     onSelect={(coords) => {
-                      setValue("pickup_address", coords.display_name, { shouldValidate: true });
+                      setValue('pickup_address', coords.display_name, {
+                        shouldValidate: true,
+                      });
                       setSelectedCoords({ lat: coords.lat, lng: coords.lng });
                     }}
                     onQueryChange={() => setSelectedCoords(null)}
@@ -437,7 +447,7 @@ export default function SellerSetupPage() {
                     Tên ngân hàng <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("bank_name")}
+                    {...register('bank_name')}
                     placeholder="VD: Vietcombank, Techcombank, BIDV..."
                     disabled={isSubmitting}
                   />
@@ -451,14 +461,12 @@ export default function SellerSetupPage() {
                     Số tài khoản <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("account_number")}
+                    {...register('account_number')}
                     placeholder="VD: 123456789"
                     disabled={isSubmitting}
                   />
                   {errors.account_number && (
-                    <FieldError>
-                      {errors.account_number.message}
-                    </FieldError>
+                    <FieldError>{errors.account_number.message}</FieldError>
                   )}
                 </Field>
 
@@ -467,7 +475,7 @@ export default function SellerSetupPage() {
                     Tên chủ tài khoản <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <Input
-                    {...register("account_holder")}
+                    {...register('account_holder')}
                     placeholder="VD: NGUYEN VAN A (viết hoa không dấu)"
                     disabled={isSubmitting}
                   />
@@ -507,8 +515,8 @@ export default function SellerSetupPage() {
                           key={category.id}
                           className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all ${
                             isChecked
-                              ? "border-violet-500 bg-violet-50/30 dark:bg-violet-950/15"
-                              : "border-zinc-200 dark:border-zinc-800"
+                              ? 'border-violet-500 bg-violet-50/30 dark:bg-violet-950/15'
+                              : 'border-zinc-200 dark:border-zinc-800'
                           }`}
                         >
                           <input
@@ -635,7 +643,7 @@ export default function SellerSetupPage() {
                 {/* Gallery */}
                 <Field>
                   <FieldLabel>
-                    Bộ sưu tập ảnh (1-3 ảnh){" "}
+                    Bộ sưu tập ảnh (1-3 ảnh){' '}
                     <span className="text-rose-500">*</span>
                   </FieldLabel>
                   <div className="space-y-2">
@@ -719,15 +727,15 @@ export default function SellerSetupPage() {
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       {isRejected
-                        ? "Đang cập nhật & nộp lại..."
-                        : "Đang tạo cửa hàng..."}
+                        ? 'Đang cập nhật & nộp lại...'
+                        : 'Đang tạo cửa hàng...'}
                     </>
                   ) : (
                     <>
                       <Store className="h-4 w-4 mr-2" />
                       {isRejected
-                        ? "Cập nhật & Gửi yêu cầu phê duyệt"
-                        : "Tạo cửa hàng"}
+                        ? 'Cập nhật & Gửi yêu cầu phê duyệt'
+                        : 'Tạo cửa hàng'}
                     </>
                   )}
                 </Button>

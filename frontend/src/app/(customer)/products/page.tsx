@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
 // React & Next
-import React, { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 // Icons
-import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 // Hooks & Services
-import { useProducts } from "@/hooks/useProducts";
-import { useCategories } from "@/hooks/useCategories";
-import { CategoryResponseType } from "@/schemaValidations/products/categories.schema";
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
 
 // Components
-import { FilterSidebar } from "@/components/products/filter-sidebar";
-import { SortDropdown, SortOption } from "@/components/products/sort-dropdown";
-import ProductCard from "@/components/products/product-card";
-import SkeletonProductCard from "@/components/products/skeleton-product-card";
-import { EmptyProducts } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/shared/pagination";
-import { cn } from "@/lib/utils";
+import { FilterSidebar } from '@/components/products/filter-sidebar';
+import { SortDropdown, SortOption } from '@/components/products/sort-dropdown';
+import ProductCard from '@/components/products/product-card';
+import SkeletonProductCard from '@/components/products/skeleton-product-card';
+import { EmptyProducts } from '@/components/shared/empty-state';
+import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/shared/pagination';
+import { cn } from '@/lib/utils';
 
 // Helper to construct category tree from flat list
 const buildCategoryTree = (categories: CategoryResponseType[]): any[] => {
@@ -43,27 +43,27 @@ const buildCategoryTree = (categories: CategoryResponseType[]): any[] => {
 
 // Mapper between SortDropdown string and API params
 const mapSortOptionToParams = (option: SortOption) => {
-  const orderAscVal = "ASC" as const;
-  const orderDescVal = "DESC" as const;
+  const orderAscVal = 'ASC' as const;
+  const orderDescVal = 'DESC' as const;
 
   switch (option) {
-    case "price_asc":
-      return { sort: "price", order: orderAscVal };
-    case "price_desc":
-      return { sort: "price", order: orderDescVal };
-    case "popular":
-      return { sort: "name", order: orderAscVal }; // Fallback name to popular
-    case "newest":
+    case 'price_asc':
+      return { sort: 'price', order: orderAscVal };
+    case 'price_desc':
+      return { sort: 'price', order: orderDescVal };
+    case 'popular':
+      return { sort: 'name', order: orderAscVal }; // Fallback name to popular
+    case 'newest':
     default:
-      return { sort: "created_at", order: orderDescVal };
+      return { sort: 'created_at', order: orderDescVal };
   }
 };
 
 const mapParamsToSortOption = (sort?: string, order?: string): SortOption => {
-  if (sort === "price" && order === "ASC") return "price_asc";
-  if (sort === "price" && order === "DESC") return "price_desc";
-  if (sort === "name") return "popular";
-  return "newest";
+  if (sort === 'price' && order === 'ASC') return 'price_asc';
+  if (sort === 'price' && order === 'DESC') return 'price_desc';
+  if (sort === 'name') return 'popular';
+  return 'newest';
 };
 
 function ProductsListContent() {
@@ -72,14 +72,20 @@ function ProductsListContent() {
   const pathname = usePathname();
 
   // Read URL Search Params
-  const urlPage = Number(searchParams.get("page") || "1");
-  const categoryId = searchParams.get("category_id") || undefined;
-  const minPrice = searchParams.get("min_price") ? Number(searchParams.get("min_price")) : undefined;
-  const maxPrice = searchParams.get("max_price") ? Number(searchParams.get("max_price")) : undefined;
-  const rating = searchParams.get("rating") ? Number(searchParams.get("rating")) : undefined;
-  const sort = searchParams.get("sort") || "created_at";
-  const order = (searchParams.get("order") as "ASC" | "DESC") || "DESC";
-  const q = searchParams.get("q") || undefined;
+  const urlPage = Number(searchParams.get('page') || '1');
+  const categoryId = searchParams.get('category_id') || undefined;
+  const minPrice = searchParams.get('min_price')
+    ? Number(searchParams.get('min_price'))
+    : undefined;
+  const maxPrice = searchParams.get('max_price')
+    ? Number(searchParams.get('max_price'))
+    : undefined;
+  const rating = searchParams.get('rating')
+    ? Number(searchParams.get('rating'))
+    : undefined;
+  const sort = searchParams.get('sort') || 'created_at';
+  const order = (searchParams.get('order') as 'ASC' | 'DESC') || 'DESC';
+  const q = searchParams.get('q') || undefined;
 
   // Local state for load more expansion
   const [isExpanded, setIsExpanded] = useState(false);
@@ -92,7 +98,10 @@ function ProductsListContent() {
   // Sync category tree for filter sidebar
   const categoriesQuery = useCategories();
   const categoriesList = categoriesQuery.data?.data || [];
-  const categoryTree = useMemo(() => buildCategoryTree(categoriesList), [categoriesList]);
+  const categoryTree = useMemo(
+    () => buildCategoryTree(categoriesList),
+    [categoriesList],
+  );
 
   // Map sort / order back to dropdown select value
   const sortOptionVal = mapParamsToSortOption(sort, order);
@@ -121,15 +130,17 @@ function ProductsListContent() {
 
   // Load more conditions
   const showLoadMore = !isExpanded && totalItems > (urlPage - 1) * 48 + 24;
-  const isExpanding = isExpanded && productsQuery.isFetching && productsList.length <= 24;
+  const isExpanding =
+    isExpanded && productsQuery.isFetching && productsList.length <= 24;
   const isFilterFetching = productsQuery.isFetching && !isExpanding;
 
-
   // Helper to update query parameters in URL
-  const updateQueryParams = (newParams: Record<string, string | number | undefined | null>) => {
+  const updateQueryParams = (
+    newParams: Record<string, string | number | undefined | null>,
+  ) => {
     const params = new URLSearchParams(window.location.search);
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") {
+      if (value === undefined || value === null || value === '') {
         params.delete(key);
       } else {
         params.set(key, String(value));
@@ -140,30 +151,38 @@ function ProductsListContent() {
   };
 
   // Handle filter changes from sidebar
-  const handleFilterChange = (newFilters: { categoryIds: string[]; minPrice?: number; maxPrice?: number; rating?: number }) => {
-    const nextCategoryId = newFilters.categoryIds?.[0] || "";
-    const nextMinPrice = newFilters.minPrice !== undefined ? String(newFilters.minPrice) : "";
-    const nextMaxPrice = newFilters.maxPrice !== undefined ? String(newFilters.maxPrice) : "";
-    const nextRating = newFilters.rating !== undefined ? String(newFilters.rating) : "";
+  const handleFilterChange = (newFilters: {
+    categoryIds: string[];
+    minPrice?: number;
+    maxPrice?: number;
+    rating?: number;
+  }) => {
+    const nextCategoryId = newFilters.categoryIds?.[0] || '';
+    const nextMinPrice =
+      newFilters.minPrice !== undefined ? String(newFilters.minPrice) : '';
+    const nextMaxPrice =
+      newFilters.maxPrice !== undefined ? String(newFilters.maxPrice) : '';
+    const nextRating =
+      newFilters.rating !== undefined ? String(newFilters.rating) : '';
 
     const filterParams = {
       category_id: nextCategoryId,
       min_price: nextMinPrice,
       max_price: nextMaxPrice,
       rating: nextRating,
-      page: "", // Reset page to 1
+      page: '', // Reset page to 1
     };
     updateQueryParams(filterParams);
   };
 
   const handleResetFilters = () => {
     const resetParams = {
-      category_id: "",
-      min_price: "",
-      max_price: "",
-      rating: "",
-      q: "",
-      page: "", // Reset page to 1
+      category_id: '',
+      min_price: '',
+      max_price: '',
+      rating: '',
+      q: '',
+      page: '', // Reset page to 1
     };
     updateQueryParams(resetParams);
   };
@@ -174,7 +193,7 @@ function ProductsListContent() {
     const sortParams = {
       sort: params.sort,
       order: params.order,
-      page: "", // Reset page to 1
+      page: '', // Reset page to 1
     };
     updateQueryParams(sortParams);
   };
@@ -187,9 +206,8 @@ function ProductsListContent() {
 
   const handlePageChange = (page: number) => {
     updateQueryParams({ page: String(page) });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
 
   const activeFilters = {
     categoryIds: categoryId ? [categoryId] : [],
@@ -204,14 +222,16 @@ function ProductsListContent() {
       {q && (
         <div className="p-4 rounded-xl border bg-card text-card-foreground shadow-xs">
           <span className="text-sm font-semibold">
-            Kết quả tìm kiếm cho từ khóa: <strong className="text-violet-600 dark:text-violet-400">"{q}"</strong>
+            Kết quả tìm kiếm cho từ khóa:{' '}
+            <strong className="text-violet-600 dark:text-violet-400">
+              "{q}"
+            </strong>
           </span>
         </div>
       )}
 
       {/* Main layout container */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        
         {/* Left Column: Filter Sidebar */}
         <FilterSidebar
           categories={categoryTree}
@@ -222,14 +242,20 @@ function ProductsListContent() {
 
         {/* Right Column: Listing and sorting */}
         <div className="flex-1 w-full space-y-6">
-          
           {/* Header toolbar */}
           <div className="flex flex-row items-center justify-between gap-4 p-4 rounded-xl border bg-card shadow-xs">
             <div className="text-xs sm:text-sm font-bold text-muted-foreground">
               {isLoading ? (
                 <span>Đang tìm kiếm sản phẩm...</span>
               ) : (
-                <span>Hiển thị {Math.min((urlPage - 1) * 48 + productsList.length, totalItems)} / {totalItems} sản phẩm</span>
+                <span>
+                  Hiển thị{' '}
+                  {Math.min(
+                    (urlPage - 1) * 48 + productsList.length,
+                    totalItems,
+                  )}{' '}
+                  / {totalItems} sản phẩm
+                </span>
               )}
             </div>
 
@@ -265,10 +291,12 @@ function ProductsListContent() {
             </div>
           ) : productsList.length > 0 ? (
             <div className="space-y-8">
-              <div className={cn(
-                "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-[360px]:gap-3 transition-opacity duration-300",
-                isFilterFetching && "opacity-50 pointer-events-none"
-              )}>
+              <div
+                className={cn(
+                  'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-[360px]:gap-3 transition-opacity duration-300',
+                  isFilterFetching && 'opacity-50 pointer-events-none',
+                )}
+              >
                 {productsList.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
@@ -304,7 +332,6 @@ function ProductsListContent() {
                 />
               )}
             </div>
-
           ) : (
             <div className="py-12">
               <EmptyProducts
@@ -315,7 +342,6 @@ function ProductsListContent() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
@@ -323,13 +349,15 @@ function ProductsListContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center py-20">
-        <span className="text-sm font-semibold text-muted-foreground animate-pulse">
-          Đang tải danh sách sản phẩm...
-        </span>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <span className="text-sm font-semibold text-muted-foreground animate-pulse">
+            Đang tải danh sách sản phẩm...
+          </span>
+        </div>
+      }
+    >
       <ProductsListContent />
     </Suspense>
   );

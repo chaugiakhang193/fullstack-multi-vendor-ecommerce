@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { ProductResponseType } from "@/schemaValidations/products/products.schema";
-import { toast } from "sonner";
-import { ShoppingCart, Star, Store } from "lucide-react";
-import { useCartStore } from "@/store/useCartStore";
-import { StarRating } from "@/components/shared/star-rating";
-import { useActiveCart } from "@/hooks/useActiveCart";
-import { queryClient } from "@/lib/query-client";
-import productsApiRequest from "@/apiRequests/products/products";
+import React, { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { ProductResponseType } from '@/schemaValidations/products/products.schema';
+import { toast } from 'sonner';
+import { ShoppingCart, Star, Store } from 'lucide-react';
+import { useCartStore } from '@/store/useCartStore';
+import { StarRating } from '@/components/shared/star-rating';
+import { useActiveCart } from '@/hooks/useActiveCart';
+import { queryClient } from '@/lib/query-client';
+import productsApiRequest from '@/apiRequests/products/products';
 
 interface ProductCardProps {
   product: ProductResponseType;
 }
 
 // Khai báo formatter bên ngoài component để tránh re-creation thừa trên RAM
-const priceFormatter = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const priceFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
 });
 
 const formatPrice = (val: number) => {
@@ -35,7 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleMouseEnter = () => {
     // 1. Kiểm tra xem cache đã có sẵn dữ liệu chưa
     const targetId = product.id;
-    const queryKey = ["product-detail", targetId];
+    const queryKey = ['product-detail', targetId];
     const cachedData = queryClient.getQueryData(queryKey);
     if (cachedData) return;
 
@@ -81,7 +81,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     const isOutOfStock = product.stock_quantity === 0;
     if (isOutOfStock) {
-      const outOfStockMsg = "Sản phẩm hiện đang hết hàng!";
+      const outOfStockMsg = 'Sản phẩm hiện đang hết hàng!';
       toast.error(outOfStockMsg);
       return;
     }
@@ -97,7 +97,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const finalThumbnailUrl =
       targetVariant && targetVariant.images && targetVariant.images.length > 0
         ? targetVariant.images[0]
-        : (product.thumbnail_url || "/placeholder-product.png");
+        : product.thumbnail_url || '/placeholder-product.png';
 
     addItem({
       productId: product.id,
@@ -105,8 +105,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       price: Number(finalPrice),
       thumbnailUrl: finalThumbnailUrl,
-      shopId: product.shop?.id || "default-shop",
-      shopName: product.shop?.name || "Cửa hàng",
+      shopId: product.shop?.id || 'default-shop',
+      shopName: product.shop?.name || 'Cửa hàng',
       productSlug: `${product.slug}-i.${product.id}`,
       variants: product.variants || [],
       basePrice: Number(product.price),
@@ -137,7 +137,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Thumbnail Image Wrapper */}
         <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
           <Image
-            src={product.thumbnail_url || "/placeholder-product.png"}
+            src={product.thumbnail_url || '/placeholder-product.png'}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -175,7 +175,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             {/* Shop name */}
             <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
               <Store className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{product.shop?.name || "Cửa hàng"}</span>
+              <span className="truncate">
+                {product.shop?.name || 'Cửa hàng'}
+              </span>
             </div>
 
             {/* Product Name */}

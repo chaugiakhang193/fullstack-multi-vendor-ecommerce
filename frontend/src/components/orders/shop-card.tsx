@@ -1,9 +1,9 @@
-import { type ChangeEvent } from "react";
-import Image from "next/image";
-import { ShoppingBag, AlertTriangle, Tag, Truck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { formatVnd } from "@/lib/format";
-import type { PreviewShopType } from "@/schemaValidations/orders/orders.schema";
+import { type ChangeEvent } from 'react';
+import Image from 'next/image';
+import { ShoppingBag, AlertTriangle, Tag, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { formatVnd } from '@/lib/format';
+import type { PreviewShopType } from '@/schemaValidations/orders/orders.schema';
 
 interface ShopCardProps {
   shop: PreviewShopType;
@@ -30,8 +30,9 @@ export function ShopCard({
   const shippingFee = shop.shippingFee;
   const freeshipNeeded = shop.freeship_upsell_needed;
   const hasFreeshipUpsell =
-    typeof freeshipNeeded === "number" && freeshipNeeded > 0;
-  const shippingLabel = shippingFee > 0 ? formatVnd.format(shippingFee) : "Miễn phí";
+    typeof freeshipNeeded === 'number' && freeshipNeeded > 0;
+  const shippingLabel =
+    shippingFee > 0 ? formatVnd.format(shippingFee) : 'Miễn phí';
   const isCouponInputEmpty = !couponInput.trim();
 
   const handleCouponInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +50,7 @@ export function ShopCard({
       {/* Items */}
       <div className="space-y-4">
         {shop.items.map((item) => {
-          const itemKey = `${item.productId}_${item.variantId ?? "none"}`;
+          const itemKey = `${item.productId}_${item.variantId ?? 'none'}`;
           const unitPrice = item.price;
           const quantity = item.quantity;
           const lineTotal = unitPrice * quantity;
@@ -103,7 +104,9 @@ export function ShopCard({
       {/* Shop coupon */}
       <div className="space-y-1.5 pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase">Mã giảm giá cửa hàng</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase">
+            Mã giảm giá cửa hàng
+          </span>
           {onSelectFromWallet && (
             <button
               type="button"
@@ -168,7 +171,8 @@ export function ShopCard({
         </div>
         {hasFreeshipUpsell && (
           <p className="text-xs text-violet-600 dark:text-violet-400 font-medium">
-            Mua thêm {formatVnd.format(freeshipNeeded)} để được miễn phí vận chuyển!
+            Mua thêm {formatVnd.format(freeshipNeeded)} để được miễn phí vận
+            chuyển!
           </p>
         )}
       </div>

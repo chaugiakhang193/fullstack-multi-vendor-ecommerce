@@ -1,26 +1,33 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Trash2, ShieldCheck, ShoppingBag, ArrowRight, Loader2, Star } from "lucide-react";
-import { toast } from "sonner";
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Trash2,
+  ShieldCheck,
+  ShoppingBag,
+  ArrowRight,
+  Loader2,
+  Star,
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 // Hooks & Components
-import { useActiveCart } from "@/hooks/useActiveCart";
-import useHydrated from "@/hooks/useHydrated";
-import CartShopGroup from "./components/CartShopGroup";
-import { EmptyCart } from "@/components/shared/empty-state";
-import StickyCheckoutBar from "@/components/cart/StickyCheckoutBar";
-import ProductCard from "@/components/products/product-card";
-import { useRecommendProducts } from "@/hooks/useProducts";
+import { useActiveCart } from '@/hooks/useActiveCart';
+import useHydrated from '@/hooks/useHydrated';
+import CartShopGroup from './components/CartShopGroup';
+import { EmptyCart } from '@/components/shared/empty-state';
+import StickyCheckoutBar from '@/components/cart/StickyCheckoutBar';
+import ProductCard from '@/components/products/product-card';
+import { useRecommendProducts } from '@/hooks/useProducts';
 
 // Helpers & Types
-import { cn } from "@/lib/utils";
-import { CartItem } from "@/store/useCartStore";
+import { cn } from '@/lib/utils';
+import { CartItem } from '@/store/useCartStore';
 
 const isItemAvailable = (item: CartItem) => {
-  const isDbItem = "isAvailable" in item;
+  const isDbItem = 'isAvailable' in item;
   if (isDbItem) {
     const dbIsAvailable = (item as any).isAvailable;
     return dbIsAvailable;
@@ -34,7 +41,7 @@ const isItemAvailable = (item: CartItem) => {
 };
 
 const getItemKey = (item: CartItem) => {
-  const compositeKey = `${item.productId}_${item.variantId || "none"}`;
+  const compositeKey = `${item.productId}_${item.variantId || 'none'}`;
   return compositeKey;
 };
 
@@ -52,7 +59,8 @@ function EmptyCartWithRecommend() {
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h3 className="text-xl font-black text-foreground flex items-center gap-2">
-              <Star className="h-5 w-5 text-amber-500 fill-current" /> Có thể bạn sẽ thích
+              <Star className="h-5 w-5 text-amber-500 fill-current" /> Có thể
+              bạn sẽ thích
             </h3>
             <p className="text-xs text-muted-foreground">
               Những sản phẩm đang thịnh hành và được yêu thích nhất
@@ -90,13 +98,8 @@ function EmptyCartWithRecommend() {
 export default function CartPage() {
   const router = useRouter();
   const isHydrated = useHydrated();
-  const {
-    items,
-    isLoading,
-    updateQuantity,
-    removeItem,
-    updateVariant,
-  } = useActiveCart();
+  const { items, isLoading, updateQuantity, removeItem, updateVariant } =
+    useActiveCart();
 
   // State to track selected items by composite keys
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -119,11 +122,11 @@ export default function CartPage() {
     if (unavailableSelectedNames.length > 0) {
       if (unavailableSelectedNames.length === 1) {
         toast.warning(
-          `Sản phẩm "${unavailableSelectedNames[0]}" hiện không khả dụng và đã được tự động bỏ chọn.`
+          `Sản phẩm "${unavailableSelectedNames[0]}" hiện không khả dụng và đã được tự động bỏ chọn.`,
         );
       } else {
         toast.warning(
-          `Có ${unavailableSelectedNames.length} sản phẩm đã chọn hiện không khả dụng và đã được tự động bỏ chọn.`
+          `Có ${unavailableSelectedNames.length} sản phẩm đã chọn hiện không khả dụng và đã được tự động bỏ chọn.`,
         );
       }
       setSelectedKeys(nextKeys);
@@ -134,10 +137,10 @@ export default function CartPage() {
   const groupedItems = useMemo(() => {
     const groups: Record<string, { shopName: string; items: CartItem[] }> = {};
     items.forEach((item) => {
-      const key = item.shopId || "default-shop";
+      const key = item.shopId || 'default-shop';
       if (!groups[key]) {
         groups[key] = {
-          shopName: item.shopName || "Cửa hàng",
+          shopName: item.shopName || 'Cửa hàng',
           items: [],
         };
       }
@@ -275,10 +278,10 @@ export default function CartPage() {
         return removePromise;
       });
       await Promise.all(promises);
-      const successMsg = "Đã dọn dẹp các sản phẩm không khả dụng!";
+      const successMsg = 'Đã dọn dẹp các sản phẩm không khả dụng!';
       toast.success(successMsg);
     } catch (error) {
-      const errorMsg = "Không thể dọn dẹp một số sản phẩm không khả dụng!";
+      const errorMsg = 'Không thể dọn dẹp một số sản phẩm không khả dụng!';
       toast.error(errorMsg);
     }
   };
@@ -286,13 +289,14 @@ export default function CartPage() {
   const handleCheckout = () => {
     const count = selectedItems.length;
     if (count === 0) {
-      const warnMsg = "Vui lòng chọn ít nhất một sản phẩm hợp lệ để thanh toán!";
+      const warnMsg =
+        'Vui lòng chọn ít nhất một sản phẩm hợp lệ để thanh toán!';
       toast.error(warnMsg);
       return;
     }
 
     const selectedItemKeys = selectedItems.map((item) => {
-      const isDbItem = "id" in item;
+      const isDbItem = 'id' in item;
       if (isDbItem) {
         const dbId = (item as any).id;
         return dbId;
@@ -302,13 +306,13 @@ export default function CartPage() {
       return fallbackKey;
     });
 
-    if (typeof window !== "undefined") {
-      const storageKey = "checkout_selected_items";
+    if (typeof window !== 'undefined') {
+      const storageKey = 'checkout_selected_items';
       const payloadString = JSON.stringify(selectedItemKeys);
       sessionStorage.setItem(storageKey, payloadString);
     }
 
-    const targetCheckout = "/checkout";
+    const targetCheckout = '/checkout';
     router.push(targetCheckout);
   };
 
@@ -348,7 +352,8 @@ export default function CartPage() {
           Giỏ hàng của bạn
         </h1>
         <p className="text-sm text-muted-foreground font-semibold">
-          Quản lý sản phẩm bạn đã chọn để tiến hành thanh toán (có {totalCount} sản phẩm).
+          Quản lý sản phẩm bạn đã chọn để tiến hành thanh toán (có {totalCount}{' '}
+          sản phẩm).
         </p>
       </div>
 
@@ -411,7 +416,7 @@ export default function CartPage() {
               <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <span>Thông tin thanh toán</span>
             </h3>
-            
+
             {/* Embedded Responsive Checkout Panel */}
             <div className="pt-4">
               <StickyCheckoutBar

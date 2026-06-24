@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   XCircle,
   LogOut,
@@ -9,30 +9,30 @@ import {
   Store,
   RefreshCw,
   Mail,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
-import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth/auth";
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import { tabId } from "@/lib/utils";
-import { toast } from "sonner";
-import { AccountStatus } from "@/constants/enum";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
+} from '@/components/ui/card';
+import { useAuthStore } from '@/store/useAuthStore';
+import authApiRequest from '@/apiRequests/auth/auth';
+import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
+import { tabId } from '@/lib/utils';
+import { toast } from 'sonner';
+import { AccountStatus } from '@/constants/enum';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle, Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SellerRejectedPage() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function SellerRejectedPage() {
           setRejectReason(res.data.reject_reason);
         }
       } catch (error) {
-        console.error("Lỗi lấy thông tin cửa hàng bị từ chối:", error);
+        console.error('Lỗi lấy thông tin cửa hàng bị từ chối:', error);
       } finally {
         setIsLoadingReason(false);
       }
@@ -66,17 +66,20 @@ export default function SellerRejectedPage() {
     try {
       await authApiRequest.logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error('Lỗi đăng xuất:', error);
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
-      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+      channel.postMessage({
+        type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS,
+        senderTabId: tabId,
+      });
       channel.close();
 
-      toast.success("Đăng xuất thành công");
+      toast.success('Đăng xuất thành công');
       setIsLogoutConfirmOpen(false);
-      router.push("/login");
+      router.push('/login');
       router.refresh();
       setIsLoggingOut(false);
     }
@@ -96,18 +99,18 @@ export default function SellerRejectedPage() {
         if (newStatus !== currentStatus) {
           // Trạng thái thay đổi -> gọi silentRefresh để nhận Access Token mới chứa status mới trong payload
           await useAuthStore.getState().silentRefresh();
-          
+
           if (newStatus === AccountStatus.ACTIVE) {
-            const successMsg = "Cửa hàng của bạn đã được phê duyệt!";
+            const successMsg = 'Cửa hàng của bạn đã được phê duyệt!';
             toast.success(successMsg);
-            const targetPath = "/seller";
+            const targetPath = '/seller';
             router.push(targetPath);
             router.refresh();
             return;
           } else if (newStatus === AccountStatus.PENDING_APPROVAL) {
-            const pendingMsg = "Cửa hàng của bạn đang chờ phê duyệt.";
+            const pendingMsg = 'Cửa hàng của bạn đang chờ phê duyệt.';
             toast.success(pendingMsg);
-            const targetPath = "/seller/pending";
+            const targetPath = '/seller/pending';
             router.push(targetPath);
             router.refresh();
             return;
@@ -115,24 +118,24 @@ export default function SellerRejectedPage() {
         } else {
           // Trạng thái không thay đổi, chuyển hướng nếu trạng thái hiện tại đã hợp lệ
           if (newStatus === AccountStatus.ACTIVE) {
-            const targetPath = "/seller";
+            const targetPath = '/seller';
             router.push(targetPath);
             router.refresh();
             return;
           } else if (newStatus === AccountStatus.PENDING_APPROVAL) {
-            const targetPath = "/seller/pending";
+            const targetPath = '/seller/pending';
             router.push(targetPath);
             router.refresh();
             return;
           }
         }
       }
-      const infoMsg = "Yêu cầu đăng ký vẫn bị từ chối.";
+      const infoMsg = 'Yêu cầu đăng ký vẫn bị từ chối.';
       toast.info(infoMsg);
     } catch (error) {
-      const logTitle = "Lỗi kiểm tra trạng thái:";
+      const logTitle = 'Lỗi kiểm tra trạng thái:';
       console.error(logTitle, error);
-      const errMsg = "Không thể kết nối đến máy chủ.";
+      const errMsg = 'Không thể kết nối đến máy chủ.';
       toast.error(errMsg);
     } finally {
       setIsRefreshing(false);
@@ -174,7 +177,9 @@ export default function SellerRejectedPage() {
             <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-2xl p-6 text-base text-rose-800 dark:text-rose-300 flex gap-4">
               <Mail className="h-7 w-7 shrink-0 mt-0.5 text-rose-600" />
               <div>
-                <p className="text-lg font-bold">Vui lòng kiểm tra hộp thư email</p>
+                <p className="text-lg font-bold">
+                  Vui lòng kiểm tra hộp thư email
+                </p>
                 <p className="mt-2 text-sm opacity-90 leading-relaxed">
                   Chi tiết lý do từ chối đã được gửi đến email đăng ký của bạn.
                   Hãy kiểm tra hòm thư chính và thư rác.
@@ -185,7 +190,7 @@ export default function SellerRejectedPage() {
 
           <div className="flex flex-col gap-4">
             <Button
-              onClick={() => router.push("/seller/setup")}
+              onClick={() => router.push('/seller/setup')}
               className="w-full h-14 flex items-center justify-center gap-2.5 bg-violet-600 hover:bg-violet-700 text-white text-base md:text-lg font-bold rounded-xl shadow-md transition"
             >
               <span>Chỉnh sửa & gửi lại yêu cầu</span>
@@ -199,7 +204,7 @@ export default function SellerRejectedPage() {
               disabled={isRefreshing}
             >
               <RefreshCw
-                className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
               />
               <span>Kiểm tra lại trạng thái</span>
             </Button>
@@ -244,7 +249,7 @@ export default function SellerRejectedPage() {
                   Đang đăng xuất...
                 </>
               ) : (
-                "Đăng xuất"
+                'Đăng xuất'
               )}
             </Button>
             <Button

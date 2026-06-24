@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
 // React
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from 'react';
 
 // Icons
-import { Trash2, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, History } from 'lucide-react';
 
 // Stores & Components
-import { useRecentlyViewedStore } from "@/store/useRecentlyViewedStore";
-import ProductCard from "@/components/products/product-card";
+import { useRecentlyViewedStore } from '@/store/useRecentlyViewedStore';
+import ProductCard from '@/components/products/product-card';
 
 interface RecentlyViewedCarouselProps {
   currentProductId: string;
@@ -47,7 +47,7 @@ export default function RecentlyViewedCarousel({
     const container = scrollContainerRef.current;
     if (container) {
       const offset = -320;
-      const behavior = "smooth" as const;
+      const behavior = 'smooth' as const;
       const scrollConfig = { left: offset, behavior };
       container.scrollBy(scrollConfig);
     }
@@ -57,7 +57,7 @@ export default function RecentlyViewedCarousel({
     const container = scrollContainerRef.current;
     if (container) {
       const offset = 320;
-      const behavior = "smooth" as const;
+      const behavior = 'smooth' as const;
       const scrollConfig = { left: offset, behavior };
       container.scrollBy(scrollConfig);
     }
@@ -113,7 +113,7 @@ export default function RecentlyViewedCarousel({
         <div
           ref={scrollContainerRef}
           className="flex gap-6 overflow-x-auto pb-4 scrollbar-none scroll-smooth snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none" }}
+          style={{ scrollbarWidth: 'none' }}
         >
           {displayItems.map((product) => {
             const keyVal = `recently-viewed-${product.id}`;

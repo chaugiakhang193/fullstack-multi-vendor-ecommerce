@@ -1,8 +1,8 @@
-import React from "react";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import shopsApiRequest from "@/apiRequests/shops/shops";
-import ShopDetailClient from "./ShopDetailClient";
+import React from 'react';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import shopsApiRequest from '@/apiRequests/shops/shops';
+import ShopDetailClient from './ShopDetailClient';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,7 +14,9 @@ interface PageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const shopId = resolvedParams.id;
 
@@ -22,8 +24,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const response = await shopsApiRequest.getPublicShopDetail(shopId);
     const shop = response.data;
     const titleVal = `${shop.name} | Gian Hàng Giang Kha`;
-    const descriptionVal = shop.description || `Khám phá các sản phẩm nổi bật của cửa hàng ${shop.name} tại Giang Kha Multi-Vendor.`;
-    const imageUrl = shop.logo_url || "/placeholder-logo.png";
+    const descriptionVal =
+      shop.description ||
+      `Khám phá các sản phẩm nổi bật của cửa hàng ${shop.name} tại Giang Kha Multi-Vendor.`;
+    const imageUrl = shop.logo_url || '/placeholder-logo.png';
 
     return {
       title: titleVal,
@@ -40,14 +44,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
     };
   } catch (err) {
-    const fallbackTitle = "Không tìm thấy cửa hàng | Giang Kha Multi-Vendor";
+    const fallbackTitle = 'Không tìm thấy cửa hàng | Giang Kha Multi-Vendor';
     return {
       title: fallbackTitle,
     };
   }
 }
 
-export default async function ShopDetailPage({ params, searchParams }: PageProps) {
+export default async function ShopDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const resolvedParams = await params;
   const shopId = resolvedParams.id;
 

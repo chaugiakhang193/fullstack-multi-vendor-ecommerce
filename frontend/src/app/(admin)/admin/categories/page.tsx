@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import React, { useState, useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import {
   Layers,
   Plus,
@@ -17,20 +17,20 @@ import {
   Loader2,
   Tag,
   AlertTriangle,
-} from "lucide-react";
+} from 'lucide-react';
 
-import categoriesApiRequest from "@/apiRequests/products/categories";
+import categoriesApiRequest from '@/apiRequests/products/categories';
 import {
   CreateCategoryBody,
   UpdateCategoryBody,
   CreateCategoryBodyType,
   UpdateCategoryBodyType,
   CategoryResponseType,
-} from "@/schemaValidations/products/categories.schema";
-import { getErrorMessage } from "@/lib/http";
+} from '@/schemaValidations/products/categories.schema';
+import { getErrorMessage } from '@/lib/http';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -39,15 +39,15 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+} from '@/components/ui/dialog';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<CategoryResponseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Search filter
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Collapsible tree state
   const [collapsedRoots, setCollapsedRoots] = useState<Record<string, boolean>>(
@@ -74,9 +74,9 @@ export default function AdminCategoriesPage() {
   } = useForm<CreateCategoryBodyType>({
     resolver: zodResolver(CreateCategoryBody) as any,
     defaultValues: {
-      name: "",
-      parentId: "", // Đặt chuỗi rỗng tương ứng giá trị mặc định của thẻ select
-      display_order: "" as any,
+      name: '',
+      parentId: '', // Đặt chuỗi rỗng tương ứng giá trị mặc định của thẻ select
+      display_order: '' as any,
     },
   });
 
@@ -88,9 +88,9 @@ export default function AdminCategoriesPage() {
   } = useForm<UpdateCategoryBodyType>({
     resolver: zodResolver(UpdateCategoryBody) as any,
     defaultValues: {
-      name: "",
-      parentId: "",
-      display_order: "" as any,
+      name: '',
+      parentId: '',
+      display_order: '' as any,
     },
   });
 
@@ -188,11 +188,11 @@ export default function AdminCategoriesPage() {
     try {
       const submitData = {
         ...data,
-        parentId: !data.parentId || data.parentId === "" ? null : data.parentId,
+        parentId: !data.parentId || data.parentId === '' ? null : data.parentId,
       };
 
       await categoriesApiRequest.create(submitData as any);
-      toast.success("Thêm danh mục mới thành công!");
+      toast.success('Thêm danh mục mới thành công!');
       resetCreate();
       setIsCreateOpen(false);
       fetchCategories();
@@ -208,11 +208,11 @@ export default function AdminCategoriesPage() {
     try {
       const submitData = {
         ...data,
-        parentId: !data.parentId || data.parentId === "" ? null : data.parentId,
+        parentId: !data.parentId || data.parentId === '' ? null : data.parentId,
       };
 
       await categoriesApiRequest.update(selectedCategory.id, submitData as any);
-      toast.success("Cập nhật danh mục thành công!");
+      toast.success('Cập nhật danh mục thành công!');
       setIsEditOpen(false);
       setSelectedCategory(null);
       fetchCategories();
@@ -227,7 +227,7 @@ export default function AdminCategoriesPage() {
     if (!categoryToDelete) return;
     try {
       await categoriesApiRequest.delete(categoryToDelete.id);
-      toast.success("Xóa danh mục thành công!");
+      toast.success('Xóa danh mục thành công!');
       setIsDeleteOpen(false);
       setCategoryToDelete(null);
       fetchCategories();
@@ -242,8 +242,8 @@ export default function AdminCategoriesPage() {
     setSelectedCategory(category);
     resetEdit({
       name: category.name,
-      parentId: category.parent?.id || "",
-      display_order: category.display_order ?? ("" as any),
+      parentId: category.parent?.id || '',
+      display_order: category.display_order ?? ('' as any),
     });
     setIsEditOpen(true);
   };
@@ -391,7 +391,9 @@ export default function AdminCategoriesPage() {
                 <tr className="border-b bg-muted/40 text-sm font-extrabold text-muted-foreground uppercase tracking-wider">
                   <th className="py-4 px-6 w-[45%]">Tên danh mục</th>
                   <th className="py-4 px-6 w-[25%]">Slug danh mục</th>
-                  <th className="py-4 px-6 w-[12%] text-center">Thứ tự hiển thị</th>
+                  <th className="py-4 px-6 w-[12%] text-center">
+                    Thứ tự hiển thị
+                  </th>
                   <th className="py-4 px-6 w-[10%]">Cấp độ</th>
                   <th className="py-4 px-6 w-[8%] text-right">Thao tác</th>
                 </tr>
@@ -535,7 +537,7 @@ export default function AdminCategoriesPage() {
               <Input
                 id="create-name"
                 placeholder="Ví dụ: Điện thoại, Thời trang nam..."
-                {...registerCreate("name")}
+                {...registerCreate('name')}
                 aria-invalid={!!createErrors.name}
               />
               {createErrors.name && (
@@ -549,7 +551,7 @@ export default function AdminCategoriesPage() {
               </FieldLabel>
               <select
                 id="create-parent"
-                {...registerCreate("parentId")}
+                {...registerCreate('parentId')}
                 className="w-full h-9 px-3 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground animate-fade-in"
               >
                 <option value="">Không có (Danh mục gốc / Level 1)</option>
@@ -570,7 +572,7 @@ export default function AdminCategoriesPage() {
               <Input
                 id="create-order"
                 type="number"
-                {...registerCreate("display_order", { valueAsNumber: true })}
+                {...registerCreate('display_order', { valueAsNumber: true })}
                 aria-invalid={!!createErrors.display_order}
               />
               {createErrors.display_order && (
@@ -599,7 +601,7 @@ export default function AdminCategoriesPage() {
                     lưu...
                   </>
                 ) : (
-                  "Tạo mới"
+                  'Tạo mới'
                 )}
               </Button>
             </DialogFooter>
@@ -627,7 +629,7 @@ export default function AdminCategoriesPage() {
               <Input
                 id="edit-name"
                 placeholder="Ví dụ: Laptop, Phụ kiện..."
-                {...registerEdit("name")}
+                {...registerEdit('name')}
                 aria-invalid={!!editErrors.name}
               />
               {editErrors.name && (
@@ -641,7 +643,7 @@ export default function AdminCategoriesPage() {
               </FieldLabel>
               <select
                 id="edit-parent"
-                {...registerEdit("parentId")}
+                {...registerEdit('parentId')}
                 disabled={isSelectedCategoryHasChildren} // Chặn hạ cấp danh mục cha nếu đang có chứa các phần tử con
                 className="w-full h-9 px-3 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -672,7 +674,7 @@ export default function AdminCategoriesPage() {
               <Input
                 id="edit-order"
                 type="number"
-                {...registerEdit("display_order", { valueAsNumber: true })}
+                {...registerEdit('display_order', { valueAsNumber: true })}
                 aria-invalid={!!editErrors.display_order}
               />
               {editErrors.display_order && (
@@ -701,7 +703,7 @@ export default function AdminCategoriesPage() {
                     lưu...
                   </>
                 ) : (
-                  "Cập nhật"
+                  'Cập nhật'
                 )}
               </Button>
             </DialogFooter>
@@ -732,11 +734,11 @@ export default function AdminCategoriesPage() {
                       ⚠️ KHÔNG THỂ XÓA DANH MỤC NÀY
                     </p>
                     <p>
-                      Danh mục gốc <strong>"{categoryToDelete.name}"</strong>{" "}
-                      đang chứa{" "}
+                      Danh mục gốc <strong>"{categoryToDelete.name}"</strong>{' '}
+                      đang chứa{' '}
                       <strong>
                         {(categoryToDelete as any).children.length}
-                      </strong>{" "}
+                      </strong>{' '}
                       danh mục con:
                     </p>
                     <ul className="list-disc pl-5 font-semibold">
@@ -752,10 +754,10 @@ export default function AdminCategoriesPage() {
                   </div>
                 ) : (
                   <p className="text-sm">
-                    Bạn có chắc chắn muốn xóa danh mục{" "}
+                    Bạn có chắc chắn muốn xóa danh mục{' '}
                     <strong className="text-rose-600">
                       "{categoryToDelete.name}"
-                    </strong>{" "}
+                    </strong>{' '}
                     (Slug: <code>{categoryToDelete.slug}</code>)?
                   </p>
                 )}

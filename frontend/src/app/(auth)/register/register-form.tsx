@@ -1,43 +1,43 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import * as React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2 } from 'lucide-react';
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   RegisterBody,
   RegisterBodyType,
-} from "@/schemaValidations/auth/auth.schema";
-import authApiRequest from "@/apiRequests/auth/auth";
-import { getErrorMessage } from "@/lib/http";
+} from '@/schemaValidations/auth/auth.schema';
+import authApiRequest from '@/apiRequests/auth/auth';
+import { getErrorMessage } from '@/lib/http';
 //Store
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function RegisterForm({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -48,11 +48,11 @@ export function RegisterForm({
   useEffect(() => {
     if (accessToken) {
       const redirectUrl =
-        user?.role === "seller"
-          ? "/seller"
-          : user?.role === "admin"
-            ? "/admin"
-            : "/";
+        user?.role === 'seller'
+          ? '/seller'
+          : user?.role === 'admin'
+            ? '/admin'
+            : '/';
       router.push(redirectUrl);
     }
   }, [accessToken, user, router]);
@@ -60,12 +60,12 @@ export function RegisterForm({
   //Khởi tạo Form
   const form = useForm<RegisterBodyType>({
     resolver: zodResolver(RegisterBody),
-    mode: "onTouched",
+    mode: 'onTouched',
     defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -74,13 +74,13 @@ export function RegisterForm({
       setIsLoading(true);
       const { confirmPassword, ...dataToSend } = data;
       const res = await authApiRequest.register(dataToSend);
-      toast.success("Tuyệt vời!", {
-        description: res.message || "Bạn đã tạo tài khoản thành công.",
+      toast.success('Tuyệt vời!', {
+        description: res.message || 'Bạn đã tạo tài khoản thành công.',
       });
-      router.push("/verify-email");
+      router.push('/verify-email');
     } catch (error) {
       const errMsg = getErrorMessage(error);
-      const failTitle = "Đăng ký thất bại";
+      const failTitle = 'Đăng ký thất bại';
       toast.error(failTitle, {
         description: errMsg,
       });
@@ -90,10 +90,12 @@ export function RegisterForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-4 w-full", className)} {...props}>
+    <div className={cn('flex flex-col gap-4 w-full', className)} {...props}>
       <Card className="flex flex-col w-full max-h-full shadow-lg max-w-2xl justify-center mx-auto p-6 sm:p-10">
         <CardHeader className="text-center pb-6 sm:pb-8">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">Tạo tài khoản</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl font-bold">
+            Tạo tài khoản
+          </CardTitle>
           <CardDescription className="text-base sm:text-lg">
             Chào mừng bạn đến với <b>Giang Kha shop</b>!<br />
             Hãy tạo tài khoản để tiếp tục nhé!
@@ -108,7 +110,10 @@ export function RegisterForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="username" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="username"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Tên đăng nhập
                     </FieldLabel>
                     <Input
@@ -131,7 +136,10 @@ export function RegisterForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="email" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="email"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Email
                     </FieldLabel>
                     <Input
@@ -155,7 +163,10 @@ export function RegisterForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="password" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="password"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Mật khẩu
                     </FieldLabel>
                     <Input
@@ -178,7 +189,10 @@ export function RegisterForm({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="gap-2">
-                    <FieldLabel htmlFor="confirm-password" className="text-base sm:text-lg font-medium">
+                    <FieldLabel
+                      htmlFor="confirm-password"
+                      className="text-base sm:text-lg font-medium"
+                    >
                       Xác nhận mật khẩu
                     </FieldLabel>
                     <Input
@@ -197,14 +211,18 @@ export function RegisterForm({
 
               {/* Phần mô tả mật khẩu và Nút Submit */}
               <div className="pt-4">
-                <Button type="submit" className="w-full h-12 text-base sm:text-lg font-semibold" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base sm:text-lg font-semibold"
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Đang đăng ký ...
                     </>
                   ) : (
-                    "Tạo tài khoản"
+                    'Tạo tài khoản'
                   )}
                 </Button>
               </div>
@@ -217,8 +235,8 @@ export function RegisterForm({
       <FieldDescription className="px-6 text-center">
         <a href="#" className="underline">
           Điều khoản dịch vụ
-        </a>{" "}
-        và{" "}
+        </a>{' '}
+        và{' '}
         <a href="#" className="underline">
           Chính sách bảo mật
         </a>

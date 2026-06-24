@@ -1,12 +1,12 @@
-import z from "zod";
-import { CouponType, DiscountType } from "@/constants/enum";
-import { COUPON_LIMITS } from "@/constants/limits.generated";
-import type { ApiEnvelope } from "@/lib/http";
-import type { components } from "@/lib/api/api-schema";
+import z from 'zod';
+import { CouponType, DiscountType } from '@/constants/enum';
+import { COUPON_LIMITS } from '@/constants/limits.generated';
+import type { ApiEnvelope } from '@/lib/http';
+import type { components } from '@/lib/api/api-schema';
 
 // Trích xuất backend types để đảm bảo đồng bộ compile-time
-type CreateCouponDto = components["schemas"]["CreateCouponDto"];
-type UpdateCouponDto = components["schemas"]["UpdateCouponDto"];
+type CreateCouponDto = components['schemas']['CreateCouponDto'];
+type UpdateCouponDto = components['schemas']['UpdateCouponDto'];
 
 // ==========================================
 // Core Schemas
@@ -14,20 +14,23 @@ type UpdateCouponDto = components["schemas"]["UpdateCouponDto"];
 
 export const CouponSchema = z.object({
   id: z.string().uuid(),
-  code: z.string().min(1, "Mã code không được để trống"),
+  code: z.string().min(1, 'Mã code không được để trống'),
   type: z.nativeEnum(CouponType),
   discount_type: z.nativeEnum(DiscountType),
-  discount_value: z.coerce.number().positive("Giá trị giảm phải lớn hơn 0"),
+  discount_value: z.coerce.number().positive('Giá trị giảm phải lớn hơn 0'),
   min_order_value: z.coerce.number().nullable().default(0),
   max_discount_value: z.coerce.number().nonnegative().nullable().optional(),
   start_date: z.string().nullable(),
   end_date: z.string().nullable(),
   usage_limit: z.coerce.number().int().positive().nullable().optional(),
   used_count: z.number().int().default(0),
-  shop: z.object({
-    id: z.string(),
-    name: z.string(),
-  }).nullable().optional(),
+  shop: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable()
+    .optional(),
   // Cờ do backend gắn ở endpoint browse: user hiện tại đã "Lưu mã" coupon này chưa.
   // Guest hoặc endpoint không tính → undefined/false.
   is_claimed: z.boolean().optional(),
@@ -50,49 +53,81 @@ export const UserCouponSchema = z.object({
 // (max_discount_value: cap giảm tối đa = 0đ → coupon % giảm 0đ).
 const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess(
-    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    (val) =>
+      val === '' || val === null || val === undefined ? undefined : val,
     schema,
   );
 
 export const CouponBodyObject = z.object({
   code: z
     .string()
-    .min(COUPON_LIMITS.CODE_MIN_LENGTH, `Mã giảm giá phải có tối thiểu ${COUPON_LIMITS.CODE_MIN_LENGTH} ký tự.`)
-    .max(COUPON_LIMITS.CODE_MAX_LENGTH, `Mã giảm giá tối đa ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự.`)
-    .regex(/^[A-Z0-9]+$/, "Mã giảm giá chỉ được phép chứa các chữ cái in hoa và chữ số."),
+    .min(
+      COUPON_LIMITS.CODE_MIN_LENGTH,
+      `Mã giảm giá phải có tối thiểu ${COUPON_LIMITS.CODE_MIN_LENGTH} ký tự.`,
+    )
+    .max(
+      COUPON_LIMITS.CODE_MAX_LENGTH,
+      `Mã giảm giá tối đa ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự.`,
+    )
+    .regex(
+      /^[A-Z0-9]+$/,
+      'Mã giảm giá chỉ được phép chứa các chữ cái in hoa và chữ số.',
+    ),
   discount_type: z.nativeEnum(DiscountType),
-  discount_value: z.coerce.number().positive("Giá trị giảm phải lớn hơn 0"),
-  min_order_value: optionalNumber(z.coerce.number().nonnegative("Giá trị đơn hàng tối thiểu không được âm").optional()),
-  max_discount_value: optionalNumber(z.coerce.number().nonnegative("Giá trị giảm tối đa không được âm").optional()),
-  start_date: z.string().min(1, "Ngày bắt đầu không được để trống"),
-  end_date: z.string().min(1, "Ngày kết thúc không được để trống"),
-  usage_limit: optionalNumber(z.coerce.number().int().positive("Giới hạn lượt dùng phải là số dương").optional()),
+  discount_value: z.coerce.number().positive('Giá trị giảm phải lớn hơn 0'),
+  min_order_value: optionalNumber(
+    z.coerce
+      .number()
+      .nonnegative('Giá trị đơn hàng tối thiểu không được âm')
+      .optional(),
+  ),
+  max_discount_value: optionalNumber(
+    z.coerce
+      .number()
+      .nonnegative('Giá trị giảm tối đa không được âm')
+      .optional(),
+  ),
+  start_date: z.string().min(1, 'Ngày bắt đầu không được để trống'),
+  end_date: z.string().min(1, 'Ngày kết thúc không được để trống'),
+  usage_limit: optionalNumber(
+    z.coerce
+      .number()
+      .int()
+      .positive('Giới hạn lượt dùng phải là số dương')
+      .optional(),
+  ),
   // Input để 'unknown' vì optionalNumber dùng z.preprocess (nhận "" từ form);
   // vẫn ràng buộc OUTPUT khớp CreateCouponDto để đồng bộ compile-time với backend.
 }) satisfies z.ZodType<CreateCouponDto, z.ZodTypeDef, unknown>;
 
-export const CreateCouponBody = CouponBodyObject
-  .refine((data) => {
+export const CreateCouponBody = CouponBodyObject.refine(
+  (data) => {
     if (data.start_date && data.end_date) {
       return new Date(data.end_date) > new Date(data.start_date);
     }
     return true;
-  }, {
-    message: "Ngày kết thúc phải sau ngày bắt đầu",
-    path: ["end_date"],
-  })
+  },
+  {
+    message: 'Ngày kết thúc phải sau ngày bắt đầu',
+    path: ['end_date'],
+  },
+)
   // Với loại giảm theo %, giá trị phải nằm trong 1–100. Loại fixed_amount không giới hạn.
   .refine(
     (data) =>
       data.discount_type !== DiscountType.PERCENTAGE ||
       (data.discount_value >= 1 && data.discount_value <= 100),
     {
-      message: "Phần trăm giảm giá phải nằm trong khoảng 1 - 100",
-      path: ["discount_value"],
+      message: 'Phần trăm giảm giá phải nằm trong khoảng 1 - 100',
+      path: ['discount_value'],
     },
   );
 
-export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<UpdateCouponDto, z.ZodTypeDef, unknown>;
+export const UpdateCouponBody = CouponBodyObject.partial() satisfies z.ZodType<
+  UpdateCouponDto,
+  z.ZodTypeDef,
+  unknown
+>;
 
 export const CouponQuery = z.object({
   page: z.number().int().positive().optional(),
@@ -135,6 +170,10 @@ export type CreateCouponBodyType = z.TypeOf<typeof CreateCouponBody>;
 export type UpdateCouponBodyType = z.TypeOf<typeof UpdateCouponBody>;
 
 export type CouponQueryType = z.TypeOf<typeof CouponQuery>;
-export type CouponListEnvelope = ApiEnvelope<z.TypeOf<typeof CouponListResponse>>;
+export type CouponListEnvelope = ApiEnvelope<
+  z.TypeOf<typeof CouponListResponse>
+>;
 
-export type UserCouponListEnvelope = ApiEnvelope<z.TypeOf<typeof UserCouponListResponse>>;
+export type UserCouponListEnvelope = ApiEnvelope<
+  z.TypeOf<typeof UserCouponListResponse>
+>;

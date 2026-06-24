@@ -1,9 +1,9 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { toast } from "sonner";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { toast } from 'sonner';
 
 // Import types
-import type { ProductVariantResponseType } from "@/schemaValidations/products/products.schema";
+import type { ProductVariantResponseType } from '@/schemaValidations/products/products.schema';
 
 export interface CartItem {
   productId: string;
@@ -26,10 +26,18 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
-  updateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
+  addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  updateQuantity: (
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+  ) => void;
   removeItem: (productId: string, variantId: string | null) => void;
-  updateVariant: (productId: string, oldVariantId: string | null, newVariantId: string | null) => void;
+  updateVariant: (
+    productId: string,
+    oldVariantId: string | null,
+    newVariantId: string | null,
+  ) => void;
   clearCart: () => void;
 }
 
@@ -59,18 +67,22 @@ export const useCartStore = create<CartState>()(
           const targetVariant = existingItem.variantId
             ? existingItem.variants.find((v) => v.id === existingItem.variantId)
             : null;
-          const maxStock = targetVariant ? targetVariant.stock_quantity : existingItem.baseStock;
+          const maxStock = targetVariant
+            ? targetVariant.stock_quantity
+            : existingItem.baseStock;
 
           const updatedQuantity = existingItem.quantity + quantity;
 
           if (updatedQuantity > maxStock) {
-            const limitMsg = "Số lượng trong giỏ hàng đã đạt giới hạn tồn kho!";
+            const limitMsg = 'Số lượng trong giỏ hàng đã đạt giới hạn tồn kho!';
             toast.error(limitMsg);
             return;
           }
 
           const updatedItems = items.map((item) => {
-            const isTarget = item.productId === newItem.productId && item.variantId === newItem.variantId;
+            const isTarget =
+              item.productId === newItem.productId &&
+              item.variantId === newItem.variantId;
             return isTarget ? { ...item, quantity: updatedQuantity } : item;
           });
 
@@ -90,8 +102,8 @@ export const useCartStore = create<CartState>()(
         toast.success(successMsg);
 
         // Dispatch event for compatibility with non-Zustand components
-        if (typeof window !== "undefined") {
-          const cartUpdateEventName = "cart-updated";
+        if (typeof window !== 'undefined') {
+          const cartUpdateEventName = 'cart-updated';
           const customEvent = new CustomEvent(cartUpdateEventName);
           window.dispatchEvent(customEvent);
         }
@@ -110,7 +122,9 @@ export const useCartStore = create<CartState>()(
         const targetVariant = variantId
           ? targetItem.variants.find((v) => v.id === variantId)
           : null;
-        const maxStock = targetVariant ? targetVariant.stock_quantity : targetItem.baseStock;
+        const maxStock = targetVariant
+          ? targetVariant.stock_quantity
+          : targetItem.baseStock;
 
         if (quantity > maxStock) {
           const limitMsg = `Rất tiếc, sản phẩm này chỉ còn ${maxStock} sản phẩm trong kho!`;
@@ -120,20 +134,22 @@ export const useCartStore = create<CartState>()(
 
         if (quantity <= 0) {
           const updatedItems = items.filter((item) => {
-            const isTarget = item.productId === productId && item.variantId === variantId;
+            const isTarget =
+              item.productId === productId && item.variantId === variantId;
             return !isTarget;
           });
           set({ items: updatedItems });
         } else {
           const updatedItems = items.map((item) => {
-            const isTarget = item.productId === productId && item.variantId === variantId;
+            const isTarget =
+              item.productId === productId && item.variantId === variantId;
             return isTarget ? { ...item, quantity } : item;
           });
           set({ items: updatedItems });
         }
 
-        if (typeof window !== "undefined") {
-          const cartUpdateEventName = "cart-updated";
+        if (typeof window !== 'undefined') {
+          const cartUpdateEventName = 'cart-updated';
           const customEvent = new CustomEvent(cartUpdateEventName);
           window.dispatchEvent(customEvent);
         }
@@ -142,17 +158,18 @@ export const useCartStore = create<CartState>()(
       removeItem: (productId, variantId) => {
         const { items } = get();
         const updatedItems = items.filter((item) => {
-          const isTarget = item.productId === productId && item.variantId === variantId;
+          const isTarget =
+            item.productId === productId && item.variantId === variantId;
           return !isTarget;
         });
 
         set({ items: updatedItems });
 
-        const removeMsg = "Đã xóa sản phẩm khỏi giỏ hàng!";
+        const removeMsg = 'Đã xóa sản phẩm khỏi giỏ hàng!';
         toast.success(removeMsg);
 
-        if (typeof window !== "undefined") {
-          const cartUpdateEventName = "cart-updated";
+        if (typeof window !== 'undefined') {
+          const cartUpdateEventName = 'cart-updated';
           const customEvent = new CustomEvent(cartUpdateEventName);
           window.dispatchEvent(customEvent);
         }
@@ -175,7 +192,8 @@ export const useCartStore = create<CartState>()(
         if (!newVariant) return;
 
         // 3. Tính toán giá mới và thumbnail mới
-        const finalPrice = Number(oldItem.basePrice) + Number(newVariant.additional_price);
+        const finalPrice =
+          Number(oldItem.basePrice) + Number(newVariant.additional_price);
         const finalThumbnailUrl =
           newVariant.images && newVariant.images.length > 0
             ? newVariant.images[0]
@@ -207,13 +225,15 @@ export const useCartStore = create<CartState>()(
 
           // Xóa item cũ và giữ item mới đã gộp
           updatedItems = items.filter((item) => {
-            const isOldTarget = item.productId === productId && item.variantId === oldVariantId;
+            const isOldTarget =
+              item.productId === productId && item.variantId === oldVariantId;
             return !isOldTarget;
           });
         } else {
           // Nếu chưa tồn tại -> cập nhật item cũ sang variant mới
           updatedItems = items.map((item) => {
-            const isOldTarget = item.productId === productId && item.variantId === oldVariantId;
+            const isOldTarget =
+              item.productId === productId && item.variantId === oldVariantId;
             if (isOldTarget) {
               return {
                 ...item,
@@ -228,11 +248,11 @@ export const useCartStore = create<CartState>()(
 
         set({ items: updatedItems });
 
-        const successMsg = "Đã cập nhật phiên bản sản phẩm!";
+        const successMsg = 'Đã cập nhật phiên bản sản phẩm!';
         toast.success(successMsg);
 
-        if (typeof window !== "undefined") {
-          const cartUpdateEventName = "cart-updated";
+        if (typeof window !== 'undefined') {
+          const cartUpdateEventName = 'cart-updated';
           const customEvent = new CustomEvent(cartUpdateEventName);
           window.dispatchEvent(customEvent);
         }
@@ -241,15 +261,15 @@ export const useCartStore = create<CartState>()(
       clearCart: () => {
         set({ items: [] });
 
-        if (typeof window !== "undefined") {
-          const cartUpdateEventName = "cart-updated";
+        if (typeof window !== 'undefined') {
+          const cartUpdateEventName = 'cart-updated';
           const customEvent = new CustomEvent(cartUpdateEventName);
           window.dispatchEvent(customEvent);
         }
       },
     }),
     {
-      name: "cart", // Lưu vào localStorage với key "cart"
-    }
-  )
+      name: 'cart', // Lưu vào localStorage với key "cart"
+    },
+  ),
 );

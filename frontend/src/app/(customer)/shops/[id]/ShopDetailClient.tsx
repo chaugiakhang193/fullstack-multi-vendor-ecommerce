@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { use, useState, useEffect } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import React, { use, useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Store,
   Calendar,
@@ -14,17 +14,17 @@ import {
   ArrowLeft,
   Tag,
   AlertCircle,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 // Services & Components
-import { useShopDetail, useShopCatalog } from "@/hooks/useShop";
-import ProductCard from "@/components/products/product-card";
-import SortDropdown, { SortOption } from "@/components/products/sort-dropdown";
-import { useAuthStore } from "@/store/useAuthStore";
-import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/shared/pagination";
-import { cn } from "@/lib/utils";
+import { useShopDetail, useShopCatalog } from '@/hooks/useShop';
+import ProductCard from '@/components/products/product-card';
+import SortDropdown, { SortOption } from '@/components/products/sort-dropdown';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/shared/pagination';
+import { cn } from '@/lib/utils';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,36 +38,36 @@ interface PageProps {
 
 // Format date helper (Join date)
 const formatDate = (dateString?: string) => {
-  if (!dateString) return "";
+  if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 };
 
 // Sort options mapper
 const mapSortOptionToParams = (option: SortOption) => {
-  const orderAscVal = "ASC";
-  const orderDescVal = "DESC";
+  const orderAscVal = 'ASC';
+  const orderDescVal = 'DESC';
   switch (option) {
-    case "price_asc":
-      return { sort: "price", order: orderAscVal };
-    case "price_desc":
-      return { sort: "price", order: orderDescVal };
-    case "popular":
-      return { sort: "name", order: orderAscVal };
+    case 'price_asc':
+      return { sort: 'price', order: orderAscVal };
+    case 'price_desc':
+      return { sort: 'price', order: orderDescVal };
+    case 'popular':
+      return { sort: 'name', order: orderAscVal };
     default:
-      return { sort: "created_at", order: orderDescVal };
+      return { sort: 'created_at', order: orderDescVal };
   }
 };
 
 const mapParamsToSortOption = (sort?: string, order?: string): SortOption => {
-  if (sort === "price" && order === "ASC") return "price_asc";
-  if (sort === "price" && order === "DESC") return "price_desc";
-  if (sort === "name") return "popular";
-  return "newest";
+  if (sort === 'price' && order === 'ASC') return 'price_asc';
+  if (sort === 'price' && order === 'DESC') return 'price_desc';
+  if (sort === 'name') return 'popular';
+  return 'newest';
 };
 
 export default function ShopDetailClient({ params, searchParams }: PageProps) {
@@ -78,10 +78,10 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
   const resolvedSearchParams = use(searchParams);
 
   const shopId = resolvedParams.id;
-  const urlPage = Number(resolvedSearchParams.page || "1");
-  const urlSort = resolvedSearchParams.sort || "created_at";
-  const urlOrder = resolvedSearchParams.order || "DESC";
-  const urlQ = resolvedSearchParams.q || "";
+  const urlPage = Number(resolvedSearchParams.page || '1');
+  const urlSort = resolvedSearchParams.sort || 'created_at';
+  const urlOrder = resolvedSearchParams.order || 'DESC';
+  const urlQ = resolvedSearchParams.q || '';
 
   // Local state for debounced search and expansion
   const [searchInput, setSearchInput] = useState(urlQ);
@@ -97,9 +97,12 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
     setIsExpanded(false);
   }, [urlPage, urlQ, urlSort, urlOrder]);
 
-
   // Fetch shop detail using React Query (staleTime 5 minutes)
-  const { data: shopRes, isLoading: isShopLoading, error: shopError } = useShopDetail(shopId);
+  const {
+    data: shopRes,
+    isLoading: isShopLoading,
+    error: shopError,
+  } = useShopDetail(shopId);
   const shop = shopRes?.data;
 
   // Map logical page and expansion to API params
@@ -112,7 +115,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
     limit: apiLimit,
     q: urlQ,
     sort: urlSort,
-    order: urlOrder as "ASC" | "DESC",
+    order: urlOrder as 'ASC' | 'DESC',
   };
 
   // Fetch shop catalog using React Query
@@ -124,14 +127,15 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
 
   // Load more conditions
   const showLoadMore = !isExpanded && totalProducts > (urlPage - 1) * 48 + 24;
-  const isExpanding = isExpanded && productsQueryResult.isFetching && products.length <= 24;
+  const isExpanding =
+    isExpanded && productsQueryResult.isFetching && products.length <= 24;
   const isFilterFetching = productsQueryResult.isFetching && !isExpanding;
 
   // Debounced search trigger after 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput !== urlQ) {
-        updateQueryParams({ q: searchInput, page: "" }); // Reset page to 1
+        updateQueryParams({ q: searchInput, page: '' }); // Reset page to 1
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -155,7 +159,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
     updateQueryParams({
       sort: params.sort,
       order: params.order,
-      page: "", // Reset page to 1
+      page: '', // Reset page to 1
     });
   };
 
@@ -167,24 +171,24 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
 
   const handlePageChange = (page: number) => {
     updateQueryParams({ page: String(page) });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
   const handleCopyLink = () => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       const shareUrl = window.location.href;
-      navigator.clipboard.writeText(shareUrl)
+      navigator.clipboard
+        .writeText(shareUrl)
         .then(() => {
-          toast.success("Đã sao chép liên kết gian hàng!");
+          toast.success('Đã sao chép liên kết gian hàng!');
         })
         .catch(() => {
-          toast.error("Không thể sao chép liên kết!");
+          toast.error('Không thể sao chép liên kết!');
         });
     }
   };
 
-  const isOwner = user?.role === "seller" && shop?.seller?.id === user?.id;
+  const isOwner = user?.role === 'seller' && shop?.seller?.id === user?.id;
   const sortOptionVal = mapParamsToSortOption(urlSort, urlOrder);
 
   // Shop Not Found or Inactive State (Error 404 handler)
@@ -195,9 +199,12 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
           <AlertCircle className="h-10 w-10" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-foreground">Gian hàng chưa hoạt động</h2>
+          <h2 className="text-2xl font-black text-foreground">
+            Gian hàng chưa hoạt động
+          </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Gian hàng này không tồn tại, đang chờ duyệt hoặc đã bị tạm khóa để bảo trì. Vui lòng quay lại sau!
+            Gian hàng này không tồn tại, đang chờ duyệt hoặc đã bị tạm khóa để
+            bảo trì. Vui lòng quay lại sau!
           </p>
         </div>
         <Link href="/" className="inline-block">
@@ -216,7 +223,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
         {shop?.banner_url ? (
           <Image
             src={shop.banner_url}
-            alt={shop?.name || "Banner"}
+            alt={shop?.name || 'Banner'}
             fill
             priority
             sizes="100vw"
@@ -247,8 +254,8 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               {/* Logo */}
               <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border-4 border-white bg-white dark:bg-zinc-900 shadow-md relative overflow-hidden shrink-0">
                 <Image
-                  src={shop?.logo_url || "/placeholder-logo.png"}
-                  alt={shop?.name || "Logo"}
+                  src={shop?.logo_url || '/placeholder-logo.png'}
+                  alt={shop?.name || 'Logo'}
                   fill
                   sizes="96px"
                   className="object-cover"
@@ -379,17 +386,19 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               <Store className="h-8 w-8" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-extrabold text-foreground">Không tìm thấy sản phẩm</h3>
+              <h3 className="text-base font-extrabold text-foreground">
+                Không tìm thấy sản phẩm
+              </h3>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                 {urlQ
                   ? `Cửa hàng không có sản phẩm nào khớp với từ khóa "${urlQ}". Thử tìm kiếm từ khóa khác.`
-                  : "Cửa hàng này hiện chưa đăng bán sản phẩm nào. Hãy quay lại sau nhé!"}
+                  : 'Cửa hàng này hiện chưa đăng bán sản phẩm nào. Hãy quay lại sau nhé!'}
               </p>
             </div>
             {urlQ && (
               <button
                 type="button"
-                onClick={() => setSearchInput("")}
+                onClick={() => setSearchInput('')}
                 className="text-xs font-bold px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shadow-sm bg-background"
               >
                 Xóa tìm kiếm
@@ -399,10 +408,12 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
         ) : (
           /* Products catalog grid list */
           <div className="space-y-8">
-            <div className={cn(
-              "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-300",
-              isFilterFetching && "opacity-50 pointer-events-none"
-            )}>
+            <div
+              className={cn(
+                'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-300',
+                isFilterFetching && 'opacity-50 pointer-events-none',
+              )}
+            >
               {products.map((prod) => (
                 <ProductCard key={prod.id} product={prod} />
               ))}
@@ -440,7 +451,6 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
             )}
           </div>
         )}
-
       </div>
     </div>
   );

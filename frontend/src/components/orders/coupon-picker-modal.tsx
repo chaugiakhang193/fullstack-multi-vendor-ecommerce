@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useMemo } from "react";
+import React, { useMemo } from 'react';
 import {
   Ticket,
   Loader2,
@@ -9,18 +9,18 @@ import {
   Check,
   AlertCircle,
   X,
-} from "lucide-react";
-import { useWalletCoupons } from "@/hooks/useCoupons";
-import { CouponType, DiscountType } from "@/constants/enum";
-import { formatVnd } from "@/lib/format";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { useWalletCoupons } from '@/hooks/useCoupons';
+import { CouponType, DiscountType } from '@/constants/enum';
+import { formatVnd } from '@/lib/format';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface CouponPickerModalProps {
   open: boolean;
@@ -44,7 +44,10 @@ export function CouponPickerModal({
   onSelect,
 }: CouponPickerModalProps) {
   // Fetch user claimed coupons from wallet
-  const { data: walletEnvelope, isLoading } = useWalletCoupons({ limit: 100 }, open);
+  const { data: walletEnvelope, isLoading } = useWalletCoupons(
+    { limit: 100 },
+    open,
+  );
   const items = walletEnvelope?.data?.items ?? [];
 
   // Filter & sort coupons:
@@ -89,7 +92,10 @@ export function CouponPickerModal({
     onOpenChange(false);
   };
 
-  const titleText = type === CouponType.GLOBAL ? "Chọn Voucher Toàn Sàn" : `Chọn Voucher từ ${shopName || "Cửa hàng"}`;
+  const titleText =
+    type === CouponType.GLOBAL
+      ? 'Chọn Voucher Toàn Sàn'
+      : `Chọn Voucher từ ${shopName || 'Cửa hàng'}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,7 +106,10 @@ export function CouponPickerModal({
             {titleText}
           </DialogTitle>
           <DialogDescription>
-            Đơn hàng hiện tại: <span className="font-extrabold text-violet-600 dark:text-violet-400">{formatVnd.format(totalAmount)}</span>
+            Đơn hàng hiện tại:{' '}
+            <span className="font-extrabold text-violet-600 dark:text-violet-400">
+              {formatVnd.format(totalAmount)}
+            </span>
           </DialogDescription>
         </DialogHeader>
 
@@ -112,7 +121,9 @@ export function CouponPickerModal({
           ) : couponsData.length === 0 ? (
             <div className="py-12 text-center text-zinc-500 space-y-2">
               <Ticket className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mx-auto" />
-              <p className="text-sm font-semibold">Không tìm thấy voucher nào khả dụng trong ví</p>
+              <p className="text-sm font-semibold">
+                Không tìm thấy voucher nào khả dụng trong ví
+              </p>
             </div>
           ) : (
             couponsData.map(({ item, isApplicable }) => {
@@ -124,15 +135,15 @@ export function CouponPickerModal({
               const isSelected = selectedCouponCode === coupon.code;
               const minVal = coupon.min_order_value ?? 0;
               const dateFormatted = coupon.end_date
-                ? `HSD: ${new Date(coupon.end_date).toLocaleDateString("vi-VN")}`
-                : "HSD: Vô hạn";
+                ? `HSD: ${new Date(coupon.end_date).toLocaleDateString('vi-VN')}`
+                : 'HSD: Vô hạn';
 
               return (
                 <div
                   key={item.id}
                   className={`relative bg-card border rounded-lg shadow-xs flex h-24 select-none overflow-hidden transition-all duration-200 border-zinc-200 dark:border-zinc-800 ${
-                    !isApplicable ? "opacity-55 cursor-not-allowed" : ""
-                  } ${isSelected ? "border-violet-500 ring-2 ring-violet-500/10" : ""}`}
+                    !isApplicable ? 'opacity-55 cursor-not-allowed' : ''
+                  } ${isSelected ? 'border-violet-500 ring-2 ring-violet-500/10' : ''}`}
                 >
                   {/* Left part (Discount Info) */}
                   <div className="flex-1 p-3 flex flex-col justify-between min-w-0 bg-gradient-to-br from-violet-50/20 via-background to-background dark:from-violet-950/5 dark:via-background dark:to-background">
@@ -147,7 +158,9 @@ export function CouponPickerModal({
                             <ShoppingBag className="h-2 w-2" /> Shop
                           </span>
                         )}
-                        <span className="text-[9px] text-zinc-400 font-semibold">{dateFormatted}</span>
+                        <span className="text-[9px] text-zinc-400 font-semibold">
+                          {dateFormatted}
+                        </span>
                       </div>
                       <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-100 mt-1 truncate">
                         {discountLabel}
@@ -170,7 +183,9 @@ export function CouponPickerModal({
                     {isSelected ? (
                       <div className="flex flex-col items-center gap-0.5 text-violet-600 dark:text-violet-400">
                         <Check className="h-4 w-4" />
-                        <span className="text-[10px] font-black">Đang chọn</span>
+                        <span className="text-[10px] font-black">
+                          Đang chọn
+                        </span>
                       </div>
                     ) : isApplicable ? (
                       <Button
@@ -183,7 +198,9 @@ export function CouponPickerModal({
                     ) : (
                       <div className="flex flex-col items-center text-center text-rose-500 gap-0.5 p-1">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <span className="text-[8px] font-bold leading-tight">Chưa đủ đk</span>
+                        <span className="text-[8px] font-bold leading-tight">
+                          Chưa đủ đk
+                        </span>
                       </div>
                     )}
                   </div>
@@ -194,7 +211,11 @@ export function CouponPickerModal({
         </div>
 
         <div className="p-4 border-t bg-muted/20 flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+          >
             Đóng
           </Button>
         </div>

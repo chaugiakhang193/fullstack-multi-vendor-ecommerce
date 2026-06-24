@@ -1,8 +1,8 @@
-import { MapPin, Plus, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
-import { USER_LIMITS } from "@/constants/limits.generated";
+import { MapPin, Plus, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
+import { USER_LIMITS } from '@/constants/limits.generated';
 
 interface AddressPickerProps {
   addresses: AddressResponseType[];
@@ -32,7 +32,11 @@ export function AddressPicker({
           size="sm"
           onClick={onAddNew}
           disabled={isLimitReached}
-          title={isLimitReached ? `Tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ` : undefined}
+          title={
+            isLimitReached
+              ? `Tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ`
+              : undefined
+          }
         >
           <Plus className="h-4 w-4" /> Thêm địa chỉ
         </Button>
@@ -52,10 +56,10 @@ export function AddressPicker({
               onSelect(addressId);
             };
             const cardClassName = cn(
-              "text-left rounded-xl border p-4 transition-colors relative",
+              'text-left rounded-xl border p-4 transition-colors relative',
               isSelected
-                ? "border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 ring-1 ring-violet-500/30"
-                : "border-border hover:border-violet-300 dark:hover:border-violet-800",
+                ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 ring-1 ring-violet-500/30'
+                : 'border-border hover:border-violet-300 dark:hover:border-violet-800',
             );
             return (
               <button
@@ -79,7 +83,9 @@ export function AddressPicker({
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">{addr.phone}</div>
+                <div className="text-sm text-muted-foreground">
+                  {addr.phone}
+                </div>
                 <div className="text-sm text-foreground/80 mt-1 leading-relaxed">
                   {addr.address_line}
                 </div>

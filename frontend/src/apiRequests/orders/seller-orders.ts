@@ -1,5 +1,5 @@
-import http from "@/lib/http";
-import { buildQuery } from "@/lib/utils";
+import http from '@/lib/http';
+import { buildQuery } from '@/lib/utils';
 import {
   SellerOrderList,
   SellerOrder,
@@ -8,7 +8,7 @@ import {
   SellerOrderListEnvelope,
   SellerOrderEnvelope,
   UpdateOrderStatusEnvelope,
-} from "@/schemaValidations/orders/orders.schema";
+} from '@/schemaValidations/orders/orders.schema';
 
 // Seller orders trả thẳng entity SubOrder thô → cột `decimal` của TypeORM về dạng
 // STRING. `.parse()` để z.coerce.number() ép về number thật (nếu không, phép cộng
@@ -18,13 +18,19 @@ const sellerOrderApiRequest = {
   getSellerOrders: (query?: OrderListQueryType) =>
     http
       .get<SellerOrderListEnvelope>(`/seller/orders${buildQuery(query)}`)
-      .then((res) => ({ message: res.message, data: SellerOrderList.parse(res.data) })),
+      .then((res) => ({
+        message: res.message,
+        data: SellerOrderList.parse(res.data),
+      })),
 
   // GET /seller/orders/:id (Seller)
   getSellerOrderDetail: (id: string) =>
     http
       .get<SellerOrderEnvelope>(`/seller/orders/${id}`)
-      .then((res) => ({ message: res.message, data: SellerOrder.parse(res.data) })),
+      .then((res) => ({
+        message: res.message,
+        data: SellerOrder.parse(res.data),
+      })),
 
   // PATCH /seller/orders/:id/status (Seller) — state machine.
   updateSellerOrderStatus: (id: string, body: UpdateOrderStatusBodyType) =>

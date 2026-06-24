@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Store,
   LayoutDashboard,
@@ -17,25 +17,25 @@ import {
   ExternalLink,
   Ticket,
   Star,
-} from "lucide-react";
-import { NotificationBell } from "@/components/notifications/notification-bell";
-import { useAuthStore } from "@/store/useAuthStore";
-import authApiRequest from "@/apiRequests/auth/auth";
-import sellerShopsApiRequest from "@/apiRequests/shops/seller-shops";
-import { tabId } from "@/lib/utils";
-import { UserRole, AccountStatus } from "@/constants/enum";
-import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
-import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useAuthStore } from '@/store/useAuthStore';
+import authApiRequest from '@/apiRequests/auth/auth';
+import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
+import { tabId } from '@/lib/utils';
+import { UserRole, AccountStatus } from '@/constants/enum';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
+import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle, Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SellerLayout({
   children,
@@ -65,9 +65,9 @@ export default function SellerLayout({
         }));
       }
     };
-    window.addEventListener("update-breadcrumb", handleCustomBreadcrumb);
+    window.addEventListener('update-breadcrumb', handleCustomBreadcrumb);
     return () => {
-      window.removeEventListener("update-breadcrumb", handleCustomBreadcrumb);
+      window.removeEventListener('update-breadcrumb', handleCustomBreadcrumb);
     };
   }, []);
 
@@ -76,9 +76,9 @@ export default function SellerLayout({
     const checkShopStatus = async () => {
       // Bỏ qua check nếu đang ở trang settings, setup hoặc rejected
       if (
-        pathname === "/seller/settings" ||
-        pathname === "/seller/setup" ||
-        pathname === "/seller/rejected"
+        pathname === '/seller/settings' ||
+        pathname === '/seller/setup' ||
+        pathname === '/seller/rejected'
       ) {
         setIsCheckingShop(false);
         return;
@@ -100,10 +100,10 @@ export default function SellerLayout({
           if (
             user.status === AccountStatus.PENDING_APPROVAL &&
             shop &&
-            pathname !== "/seller/pending"
+            pathname !== '/seller/pending'
           ) {
             setHasRedirected(true);
-            router.push("/seller/pending");
+            router.push('/seller/pending');
             return;
           }
 
@@ -112,14 +112,14 @@ export default function SellerLayout({
           //  Nếu 404 (không có shop) → redirect /seller/setup NGAY
           if (error?.status === 404) {
             // Nếu đang ở /seller/pending mà không có shop → redirect setup với toast
-            if (pathname === "/seller/pending") {
-              toast.info("Vui lòng tạo cửa hàng trước khi tiếp tục");
+            if (pathname === '/seller/pending') {
+              toast.info('Vui lòng tạo cửa hàng trước khi tiếp tục');
             }
             setHasRedirected(true);
-            router.push("/seller/setup");
+            router.push('/seller/setup');
             return;
           }
-          console.error("Error checking shop status:", error);
+          console.error('Error checking shop status:', error);
         }
       }
 
@@ -154,22 +154,22 @@ export default function SellerLayout({
 
   useEffect(() => {
     const isSetupOrPendingPage =
-      pathname === "/seller/setup" ||
-      pathname === "/seller/pending" ||
-      pathname === "/seller/rejected";
+      pathname === '/seller/setup' ||
+      pathname === '/seller/pending' ||
+      pathname === '/seller/rejected';
 
     if (!isSetupOrPendingPage) {
       // Vô hiệu hóa thanh scroll của toàn trang (window) khi ở Seller Dashboard
-      document.documentElement.classList.add("overflow-hidden", "h-screen");
-      document.body.classList.add("overflow-hidden", "h-screen");
+      document.documentElement.classList.add('overflow-hidden', 'h-screen');
+      document.body.classList.add('overflow-hidden', 'h-screen');
     } else {
-      document.documentElement.classList.remove("overflow-hidden", "h-screen");
-      document.body.classList.remove("overflow-hidden", "h-screen");
+      document.documentElement.classList.remove('overflow-hidden', 'h-screen');
+      document.body.classList.remove('overflow-hidden', 'h-screen');
     }
 
     return () => {
-      document.documentElement.classList.remove("overflow-hidden", "h-screen");
-      document.body.classList.remove("overflow-hidden", "h-screen");
+      document.documentElement.classList.remove('overflow-hidden', 'h-screen');
+      document.body.classList.remove('overflow-hidden', 'h-screen');
     };
   }, [pathname]);
 
@@ -178,17 +178,20 @@ export default function SellerLayout({
     try {
       await authApiRequest.logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error('Lỗi đăng xuất:', error);
     } finally {
       logout();
       // Đồng bộ đăng xuất sang các tab khác
       const channel = new BroadcastChannel(BROADCAST_CHANNELS.AUTH);
-      channel.postMessage({ type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS, senderTabId: tabId });
+      channel.postMessage({
+        type: BROADCAST_EVENTS.AUTH_LOGOUT_SUCCESS,
+        senderTabId: tabId,
+      });
       channel.close();
 
-      toast.success("Đăng xuất thành công");
+      toast.success('Đăng xuất thành công');
       setIsLogoutConfirmOpen(false);
-      router.push("/login");
+      router.push('/login');
       router.refresh();
       setIsLoggingOut(false);
     }
@@ -196,34 +199,34 @@ export default function SellerLayout({
 
   const menuItems = [
     {
-      label: "Tổng quan",
-      href: "/seller",
+      label: 'Tổng quan',
+      href: '/seller',
       icon: <LayoutDashboard className="h-5 w-5" />,
       exact: true,
     },
     {
-      label: "Sản phẩm",
-      href: "/seller/products",
+      label: 'Sản phẩm',
+      href: '/seller/products',
       icon: <Package className="h-5 w-5" />,
     },
     {
-      label: "Đơn hàng",
-      href: "/seller/orders",
+      label: 'Đơn hàng',
+      href: '/seller/orders',
       icon: <ShoppingCart className="h-5 w-5" />,
     },
     {
-      label: "Khuyến mãi",
-      href: "/seller/coupons",
+      label: 'Khuyến mãi',
+      href: '/seller/coupons',
       icon: <Ticket className="h-5 w-5" />,
     },
     {
-      label: "Đánh giá",
-      href: "/seller/reviews",
+      label: 'Đánh giá',
+      href: '/seller/reviews',
       icon: <Star className="h-5 w-5" />,
     },
     {
-      label: "Cài đặt",
-      href: "/seller/settings",
+      label: 'Cài đặt',
+      href: '/seller/settings',
       icon: <Settings className="h-5 w-5" />,
     },
   ];
@@ -238,22 +241,22 @@ export default function SellerLayout({
 
   // Helper to render dynamic breadcrumbs
   const getBreadcrumbs = () => {
-    const paths = pathname.split("/").filter(Boolean);
+    const paths = pathname.split('/').filter(Boolean);
     const breadcrumbs = [];
 
     // Map route keys to Vietnamese titles
     const routeMap: Record<string, string> = {
-      seller: "Kênh Người Bán",
-      products: "Sản phẩm",
-      orders: "Đơn hàng",
-      coupons: "Khuyến mãi",
-      reviews: "Đánh giá",
-      settings: "Cài đặt",
-      create: "Tạo sản phẩm mới",
-      edit: "Sửa thông tin",
+      seller: 'Kênh Người Bán',
+      products: 'Sản phẩm',
+      orders: 'Đơn hàng',
+      coupons: 'Khuyến mãi',
+      reviews: 'Đánh giá',
+      settings: 'Cài đặt',
+      create: 'Tạo sản phẩm mới',
+      edit: 'Sửa thông tin',
     };
 
-    let currentHref = "";
+    let currentHref = '';
     const isUUID = (str: string) =>
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
         str,
@@ -268,7 +271,7 @@ export default function SellerLayout({
 
       if (isUUID(segment)) {
         isClickable = false; // UUID không có trang riêng để click vào
-        label = customLabels[segment] || "Chi tiết";
+        label = customLabels[segment] || 'Chi tiết';
       }
 
       breadcrumbs.push({
@@ -304,9 +307,9 @@ export default function SellerLayout({
   }
 
   if (
-    pathname === "/seller/pending" ||
-    pathname === "/seller/setup" ||
-    pathname === "/seller/rejected"
+    pathname === '/seller/pending' ||
+    pathname === '/seller/setup' ||
+    pathname === '/seller/rejected'
   ) {
     return <>{children}</>;
   }
@@ -338,17 +341,17 @@ export default function SellerLayout({
                 href={item.href}
                 className={`flex items-center px-5 py-4 rounded-xl text-base font-bold transition-all duration-200 relative group ${
                   active
-                    ? "bg-violet-600/10 text-violet-400"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+                    ? 'bg-violet-600/10 text-violet-400'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
                 }`}
               >
                 {active && (
                   <span className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-violet-500 rounded-r-full" />
                 )}
                 <span
-                  className={`mr-3.5 transition-transform duration-200 group-hover:scale-110 ${active ? "text-violet-400" : "text-zinc-400"}`}
+                  className={`mr-3.5 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-violet-400' : 'text-zinc-400'}`}
                 >
-                  {React.cloneElement(item.icon, { className: "h-6 w-6" })}
+                  {React.cloneElement(item.icon, { className: 'h-6 w-6' })}
                 </span>
                 {item.label}
               </Link>
@@ -363,7 +366,7 @@ export default function SellerLayout({
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url}
-                  alt={user?.username || ""}
+                  alt={user?.username || ''}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -374,10 +377,12 @@ export default function SellerLayout({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-base font-extrabold text-white truncate leading-none mb-1.5">
-                {user?.username || "Người bán"}
+                {user?.username || 'Người bán'}
               </p>
               <span className="inline-block px-2 py-0.5 text-xs font-black tracking-wide uppercase bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
-                {user?.status === AccountStatus.ACTIVE ? "Đã duyệt" : "Chờ duyệt"}
+                {user?.status === AccountStatus.ACTIVE
+                  ? 'Đã duyệt'
+                  : 'Chờ duyệt'}
               </span>
             </div>
           </div>
@@ -435,12 +440,12 @@ export default function SellerLayout({
                     onClick={() => setIsMobileOpen(false)}
                     className={`flex items-center px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                       active
-                        ? "bg-violet-600/10 text-violet-400"
-                        : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+                        ? 'bg-violet-600/10 text-violet-400'
+                        : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
                     }`}
                   >
                     <span
-                      className={`mr-3 ${active ? "text-violet-400" : "text-zinc-400"}`}
+                      className={`mr-3 ${active ? 'text-violet-400' : 'text-zinc-400'}`}
                     >
                       {item.icon}
                     </span>
@@ -457,7 +462,7 @@ export default function SellerLayout({
                   {user?.avatar_url ? (
                     <img
                       src={user.avatar_url}
-                      alt={user?.username || ""}
+                      alt={user?.username || ''}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -468,10 +473,12 @@ export default function SellerLayout({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white leading-none mb-1">
-                    {user?.username || "Người bán"}
+                    {user?.username || 'Người bán'}
                   </p>
                   <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
-                    {user?.status === AccountStatus.ACTIVE ? "Đã duyệt" : "Chờ duyệt"}
+                    {user?.status === AccountStatus.ACTIVE
+                      ? 'Đã duyệt'
+                      : 'Chờ duyệt'}
                   </span>
                 </div>
               </div>
@@ -518,8 +525,8 @@ export default function SellerLayout({
                     <span
                       className={
                         crumb.isLast
-                          ? "text-foreground font-black"
-                          : "text-muted-foreground"
+                          ? 'text-foreground font-black'
+                          : 'text-muted-foreground'
                       }
                     >
                       {crumb.label}
@@ -538,7 +545,7 @@ export default function SellerLayout({
           <div className="flex items-center space-x-4">
             {/* View Shop Link — mở gian hàng công khai của chính seller ở tab mới */}
             <Link
-              href={shopId ? `/shops/${shopId}` : "/"}
+              href={shopId ? `/shops/${shopId}` : '/'}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden lg:flex items-center gap-2 text-base font-bold px-5 h-16 rounded-2xl border-2 hover:bg-muted transition-all duration-200"
@@ -562,7 +569,7 @@ export default function SellerLayout({
                   {user?.avatar_url ? (
                     <img
                       src={user.avatar_url}
-                      alt={user?.username || ""}
+                      alt={user?.username || ''}
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -572,7 +579,7 @@ export default function SellerLayout({
                   )}
                 </div>
                 <span className="text-base font-bold hidden sm:inline-block pr-1.5">
-                  {user?.username || "Người bán"}
+                  {user?.username || 'Người bán'}
                 </span>
               </button>
 
@@ -659,7 +666,7 @@ export default function SellerLayout({
                   Đang đăng xuất...
                 </>
               ) : (
-                "Đăng xuất"
+                'Đăng xuất'
               )}
             </Button>
             <Button
