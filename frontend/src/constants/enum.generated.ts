@@ -62,6 +62,8 @@ export enum NotificationType {
   ORDER_STATUS_CHANGED = "order.status_changed",
   REVIEW_CREATED = "review.created",
   REVIEW_REPLIED = "review.replied",
+  PAYOUT_CREATED = "payout.created",
+  PAYOUT_STATUS_CHANGED = "payout.status_changed",
 }
 
 export enum CartItemUnavailableReason {
