@@ -9,10 +9,12 @@ import {
   Min,
   Max,
   ArrayMaxSize,
+  MaxLength,
 } from 'class-validator';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
+import { PRODUCT_LIMITS } from '@/common/limits';
 
 export class CreateProductVariantDto {
   @ApiProperty({
@@ -21,6 +23,9 @@ export class CreateProductVariantDto {
   })
   @IsNotEmpty({ message: 'Tên biến thể không được để trống' })
   @IsString({ message: 'Tên biến thể phải là chuỗi ký tự' })
+  @MaxLength(PRODUCT_LIMITS.VARIANT.NAME_MAX_LENGTH, {
+    message: `Tên biến thể tối đa ${PRODUCT_LIMITS.VARIANT.NAME_MAX_LENGTH} ký tự`,
+  })
   name: string;
 
   @ApiProperty({ example: 10000, description: 'Giá cộng thêm so với giá gốc' })
@@ -69,6 +74,9 @@ export class CreateProductDto {
   @ApiProperty({ example: 'Áo thun Nam', description: 'Tên sản phẩm' })
   @IsNotEmpty({ message: 'Tên sản phẩm không được để trống' })
   @IsString({ message: 'Tên sản phẩm phải là chuỗi ký tự' })
+  @MaxLength(PRODUCT_LIMITS.NAME_MAX_LENGTH, {
+    message: `Tên sản phẩm tối đa ${PRODUCT_LIMITS.NAME_MAX_LENGTH} ký tự`,
+  })
   name: string;
 
   @ApiProperty({
