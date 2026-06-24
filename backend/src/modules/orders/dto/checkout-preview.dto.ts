@@ -10,6 +10,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { ShopCouponDto } from '@/modules/orders/dto/create-order.dto';
+import { ORDER_LIMITS } from '@/common/limits';
 
 // Input cho POST /orders/checkout/preview — không cần payment_method (chỉ ước tính).
 export class CheckoutPreviewDto {
@@ -28,7 +29,7 @@ export class CheckoutPreviewDto {
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(ORDER_LIMITS.MAX_SHOP_COUPONS)
   @ValidateNested({ each: true })
   @Type(() => ShopCouponDto)
   shop_coupons?: ShopCouponDto[];

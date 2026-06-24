@@ -12,6 +12,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // Enums
 import { PaymentMethod } from '@/common/enums';
+import { ORDER_LIMITS } from '@/common/limits';
 
 /**
  * ShopCouponDto — Mã giảm giá áp dụng theo từng Shop.
@@ -77,7 +78,7 @@ export class CreateOrderDto {
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(ORDER_LIMITS.MAX_SHOP_COUPONS)
   @ValidateNested({ each: true })
   @Type(() => ShopCouponDto)
   shop_coupons?: ShopCouponDto[];

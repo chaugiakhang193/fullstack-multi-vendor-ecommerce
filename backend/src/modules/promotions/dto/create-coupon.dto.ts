@@ -1,12 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsString, IsEnum, IsOptional, IsNumber, Min, IsInt, IsDateString,
+  IsString, IsEnum, IsOptional, IsNumber, Min, IsInt, IsDateString, Length,
 } from 'class-validator';
 import { DiscountType } from '@/common/enums';
+import { COUPON_LIMITS } from '@/common/limits';
 
 export class CreateCouponDto {
   @ApiProperty({ example: 'SALE50' })
   @IsString()
+  @Length(COUPON_LIMITS.CODE_MIN_LENGTH, COUPON_LIMITS.CODE_MAX_LENGTH, {
+    message: `Mã coupon phải từ ${COUPON_LIMITS.CODE_MIN_LENGTH} đến ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự`,
+  })
   code: string;
 
   @ApiProperty({ enum: DiscountType })
