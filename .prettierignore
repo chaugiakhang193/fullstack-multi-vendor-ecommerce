@@ -1,0 +1,10 @@
+# Root-level ignore dùng cho lint-staged (prettier chạy từ gốc repo).
+# Mỗi package còn .prettierignore riêng cho lệnh format cục bộ.
+**/node_modules/
+**/.next/
+**/dist/
+**/package-lock.json
+
+# Auto-generated — KHÔNG format (script sinh ra, prettier sẽ phá CI drift guard)
+frontend/src/constants/*.generated.ts
+frontend/src/lib/api/api-schema.d.ts

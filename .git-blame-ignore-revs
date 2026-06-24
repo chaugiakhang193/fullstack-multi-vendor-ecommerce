@@ -1,0 +1,6 @@
+# Các commit chỉ reformat (prettier) — bỏ qua khi git blame để giữ blame sạch.
+# Bật cục bộ: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub tự động dùng file này.)
+
+# 201. chore(frontend): adopt prettier and format codebase
+4dd42412d830c5911b64c0d4294fc4e9bd11a325

@@ -1,0 +1,9 @@
+# Chặn push nếu file generated lệch với backend (mirror CI drift guard).
+cd frontend || exit 1
+npm run gen-enums >/dev/null 2>&1
+npm run gen-limits >/dev/null 2>&1
+if ! git diff --quiet src/constants/enum.generated.ts src/constants/limits.generated.ts; then
+  echo "❌ enum/limits generated lệch với backend. Đã regen — xem lại & commit lại:"
+  git --no-pager diff --stat src/constants/enum.generated.ts src/constants/limits.generated.ts
+  exit 1
+fi
