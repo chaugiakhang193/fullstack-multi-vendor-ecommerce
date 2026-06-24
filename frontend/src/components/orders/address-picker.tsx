@@ -2,6 +2,7 @@ import { MapPin, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
+import { USER_LIMITS } from "@/constants/limits.generated";
 
 interface AddressPickerProps {
   addresses: AddressResponseType[];
@@ -17,6 +18,7 @@ export function AddressPicker({
   onAddNew,
 }: AddressPickerProps) {
   const hasNoAddress = addresses.length === 0;
+  const isLimitReached = addresses.length >= USER_LIMITS.MAX_ADDRESSES;
 
   return (
     <section className="bg-card border rounded-xl p-6 shadow-xs space-y-4">
@@ -25,7 +27,13 @@ export function AddressPicker({
           <MapPin className="h-5 w-5 text-violet-600 dark:text-violet-400" />
           Địa chỉ giao hàng
         </h2>
-        <Button variant="outline" size="sm" onClick={onAddNew}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAddNew}
+          disabled={isLimitReached}
+          title={isLimitReached ? `Tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ` : undefined}
+        >
           <Plus className="h-4 w-4" /> Thêm địa chỉ
         </Button>
       </div>

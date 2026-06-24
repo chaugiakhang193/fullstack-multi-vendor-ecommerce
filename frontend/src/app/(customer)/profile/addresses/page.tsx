@@ -11,16 +11,20 @@ import { AddressFormModal } from "@/components/profile/address-form-modal";
 
 // Hooks
 import { useAddresses } from "@/hooks/useAddresses";
+import { USER_LIMITS } from "@/constants/limits.generated";
 
 // Types
 import { AddressResponseType } from "@/schemaValidations/users/addresses.schema";
 
 export default function AddressesPage() {
-  const { addresses, isLoading } = useAddresses();
+  const { addresses = [], isLoading } = useAddresses();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AddressResponseType | null>(null);
 
+  const isLimitReached = addresses.length >= USER_LIMITS.MAX_ADDRESSES;
+
   const openCreate = () => {
+    if (isLimitReached) return;
     setEditing(null);
     const openFlag = true;
     setModalOpen(openFlag);
@@ -46,7 +50,12 @@ export default function AddressesPage() {
           Sổ địa chỉ
         </h1>
         {hasAddresses && (
-          <Button onClick={openCreate} className="h-10 px-5 text-sm font-bold shadow-md shadow-violet-500/10">
+          <Button
+            onClick={openCreate}
+            disabled={isLimitReached}
+            className="h-10 px-5 text-sm font-bold shadow-md shadow-violet-500/10"
+            title={isLimitReached ? `Bạn đã đạt giới hạn tối đa ${USER_LIMITS.MAX_ADDRESSES} địa chỉ` : undefined}
+          >
             <Plus className="w-4 h-4 mr-1.5" /> Thêm địa chỉ
           </Button>
         )}

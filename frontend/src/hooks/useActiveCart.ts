@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "@/constants/query-keys";
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from "@/constants/broadcast";
+import { CART_LIMITS } from "@/constants/limits.generated";
 
 // Stores
 import { useCartStore, CartItem } from "@/store/useCartStore";
@@ -272,6 +273,24 @@ export function useActiveCart() {
   const addItem = useCallback(
     async (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
       const targetQty = item.quantity ?? 1;
+
+      const distinctCount = isAuthenticated
+        ? (cart.items_by_shop?.reduce((acc, s) => acc + (s.items?.length || 0), 0) ?? 0)
+        : guestItems.length;
+
+      const isAlreadyInCart = isAuthenticated
+        ? cart.items_by_shop?.some(s =>
+            s.items?.some(i =>
+              i.product.id === item.productId &&
+              (i.variant?.id || null) === (item.variantId || null)
+            )
+          )
+        : guestItems.some(i => i.productId === item.productId && i.variantId === item.variantId);
+
+      if (!isAlreadyInCart && distinctCount >= CART_LIMITS.MAX_DISTINCT_ITEMS) {
+        toast.error(`Giỏ hàng của bạn đã đạt giới hạn tối đa ${CART_LIMITS.MAX_DISTINCT_ITEMS} sản phẩm khác nhau. Vui lòng thanh toán hoặc xóa bớt để thêm mới.`);
+        return;
+      }
 
       if (!isAuthenticated) {
         // Guest: save to Zustand
