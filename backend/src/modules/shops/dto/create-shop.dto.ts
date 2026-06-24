@@ -5,6 +5,7 @@ import {
   IsArray,
   IsUUID,
   MinLength,
+  MaxLength,
   ArrayNotEmpty,
   IsUrl,
   IsNumber,
@@ -12,21 +13,37 @@ import {
 } from 'class-validator';
 import { Transform, Type, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { BANK_LIMITS, SHOP_LIMITS } from '@/common/limits';
 
 export class BankAccountInfoDto {
   @ApiProperty({ example: 'Vietcombank', description: 'Tên ngân hàng' })
   @IsNotEmpty({ message: 'Tên ngân hàng không được để trống' })
   @IsString({ message: 'Tên ngân hàng phải là chuỗi ký tự' })
+  @MinLength(BANK_LIMITS.BANK_NAME_MIN_LENGTH, {
+    message: `Tên ngân hàng phải có ít nhất ${BANK_LIMITS.BANK_NAME_MIN_LENGTH} ký tự`,
+  })
+  @MaxLength(BANK_LIMITS.BANK_NAME_MAX_LENGTH, {
+    message: `Tên ngân hàng tối đa ${BANK_LIMITS.BANK_NAME_MAX_LENGTH} ký tự`,
+  })
   bank_name: string;
 
   @ApiProperty({ example: '123456789', description: 'Số tài khoản' })
   @IsNotEmpty({ message: 'Số tài khoản không được để trống' })
   @IsString({ message: 'Số tài khoản phải là chuỗi ký tự' })
+  @MinLength(BANK_LIMITS.ACCOUNT_NUMBER_MIN_LENGTH, {
+    message: `Số tài khoản phải có ít nhất ${BANK_LIMITS.ACCOUNT_NUMBER_MIN_LENGTH} ký tự`,
+  })
+  @MaxLength(BANK_LIMITS.ACCOUNT_NUMBER_MAX_LENGTH, {
+    message: `Số tài khoản tối đa ${BANK_LIMITS.ACCOUNT_NUMBER_MAX_LENGTH} ký tự`,
+  })
   account_number: string;
 
   @ApiProperty({ example: 'NGUYEN VAN A', description: 'Tên chủ tài khoản' })
   @IsNotEmpty({ message: 'Tên chủ tài khoản không được để trống' })
   @IsString({ message: 'Tên chủ tài khoản phải là chuỗi ký tự' })
+  @MaxLength(BANK_LIMITS.ACCOUNT_HOLDER_MAX_LENGTH, {
+    message: `Tên chủ tài khoản tối đa ${BANK_LIMITS.ACCOUNT_HOLDER_MAX_LENGTH} ký tự`,
+  })
   account_holder: string;
 }
 
@@ -38,6 +55,9 @@ export class CreateShopDto {
   @IsNotEmpty({ message: 'Tên gian hàng không được để trống' })
   @IsString({ message: 'Tên gian hàng phải là chuỗi ký tự' })
   @MinLength(3, { message: 'Tên gian hàng phải có ít nhất 3 ký tự' })
+  @MaxLength(SHOP_LIMITS.NAME_MAX_LENGTH, {
+    message: `Tên gian hàng tối đa ${SHOP_LIMITS.NAME_MAX_LENGTH} ký tự`,
+  })
   name: string;
 
   @ApiProperty({
@@ -47,6 +67,9 @@ export class CreateShopDto {
   })
   @IsOptional()
   @IsString({ message: 'Mô tả phải là chuỗi ký tự' })
+  @MaxLength(SHOP_LIMITS.DESCRIPTION_MAX_LENGTH, {
+    message: `Mô tả tối đa ${SHOP_LIMITS.DESCRIPTION_MAX_LENGTH} ký tự`,
+  })
   description?: string;
 
   @ApiProperty({
@@ -55,6 +78,9 @@ export class CreateShopDto {
   })
   @IsNotEmpty({ message: 'Địa chỉ lấy hàng không được để trống' })
   @IsString({ message: 'Địa chỉ phải là chuỗi ký tự' })
+  @MinLength(SHOP_LIMITS.PICKUP_ADDRESS_MIN_LENGTH, {
+    message: `Địa chỉ lấy hàng phải có ít nhất ${SHOP_LIMITS.PICKUP_ADDRESS_MIN_LENGTH} ký tự`,
+  })
   pickup_address: string;
 
   @ApiProperty({
