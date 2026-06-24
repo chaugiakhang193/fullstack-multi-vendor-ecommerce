@@ -1,3 +1,5 @@
+import { SHIPPING_LIMITS } from '@/common/limits';
+
 /**
  * Shipping Fee Constants
  * Used by the Haversine Shipping Calculator to determine shipping charges dynamically.
@@ -25,7 +27,7 @@ export const SHIPPING_CONSTANTS = {
    * Threshold in VND above which shipping is free per shop.
    * If the shop's subtotal is >= 500,000 VND, the shipping fee is waived.
    */
-  FREE_SHIPPING_THRESHOLD: 500000,
+  FREE_SHIPPING_THRESHOLD: SHIPPING_LIMITS.FREE_SHIPPING_THRESHOLD,
 
   /**
    * Maximum shipping fee ceiling (VND) to prevent excessive shipping costs.

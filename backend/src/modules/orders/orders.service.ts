@@ -75,6 +75,7 @@ import {
 import { SYSTEM_CONSTANTS } from '@/common/constants/system.constant';
 import { SellerOrderQueryDto } from '@/modules/orders/dto/seller-order-query.dto';
 import { CheckoutPreviewDto } from '@/modules/orders/dto/checkout-preview.dto';
+import { SHIPPING_LIMITS } from '@/common/limits';
 import {
   CheckoutPreviewResponseDto,
   PreviewShopDto,
@@ -87,7 +88,7 @@ function round2(value: number): number {
 }
 
 // Ngưỡng freeship per-shop (khớp HaversineShippingCalculator) + cửa sổ gợi ý mua thêm.
-const FREE_SHIPPING_THRESHOLD = 500000;
+const FREE_SHIPPING_THRESHOLD = SHIPPING_LIMITS.FREE_SHIPPING_THRESHOLD;
 const FREESHIP_UPSELL_WINDOW = 100000;
 
 // Tồn kho ≤ ngưỡng này thì preview hiện cảnh báo "Chỉ còn X sản phẩm".
