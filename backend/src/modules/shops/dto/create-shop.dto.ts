@@ -10,6 +10,7 @@ import {
   IsUrl,
   IsNumber,
   ValidateNested,
+  Matches,
 } from 'class-validator';
 import { Transform, Type, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -35,6 +36,9 @@ export class BankAccountInfoDto {
   })
   @MaxLength(BANK_LIMITS.ACCOUNT_NUMBER_MAX_LENGTH, {
     message: `Số tài khoản tối đa ${BANK_LIMITS.ACCOUNT_NUMBER_MAX_LENGTH} ký tự`,
+  })
+  @Matches(/^\d+$/, {
+    message: 'Số tài khoản chỉ được phép chứa các chữ số',
   })
   account_number: string;
 

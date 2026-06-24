@@ -58,7 +58,8 @@ export const CouponBodyObject = z.object({
   code: z
     .string()
     .min(COUPON_LIMITS.CODE_MIN_LENGTH, `Mã giảm giá phải có tối thiểu ${COUPON_LIMITS.CODE_MIN_LENGTH} ký tự.`)
-    .max(COUPON_LIMITS.CODE_MAX_LENGTH, `Mã giảm giá tối đa ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự.`),
+    .max(COUPON_LIMITS.CODE_MAX_LENGTH, `Mã giảm giá tối đa ${COUPON_LIMITS.CODE_MAX_LENGTH} ký tự.`)
+    .regex(/^[A-Z0-9]+$/, "Mã giảm giá chỉ được phép chứa các chữ cái in hoa và chữ số."),
   discount_type: z.nativeEnum(DiscountType),
   discount_value: z.coerce.number().positive("Giá trị giảm phải lớn hơn 0"),
   min_order_value: optionalNumber(z.coerce.number().nonnegative("Giá trị đơn hàng tối thiểu không được âm").optional()),
