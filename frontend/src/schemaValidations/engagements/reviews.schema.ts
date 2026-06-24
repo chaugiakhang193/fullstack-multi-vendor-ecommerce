@@ -1,5 +1,5 @@
 import z from "zod";
-import { REVIEW_LIMITS } from "@/constants/limits";
+import { REVIEW_LIMITS } from "@/constants/limits.generated";
 import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 

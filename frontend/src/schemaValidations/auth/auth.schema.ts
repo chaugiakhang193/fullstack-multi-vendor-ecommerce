@@ -1,6 +1,6 @@
 import z from "zod";
 import { UserRole, AccountStatus } from "@/constants/enum";
-import { AUTH_LIMITS } from "@/constants/limits";
+import { AUTH_LIMITS } from "@/constants/limits.generated";
 import type { components } from "@/lib/api/api-schema";
 import type { ApiEnvelope } from "@/lib/http";
 

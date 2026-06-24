@@ -1,6 +1,6 @@
 import z from "zod";
 import { CouponType, DiscountType } from "@/constants/enum";
-import { COUPON_LIMITS } from "@/constants/limits";
+import { COUPON_LIMITS } from "@/constants/limits.generated";
 import type { ApiEnvelope } from "@/lib/http";
 import type { components } from "@/lib/api/api-schema";
 

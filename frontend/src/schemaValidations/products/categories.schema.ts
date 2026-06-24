@@ -1,5 +1,5 @@
 import z from "zod";
-import { CATEGORY_LIMITS } from "@/constants/limits";
+import { CATEGORY_LIMITS } from "@/constants/limits.generated";
 import type { components } from "@/lib/api/api-schema";
 import type { ApiEnvelope } from "@/lib/http";
 

@@ -1,5 +1,5 @@
 import z from "zod";
-import { ORDER_LIMITS } from "@/constants/limits";
+import { ORDER_LIMITS } from "@/constants/limits.generated";
 import type { components } from "@/lib/api/api-schema";
 import type { ApiEnvelope } from "@/lib/http";
 

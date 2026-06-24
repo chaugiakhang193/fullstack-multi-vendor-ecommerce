@@ -1,5 +1,5 @@
 import z from "zod";
-import { USER_LIMITS } from "@/constants/limits";
+import { USER_LIMITS } from "@/constants/limits.generated";
 import type { components } from "@/lib/api/api-schema";
 
 type UpdateProfileDto = components["schemas"]["UpdateProfileDto"];

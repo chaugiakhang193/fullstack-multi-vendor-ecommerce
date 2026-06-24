@@ -8,18 +8,30 @@ export const AUTH_LIMITS = {
 } as const;
 
 export const PRODUCT_LIMITS = {
+  NAME_MIN_LENGTH: 1,
   NAME_MAX_LENGTH: 200,
+  MIN_PRICE: 0,
+  MIN_WEIGHT: 1,
+  MIN_DIMENSION: 1,
+  MIN_STOCK: 0,
   MAX_VARIANTS: 30,
   VARIANT: {
+    NAME_MIN_LENGTH: 1,
     NAME_MAX_LENGTH: 100,
+    MIN_PRICE: 0,
+    MIN_STOCK: 0,
+    MIN_IMAGES: 1,
     MAX_IMAGES: 3,
   },
 } as const;
 
 export const SHOP_LIMITS = {
+  NAME_MIN_LENGTH: 3,
   NAME_MAX_LENGTH: 100,
   DESCRIPTION_MAX_LENGTH: 1000,
   PICKUP_ADDRESS_MIN_LENGTH: 10,
+  MIN_CATEGORIES: 1,
+  REJECT_REASON_MIN_LENGTH: 5,
   GALLERY: {
     MAX_IMAGES: 3,
   },
@@ -39,9 +51,9 @@ export const COUPON_LIMITS = {
 } as const;
 
 export const REVIEW_LIMITS = {
-  RATING_MIN: 1,
-  RATING_MAX: 5,
-  CONTENT_MAX_LENGTH: 2000,
+  MIN_RATING: 1,
+  MAX_RATING: 5,
+  COMMENT_MAX_LENGTH: 2000,
   REPLY_MIN_LENGTH: 1,
   REPLY_MAX_LENGTH: 2000,
 } as const;
@@ -54,6 +66,7 @@ export const CART_LIMITS = {
 
 export const USER_LIMITS = {
   MAX_ADDRESSES: 10,
+  FULL_NAME_MAX_LENGTH: 50,
 } as const;
 
 export const ORDER_LIMITS = {
@@ -66,4 +79,9 @@ export const PAYOUT_LIMITS = {
 
 export const SHIPPING_LIMITS = {
   FREE_SHIPPING_THRESHOLD: 500000,
+} as const;
+
+export const CATEGORY_LIMITS = {
+  NAME_MAX_LENGTH: 255,
+  MIN_DISPLAY_ORDER: 0,
 } as const;
