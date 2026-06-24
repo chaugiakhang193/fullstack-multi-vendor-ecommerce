@@ -1,13 +1,26 @@
-import { Controller, Get, Patch, Param, Body, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Body,
+  Query,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { PayoutsService } from './payouts.service';
 import { RejectPayoutDto } from './dto/reject-payout.dto';
 import { PayoutResponseDto } from './dto/payout-response.dto';
+import { AdminPayoutQueryDto } from './dto/admin-payout-query.dto';
 import { Roles } from '@/decorator/roles.decorator';
 import { User } from '@/decorator/user.decorator';
 import type { IUser } from '@/interface/user.interface';
 import { UserRole } from '@/common/enums';
-import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import { ApiGenericResponse } from '@/decorator/api-response.decorator';
 
 @ApiTags('admin-payouts')
@@ -19,7 +32,7 @@ export class AdminPayoutsController {
 
   @Get()
   @ApiOperation({ summary: 'Admin xem danh sách tất cả yêu cầu rút tiền' })
-  getAdminPayouts(@Query() query: PaginationQueryDto) {
+  getAdminPayouts(@Query() query: AdminPayoutQueryDto) {
     return this.payoutsService.getAdminPayouts(query);
   }
 

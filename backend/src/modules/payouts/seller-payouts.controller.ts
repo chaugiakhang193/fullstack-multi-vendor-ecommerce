@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayoutsService } from './payouts.service';
 import { CreatePayoutDto } from './dto/create-payout.dto';
 import { PayoutResponseDto } from './dto/payout-response.dto';
+import { BalanceResponseDto } from './dto/balance-response.dto';
 import { Roles } from '@/decorator/roles.decorator';
 import { User } from '@/decorator/user.decorator';
 import type { IUser } from '@/interface/user.interface';
@@ -19,6 +20,10 @@ export class SellerPayoutsController {
 
   @Get('balance')
   @ApiOperation({ summary: 'Lấy số dư khả dụng và thống kê tiền rút của Shop' })
+  @ApiGenericResponse(
+    BalanceResponseDto,
+    'Số dư và thống kê tiền rút của Shop.',
+  )
   getSellerBalance(@User() user: IUser) {
     const userId = user.sub;
     return this.payoutsService.getSellerBalance(userId);
@@ -34,7 +39,10 @@ export class SellerPayoutsController {
 
   @Get('history')
   @ApiOperation({ summary: 'Seller xem lịch sử yêu cầu rút tiền' })
-  getSellerPayoutHistory(@User() user: IUser, @Query() query: PaginationQueryDto) {
+  getSellerPayoutHistory(
+    @User() user: IUser,
+    @Query() query: PaginationQueryDto,
+  ) {
     const userId = user.sub;
     return this.payoutsService.getSellerPayoutHistory(userId, query);
   }

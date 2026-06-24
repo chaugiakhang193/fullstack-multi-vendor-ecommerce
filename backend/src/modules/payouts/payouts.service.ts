@@ -20,6 +20,10 @@ import { RejectPayoutDto } from './dto/reject-payout.dto';
 import { PayoutStatus, NotificationType } from '@/common/enums';
 import { paginate } from '@/common/helpers/pagination.helper';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { AdminPayoutQueryDto } from './dto/admin-payout-query.dto';
+import { BalanceResponseDto } from './dto/balance-response.dto';
+import { assertPayoutTransition } from './payouts.state-machine';
+import { SYSTEM_CONSTANTS } from '@/common/constants/system.constant';
 
 @Injectable()
 export class PayoutsService {
@@ -37,12 +41,7 @@ export class PayoutsService {
   ) {}
 
   /** Lấy số dư khả dụng của Seller */
-  async getSellerBalance(sellerId: string): Promise<{
-    total_revenue: number;
-    total_payouted: number;
-    available_balance: number;
-    pending_payout: number;
-  }> {
+  async getSellerBalance(sellerId: string): Promise<BalanceResponseDto> {
     const shop = await this.shopsService.findOneByUserId(sellerId);
     const shopId = shop.id;
 
@@ -74,7 +73,8 @@ export class PayoutsService {
 
       const bankInfo = shop.bank_account_info;
       if (!bankInfo) {
-        const errorMsg = 'Vui lòng cập nhật thông tin tài khoản ngân hàng trước khi rút tiền.';
+        const errorMsg =
+          'Vui lòng cập nhật thông tin tài khoản ngân hàng trước khi rút tiền.';
         throw new BadRequestException(errorMsg);
       }
 
@@ -90,11 +90,15 @@ export class PayoutsService {
         .count(countOptions);
 
       if (pendingPayoutCount > 0) {
-        const errorMsg = 'Bạn đang có một yêu cầu rút tiền đang được xử lý. Vui lòng chờ lệnh cũ hoàn thành.';
+        const errorMsg =
+          'Bạn đang có một yêu cầu rút tiền đang được xử lý. Vui lòng chờ lệnh cũ hoàn thành.';
         throw new BadRequestException(errorMsg);
       }
 
-      const balance = await this.calculateShopBalance(shopId, queryRunner.manager);
+      const balance = await this.calculateShopBalance(
+        shopId,
+        queryRunner.manager,
+      );
       const availableBalance = balance.available_balance;
 
       const requestAmount = dto.amount;
@@ -147,15 +151,20 @@ export class PayoutsService {
     return paginatedResult;
   }
 
-  /** Admin xem danh sách tất cả yêu cầu rút tiền */
-  async getAdminPayouts(query: PaginationQueryDto) {
+  /** Admin xem danh sách tất cả yêu cầu rút tiền (hỗ trợ lọc theo trạng thái) */
+  async getAdminPayouts(query: AdminPayoutQueryDto) {
     const alias = 'payout';
     const shopRelation = 'payout.shop';
     const shopAlias = 'shop';
     const shopFields = ['shop.id', 'shop.name'];
     const sellerRelation = 'shop.seller';
     const sellerAlias = 'seller';
-    const sellerFields = ['seller.id', 'seller.username', 'seller.email', 'seller.full_name'];
+    const sellerFields = [
+      'seller.id',
+      'seller.username',
+      'seller.email',
+      'seller.full_name',
+    ];
     const orderField = 'payout.created_at';
     const orderDir = 'DESC' as const;
 
@@ -166,6 +175,12 @@ export class PayoutsService {
       .leftJoin(sellerRelation, sellerAlias)
       .addSelect(sellerFields)
       .orderBy(orderField, orderDir);
+
+    if (query.status) {
+      const statusFilterStr = 'payout.status = :status';
+      const statusFilterParam = { status: query.status };
+      qb.andWhere(statusFilterStr, statusFilterParam);
+    }
 
     const paginatedResult = paginate(qb, query);
     return paginatedResult;
@@ -185,11 +200,7 @@ export class PayoutsService {
       throw new NotFoundException(errorMsg);
     }
 
-    const currentStatus = payout.status;
-    if (currentStatus !== PayoutStatus.PENDING && currentStatus !== PayoutStatus.PROCESSING) {
-      const errorMsg = 'Yêu cầu rút tiền đã được xử lý từ trước.';
-      throw new BadRequestException(errorMsg);
-    }
+    assertPayoutTransition(payout.status, PayoutStatus.COMPLETED);
 
     payout.status = PayoutStatus.COMPLETED;
     payout.resolved_by = { id: adminId } as User;
@@ -204,7 +215,11 @@ export class PayoutsService {
   }
 
   /** Admin từ chối yêu cầu rút tiền */
-  async rejectPayout(payoutId: string, dto: RejectPayoutDto, adminId: string): Promise<Payout> {
+  async rejectPayout(
+    payoutId: string,
+    dto: RejectPayoutDto,
+    adminId: string,
+  ): Promise<Payout> {
     const findOptions = {
       where: { id: payoutId },
       relations: ['shop', 'shop.seller'],
@@ -217,11 +232,7 @@ export class PayoutsService {
       throw new NotFoundException(errorMsg);
     }
 
-    const currentStatus = payout.status;
-    if (currentStatus !== PayoutStatus.PENDING && currentStatus !== PayoutStatus.PROCESSING) {
-      const errorMsg = 'Yêu cầu rút tiền đã được xử lý từ trước.';
-      throw new BadRequestException(errorMsg);
-    }
+    assertPayoutTransition(payout.status, PayoutStatus.REJECTED);
 
     const rejectReason = dto.reason;
     payout.status = PayoutStatus.REJECTED;
@@ -241,22 +252,24 @@ export class PayoutsService {
   private async calculateShopBalance(
     shopId: string,
     manager?: EntityManager,
-  ): Promise<{
-    total_revenue: number;
-    total_payouted: number;
-    available_balance: number;
-    pending_payout: number;
-  }> {
-    const repo = manager
-      ? manager.getRepository(Payout)
-      : this.payoutRepo;
+  ): Promise<BalanceResponseDto> {
+    const repo = manager ? manager.getRepository(Payout) : this.payoutRepo;
 
-    const total_revenue = await this.ordersService.getShopDeliveredRevenue(shopId, manager);
+    // Doanh thu THÔ (gross) — chưa trừ hoa hồng sàn.
+    const gross_revenue = await this.ordersService.getShopDeliveredRevenue(
+      shopId,
+      manager,
+    );
+
+    // Bóc tách hoa hồng toàn sàn (Phương án A) ngay tại đây để hiển thị minh bạch.
+    const commissionRate = SYSTEM_CONSTANTS.COMMISSION_RATE;
+    const commission_amount = this.round2(gross_revenue * commissionRate);
+    const total_revenue = this.round2(gross_revenue - commission_amount);
 
     const alias = 'payout';
     const whereShopIdStr = 'payout.shop_id = :shopId';
     const whereShopIdParam = { shopId };
-    
+
     const completedStatusStr = 'payout.status = :status';
     const completedStatusParam = { status: PayoutStatus.COMPLETED };
 
@@ -266,7 +279,7 @@ export class PayoutsService {
       .where(whereShopIdStr, whereShopIdParam)
       .andWhere(completedStatusStr, completedStatusParam)
       .getRawOne();
-    
+
     const rawPayoutedSum = payoutedResult?.sum;
     const total_payouted = Number(rawPayoutedSum) || 0;
 
@@ -280,14 +293,16 @@ export class PayoutsService {
       .where(whereShopIdStr, whereShopIdParam)
       .andWhere(pendingStatusStr, pendingStatusParam)
       .getRawOne();
-    
+
     const rawPendingSum = pendingResult?.sum;
     const pending_payout = Number(rawPendingSum) || 0;
 
     const calculatedBalance = total_revenue - total_payouted - pending_payout;
     const available_balance = Math.max(0, calculatedBalance);
 
-    const balanceResponse = {
+    const balanceResponse: BalanceResponseDto = {
+      gross_revenue,
+      commission_amount,
       total_revenue,
       total_payouted,
       available_balance,
@@ -295,6 +310,11 @@ export class PayoutsService {
     };
 
     return balanceResponse;
+  }
+
+  /** Làm tròn 2 chữ số thập phân để tránh sai số dấu phẩy động khi tính hoa hồng. */
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 
   /**
@@ -318,7 +338,9 @@ export class PayoutsService {
       const locale = 'vi-VN';
       const formattedAmount = amountNum.toLocaleString(locale);
 
-      const title = isApproved ? 'Yêu cầu rút tiền thành công' : 'Yêu cầu rút tiền bị từ chối';
+      const title = isApproved
+        ? 'Yêu cầu rút tiền thành công'
+        : 'Yêu cầu rút tiền bị từ chối';
       const content = isApproved
         ? `Yêu cầu rút tiền trị giá ${formattedAmount}đ đã được phê duyệt thành công.`
         : `Yêu cầu rút tiền trị giá ${formattedAmount}đ đã bị từ chối. Lý do: ${reason}`;

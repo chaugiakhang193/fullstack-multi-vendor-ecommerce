@@ -72,7 +72,6 @@ import {
   OrderCancelledPayload,
   OrderStatusUpdatedPayload,
 } from '@/common/constants/outbox.constants';
-import { SYSTEM_CONSTANTS } from '@/common/constants/system.constant';
 import { SellerOrderQueryDto } from '@/modules/orders/dto/seller-order-query.dto';
 import { CheckoutPreviewDto } from '@/modules/orders/dto/checkout-preview.dto';
 import { SHIPPING_LIMITS } from '@/common/limits';
@@ -187,7 +186,7 @@ export class OrdersService {
     private readonly paymentsService: PaymentsService,
     @Inject('IShippingCalculator')
     private readonly shippingCalculator: IShippingCalculator,
-  ) { }
+  ) {}
 
   // ==========================================
   // CROSS-MODULE HELPERS Dùng bởi EngagementsModule (reviews)
@@ -303,11 +302,7 @@ export class OrdersService {
     // PHASE 2: business transaction
     let response: CheckoutResponseDto;
     try {
-      response = await this.runCheckoutTransaction(
-        userId,
-        dto,
-        idempotencyKey,
-      );
+      response = await this.runCheckoutTransaction(userId, dto, idempotencyKey);
     } catch (error) {
       // Lỗi nghiệp vụ → cho phép client retry bằng chính key
       await this.deletePendingKeyForRetry(idempotencyKey);
@@ -352,7 +347,10 @@ export class OrdersService {
    * IDOR chặn bằng where { id, customer: { id: userId } } — không khớp → 404.
    * Không load quan hệ `customer` (tránh lộ password hash).
    */
-  async getCustomerOrderDetail(userId: string, orderId: string): Promise<Order> {
+  async getCustomerOrderDetail(
+    userId: string,
+    orderId: string,
+  ): Promise<Order> {
     const order = await this.ordersRepository.findOne({
       where: { id: orderId, customer: { id: userId } },
       relations: {
@@ -540,7 +538,9 @@ export class OrdersService {
       relations: { shop_coupon: true },
     });
 
-    const activeSubs = siblings.filter((s) => s.status !== OrderStatus.CANCELLED);
+    const activeSubs = siblings.filter(
+      (s) => s.status !== OrderStatus.CANCELLED,
+    );
     let remainingShopSubtotals = 0;
     let sumActiveShopTotals = 0;
     for (const s of activeSubs) {
@@ -632,7 +632,7 @@ export class OrdersService {
       const findCriteria = { where: { key: idempotencyKey } };
       const existing = await this.idempotencyRepository.findOne(findCriteria);
 
-      // Lỗi 409, isCollision = true 
+      // Lỗi 409, isCollision = true
       const isExistingMissing = !existing;
       if (isExistingMissing) {
         const transientMsg =
@@ -907,10 +907,7 @@ export class OrdersService {
       // 11. Tiêu thụ coupon (tăng used_count) trong cùng transaction
       if (lockedGlobalCoupon) {
         const manager = queryRunner.manager;
-        await this.promotionsService.consumeCoupon(
-          lockedGlobalCoupon,
-          manager,
-        );
+        await this.promotionsService.consumeCoupon(lockedGlobalCoupon, manager);
         const globalCouponId = lockedGlobalCoupon.id;
         await this.promotionsService.markWalletUsed(
           userId,
@@ -922,10 +919,7 @@ export class OrdersService {
         if (plan.shopCoupon) {
           const shopCoupon = plan.shopCoupon;
           const manager = queryRunner.manager;
-          await this.promotionsService.consumeCoupon(
-            shopCoupon,
-            manager,
-          );
+          await this.promotionsService.consumeCoupon(shopCoupon, manager);
           const shopCouponId = shopCoupon.id;
           await this.promotionsService.markWalletUsed(
             userId,
@@ -1173,8 +1167,7 @@ export class OrdersService {
   private computeCouponDiscount(coupon: Coupon, baseAmount: number): number {
     const discountValue = Number(coupon.discount_value ?? 0);
     const maxDiscountRaw = coupon.max_discount_value;
-    const hasMaxCap =
-      maxDiscountRaw !== null && maxDiscountRaw !== undefined;
+    const hasMaxCap = maxDiscountRaw !== null && maxDiscountRaw !== undefined;
     const maxCap = hasMaxCap
       ? Number(maxDiscountRaw)
       : Number.POSITIVE_INFINITY;
@@ -1257,22 +1250,24 @@ export class OrdersService {
     const orderSubOrders = order.sub_orders ?? [];
 
     for (const subOrder of orderSubOrders) {
-      const itemsResponse: CheckoutResponseItemDto[] = (subOrder.items ?? []).map(
-        (orderItem) => ({
-          product_id: orderItem.product?.id ?? '',
-          product_name: orderItem.product_name,
-          variant_id: orderItem.variant?.id ?? null,
-          variant_name: orderItem.variant_name,
-          quantity: orderItem.quantity,
-          price_at_purchase: round2(Number(orderItem.price_at_purchase)),
-        }),
-      );
+      const itemsResponse: CheckoutResponseItemDto[] = (
+        subOrder.items ?? []
+      ).map((orderItem) => ({
+        product_id: orderItem.product?.id ?? '',
+        product_name: orderItem.product_name,
+        variant_id: orderItem.variant?.id ?? null,
+        variant_name: orderItem.variant_name,
+        quantity: orderItem.quantity,
+        price_at_purchase: round2(Number(orderItem.price_at_purchase)),
+      }));
 
       const subTotal = round2(Number(subOrder.sub_total ?? 0));
       const shippingFee = round2(Number(subOrder.shipping_fee ?? 0));
       const discountAmount = round2(Number(subOrder.discount_amount ?? 0));
       const totalAmount = round2(
-        Number(subOrder.total_amount ?? subTotal - discountAmount + shippingFee),
+        Number(
+          subOrder.total_amount ?? subTotal - discountAmount + shippingFee,
+        ),
       );
 
       subOrdersResponse.push({
@@ -1365,7 +1360,7 @@ export class OrdersService {
 
     const queryShopIdStr = 'subOrder.shop_id = :shopId';
     const shopIdParam = { shopId };
-    
+
     const queryStatusStr = 'subOrder.status = :status';
     const deliveredStatusParam = { status: OrderStatus.DELIVERED };
 
@@ -1444,7 +1439,6 @@ export class OrdersService {
       best_sellers,
     };
   }
-
 
   /**
    * Seller đổi trạng thái 1 sub-order theo State Machine. Nếu → CANCELLED thì
@@ -1661,7 +1655,8 @@ export class OrdersService {
 
         const items: PreviewItemDto[] = group.items.map((ci) => {
           const price = round2(
-            Number(ci.product.price) + Number(ci.variant?.additional_price ?? 0),
+            Number(ci.product.price) +
+              Number(ci.variant?.additional_price ?? 0),
           );
           return {
             productId: ci.product.id,
@@ -1757,7 +1752,11 @@ export class OrdersService {
     return Number(raw?.sum ?? 0);
   }
 
-  /** Tính tổng doanh thu thực nhận của Shop (SubOrder DELIVERED, đã trừ 5% hoa hồng toàn sàn) */
+  /**
+   * Tính tổng doanh thu THÔ (gross) của Shop trên các SubOrder đã giao (DELIVERED).
+   * KHÔNG trừ hoa hồng tại đây — việc bóc tách gross/commission/net được thực hiện ở
+   * nơi tính số dư (PayoutsService.calculateShopBalance) để hiển thị minh bạch cho seller.
+   */
   async getShopDeliveredRevenue(
     shopId: string,
     manager?: EntityManager,
@@ -1783,12 +1782,7 @@ export class OrdersService {
 
     const rawRevenue = Number(result?.revenue) || 0;
 
-    // Áp dụng hoa hồng toàn sàn (Phương án A)
-    const commissionRate = SYSTEM_CONSTANTS.COMMISSION_RATE;
-    const netRevenue = rawRevenue * (1 - commissionRate);
-
     // round2 là helper module-scope có sẵn trong chính file orders.service.ts
-    return round2(netRevenue);
+    return round2(rawRevenue);
   }
 }
-
