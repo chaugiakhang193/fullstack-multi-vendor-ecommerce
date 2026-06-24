@@ -2,6 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ArrowRight, Truck } from "lucide-react";
+import { SHIPPING_LIMITS } from "@/constants/limits.generated";
 
 interface StickyCheckoutBarProps {
   selectedCount: number;
@@ -19,7 +20,7 @@ const formatPrice = (val: number) => {
   return priceFormatterObj.format(val);
 };
 
-const FREE_SHIPPING_TARGET = 500000;
+const FREE_SHIPPING_TARGET = SHIPPING_LIMITS.FREE_SHIPPING_THRESHOLD;
 const DEFAULT_SHIPPING_FEE = 30000;
 
 export default function StickyCheckoutBar({

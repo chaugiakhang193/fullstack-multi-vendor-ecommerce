@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+// Hooks
 import { useCartStore, CartItem } from "@/store/useCartStore";
 import { useActiveCart } from "@/hooks/useActiveCart";
+import { SHIPPING_LIMITS } from "@/constants/limits.generated";
 
 // Currency formatter
 const priceFormatter = new Intl.NumberFormat("vi-VN", {
@@ -31,8 +33,8 @@ const formatPrice = (val: number) => {
   return priceFormatter.format(val);
 };
 
-// Target for free shipping (500,000 VND)
-const FREE_SHIPPING_TARGET = 500000;
+// Target for free shipping (VND)
+const FREE_SHIPPING_TARGET = SHIPPING_LIMITS.FREE_SHIPPING_THRESHOLD;
 
 export default function CartDrawer() {
   const router = useRouter();
