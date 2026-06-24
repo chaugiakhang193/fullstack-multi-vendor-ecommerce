@@ -34,8 +34,9 @@ jobs:
         run: npm run format:check
         working-directory: frontend
 
-      - name: Check Limits Drift
+      - name: Check Generated Drift
         run: |
+          npm run gen-enums
           npm run gen-limits
-          git diff --exit-code src/constants/limits.generated.ts
+          git diff --exit-code src/constants/enum.generated.ts src/constants/limits.generated.ts
         working-directory: frontend
