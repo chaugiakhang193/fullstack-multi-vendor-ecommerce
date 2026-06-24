@@ -6,7 +6,7 @@ import {
   IsUUID,
   MinLength,
   MaxLength,
-  ArrayNotEmpty,
+  ArrayMinSize,
   IsUrl,
   IsNumber,
   ValidateNested,
@@ -148,7 +148,7 @@ export class CreateShopDto {
     description: 'Danh sách các ID danh mục mà shop kinh doanh',
     type: [String],
   })
-  @IsNotEmpty({ message: 'Vui lòng chọn ít nhất 1 danh mục kinh doanh' })
+  @ArrayMinSize(1, { message: 'Vui lòng chọn ít nhất 1 danh mục kinh doanh' })
   @IsArray({ message: 'Danh mục phải là một mảng các ID' })
   @IsUUID('all', {
     each: true,
