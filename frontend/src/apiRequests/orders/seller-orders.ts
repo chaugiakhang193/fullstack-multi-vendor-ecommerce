@@ -25,12 +25,10 @@ const sellerOrderApiRequest = {
 
   // GET /seller/orders/:id (Seller)
   getSellerOrderDetail: (id: string) =>
-    http
-      .get<SellerOrderEnvelope>(`/seller/orders/${id}`)
-      .then((res) => ({
-        message: res.message,
-        data: SellerOrder.parse(res.data),
-      })),
+    http.get<SellerOrderEnvelope>(`/seller/orders/${id}`).then((res) => ({
+      message: res.message,
+      data: SellerOrder.parse(res.data),
+    })),
 
   // PATCH /seller/orders/:id/status (Seller) — state machine.
   updateSellerOrderStatus: (id: string, body: UpdateOrderStatusBodyType) =>
