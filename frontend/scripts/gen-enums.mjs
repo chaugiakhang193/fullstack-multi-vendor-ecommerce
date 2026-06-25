@@ -37,6 +37,7 @@ const ALLOWLIST = [
   'ProductStatus',
   'NotificationType',
   'CartItemUnavailableReason',
+  'PayoutStatus',
 ];
 
 const source = readFileSync(BE_ENUMS, 'utf8');

@@ -11,10 +11,10 @@ import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSocket } from '@/components/providers/socket-provider';
 import { useNotificationsList, useUnreadCount } from '@/hooks/useNotifications';
 import notificationApiRequest from '@/apiRequests/engagements/notifications';
-import { QUERY_KEYS } from '@/constants/query-keys';
+import { QUERY_KEYS, payoutKeys } from '@/constants/query-keys';
 import { UserRole } from '@/constants/enum';
 import { getErrorMessage } from '@/lib/http';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatVnd } from '@/lib/format';
 import { renderNotificationData } from '@/components/notifications/notification-content';
 import type { NotificationItemType } from '@/schemaValidations/engagements/notifications.schema';
 
@@ -23,6 +23,7 @@ const WS_ORDER_NEW = 'order.new';
 const WS_ORDER_STATUS_CHANGED = 'order.status_changed';
 const WS_REVIEW_NEW = 'review.new';
 const WS_REVIEW_REPLIED = 'review.replied';
+const WS_PAYOUT_STATUS_CHANGED = 'payout.status_changed';
 
 interface OrderNewPayload {
   orderId: string;
@@ -49,6 +50,12 @@ interface ReviewRepliedPayload {
   productName: string;
   message: string;
 }
+interface PayoutStatusChangedWsPayload {
+  payoutId: string;
+  amount: number;
+  status: string;
+  message: string;
+}
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
 const getNotificationHref = (
@@ -72,6 +79,8 @@ const getNotificationHref = (
     case 'review_replied':
       // Dẫn về sản phẩm để xem đánh giá và phản hồi
       return d.productId ? `/products/${d.productId}` : '/profile/orders';
+    case 'payout_status_changed':
+      return '/seller/payouts';
     default:
       return role === UserRole.SELLER ? '/seller/orders' : '/profile/orders';
   }
@@ -163,16 +172,39 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       });
     };
 
+    const onPayoutStatusChanged = (payload: PayoutStatusChangedWsPayload) => {
+      increment();
+      // Invalidate cả thông báo lẫn số dư/lịch sử payout
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: payoutKeys.all });
+
+      const sellerPayoutsHref = '/seller/payouts';
+      const toastAction = {
+        label: 'Xem',
+        onClick: () => router.push(sellerPayoutsHref),
+      };
+
+      const formattedAmount = formatVnd.format(payload.amount);
+      const toastDescription = `Số tiền rút: ${formattedAmount}`;
+
+      toast.info(payload.message, {
+        description: toastDescription,
+        action: toastAction,
+      });
+    };
+
     socket.on(WS_ORDER_NEW, onOrderNew);
     socket.on(WS_ORDER_STATUS_CHANGED, onStatusChanged);
     socket.on(WS_REVIEW_NEW, onReviewNew);
     socket.on(WS_REVIEW_REPLIED, onReviewReplied);
+    socket.on(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
       socket.off(WS_ORDER_STATUS_CHANGED, onStatusChanged);
       socket.off(WS_REVIEW_NEW, onReviewNew);
       socket.off(WS_REVIEW_REPLIED, onReviewReplied);
+      socket.off(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
     };
   }, [socket, role, router, queryClient, increment]);
 

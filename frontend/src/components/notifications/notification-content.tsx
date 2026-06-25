@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { formatVnd } from '@/lib/format';
+import { PayoutStatus } from '@/constants/enum';
 import { ORDER_STATUS_LABELS } from '@/schemaValidations/orders/orders.schema';
 import type { NotificationDataType } from '@/schemaValidations/engagements/notifications.schema';
 
@@ -60,6 +61,20 @@ export function renderNotificationData(
         <>
           Cửa hàng đã phản hồi đánh giá của bạn về sản phẩm{' '}
           <B>{data.productName}</B>.
+        </>
+      );
+    case 'payout_status_changed':
+      const isPayoutCompleted = data.status === PayoutStatus.COMPLETED;
+      const statusLabel = isPayoutCompleted ? 'chấp nhận' : 'từ chối';
+      return (
+        <>
+          Yêu cầu rút tiền trị giá <B>{formatVnd.format(data.amount)}</B> đã
+          được <B>{statusLabel}</B>.
+          {!isPayoutCompleted && data.rejectReason && (
+            <span className="block mt-1 text-xs text-rose-500 font-medium italic">
+              Lý do: {data.rejectReason}
+            </span>
+          )}
         </>
       );
     default:

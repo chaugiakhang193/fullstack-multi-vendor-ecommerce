@@ -73,3 +73,11 @@ export enum CartItemUnavailableReason {
   PRODUCT_DELETED = "product_deleted",
   SHOP_INACTIVE = "shop_inactive",
 }
+
+export enum PayoutStatus {
+  PENDING = "pending",
+  PROCESSING = "processing",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  REJECTED = "rejected",
+}

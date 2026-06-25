@@ -21,6 +21,7 @@ export const QUERY_KEYS = {
   NOTIFICATIONS: 'notifications',
   COUPONS: 'coupons',
   REVIEWS: 'reviews',
+  PAYOUTS: 'payouts',
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -97,4 +98,14 @@ export const reviewKeys = {
     [QUERY_KEYS.REVIEWS, 'reviewable', query ?? {}] as const,
   sellerReviews: (query?: Record<string, unknown>) =>
     [QUERY_KEYS.REVIEWS, 'seller-list', query ?? {}] as const,
+};
+
+export const payoutKeys = {
+  all: [QUERY_KEYS.PAYOUTS] as const,
+  balance: [QUERY_KEYS.PAYOUTS, 'balance'] as const,
+  historyAll: [QUERY_KEYS.PAYOUTS, 'history'] as const,
+  history: (page: number) => [QUERY_KEYS.PAYOUTS, 'history', page] as const,
+  adminAll: [QUERY_KEYS.PAYOUTS, 'admin'] as const,
+  adminList: (page: number, status?: string) =>
+    [QUERY_KEYS.PAYOUTS, 'admin', page, status ?? 'all'] as const,
 };

@@ -17,6 +17,7 @@ import {
   User,
   Ticket,
   UserCog,
+  Wallet,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import authApiRequest from '@/apiRequests/auth/auth';
@@ -109,6 +110,11 @@ export default function AdminLayout({
       label: 'Sản phẩm',
       href: '/admin/products',
       icon: <Package className="h-5 w-5" />,
+    },
+    {
+      label: 'Duyệt rút tiền',
+      href: '/admin/payouts',
+      icon: <Wallet className="h-5 w-5" />,
     },
     {
       label: 'Khuyến mãi',

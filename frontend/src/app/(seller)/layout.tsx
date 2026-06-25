@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Ticket,
   Star,
+  Wallet,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -223,6 +224,11 @@ export default function SellerLayout({
       label: 'Đánh giá',
       href: '/seller/reviews',
       icon: <Star className="h-5 w-5" />,
+    },
+    {
+      label: 'Rút tiền',
+      href: '/seller/payouts',
+      icon: <Wallet className="h-5 w-5" />,
     },
     {
       label: 'Cài đặt',

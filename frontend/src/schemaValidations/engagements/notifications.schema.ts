@@ -1,6 +1,6 @@
 import z from 'zod';
 import type { ApiEnvelope } from '@/lib/http';
-import { NotificationType } from '@/constants/enum';
+import { NotificationType, PayoutStatus } from '@/constants/enum';
 import { OrderStatusEnum } from '@/schemaValidations/orders/orders.schema';
 
 // Backend notifications KHÔNG khai báo @ApiResponse({ type }) → swagger để trống schema,
@@ -52,6 +52,13 @@ export const NotificationData = z.discriminatedUnion('kind', [
     productId: z.string().uuid().optional(),
     productName: z.string(),
     reviewId: z.string().uuid().optional(),
+  }),
+  z.object({
+    kind: z.literal('payout_status_changed'),
+    payoutId: z.string().uuid().optional(),
+    amount: z.coerce.number(),
+    status: z.nativeEnum(PayoutStatus),
+    rejectReason: z.string().nullable().optional(),
   }),
 ]);
 
