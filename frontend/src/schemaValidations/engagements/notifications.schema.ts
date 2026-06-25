@@ -12,7 +12,11 @@ import { OrderStatusEnum } from '@/schemaValidations/orders/orders.schema';
 // Dữ liệu cấu trúc để FE render câu hiển thị (localized + bold). Mirror BE NotificationData.
 // apiRequest KHÔNG .parse() nên union này chỉ dùng để type; render switch có default fallback
 // về `content` nếu gặp kind lạ (backend thêm kind mới mà FE chưa cập nhật).
-export const NotificationData = z.discriminatedUnion('kind', [
+const discriminatorKey = 'kind';
+const payoutCreatedKind = 'payout_created';
+const shopRegisteredKind = 'shop_registered';
+
+export const NotificationData = z.discriminatedUnion(discriminatorKey, [
   z.object({
     kind: z.literal('order_placed'),
     orderNumber: z.string(),
@@ -59,6 +63,17 @@ export const NotificationData = z.discriminatedUnion('kind', [
     amount: z.coerce.number(),
     status: z.nativeEnum(PayoutStatus),
     rejectReason: z.string().nullable().optional(),
+  }),
+  z.object({
+    kind: z.literal(payoutCreatedKind),
+    payoutId: z.string().uuid().optional(),
+    amount: z.coerce.number(),
+    shopName: z.string(),
+  }),
+  z.object({
+    kind: z.literal(shopRegisteredKind),
+    shopId: z.string().uuid().optional(),
+    shopName: z.string(),
   }),
 ]);
 

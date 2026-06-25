@@ -77,6 +77,23 @@ export function renderNotificationData(
           )}
         </>
       );
+    case 'payout_created':
+      const shopNameVal = data.shopName;
+      const amountVal = data.amount;
+      const formattedAmountVal = formatVnd.format(amountVal);
+      return (
+        <>
+          Cửa hàng <B>{shopNameVal}</B> vừa gửi yêu cầu rút{' '}
+          <B>{formattedAmountVal}</B>.
+        </>
+      );
+    case 'shop_registered':
+      const shopNameValReg = data.shopName;
+      return (
+        <>
+          Cửa hàng <B>{shopNameValReg}</B> vừa đăng ký và đang chờ duyệt.
+        </>
+      );
     default:
       return null;
   }

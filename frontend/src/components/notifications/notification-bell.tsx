@@ -24,6 +24,8 @@ const WS_ORDER_STATUS_CHANGED = 'order.status_changed';
 const WS_REVIEW_NEW = 'review.new';
 const WS_REVIEW_REPLIED = 'review.replied';
 const WS_PAYOUT_STATUS_CHANGED = 'payout.status_changed';
+const WS_PAYOUT_CREATED = 'payout.created';
+const WS_SHOP_REGISTERED = 'shop.registered';
 
 interface OrderNewPayload {
   orderId: string;
@@ -56,6 +58,18 @@ interface PayoutStatusChangedWsPayload {
   status: string;
   message: string;
 }
+interface PayoutCreatedWsPayload {
+  payoutId: string;
+  amount: number;
+  shopId: string;
+  shopName: string;
+  message: string;
+}
+interface ShopRegisteredWsPayload {
+  shopId: string;
+  shopName: string;
+  message: string;
+}
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
 const getNotificationHref = (
@@ -81,6 +95,12 @@ const getNotificationHref = (
       return d.productId ? `/products/${d.productId}` : '/profile/orders';
     case 'payout_status_changed':
       return '/seller/payouts';
+    case 'payout_created':
+      const adminPayoutsUrl = '/admin/payouts';
+      return adminPayoutsUrl;
+    case 'shop_registered':
+      const adminSellersUrl = '/admin/sellers';
+      return adminSellersUrl;
     default:
       return role === UserRole.SELLER ? '/seller/orders' : '/profile/orders';
   }
@@ -102,8 +122,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
 
   const [open, setOpen] = useState(false);
 
-  // Bell hiển thị cho mọi user trừ Admin (notifications API chỉ cho CUSTOMER/SELLER).
-  const canUseNotif = isAuthenticated && role !== UserRole.ADMIN;
+  // Bell cho mọi user đã đăng nhập (Part 1 đã mở notifications API cho cả ADMIN).
+  const canUseNotif = isAuthenticated;
 
   const listQuery = useNotificationsList(canUseNotif && open);
   const unreadQuery = useUnreadCount(canUseNotif);
@@ -193,11 +213,55 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       });
     };
 
+    const onPayoutCreated = (payload: PayoutCreatedWsPayload) => {
+      increment();
+      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
+      queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+      const payoutAllQueryKey = payoutKeys.all;
+      queryClient.invalidateQueries({ queryKey: payoutAllQueryKey });
+
+      const amountVal = payload.amount;
+      const formattedAmount = formatVnd.format(amountVal);
+      const shopNameVal = payload.shopName;
+      const descriptionText = `Cửa hàng ${shopNameVal} • ${formattedAmount}`;
+      const payloadMessage = payload.message;
+      const payoutRedirectPath = '/admin/payouts';
+      const actionHandler = () => {
+        router.push(payoutRedirectPath);
+      };
+      const toastLabel = 'Xem';
+      toast.info(payloadMessage, {
+        description: descriptionText,
+        action: { label: toastLabel, onClick: actionHandler },
+      });
+    };
+
+    const onShopRegistered = (payload: ShopRegisteredWsPayload) => {
+      increment();
+      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
+      queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+
+      const shopNameVal = payload.shopName;
+      const descriptionText = `Cửa hàng ${shopNameVal}`;
+      const payloadMessage = payload.message;
+      const sellersRedirectPath = '/admin/sellers';
+      const actionHandler = () => {
+        router.push(sellersRedirectPath);
+      };
+      const toastLabel = 'Xem';
+      toast.info(payloadMessage, {
+        description: descriptionText,
+        action: { label: toastLabel, onClick: actionHandler },
+      });
+    };
+
     socket.on(WS_ORDER_NEW, onOrderNew);
     socket.on(WS_ORDER_STATUS_CHANGED, onStatusChanged);
     socket.on(WS_REVIEW_NEW, onReviewNew);
     socket.on(WS_REVIEW_REPLIED, onReviewReplied);
     socket.on(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
+    socket.on(WS_PAYOUT_CREATED, onPayoutCreated);
+    socket.on(WS_SHOP_REGISTERED, onShopRegistered);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
@@ -205,6 +269,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       socket.off(WS_REVIEW_NEW, onReviewNew);
       socket.off(WS_REVIEW_REPLIED, onReviewReplied);
       socket.off(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
+      socket.off(WS_PAYOUT_CREATED, onPayoutCreated);
+      socket.off(WS_SHOP_REGISTERED, onShopRegistered);
     };
   }, [socket, role, router, queryClient, increment]);
 
@@ -308,15 +374,24 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
             <button
               onClick={() => {
                 setOpen(false);
-                router.push(
-                  role === UserRole.SELLER
-                    ? '/seller/orders'
-                    : '/profile/orders',
-                );
+                const roleValue = role;
+                const isAdmin = roleValue === UserRole.ADMIN;
+                const isSeller = roleValue === UserRole.SELLER;
+                const adminPath = '/admin/payouts';
+                const sellerPath = '/seller/orders';
+                const customerPath = '/profile/orders';
+                const href = isAdmin
+                  ? adminPath
+                  : isSeller
+                    ? sellerPath
+                    : customerPath;
+                router.push(href);
               }}
               className="w-full px-4 py-3 text-sm font-bold text-center text-muted-foreground hover:text-foreground border-t hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
             >
-              Xem tất cả đơn hàng
+              {role === UserRole.ADMIN
+                ? 'Tới trang quản trị'
+                : 'Xem tất cả đơn hàng'}
             </button>
           </div>
         </>

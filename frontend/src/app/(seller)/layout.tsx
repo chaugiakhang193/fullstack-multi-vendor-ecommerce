@@ -20,6 +20,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { ProfileDropdown } from '@/components/shared/profile-dropdown';
 import { useAuthStore } from '@/store/useAuthStore';
 import authApiRequest from '@/apiRequests/auth/auth';
 import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
@@ -47,9 +48,20 @@ export default function SellerLayout({
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleProfileLogout = () => {
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const sellerMenuLinks = [
+    {
+      href: '/seller/settings',
+      label: 'Cài đặt cửa hàng',
+      icon: <Settings className="h-4 w-4" />,
+    },
+  ];
   const [isMounted, setIsMounted] = useState(false);
   const [isCheckingShop, setIsCheckingShop] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false); // Flag để ngăn check lại sau redirect
@@ -565,76 +577,13 @@ export default function SellerLayout({
 
             <Separator orientation="vertical" className="h-12" />
 
-            {/* User Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
-              >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm overflow-hidden">
-                  {user?.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt={user?.username || ''}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    user?.username?.charAt(0).toUpperCase() || (
-                      <User className="h-5 w-5" />
-                    )
-                  )}
-                </div>
-                <span className="text-base font-bold hidden sm:inline-block pr-1.5">
-                  {user?.username || 'Người bán'}
-                </span>
-              </button>
-
-              {isProfileDropdownOpen && (
-                <>
-                  {/* Dropdown Overlay Backdrop */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setIsProfileDropdownOpen(false)}
-                  />
-                  {/* Dropdown Card */}
-                  <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-zinc-950 border rounded-xl shadow-xl z-20 py-2 divide-y divide-zinc-100 dark:divide-zinc-900 animate-fade-in">
-                    <div className="px-4 py-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Tài khoản
-                      </p>
-                      <p className="text-sm font-bold truncate mt-0.5">
-                        {user?.username}
-                      </p>
-                      <span className="inline-block px-1.5 py-0.5 text-[9px] font-extrabold bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400 rounded-full mt-1.5">
-                        Role: {user?.role}
-                      </span>
-                    </div>
-                    <div className="py-1">
-                      <Link
-                        href="/seller/settings"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Cài đặt cửa hàng</span>
-                      </Link>
-                    </div>
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setIsProfileDropdownOpen(false);
-                          setIsLogoutConfirmOpen(true);
-                        }}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Đăng xuất</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* User Profile Dropdown (dùng chung) */}
+            <ProfileDropdown
+              user={user}
+              usernameFallback="Người bán"
+              menuLinks={sellerMenuLinks}
+              onLogout={handleProfileLogout}
+            />
           </div>
         </header>
 
