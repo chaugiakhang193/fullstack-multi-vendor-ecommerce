@@ -11,7 +11,12 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // Enums & Constants
-import { OutboxEventStatus, NotificationType, OrderStatus } from '@/common/enums';
+import {
+  OutboxEventStatus,
+  NotificationType,
+  OrderStatus,
+  PayoutStatus,
+} from '@/common/enums';
 import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
@@ -19,6 +24,9 @@ import {
   OrderStatusUpdatedPayload,
   ReviewCreatedPayload,
   ReviewRepliedPayload,
+  PayoutCreatedOutboxPayload,
+  PayoutStatusChangedOutboxPayload,
+  ShopRegisteredOutboxPayload,
 } from '@/common/constants/outbox.constants';
 
 // Internal
@@ -35,6 +43,8 @@ import {
   ReviewRepliedWsPayload,
 } from './notification.events';
 import { ShopsService } from '@/modules/shops/shops.service';
+import { UsersService } from '@/modules/users/users.service';
+import { MailService } from '@/modules/mail/mail.service';
 
 // Tham số tuning của OutboxWorker. Để module-level const (không class field) vì
 // @Interval() là decorator — đối số phải là hằng compile-time, không dùng được `this`.
@@ -48,6 +58,9 @@ const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED,
   OUTBOX_EVENT_TYPES.REVIEW_CREATED,
   OUTBOX_EVENT_TYPES.REVIEW_REPLIED,
+  OUTBOX_EVENT_TYPES.PAYOUT_CREATED,
+  OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED,
+  OUTBOX_EVENT_TYPES.SHOP_REGISTERED,
 ];
 
 @Injectable()
@@ -69,6 +82,8 @@ export class OutboxWorker {
     private readonly notificationService: NotificationService,
     private readonly dataSource: DataSource,
     private readonly shopsService: ShopsService,
+    private readonly usersService: UsersService,
+    private readonly mailService: MailService,
   ) {}
 
   @Interval(OUTBOX_POLL_INTERVAL_MS)
@@ -118,8 +133,18 @@ export class OutboxWorker {
         await this.handleReviewCreated(event, queryRunner.manager);
       } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_REPLIED) {
         await this.handleReviewReplied(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_CREATED) {
+        await this.handlePayoutCreated(event, queryRunner.manager);
+      } else if (
+        event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED
+      ) {
+        await this.handlePayoutStatusChanged(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.SHOP_REGISTERED) {
+        await this.handleShopRegistered(event, queryRunner.manager);
       } else {
-        throw new TypeError(`Event type không được hỗ trợ: ${event.event_type}`);
+        throw new TypeError(
+          `Event type không được hỗ trợ: ${event.event_type}`,
+        );
       }
 
       const processedUpdate = {
@@ -232,7 +257,11 @@ export class OutboxWorker {
         orderNumber: payload.orderNumber,
         message: `Đơn hàng mới ${payload.orderNumber}`,
       };
-      this.notificationGateway.sendToShop(shopId, WS_EVENTS.ORDER_NEW, wsPayload);
+      this.notificationGateway.sendToShop(
+        shopId,
+        WS_EVENTS.ORDER_NEW,
+        wsPayload,
+      );
     }
   }
 
@@ -329,7 +358,9 @@ export class OutboxWorker {
       !payload.userId ||
       !payload.newStatus
     ) {
-      throw new TypeError(`Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`);
+      throw new TypeError(
+        `Payload thiếu field bắt buộc: ${JSON.stringify(payload)}`,
+      );
     }
 
     const statusNotificationDto: CreateNotificationDto = {
@@ -369,32 +400,41 @@ export class OutboxWorker {
   ): Promise<void> {
     const p = event.payload as ReviewCreatedPayload;
     if (!p.reviewId || !p.productId || !p.productName || !p.shopId) {
-      throw new TypeError(`Payload review.created thiếu field: ${JSON.stringify(p)}`);
+      throw new TypeError(
+        `Payload review.created thiếu field: ${JSON.stringify(p)}`,
+      );
     }
 
     // Dùng ShopsService thay vì query shopRepo trực tiếp cho review logic
     const shop = await this.shopsService.getShopWithSeller(p.shopId);
     if (!shop) {
-      this.logger.warn(`[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ review notif.`);
+      this.logger.warn(
+        `[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ review notif.`,
+      );
       return;
     }
 
     if (!shop.seller || !shop.seller.id) {
-      this.logger.warn(`[OutboxWorker] Shop ${p.shopId} không có seller liên kết — bỏ review notif.`);
+      this.logger.warn(
+        `[OutboxWorker] Shop ${p.shopId} không có seller liên kết — bỏ review notif.`,
+      );
       return;
     }
 
-    await this.notificationService.create({
-      userId: shop.seller.id,
-      type: NotificationType.REVIEW_CREATED,
-      title: 'Đánh giá mới',
-      content: `Sản phẩm "${p.productName}" vừa nhận đánh giá ${p.rating}★.`,
-      data: {
-        kind: 'review_new_seller',
-        productId: p.productId,
-        productName: p.productName,
+    await this.notificationService.create(
+      {
+        userId: shop.seller.id,
+        type: NotificationType.REVIEW_CREATED,
+        title: 'Đánh giá mới',
+        content: `Sản phẩm "${p.productName}" vừa nhận đánh giá ${p.rating}★.`,
+        data: {
+          kind: 'review_new_seller',
+          productId: p.productId,
+          productName: p.productName,
+        },
       },
-    }, manager);
+      manager,
+    );
 
     const ws: ReviewNewWsPayload = {
       reviewId: p.reviewId,
@@ -415,20 +455,25 @@ export class OutboxWorker {
   ): Promise<void> {
     const p = event.payload as ReviewRepliedPayload;
     if (!p.reviewId || !p.productId || !p.productName || !p.customerId) {
-      throw new TypeError(`Payload review.replied thiếu field: ${JSON.stringify(p)}`);
+      throw new TypeError(
+        `Payload review.replied thiếu field: ${JSON.stringify(p)}`,
+      );
     }
 
-    await this.notificationService.create({
-      userId: p.customerId,
-      type: NotificationType.REVIEW_REPLIED,
-      title: 'Shop đã phản hồi đánh giá',
-      content: `Shop đã phản hồi đánh giá của bạn cho "${p.productName}".`,
-      data: {
-        kind: 'review_replied',
-        productId: p.productId,
-        productName: p.productName,
+    await this.notificationService.create(
+      {
+        userId: p.customerId,
+        type: NotificationType.REVIEW_REPLIED,
+        title: 'Shop đã phản hồi đánh giá',
+        content: `Shop đã phản hồi đánh giá của bạn cho "${p.productName}".`,
+        data: {
+          kind: 'review_replied',
+          productId: p.productId,
+          productName: p.productName,
+        },
       },
-    }, manager);
+      manager,
+    );
 
     const ws: ReviewRepliedWsPayload = {
       reviewId: p.reviewId,
@@ -436,6 +481,144 @@ export class OutboxWorker {
       productName: p.productName,
       message: `Shop đã phản hồi đánh giá "${p.productName}"`,
     };
-    this.notificationGateway.sendToUser(p.customerId, WS_EVENTS.REVIEW_REPLIED, ws);
+    this.notificationGateway.sendToUser(
+      p.customerId,
+      WS_EVENTS.REVIEW_REPLIED,
+      ws,
+    );
+  }
+
+  // ========== HANDLER: payout.created (báo admin) ==========
+  private async handlePayoutCreated(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as PayoutCreatedOutboxPayload;
+    if (
+      !p.payoutId ||
+      !p.shopId ||
+      !p.shopName ||
+      typeof p.amount !== 'number'
+    ) {
+      throw new TypeError(
+        `payout.created payload thiếu field: ${JSON.stringify(p)}`,
+      );
+    }
+    const adminIds = await this.usersService.findAdminIds();
+    const content = `Cửa hàng ${p.shopName} vừa gửi yêu cầu rút ${p.amount.toLocaleString('vi-VN')}đ.`;
+    await this.notificationService.createForUsers(
+      adminIds,
+      {
+        type: NotificationType.PAYOUT_CREATED,
+        title: 'Yêu cầu rút tiền mới',
+        content,
+        data: {
+          kind: 'payout_created',
+          payoutId: p.payoutId,
+          amount: p.amount,
+          shopName: p.shopName,
+        },
+      },
+      manager,
+    );
+    this.notificationGateway.sendToAdmins(WS_EVENTS.PAYOUT_CREATED, {
+      payoutId: p.payoutId,
+      amount: p.amount,
+      shopId: p.shopId,
+      shopName: p.shopName,
+      message: content,
+    });
+  }
+
+  // ========== HANDLER: shop.registered (báo admin) ==========
+  private async handleShopRegistered(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as ShopRegisteredOutboxPayload;
+    if (!p.shopId || !p.shopName) {
+      throw new TypeError(
+        `shop.registered payload thiếu field: ${JSON.stringify(p)}`,
+      );
+    }
+    const adminIds = await this.usersService.findAdminIds();
+    const content = p.isReapply
+      ? `Cửa hàng "${p.shopName}" vừa nộp lại hồ sơ, đang chờ duyệt.`
+      : `Cửa hàng "${p.shopName}" vừa đăng ký, đang chờ duyệt.`;
+    await this.notificationService.createForUsers(
+      adminIds,
+      {
+        type: NotificationType.SHOP_REGISTERED,
+        title: p.isReapply ? 'Shop nộp lại hồ sơ' : 'Shop mới chờ duyệt',
+        content,
+        data: {
+          kind: 'shop_registered',
+          shopId: p.shopId,
+          shopName: p.shopName,
+        },
+      },
+      manager,
+    );
+    this.notificationGateway.sendToAdmins(WS_EVENTS.SHOP_REGISTERED, {
+      shopId: p.shopId,
+      shopName: p.shopName,
+      message: content,
+    });
+  }
+
+  // ========== HANDLER: payout.status_changed (báo seller — thay notifyPayoutResolved) ==========
+  private async handlePayoutStatusChanged(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as PayoutStatusChangedOutboxPayload;
+    if (!p.payoutId || !p.sellerId || !p.status) {
+      throw new TypeError(
+        `payout.status_changed payload thiếu field: ${JSON.stringify(p)}`,
+      );
+    }
+    const isApproved = p.status === PayoutStatus.COMPLETED;
+    const content = isApproved
+      ? `Yêu cầu rút tiền trị giá ${p.amount.toLocaleString('vi-VN')}đ đã được phê duyệt thành công.`
+      : `Yêu cầu rút tiền trị giá ${p.amount.toLocaleString('vi-VN')}đ đã bị từ chối. Lý do: ${p.reason}`;
+
+    // Mail best-effort (sendPayoutStatusEmail tự nuốt lỗi bên trong → không chặn PROCESSED).
+    await this.mailService.sendPayoutStatusEmail(
+      { email: p.sellerEmail, username: p.sellerName },
+      p.shopName,
+      p.amount,
+      p.status,
+      p.reason,
+    );
+
+    await this.notificationService.create(
+      {
+        userId: p.sellerId,
+        type: NotificationType.PAYOUT_STATUS_CHANGED,
+        title: isApproved
+          ? 'Yêu cầu rút tiền thành công'
+          : 'Yêu cầu rút tiền bị từ chối',
+        content,
+        data: {
+          kind: 'payout_status_changed',
+          payoutId: p.payoutId,
+          amount: p.amount,
+          status: p.status,
+          rejectReason: p.reason,
+        },
+      },
+      manager,
+    );
+
+    this.notificationGateway.sendToUser(
+      p.sellerId,
+      WS_EVENTS.PAYOUT_STATUS_CHANGED,
+      {
+        payoutId: p.payoutId,
+        amount: p.amount,
+        status: p.status,
+        message: content,
+      },
+    );
   }
 }

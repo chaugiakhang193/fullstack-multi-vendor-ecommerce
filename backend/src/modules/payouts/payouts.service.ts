@@ -11,13 +11,15 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { User } from '@/modules/users/entities/user.entity';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ShopsService } from '@/modules/shops/shops.service';
-import { MailService } from '@/modules/mail/mail.service';
-import { NotificationService } from '@/modules/engagements/notification.service';
-import { NotificationGateway } from '@/modules/engagements/notification.gateway';
-import { WS_EVENTS } from '@/modules/engagements/notification.events';
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEventStatus, PayoutStatus } from '@/common/enums';
+import {
+  OUTBOX_EVENT_TYPES,
+  PayoutCreatedOutboxPayload,
+  PayoutStatusChangedOutboxPayload,
+} from '@/common/constants/outbox.constants';
 import { CreatePayoutDto } from './dto/create-payout.dto';
 import { RejectPayoutDto } from './dto/reject-payout.dto';
-import { PayoutStatus, NotificationType } from '@/common/enums';
 import { paginate } from '@/common/helpers/pagination.helper';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 import { AdminPayoutQueryDto } from './dto/admin-payout-query.dto';
@@ -34,9 +36,6 @@ export class PayoutsService {
     private readonly payoutRepo: Repository<Payout>,
     private readonly ordersService: OrdersService,
     private readonly shopsService: ShopsService,
-    private readonly mailService: MailService,
-    private readonly notificationService: NotificationService,
-    private readonly notificationGateway: NotificationGateway,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -120,6 +119,20 @@ export class PayoutsService {
 
       const payout = queryRunner.manager.create(Payout, createOptions);
       const savedPayout = await queryRunner.manager.save(Payout, payout);
+
+      const payoutCreatedPayload: PayoutCreatedOutboxPayload = {
+        payoutId: savedPayout.id,
+        amount: Number(savedPayout.amount),
+        shopId: shop.id,
+        shopName: shop.name,
+      };
+      const payoutCreatedEvent = queryRunner.manager.create(OutboxEvent, {
+        event_type: OUTBOX_EVENT_TYPES.PAYOUT_CREATED,
+        payload: payoutCreatedPayload,
+        status: OutboxEventStatus.PENDING,
+      });
+      await queryRunner.manager.save(OutboxEvent, payoutCreatedEvent);
+
       await queryRunner.commitTransaction();
 
       return savedPayout;
@@ -188,30 +201,41 @@ export class PayoutsService {
 
   /** Admin phê duyệt yêu cầu rút tiền */
   async approvePayout(payoutId: string, adminId: string): Promise<Payout> {
-    const findOptions = {
-      where: { id: payoutId },
-      relations: ['shop', 'shop.seller'],
-    };
+    return this.dataSource.transaction(async (manager) => {
+      const payout = await manager.findOne(Payout, {
+        where: { id: payoutId },
+        relations: ['shop', 'shop.seller'],
+      });
+      if (!payout) {
+        throw new NotFoundException('Không tìm thấy yêu cầu rút tiền.');
+      }
+      assertPayoutTransition(payout.status, PayoutStatus.COMPLETED);
 
-    const payout = await this.payoutRepo.findOne(findOptions);
+      payout.status = PayoutStatus.COMPLETED;
+      payout.resolved_by = { id: adminId } as User;
+      payout.resolved_at = new Date();
+      const updated = await manager.save(Payout, payout);
 
-    if (!payout) {
-      const errorMsg = 'Không tìm thấy yêu cầu rút tiền.';
-      throw new NotFoundException(errorMsg);
-    }
+      const seller = payout.shop.seller;
+      const payload: PayoutStatusChangedOutboxPayload = {
+        payoutId: payout.id,
+        sellerId: seller.id,
+        sellerEmail: seller.email,
+        sellerName: seller.username,
+        shopName: payout.shop.name,
+        amount: Number(payout.amount),
+        status: PayoutStatus.COMPLETED,
+        reason: null,
+      };
+      const ev = manager.create(OutboxEvent, {
+        event_type: OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED,
+        payload,
+        status: OutboxEventStatus.PENDING,
+      });
+      await manager.save(OutboxEvent, ev);
 
-    assertPayoutTransition(payout.status, PayoutStatus.COMPLETED);
-
-    payout.status = PayoutStatus.COMPLETED;
-    payout.resolved_by = { id: adminId } as User;
-    payout.resolved_at = new Date();
-
-    const updatedPayout = await this.payoutRepo.save(payout);
-
-    const completedStatus = PayoutStatus.COMPLETED;
-    await this.notifyPayoutResolved(payout, completedStatus);
-
-    return updatedPayout;
+      return updated;
+    });
   }
 
   /** Admin từ chối yêu cầu rút tiền */
@@ -220,32 +244,42 @@ export class PayoutsService {
     dto: RejectPayoutDto,
     adminId: string,
   ): Promise<Payout> {
-    const findOptions = {
-      where: { id: payoutId },
-      relations: ['shop', 'shop.seller'],
-    };
+    return this.dataSource.transaction(async (manager) => {
+      const payout = await manager.findOne(Payout, {
+        where: { id: payoutId },
+        relations: ['shop', 'shop.seller'],
+      });
+      if (!payout) {
+        throw new NotFoundException('Không tìm thấy yêu cầu rút tiền.');
+      }
+      assertPayoutTransition(payout.status, PayoutStatus.REJECTED);
 
-    const payout = await this.payoutRepo.findOne(findOptions);
+      payout.status = PayoutStatus.REJECTED;
+      payout.reject_reason = dto.reason;
+      payout.resolved_by = { id: adminId } as User;
+      payout.resolved_at = new Date();
+      const updated = await manager.save(Payout, payout);
 
-    if (!payout) {
-      const errorMsg = 'Không tìm thấy yêu cầu rút tiền.';
-      throw new NotFoundException(errorMsg);
-    }
+      const seller = payout.shop.seller;
+      const payload: PayoutStatusChangedOutboxPayload = {
+        payoutId: payout.id,
+        sellerId: seller.id,
+        sellerEmail: seller.email,
+        sellerName: seller.username,
+        shopName: payout.shop.name,
+        amount: Number(payout.amount),
+        status: PayoutStatus.REJECTED,
+        reason: dto.reason,
+      };
+      const ev = manager.create(OutboxEvent, {
+        event_type: OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED,
+        payload,
+        status: OutboxEventStatus.PENDING,
+      });
+      await manager.save(OutboxEvent, ev);
 
-    assertPayoutTransition(payout.status, PayoutStatus.REJECTED);
-
-    const rejectReason = dto.reason;
-    payout.status = PayoutStatus.REJECTED;
-    payout.reject_reason = rejectReason;
-    payout.resolved_by = { id: adminId } as User;
-    payout.resolved_at = new Date();
-
-    const updatedPayout = await this.payoutRepo.save(payout);
-
-    const rejectedStatus = PayoutStatus.REJECTED;
-    await this.notifyPayoutResolved(payout, rejectedStatus, rejectReason);
-
-    return updatedPayout;
+      return updated;
+    });
   }
 
   /** Tính toán số dư của Shop (dùng chung cho cả ngoài và trong transaction để chống lệch nghiệp vụ) */
@@ -315,74 +349,5 @@ export class PayoutsService {
   /** Làm tròn 2 chữ số thập phân để tránh sai số dấu phẩy động khi tính hoa hồng. */
   private round2(value: number): number {
     return Math.round(value * 100) / 100;
-  }
-
-  /**
-   * Gửi mail + lưu notification DB + đẩy socket sau khi payout đã đổi trạng thái.
-   * Toàn bộ bọc try/catch: side-effect lỗi KHÔNG được ném ngược ra.
-   */
-  private async notifyPayoutResolved(
-    payout: Payout,
-    status: PayoutStatus.COMPLETED | PayoutStatus.REJECTED,
-    reason?: string,
-  ): Promise<void> {
-    try {
-      const seller = payout.shop.seller;
-      const rawAmount = payout.amount;
-      const amountNum = Number(rawAmount);
-      const isApproved = status === PayoutStatus.COMPLETED;
-
-      const shopName = payout.shop.name;
-      const emailReason = reason ?? null;
-
-      const locale = 'vi-VN';
-      const formattedAmount = amountNum.toLocaleString(locale);
-
-      const title = isApproved
-        ? 'Yêu cầu rút tiền thành công'
-        : 'Yêu cầu rút tiền bị từ chối';
-      const content = isApproved
-        ? `Yêu cầu rút tiền trị giá ${formattedAmount}đ đã được phê duyệt thành công.`
-        : `Yêu cầu rút tiền trị giá ${formattedAmount}đ đã bị từ chối. Lý do: ${reason}`;
-
-      await this.mailService.sendPayoutStatusEmail(
-        seller,
-        shopName,
-        amountNum,
-        status,
-        emailReason,
-      );
-
-      const createNotificationDto = {
-        userId: seller.id,
-        type: NotificationType.PAYOUT_STATUS_CHANGED,
-        title,
-        content,
-        data: {
-          kind: 'payout_status_changed' as const,
-          payoutId: payout.id,
-          amount: amountNum,
-          status,
-          rejectReason: reason ?? null,
-        },
-      };
-
-      await this.notificationService.create(createNotificationDto);
-
-      const sellerId = seller.id;
-      const eventName = WS_EVENTS.PAYOUT_STATUS_CHANGED;
-      const socketPayload = {
-        payoutId: payout.id,
-        amount: amountNum,
-        status,
-        message: content,
-      };
-
-      this.notificationGateway.sendToUser(sellerId, eventName, socketPayload);
-    } catch (error) {
-      const logMessage = `[notifyPayoutResolved] payoutId=${payout.id} status=${status} side-effect lỗi`;
-      const stackStr = error instanceof Error ? error.stack : String(error);
-      this.logger.error(logMessage, stackStr);
-    }
   }
 }

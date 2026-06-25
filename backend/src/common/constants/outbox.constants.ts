@@ -1,3 +1,4 @@
+import { PayoutStatus } from '@/common/enums';
 // Event types cho Transactional Outbox pattern
 // Dùng chung giữa Orders module (writer) và Engagements Outbox Worker (reader)
 export const OUTBOX_EVENT_TYPES = {
@@ -6,6 +7,9 @@ export const OUTBOX_EVENT_TYPES = {
   ORDER_STATUS_UPDATED: 'order.status_updated',
   REVIEW_CREATED: 'review.created',
   REVIEW_REPLIED: 'review.replied',
+  PAYOUT_CREATED: 'payout.created',
+  PAYOUT_STATUS_CHANGED: 'payout.status_changed',
+  SHOP_REGISTERED: 'shop.registered',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -46,7 +50,7 @@ export interface ReviewCreatedPayload {
   reviewId: string;
   productId: string;
   productName: string;
-  shopId: string; // shop sở hữu product → tìm seller để báo 
+  shopId: string; // shop sở hữu product → tìm seller để báo
   rating: number;
 }
 
@@ -56,4 +60,28 @@ export interface ReviewRepliedPayload {
   productId: string;
   productName: string;
   customerId: string; // người nhận thông báo
+}
+
+export interface PayoutCreatedOutboxPayload {
+  payoutId: string;
+  amount: number;
+  shopId: string;
+  shopName: string;
+}
+
+export interface PayoutStatusChangedOutboxPayload {
+  payoutId: string;
+  sellerId: string;
+  sellerEmail: string;
+  sellerName: string;
+  shopName: string;
+  amount: number;
+  status: PayoutStatus; // COMPLETED | REJECTED
+  reason: string | null;
+}
+
+export interface ShopRegisteredOutboxPayload {
+  shopId: string;
+  shopName: string;
+  isReapply: boolean;
 }

@@ -92,4 +92,26 @@ export class NotificationService {
     );
     return { updated: result.affected ?? 0 };
   }
+
+  /** Tạo cùng một notification cho NHIỀU user (bulk). Dùng cho fan-out admin. */
+  async createForUsers(
+    userIds: string[],
+    dto: Omit<CreateNotificationDto, 'userId'>,
+    manager?: EntityManager,
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+    const repo = manager
+      ? manager.getRepository(Notification)
+      : this.notificationRepo;
+    const rows = userIds.map((userId) =>
+      repo.create({
+        user: { id: userId },
+        type: dto.type,
+        title: dto.title,
+        content: dto.content,
+        data: dto.data ?? null,
+      }),
+    );
+    await repo.save(rows);
+  }
 }

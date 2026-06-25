@@ -5,9 +5,11 @@
 export const WS_EVENTS = {
   ORDER_NEW: 'order.new',
   ORDER_STATUS_CHANGED: 'order.status_changed',
-  REVIEW_NEW: 'review.new',          // báo seller có đánh giá mới
-  REVIEW_REPLIED: 'review.replied',  // báo customer seller đã phản hồi
+  REVIEW_NEW: 'review.new', // báo seller có đánh giá mới
+  REVIEW_REPLIED: 'review.replied', // báo customer seller đã phản hồi
   PAYOUT_STATUS_CHANGED: 'payout.status_changed',
+  PAYOUT_CREATED: 'payout.created',
+  SHOP_REGISTERED: 'shop.registered',
 } as const;
 
 // Payload event 'order.new' — báo Seller có đơn hàng mới.
@@ -52,6 +54,20 @@ export interface PayoutStatusChangedWsPayload {
   message: string;
 }
 
+export interface PayoutCreatedWsPayload {
+  payoutId: string;
+  amount: number;
+  shopId: string;
+  shopName: string;
+  message: string;
+}
+
+export interface ShopRegisteredWsPayload {
+  shopId: string;
+  shopName: string;
+  message: string;
+}
+
 // Map tên event → kiểu payload. Nguồn sự thật duy nhất cho mọi event WebSocket.
 export type WsPayloadMap = {
   [WS_EVENTS.ORDER_NEW]: OrderNewWsPayload;
@@ -59,6 +75,8 @@ export type WsPayloadMap = {
   [WS_EVENTS.REVIEW_NEW]: ReviewNewWsPayload;
   [WS_EVENTS.REVIEW_REPLIED]: ReviewRepliedWsPayload;
   [WS_EVENTS.PAYOUT_STATUS_CHANGED]: PayoutStatusChangedWsPayload;
+  [WS_EVENTS.PAYOUT_CREATED]: PayoutCreatedWsPayload;
+  [WS_EVENTS.SHOP_REGISTERED]: ShopRegisteredWsPayload;
 };
 
 export type WsEventName = keyof WsPayloadMap;

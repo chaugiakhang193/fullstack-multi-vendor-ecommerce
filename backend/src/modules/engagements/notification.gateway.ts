@@ -33,7 +33,8 @@ import { WsEventName, WsPayloadMap } from './notification.events';
   },
 })
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   // Inject Socket.io Server instance — NestJS tự điền sau khi Gateway khởi tạo.
   @WebSocketServer()
   private server: Server;
@@ -48,7 +49,7 @@ export class NotificationGateway
     // Dùng để query shopId của Seller — vì shopId KHÔNG có trong JWT payload.
     @InjectRepository(Shop)
     private readonly shopRepository: Repository<Shop>,
-  ) { }
+  ) {}
 
   async handleConnection(client: Socket): Promise<void> {
     try {
@@ -96,6 +97,11 @@ export class NotificationGateway
       this.logger.log(
         `[Gateway] User ${userId} (${role}) kết nối. socketId=${client.id}`,
       );
+
+      if (role.toUpperCase() === 'ADMIN') {
+        client.join('room:admins');
+        this.logger.log(`[Gateway] Admin ${userId} joined room:admins`);
+      }
 
       // Seller → query DB lấy shopId để join room shop.
       // shopId không có trong JWT — query 1 lần/session là trade-off chấp nhận được
@@ -170,5 +176,13 @@ export class NotificationGateway
   ): void {
     const shopRoom = `room:${shopId}`;
     this.server.to(shopRoom).emit(event, payload);
+  }
+
+  /** Gửi event đến TẤT CẢ admin online (room:admins). */
+  sendToAdmins<E extends WsEventName>(
+    event: E,
+    payload: WsPayloadMap[E],
+  ): void {
+    this.server.to('room:admins').emit(event, payload);
   }
 }

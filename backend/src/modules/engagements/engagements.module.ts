@@ -23,6 +23,8 @@ import { Review } from '@/modules/engagements/entities/review.entity';
 import { ProductsModule } from '@/modules/products/products.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { ShopsModule } from '@/modules/shops/shops.module';
+import { UsersModule } from '@/modules/users/users.module';
+import { MailModule } from '@/modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     ProductsModule,
     OrdersModule,
     ShopsModule,
+    UsersModule,
+    MailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

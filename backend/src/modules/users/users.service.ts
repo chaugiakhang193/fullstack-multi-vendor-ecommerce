@@ -43,7 +43,7 @@ export class UsersService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
-  ) { }
+  ) {}
 
   /*  isDataExist = async (field: string, data: any) => {
     const user = await this.usersRepository.findOne({
@@ -350,7 +350,9 @@ export class UsersService {
     const hasLng = lng !== undefined && lng !== null && lng !== '';
 
     if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
-      throw new BadRequestException('Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp');
+      throw new BadRequestException(
+        'Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp',
+      );
     }
 
     // Nếu cả hai tọa độ đều trống, thử geocoding ngoài transaction.
@@ -359,7 +361,11 @@ export class UsersService {
     if (!hasLat && !hasLng) {
       const geocodeResult = await this.geocodingService.geocode(address_line);
       const isSuccess = geocodeResult.success;
-      if (isSuccess && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+      if (
+        isSuccess &&
+        geocodeResult.lat !== null &&
+        geocodeResult.lng !== null
+      ) {
         finalLat = geocodeResult.lat.toString();
         finalLng = geocodeResult.lng.toString();
       } else {
@@ -427,7 +433,9 @@ export class UsersService {
     const hasLng = lng !== undefined && lng !== null && lng !== '';
 
     if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
-      throw new BadRequestException('Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp');
+      throw new BadRequestException(
+        'Vĩ độ (lat) và kinh độ (lng) phải được cung cấp đi kèm cả cặp',
+      );
     }
 
     // Kế thừa tọa độ cũ nếu request không gửi lat/lng mới
@@ -435,14 +443,21 @@ export class UsersService {
     let finalLng: string | null = lng !== undefined ? lng : address.lng;
 
     // Nếu cập nhật address_line mà không truyền cặp lat/lng, thử geocoding ngoài transaction
-    const hasAddressLineUpdate = address_line !== undefined && address_line !== null && address_line !== '';
+    const hasAddressLineUpdate =
+      address_line !== undefined &&
+      address_line !== null &&
+      address_line !== '';
     const isNewCoordsProvided = hasLat && hasLng;
 
     if (hasAddressLineUpdate && !isNewCoordsProvided) {
       if (address_line !== address.address_line) {
         const geocodeResult = await this.geocodingService.geocode(address_line);
         const isSuccess = geocodeResult.success;
-        if (isSuccess && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+        if (
+          isSuccess &&
+          geocodeResult.lat !== null &&
+          geocodeResult.lng !== null
+        ) {
           finalLat = geocodeResult.lat.toString();
           finalLng = geocodeResult.lng.toString();
         } else {
@@ -462,7 +477,8 @@ export class UsersService {
 
     // 4. Thực thi trong Transaction sử dụng manager
     return await this.dataSource.transaction(async (manager) => {
-      const shouldBeDefault = is_default !== undefined ? is_default : address.is_default;
+      const shouldBeDefault =
+        is_default !== undefined ? is_default : address.is_default;
 
       if (is_default === true) {
         const updateCriteria = { user: { id: userId } };
@@ -497,7 +513,10 @@ export class UsersService {
           where: { user: { id: userId } },
           order: { created_at: 'DESC' as const },
         };
-        const remainingAddress = await manager.findOne(Address, nextDefaultCriteria);
+        const remainingAddress = await manager.findOne(
+          Address,
+          nextDefaultCriteria,
+        );
 
         if (remainingAddress) {
           remainingAddress.is_default = true;
@@ -552,5 +571,13 @@ export class UsersService {
   async countByRole(role: UserRole): Promise<number> {
     return this.usersRepository.count({ where: { role } });
   }
-}
 
+  /** Lấy id của tất cả user role ADMIN (phục vụ fan-out notification trong OutboxWorker). */
+  async findAdminIds(): Promise<string[]> {
+    const admins = await this.usersRepository.find({
+      where: { role: UserRole.ADMIN },
+      select: { id: true },
+    });
+    return admins.map((admin) => admin.id);
+  }
+}

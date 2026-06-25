@@ -11,6 +11,9 @@ import {
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
+// Outbox support
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+
 // DTOs
 import { CreateShopDto } from '@/modules/shops/dto/create-shop.dto';
 import { UpdateShopDto } from '@/modules/shops/dto/update-shop.dto';
@@ -28,7 +31,11 @@ import { MailService } from '@/modules/mail/mail.service';
 import { GeocodingService } from '@/modules/geocoding/geocoding.service';
 
 // Enums
-import { AccountStatus, AssetType } from '@/common/enums';
+import { AccountStatus, AssetType, OutboxEventStatus } from '@/common/enums';
+import {
+  OUTBOX_EVENT_TYPES,
+  ShopRegisteredOutboxPayload,
+} from '@/common/constants/outbox.constants';
 import {
   UPLOAD_LIMITS,
   CLOUDINARY_FOLDER,
@@ -89,8 +96,10 @@ export class ShopsService {
     let resolvedLng: string | null = null;
     let isCoordinatesVerified = false;
 
-    const frontendLat = createShopDto.lat != null ? Number(createShopDto.lat) : NaN;
-    const frontendLng = createShopDto.lng != null ? Number(createShopDto.lng) : NaN;
+    const frontendLat =
+      createShopDto.lat != null ? Number(createShopDto.lat) : NaN;
+    const frontendLng =
+      createShopDto.lng != null ? Number(createShopDto.lng) : NaN;
 
     if (!isNaN(frontendLat) && !isNaN(frontendLng)) {
       // Frontend đã lấy tọa độ từ autocomplete — dùng trực tiếp (Trap #9)
@@ -102,7 +111,11 @@ export class ShopsService {
       const pickupAddress = createShopDto.pickup_address;
       const geocodeResult = await this.geocodingService.geocode(pickupAddress);
 
-      if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+      if (
+        geocodeResult.success &&
+        geocodeResult.lat !== null &&
+        geocodeResult.lng !== null
+      ) {
         resolvedLat = String(geocodeResult.lat);
         resolvedLng = String(geocodeResult.lng);
         isCoordinatesVerified = true;
@@ -181,6 +194,20 @@ export class ShopsService {
       await this.dataSource.manager.update(User, userId, {
         status: AccountStatus.PENDING_APPROVAL,
       });
+
+      const newShopPayload: ShopRegisteredOutboxPayload = {
+        shopId: savedShop.id,
+        shopName: savedShop.name,
+        isReapply: false,
+      };
+      const outboxRepo = this.dataSource.getRepository(OutboxEvent);
+      await outboxRepo.save(
+        outboxRepo.create({
+          event_type: OUTBOX_EVENT_TYPES.SHOP_REGISTERED,
+          payload: newShopPayload,
+          status: OutboxEventStatus.PENDING,
+        }),
+      );
 
       // Gán asset shop_id cho logo và banner
       await this.cloudinaryService.updateAssetShopId(
@@ -341,9 +368,14 @@ export class ShopsService {
         // Địa chỉ thay đổi nhưng không có coords → fallback geocode từ backend
         // shop.pickup_address đã được cập nhật bởi Object.assign phía trên
         const targetAddress = shop.pickup_address;
-        const geocodeResult = await this.geocodingService.geocode(targetAddress);
+        const geocodeResult =
+          await this.geocodingService.geocode(targetAddress);
 
-        if (geocodeResult.success && geocodeResult.lat !== null && geocodeResult.lng !== null) {
+        if (
+          geocodeResult.success &&
+          geocodeResult.lat !== null &&
+          geocodeResult.lng !== null
+        ) {
           shop.lat = String(geocodeResult.lat);
           shop.lng = String(geocodeResult.lng);
           shop.is_coordinates_verified = true;
@@ -363,7 +395,9 @@ export class ShopsService {
       const parsedCategoryIds = this.parseCategoryIds(categoryIds);
       if (parsedCategoryIds.length > 0) {
         const validatedCategories =
-          await this.categoriesService.validateRootCategories(parsedCategoryIds);
+          await this.categoriesService.validateRootCategories(
+            parsedCategoryIds,
+          );
         shop.categories = validatedCategories;
       }
     }
@@ -601,6 +635,20 @@ export class ShopsService {
           status: AccountStatus.PENDING_APPROVAL,
         });
 
+        const reapplyPayload: ShopRegisteredOutboxPayload = {
+          shopId: shop.id,
+          shopName: shop.name,
+          isReapply: true,
+        };
+        await transactionalEntityManager.save(
+          OutboxEvent,
+          transactionalEntityManager.create(OutboxEvent, {
+            event_type: OUTBOX_EVENT_TYPES.SHOP_REGISTERED,
+            payload: reapplyPayload,
+            status: OutboxEventStatus.PENDING,
+          }),
+        );
+
         return await this.findOneByUserId(userId);
       },
     );
@@ -695,10 +743,9 @@ export class ShopsService {
         shop.id,
       );
 
-      await this.shopsRepository.update(
-        shop.id,
-        { [urlField]: newAssetResult.url } as any,
-      );
+      await this.shopsRepository.update(shop.id, {
+        [urlField]: newAssetResult.url,
+      } as any);
 
       const oldUrl = shop[urlField];
       if (oldUrl) {
@@ -729,4 +776,3 @@ export class ShopsService {
     return this.shopsRepository.count({ where: { status } });
   }
 }
-

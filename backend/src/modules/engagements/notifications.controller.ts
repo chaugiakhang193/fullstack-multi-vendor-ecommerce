@@ -27,7 +27,7 @@ import type { IUser } from '@/interface/user.interface';
 
 @ApiTags('notifications')
 @ApiBearerAuth('access-token')
-@Roles(UserRole.CUSTOMER, UserRole.SELLER)
+@Roles(UserRole.CUSTOMER, UserRole.SELLER, UserRole.ADMIN)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationService: NotificationService) {}
@@ -56,7 +56,9 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Đánh dấu 1 thông báo đã đọc' })
   @ApiParam({ name: 'id', description: 'UUID notification' })
   @ResponseMessage('Đã đánh dấu thông báo là đã đọc')
-  @ApiNotFoundResponse({ description: 'Không tìm thấy (hoặc không thuộc về bạn)' })
+  @ApiNotFoundResponse({
+    description: 'Không tìm thấy (hoặc không thuộc về bạn)',
+  })
   markAsRead(@User() user: IUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.notificationService.markAsRead(user.sub, id);
   }
