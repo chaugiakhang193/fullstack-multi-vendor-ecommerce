@@ -22,6 +22,7 @@ export const QUERY_KEYS = {
   COUPONS: 'coupons',
   REVIEWS: 'reviews',
   PAYOUTS: 'payouts',
+  PENDING_SHOPS: 'pending-shops',
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -55,6 +56,10 @@ export const shopKeys = {
   catalog: (id: string, query?: Record<string, unknown>) =>
     [QUERY_KEYS.SHOP_CATALOG, id, query ?? {}] as const,
   mine: [QUERY_KEYS.MY_SHOP] as const,
+};
+
+export const pendingShopKeys = {
+  all: [QUERY_KEYS.PENDING_SHOPS] as const,
 };
 
 export const sellerOrderKeys = {

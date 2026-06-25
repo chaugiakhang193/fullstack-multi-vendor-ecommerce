@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -15,13 +14,16 @@ import {
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
-import adminApiRequest from '@/apiRequests/shops/admin-shops';
+import {
+  usePendingShops,
+  useApproveShop,
+  useRejectShop,
+} from '@/hooks/useAdminShops';
 import {
   RejectShopBody,
   ShopType,
 } from '@/schemaValidations/shops/shops.schema';
 import { Badge } from '@/components/ui/badge';
-import { getErrorMessage } from '@/lib/http';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -41,88 +43,61 @@ import {
 } from '@/components/ui/dialog';
 
 export default function AdminSellersPage() {
-  const [shops, setShops] = useState<ShopType[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const [selectedShop, setSelectedShop] = useState<ShopType | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [isApproveOpen, setIsApproveOpen] = useState<boolean>(false);
   const [isRejectOpen, setIsRejectOpen] = useState<boolean>(false);
-  const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [rejectReason, setRejectReason] = useState<string>('');
   const [rejectError, setRejectError] = useState<string | null>(null);
 
-  const fetchPendingShops = async () => {
-    setLoading(true);
-    try {
-      const response = await adminApiRequest.getPendingShops();
-      setShops(response.data || []);
-    } catch (error: any) {
-      console.error('Lỗi khi tải danh sách cửa hàng:', error);
-      const errMsg = getErrorMessage(error);
-      toast.error(errMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: pendingData, isLoading: loading } = usePendingShops();
+  const shops = pendingData?.data ?? [];
 
-  useEffect(() => {
-    fetchPendingShops();
-  }, []);
-
-  const handleApprove = async () => {
-    if (!selectedShop) return;
-    setActionLoading(true);
-    try {
-      const response = await adminApiRequest.approveShop(selectedShop.id);
-      toast.success(
-        response.message ||
-          `Đã phê duyệt hoạt động cho cửa hàng "${selectedShop.name}"`,
-      );
-      setShops((prev) => prev.filter((shop) => shop.id !== selectedShop.id));
+  const approveOptions = {
+    onSuccess: () => {
       setIsApproveOpen(false);
       setIsDetailOpen(false);
-    } catch (error: any) {
-      console.error('Lỗi phê duyệt cửa hàng:', error);
-      const errMsg = getErrorMessage(error);
-      toast.error(errMsg);
-    } finally {
-      setActionLoading(false);
-    }
+      setSelectedShop(null);
+    },
   };
+  const { mutate: approveShop, isPending: isApproving } =
+    useApproveShop(approveOptions);
 
-  const handleReject = async () => {
-    if (!selectedShop) return;
-
-    const validation = RejectShopBody.safeParse({
-      reason: rejectReason.trim(),
-    });
-    if (!validation.success) {
-      setRejectError(validation.error.errors[0].message);
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const response = await adminApiRequest.rejectShop(selectedShop.id, {
-        reason: rejectReason.trim(),
-      });
-      toast.success(
-        response.message ||
-          `Đã từ chối đơn đăng ký của cửa hàng "${selectedShop.name}"`,
-      );
-      setShops((prev) => prev.filter((shop) => shop.id !== selectedShop.id));
+  const rejectOptions = {
+    onSuccess: () => {
       setIsRejectOpen(false);
       setIsDetailOpen(false);
       setRejectReason('');
       setRejectError(null);
-    } catch (error: any) {
-      console.error('Lỗi từ chối cửa hàng:', error);
-      const errMsg = getErrorMessage(error);
-      toast.error(errMsg);
-    } finally {
-      setActionLoading(false);
+      setSelectedShop(null);
+    },
+  };
+  const { mutate: rejectShop, isPending: isRejecting } =
+    useRejectShop(rejectOptions);
+
+  const actionLoading = isApproving || isRejecting;
+
+  const handleApprove = () => {
+    if (!selectedShop) return;
+    const shopIdVal = selectedShop.id;
+    approveShop(shopIdVal);
+  };
+
+  const handleReject = () => {
+    if (!selectedShop) return;
+    const trimmedReason = rejectReason.trim();
+    const parsePayload = { reason: trimmedReason };
+    const validation = RejectShopBody.safeParse(parsePayload);
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0].message;
+      setRejectError(errorMsg);
+      return;
     }
+    const mutationPayload = {
+      shopId: selectedShop.id,
+      body: { reason: trimmedReason },
+    };
+    rejectShop(mutationPayload);
   };
 
   const formatDate = (dateString: string) => {

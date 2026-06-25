@@ -11,7 +11,11 @@ import { useNotificationStore } from '@/store/useNotificationStore';
 import { useSocket } from '@/components/providers/socket-provider';
 import { useNotificationsList, useUnreadCount } from '@/hooks/useNotifications';
 import notificationApiRequest from '@/apiRequests/engagements/notifications';
-import { QUERY_KEYS, payoutKeys } from '@/constants/query-keys';
+import {
+  QUERY_KEYS,
+  payoutKeys,
+  pendingShopKeys,
+} from '@/constants/query-keys';
 import { UserRole } from '@/constants/enum';
 import { getErrorMessage } from '@/lib/http';
 import { formatDateTime, formatVnd } from '@/lib/format';
@@ -240,6 +244,10 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       increment();
       const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
       queryClient.invalidateQueries({ queryKey: notificationQueryKey });
+
+      const pendingShopsKey = pendingShopKeys.all;
+      const invalidateOptions = { queryKey: pendingShopsKey };
+      queryClient.invalidateQueries(invalidateOptions);
 
       const shopNameVal = payload.shopName;
       const descriptionText = `Cửa hàng ${shopNameVal}`;
