@@ -6,8 +6,16 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Category } from '@/modules/products/entities/category.entity';
 import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
-import { AccountStatus, ProductStatus, UserRole } from '@/common/enums';
+import {
+  AccountStatus,
+  ProductStatus,
+  UserRole,
+  OrderStatus,
+} from '@/common/enums';
 import { hashDataHelper } from '@/common/helpers/utils';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
+import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 
 function parseVariantAttributes(name: string): Record<string, string> {
   const attrs: Record<string, string> = {};
@@ -78,10 +86,16 @@ async function seed() {
   const categoryRepository = dataSource.getRepository(Category);
   const productRepository = dataSource.getRepository(Product);
   const variantRepository = dataSource.getRepository(ProductVariant);
+  const orderRepository = dataSource.getRepository(Order);
+  const subOrderRepository = dataSource.getRepository(SubOrder);
+  const orderItemRepository = dataSource.getRepository(OrderItem);
 
   try {
     // A. DỌN DẸP DỮ LIỆU CŨ
     console.log('-> Đang dọn dẹp các dữ liệu cũ của cửa hàng dev...');
+    await dataSource.query('DELETE FROM "order_item";');
+    await dataSource.query('DELETE FROM "sub_order";');
+    await dataSource.query('DELETE FROM "order";');
     const emailsToClean = [
       'Shopprovip1@gmail.com',
       'seller_dev@example.com',
@@ -710,6 +724,95 @@ async function seed() {
         });
         await variantRepository.save(variantsToSave);
       }
+    }
+
+    // 6. Tạo các Order & SubOrder mẫu cho Vũ Trụ Thời Trang (ShopProVip)
+    console.log('-> Tạo các Order & SubOrder mẫu cho Shop 1...');
+    const devShopId = devShop.id;
+    const shopProducts = await productRepository.find({
+      where: { shop: { id: devShopId } },
+      take: 3,
+    });
+
+    if (shopProducts.length > 0) {
+      const firstProduct = shopProducts[0];
+      const firstProductPrice = firstProduct.price;
+      const firstProductName = firstProduct.name;
+      const firstProductThumbnail = firstProduct.thumbnail_url ?? undefined;
+
+      // Đơn hàng 1: Trạng thái DELIVERED
+      const randomMultiplier = 90000;
+      const randomValueA = Math.random() * randomMultiplier;
+      const flooredRandomA = Math.floor(randomValueA);
+      const offset = 10000;
+      const orderNumSuffixA = flooredRandomA + offset;
+      const orderNumberValA = `ORD-DEV-A-${orderNumSuffixA}`;
+
+      const orderA = orderRepository.create({
+        customer: devBuyer,
+        total_amount: 500000,
+        status: OrderStatus.DELIVERED,
+        order_number: orderNumberValA,
+      });
+      const savedOrderA = await orderRepository.save(orderA);
+
+      const subOrderA = subOrderRepository.create({
+        shop: devShop,
+        order: savedOrderA,
+        sub_total: 500000,
+        shipping_fee: 0,
+        discount_amount: 0,
+        total_amount: 500000,
+        status: OrderStatus.DELIVERED,
+      });
+      const savedSubOrderA = await subOrderRepository.save(subOrderA);
+
+      const itemA = orderItemRepository.create({
+        sub_order: savedSubOrderA,
+        product: firstProduct,
+        quantity: 2,
+        price_at_purchase: firstProductPrice,
+        product_name: firstProductName,
+        product_thumbnail: firstProductThumbnail,
+      });
+      await orderItemRepository.save(itemA);
+
+      // Đơn hàng 2: Trạng thái PENDING
+      const randomValueB = Math.random() * randomMultiplier;
+      const flooredRandomB = Math.floor(randomValueB);
+      const orderNumSuffixB = flooredRandomB + offset;
+      const orderNumberValB = `ORD-DEV-B-${orderNumSuffixB}`;
+
+      const orderB = orderRepository.create({
+        customer: devBuyer,
+        total_amount: 250000,
+        status: OrderStatus.PENDING,
+        order_number: orderNumberValB,
+      });
+      const savedOrderB = await orderRepository.save(orderB);
+
+      const subOrderB = subOrderRepository.create({
+        shop: devShop,
+        order: savedOrderB,
+        sub_total: 250000,
+        shipping_fee: 0,
+        discount_amount: 0,
+        total_amount: 250000,
+        status: OrderStatus.PENDING,
+      });
+      const savedSubOrderB = await subOrderRepository.save(subOrderB);
+
+      const itemB = orderItemRepository.create({
+        sub_order: savedSubOrderB,
+        product: firstProduct,
+        quantity: 1,
+        price_at_purchase: firstProductPrice,
+        product_name: firstProductName,
+        product_thumbnail: firstProductThumbnail,
+      });
+      await orderItemRepository.save(itemB);
+
+      console.log('-> Seeded thành công 2 Đơn hàng mẫu cho shop shopprovip1!');
     }
 
     console.log('====== GIEO HẠT THÀNH CÔNG RỒI NHA BẠN ƠI! ======');
