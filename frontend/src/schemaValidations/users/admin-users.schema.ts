@@ -1,4 +1,5 @@
 import z from 'zod';
+import { PaginationMetaSchema, paginated } from '../common.schema';
 import { UserRole, AccountStatus } from '@/constants/enum';
 import type { components } from '@/lib/api/api-schema';
 
@@ -21,18 +22,8 @@ export const AdminUserItemSchema = z.object({
   updated_at: z.string(),
 });
 
-export const AdminUserPaginationMeta = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
 // data của list = { items, meta }
-export const AdminUserListData = z.object({
-  items: z.array(AdminUserItemSchema),
-  meta: AdminUserPaginationMeta,
-});
+export const AdminUserListData = paginated(AdminUserItemSchema);
 
 // Admin chỉ set 3 trạng thái này (khớp BE UpdateUserStatusDto @IsIn)
 export const UpdateUserStatusBody = z.object({
@@ -43,7 +34,5 @@ export const UpdateUserStatusBody = z.object({
 
 export type AdminUserItemType = z.TypeOf<typeof AdminUserItemSchema>;
 export type AdminUserListDataType = z.TypeOf<typeof AdminUserListData>;
-export type AdminUserPaginationMetaType = z.TypeOf<
-  typeof AdminUserPaginationMeta
->;
+export type AdminUserPaginationMetaType = z.TypeOf<typeof PaginationMetaSchema>;
 export type UpdateUserStatusBodyType = z.TypeOf<typeof UpdateUserStatusBody>;

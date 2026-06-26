@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import { ORDER_LIMITS } from '@/constants/limits.generated';
 import type { components } from '@/lib/api/api-schema';
 import type { ApiEnvelope } from '@/lib/http';
@@ -200,18 +201,7 @@ export const SellerOrder = z.object({
   items: z.array(SellerOrderItem).optional(),
 });
 
-// Phân trang chung (khớp PaginatedResponseDto<T> backend).
-export const PaginationMeta = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
-export const SellerOrderList = z.object({
-  items: z.array(SellerOrder),
-  meta: PaginationMeta,
-});
+export const SellerOrderList = paginated(SellerOrder);
 
 // Kết quả PATCH status.
 export const UpdateOrderStatusResult = z.object({
@@ -245,10 +235,7 @@ export const CustomerOrder = z.object({
   updated_at: z.string(),
 });
 
-export const CustomerOrderList = z.object({
-  items: z.array(CustomerOrder),
-  meta: PaginationMeta,
-});
+export const CustomerOrderList = paginated(CustomerOrder);
 
 export const CancelSubOrderResult = z.object({
   subOrderId: z.string(),

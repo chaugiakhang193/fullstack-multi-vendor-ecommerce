@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import { PRODUCT_LIMITS } from '@/constants/limits.generated';
 import type { components } from '@/lib/api/api-schema';
 import type { ApiEnvelope } from '@/lib/http';
@@ -221,17 +222,7 @@ export const ProductResponse = z.object({
   review_count: z.coerce.number().optional().nullable(),
 });
 
-export const PaginationMetaSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
-export const ProductListData = z.object({
-  items: z.array(ProductResponse),
-  meta: PaginationMetaSchema,
-});
+export const ProductListData = paginated(ProductResponse);
 
 // ==========================================
 // Types

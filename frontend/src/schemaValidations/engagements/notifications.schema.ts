@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import type { ApiEnvelope } from '@/lib/http';
 import { NotificationType, PayoutStatus } from '@/constants/enum';
 import { OrderStatusEnum } from '@/schemaValidations/orders/orders.schema';
@@ -93,18 +94,7 @@ export const NotificationListQuery = z.object({
   is_read: z.boolean().optional(),
 });
 
-// Phân trang chung (khớp PaginatedResponseDto<T> backend).
-export const NotificationPaginationMeta = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
-
-export const NotificationList = z.object({
-  items: z.array(NotificationItem),
-  meta: NotificationPaginationMeta,
-});
+export const NotificationList = paginated(NotificationItem);
 
 // Kết quả PATCH /notifications/read-all.
 export const MarkAllReadResult = z.object({

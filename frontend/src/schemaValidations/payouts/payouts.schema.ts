@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import { PAYOUT_LIMITS } from '@/constants/limits.generated';
 import { PayoutStatus } from '@/constants/enum.generated';
 import type { components } from '@/lib/api/api-schema';
@@ -69,23 +70,9 @@ export const AdminPayoutItemSchema = PayoutItemSchema.extend({
     .nullable(),
 });
 
-// Meta phân trang khớp với backend paginate() (page, limit, totalItems, totalPages)
-export const PayoutPaginationMeta = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-});
+export const PayoutListSchema = paginated(PayoutItemSchema);
 
-export const PayoutListSchema = z.object({
-  items: z.array(PayoutItemSchema),
-  meta: PayoutPaginationMeta,
-});
-
-export const AdminPayoutListSchema = z.object({
-  items: z.array(AdminPayoutItemSchema),
-  meta: PayoutPaginationMeta,
-});
+export const AdminPayoutListSchema = paginated(AdminPayoutItemSchema);
 
 // State Machine cho Payouts (Quy trình duyệt rút tiền của Admin)
 export const PAYOUT_STATE_MACHINE: Record<PayoutStatus, PayoutStatus[]> = {

@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import { REVIEW_LIMITS } from '@/constants/limits.generated';
 import type { ApiEnvelope } from '@/lib/http';
 import type { components } from '@/lib/api/api-schema';
@@ -96,14 +97,7 @@ export const SellerReplyBody = z.object({
 // Response Schemas
 // ==========================================
 
-export const ProductReviewsResponse = z.object({
-  items: z.array(ReviewSchema),
-  meta: z.object({
-    page: z.number(),
-    limit: z.number(),
-    totalItems: z.number(),
-    totalPages: z.number(),
-  }),
+export const ProductReviewsResponse = paginated(ReviewSchema).extend({
   distribution: z.object({
     '1': z.number(),
     '2': z.number(),
@@ -113,25 +107,9 @@ export const ProductReviewsResponse = z.object({
   }),
 });
 
-export const ReviewListResponse = z.object({
-  items: z.array(ReviewSchema),
-  meta: z.object({
-    page: z.number(),
-    limit: z.number(),
-    totalItems: z.number(),
-    totalPages: z.number(),
-  }),
-});
+export const ReviewListResponse = paginated(ReviewSchema);
 
-export const ReviewableListResponse = z.object({
-  items: z.array(ReviewableItemSchema),
-  meta: z.object({
-    page: z.number(),
-    limit: z.number(),
-    totalItems: z.number(),
-    totalPages: z.number(),
-  }),
-});
+export const ReviewableListResponse = paginated(ReviewableItemSchema);
 
 // ==========================================
 // Types

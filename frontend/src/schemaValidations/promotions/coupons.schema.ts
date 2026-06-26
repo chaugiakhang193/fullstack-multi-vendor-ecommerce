@@ -1,4 +1,5 @@
 import z from 'zod';
+import { paginated } from '../common.schema';
 import { CouponType, DiscountType } from '@/constants/enum';
 import { COUPON_LIMITS } from '@/constants/limits.generated';
 import type { ApiEnvelope } from '@/lib/http';
@@ -139,22 +140,9 @@ export const CouponQuery = z.object({
 // Response Schemas
 // ==========================================
 
-export const CouponPaginationMeta = z.object({
-  page: z.number(),
-  limit: z.number(),
-  totalItems: z.number(),
-  totalPages: z.number(),
-});
+export const CouponListResponse = paginated(CouponSchema);
 
-export const CouponListResponse = z.object({
-  items: z.array(CouponSchema),
-  meta: CouponPaginationMeta,
-});
-
-export const UserCouponListResponse = z.object({
-  items: z.array(UserCouponSchema),
-  meta: CouponPaginationMeta,
-});
+export const UserCouponListResponse = paginated(UserCouponSchema);
 
 // ==========================================
 // Types
