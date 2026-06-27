@@ -585,6 +585,10 @@ export class OrdersService {
     const newStatus = deriveMasterStatus(siblings.map((s) => s.status));
     order.total_amount = newTotal;
     order.status = newStatus;
+    order.global_discount_amount = order.global_coupon ? globalDiscount : null;
+    order.global_coupon_code = order.global_coupon
+      ? order.global_coupon.code
+      : null;
     await manager.save(Order, order);
 
     await this.paymentsService.updateAmountForOrder({
@@ -823,6 +827,7 @@ export class OrdersService {
           idempotencyKey,
           totalAmount: grandTotal,
           globalCoupon: lockedGlobalCoupon,
+          globalDiscountAmount: globalDiscount,
           shippingAddress: shippingAddressSnapshot,
           manager: queryRunner.manager,
         });
@@ -850,6 +855,7 @@ export class OrdersService {
           sub_total: plan.shopSubtotal,
           shipping_fee: plan.shippingFee,
           discount_amount: plan.shopDiscount,
+          shop_coupon_code: plan.shopCoupon ? plan.shopCoupon.code : null,
           total_amount: plan.shopTotal,
           status: OrderStatus.PENDING,
         };
@@ -1057,6 +1063,7 @@ export class OrdersService {
     idempotencyKey: string;
     totalAmount: number;
     globalCoupon: Coupon | null;
+    globalDiscountAmount: number;
     shippingAddress: ShippingAddressSnapshot;
     manager: EntityManager;
   }): Promise<Order> {
@@ -1065,6 +1072,7 @@ export class OrdersService {
       idempotencyKey,
       totalAmount,
       globalCoupon,
+      globalDiscountAmount,
       shippingAddress,
       manager,
     } = params;
@@ -1080,6 +1088,8 @@ export class OrdersService {
         status: OrderStatus.PENDING,
         idempotency_key: idempotencyKey,
         order_number: orderNumber,
+        global_discount_amount: globalDiscountAmount,
+        global_coupon_code: globalCoupon ? globalCoupon.code : null,
       };
       if (globalCoupon) {
         orderPayload.global_coupon = { id: globalCoupon.id } as Coupon;
@@ -1229,6 +1239,7 @@ export class OrdersService {
         sub_total: plan.shopSubtotal,
         shipping_fee: plan.shippingFee,
         discount_amount: plan.shopDiscount,
+        shop_coupon_code: plan.shopCoupon ? plan.shopCoupon.code : null,
         total_amount: plan.shopTotal,
         items: itemsResponse,
       });
@@ -1238,6 +1249,10 @@ export class OrdersService {
       order_id: params.order.id,
       order_number: params.order.order_number,
       total_amount: params.grandTotal,
+      global_discount_amount: params.order.global_discount_amount
+        ? round2(Number(params.order.global_discount_amount))
+        : null,
+      global_coupon_code: params.order.global_coupon_code,
       payment_method: params.paymentMethod,
       shipping_address: params.shippingAddressSnapshot,
       sub_orders: subOrdersResponse,
@@ -1277,6 +1292,7 @@ export class OrdersService {
         sub_total: subTotal,
         shipping_fee: shippingFee,
         discount_amount: discountAmount,
+        shop_coupon_code: subOrder.shop_coupon_code,
         total_amount: totalAmount,
         items: itemsResponse,
       });
@@ -1287,6 +1303,10 @@ export class OrdersService {
       order_id: order.id,
       order_number: order.order_number,
       total_amount: round2(Number(order.total_amount ?? 0)),
+      global_discount_amount: order.global_discount_amount
+        ? round2(Number(order.global_discount_amount))
+        : null,
+      global_coupon_code: order.global_coupon_code,
       payment_method: order.payment?.method ?? PaymentMethod.COD,
       shipping_address: {
         recipient_name: shippingAddress?.recipient_name ?? '',

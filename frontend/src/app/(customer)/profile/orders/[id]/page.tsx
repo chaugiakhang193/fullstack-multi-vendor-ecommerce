@@ -142,6 +142,14 @@ export default function CustomerOrderDetailPage() {
             Thanh toán
           </h2>
           <p className="text-sm text-foreground/80">{paymentLabel}</p>
+          {order.global_coupon_code && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
+              <span>Voucher hệ thống ({order.global_coupon_code})</span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                - {formatVnd.format(Number(order.global_discount_amount ?? 0))}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between border-t pt-3">
             <span className="font-black text-foreground">Tổng cộng</span>
             <span className="text-lg font-black text-violet-600 dark:text-violet-400">
@@ -264,7 +272,11 @@ export default function CustomerOrderDetailPage() {
                 </div>
                 {discount > 0 && (
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Giảm giá</span>
+                    <span>
+                      Giảm giá
+                      {subOrder.shop_coupon_code &&
+                        ` (Mã: ${subOrder.shop_coupon_code})`}
+                    </span>
                     <span className="text-emerald-600 dark:text-emerald-400">
                       - {formatVnd.format(discount)}
                     </span>

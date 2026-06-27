@@ -142,6 +142,7 @@ export const CheckoutResponseSubOrder = z.object({
   sub_total: z.coerce.number(),
   shipping_fee: z.coerce.number(),
   discount_amount: z.coerce.number(),
+  shop_coupon_code: z.string().nullable().optional(),
   total_amount: z.coerce.number(),
   items: z.array(CheckoutResponseItem),
 });
@@ -150,6 +151,8 @@ export const CheckoutResponse = z.object({
   order_id: z.string(),
   order_number: z.string(),
   total_amount: z.coerce.number(),
+  global_discount_amount: z.coerce.number().nullable().optional(),
+  global_coupon_code: z.string().nullable().optional(),
   payment_method: z.literal('cod'),
   shipping_address: ShippingAddressSnapshot,
   sub_orders: z.array(CheckoutResponseSubOrder),
@@ -219,6 +222,7 @@ export const CustomerOrderSubOrder = z.object({
   sub_total: z.coerce.number().nullable(),
   shipping_fee: z.coerce.number().nullable(),
   discount_amount: z.coerce.number().nullable(),
+  shop_coupon_code: z.string().nullable().optional(),
   total_amount: z.coerce.number().nullable(),
   items: z.array(SellerOrderItem).optional(),
 });
@@ -227,6 +231,8 @@ export const CustomerOrder = z.object({
   id: z.string(),
   order_number: z.string().nullable().optional(),
   total_amount: z.coerce.number().nullable().optional(),
+  global_discount_amount: z.coerce.number().nullable().optional(),
+  global_coupon_code: z.string().nullable().optional(),
   status: OrderStatusEnum,
   payment_method: z.string().nullable().optional(),
   shipping_address: ShippingAddressSnapshot.nullable().optional(),

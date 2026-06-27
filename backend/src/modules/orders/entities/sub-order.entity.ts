@@ -47,6 +47,9 @@ export class SubOrder {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   discount_amount: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  shop_coupon_code: string | null;
+
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   total_amount: number;
 

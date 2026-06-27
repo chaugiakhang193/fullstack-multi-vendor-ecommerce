@@ -2565,6 +2565,11 @@ export interface components {
              */
             discount_amount: number;
             /**
+             * @description Mã giảm giá của shop đã dùng
+             * @example SHOPVOUCHER10
+             */
+            shop_coupon_code: Record<string, never> | null;
+            /**
              * @description Tổng tiền sub-order (sub_total - discount + shipping_fee)
              * @example 388000
              */
@@ -2588,6 +2593,16 @@ export interface components {
              * @example 388000
              */
             total_amount: number;
+            /**
+             * @description Số tiền giảm giá toàn sàn (từ voucher admin)
+             * @example 50000
+             */
+            global_discount_amount: Record<string, never> | null;
+            /**
+             * @description Mã giảm giá toàn sàn
+             * @example GLOBAL2026
+             */
+            global_coupon_code: Record<string, never> | null;
             /**
              * @description Phương thức thanh toán
              * @example cod
@@ -2755,6 +2770,20 @@ export interface components {
             /** @description Top 5 sản phẩm bán chạy của shop */
             best_sellers: components["schemas"]["BestSellerItemDto"][];
         };
+        BalanceResponseDto: {
+            /** @description Doanh thu thô đã giao (chưa trừ hoa hồng sàn) */
+            gross_revenue: number;
+            /** @description Hoa hồng sàn (5%) tính trên doanh thu thô */
+            commission_amount: number;
+            /** @description Doanh thu thực nhận sau khi trừ hoa hồng */
+            total_revenue: number;
+            /** @description Tổng số tiền đã rút thành công */
+            total_payouted: number;
+            /** @description Số dư khả dụng có thể yêu cầu rút */
+            available_balance: number;
+            /** @description Số tiền đang chờ duyệt rút (PENDING/PROCESSING) */
+            pending_payout: number;
+        };
         PayoutResponseDto: {
             id: string;
             amount: number;
@@ -2771,7 +2800,7 @@ export interface components {
         };
         CreatePayoutDto: {
             /**
-             * @description Số tiền muốn rút (tối thiểu 50.000đ)
+             * @description Số tiền muốn rút (tối thiểu 50000đ)
              * @example 100000
              */
             amount: number;
@@ -6157,11 +6186,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Số dư và thống kê tiền rút của Shop. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Số dư và thống kê tiền rút của Shop. */
+                        message?: string;
+                        data?: components["schemas"]["BalanceResponseDto"];
+                    };
+                };
             };
         };
     };
@@ -6232,6 +6270,8 @@ export interface operations {
                 sort?: string;
                 /** @description Chiều sắp xếp (ASC hoặc DESC) */
                 order?: "ASC" | "DESC";
+                /** @description Lọc danh sách theo trạng thái payout */
+                status?: "pending" | "processing" | "completed" | "failed" | "rejected";
             };
             header?: never;
             path?: never;

@@ -40,6 +40,12 @@ export class Order {
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   total_amount: number;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  global_discount_amount: number | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  global_coupon_code: string | null;
+
   @Column({ type: 'jsonb', nullable: true })
   shipping_address: ShippingAddressSnapshot | null;
 
