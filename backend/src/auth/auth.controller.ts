@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   Put,
+  Query,
 } from '@nestjs/common';
 
 import type { Response } from 'express';
@@ -27,6 +28,7 @@ import {
 } from '@nestjs/swagger';
 
 import { AuthService } from '@/auth/auth.service';
+import { ConfigService } from '@nestjs/config';
 
 //DTO
 import { RegisterDto } from '@/auth/dto/register.dto';
@@ -36,6 +38,7 @@ import { ResendVerificationEmailDto } from '@/auth/dto/resend-verification-email
 import { ChangePasswordDto } from '@/auth/dto/change-password.dto';
 import { ForgotPasswordDto } from '@/auth/dto/forgot-password.dto';
 import { ResetPasswordDto } from '@/auth/dto/reset-password.dto';
+import { SetPasswordDto } from '@/auth/dto/set-password.dto';
 import {
   AuthResponseDto,
   UnverifiedAccountResponseDto,
@@ -62,6 +65,10 @@ import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 import { LocalAuthGuard } from '@/auth/guard/local-auth.guard';
 import { RefreshTokenGuard } from '@/auth/guard/jwt-refresh-auth.guard';
+import { GoogleOAuthGuard } from '@/auth/guard/google-oauth.guard';
+
+// Enums
+import { AccountStatus } from '@/common/enums';
 import {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
@@ -70,7 +77,10 @@ import {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -194,6 +204,76 @@ export class AuthController {
       access_token,
       user,
     };
+  }
+
+  // [GET] /auth/google — khởi tạo luồng OAuth, guard tự redirect sang Google.
+  @Public()
+  @UseGuards(GoogleOAuthGuard)
+  @Get('google')
+  @ApiOperation({ summary: 'Bắt đầu đăng nhập bằng Google' })
+  googleAuth() {
+    // Không cần body — GoogleOAuthGuard redirect sang trang consent của Google.
+  }
+
+  // [GET] /auth/google/callback — Google redirect về sau khi user đồng ý.
+  @Public()
+  @UseGuards(GoogleOAuthGuard)
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Callback OAuth Google' })
+  async googleAuthCallback(
+    @Req() req: AuthenticatedRequest<UserWithoutPassword>,
+    @Res() res: Response,
+  ) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    // Verify CSRF state (so cookie với query echo từ Google).
+    const stateCookie = req.cookies['g_oauth_state'];
+    const stateQuery = req.query['state'] as string | undefined;
+    res.clearCookie('g_oauth_state', { path: '/' });
+    if (!stateCookie || !stateQuery || stateCookie !== stateQuery) {
+      return res.redirect(`${frontendUrl}/login?error=oauth_state`);
+    }
+
+    // Chặn account bị khoá (validateGoogleUser trả user nhưng không cấp token).
+    const user = req.user;
+    const lockedStatuses = [
+      AccountStatus.BANNED,
+      AccountStatus.SUSPENDED,
+      AccountStatus.REJECTED,
+    ];
+    if (lockedStatuses.includes(user.status)) {
+      return res.redirect(`${frontendUrl}/login?error=account_locked`);
+    }
+
+    // Phát session/token (tái dùng handleLogin) + set refresh cookie.
+    const oldRefreshToken = req.cookies['refresh_token'];
+    const { refresh_token, cookie_max_age } =
+      await this.authService.handleLogin(user, oldRefreshToken);
+    setRefreshTokenCookie(res, refresh_token, cookie_max_age);
+
+    // Redirect về FE. KHÔNG nhét access_token vào URL — FE gọi /auth/refresh
+    // (silentRefresh) để lấy access token bằng refresh cookie vừa set.
+    return res.redirect(`${frontendUrl}/auth/callback`);
+  }
+
+  // [POST] /auth/set-password — tạo mật khẩu lần đầu cho account Google-only.
+  @Post('set-password')
+  @ApiBearerAuth('access-token')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ResponseMessage(
+    'Tạo mật khẩu thành công. Bạn có thể đăng nhập bằng email + mật khẩu.',
+  )
+  @ApiOperation({ summary: 'Tạo mật khẩu lần đầu (account đăng nhập Google)' })
+  @ApiGenericResponse('Tạo mật khẩu thành công.')
+  @ApiResponse({ status: 400, description: 'Tài khoản đã có mật khẩu.' })
+  async setPassword(
+    @User() user: IUser,
+    @Body() setPasswordDto: SetPasswordDto,
+  ) {
+    return await this.authService.setPassword(
+      user.sub,
+      setPasswordDto.new_password,
+    );
   }
 
   @Put('change-password')

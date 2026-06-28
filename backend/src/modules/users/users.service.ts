@@ -25,7 +25,7 @@ import {
   compareHashedDataHelper,
   isDataExist,
 } from '@/common/helpers/utils';
-import { UserRole, AssetType } from '@/common/enums';
+import { UserRole, AssetType, AccountStatus } from '@/common/enums';
 import { USER_LIMITS } from '@/common/constants/user.constant';
 import { CLOUDINARY_FOLDER } from '@/common/constants/upload.constant';
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
@@ -122,6 +122,11 @@ export class UsersService {
       .getOne();
     if (!user) {
       throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    if (!user.password) {
+      throw new BadRequestException(
+        'Tài khoản này đăng nhập bằng Google và chưa có mật khẩu. Vui lòng dùng chức năng "Tạo mật khẩu".',
+      );
     }
     // so sánh mật khẩu cũ do User cung cấp với mật khẩu đã hash lưu trong database
     const isMatch = await compareHashedDataHelper(old_password, user.password);
@@ -579,5 +584,121 @@ export class UsersService {
       select: { id: true },
     });
     return admins.map((admin) => admin.id);
+  }
+
+  /** Tìm user theo Google ID (claim sub). Trả null nếu chưa có ai link. */
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { google_id: googleId } });
+  }
+
+  /** Sinh username duy nhất từ phần local của email + hậu tố ngẫu nhiên khi trùng. */
+  private async generateUniqueUsername(email: string): Promise<string> {
+    const base =
+      email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 20) || 'user';
+
+    // thử base trước, sau đó base + 4 ký tự ngẫu nhiên, tối đa 5 lần
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate =
+        attempt === 0
+          ? base
+          : `${base}_${Math.random().toString(36).slice(2, 6)}`;
+      const exists = await isDataExist(this.usersRepository, {
+        username: candidate,
+      });
+      if (!exists) return candidate;
+    }
+    // fallback cực hiếm: gắn timestamp
+    return `${base}_${Date.now().toString(36)}`;
+  }
+
+  /**
+   * Tạo user mới từ Google (email mới tinh, chưa tồn tại trong hệ thống).
+   * Account vào thẳng ACTIVE (email đã được Google verify), password = null.
+   */
+  async createGoogleUser(params: {
+    email: string;
+    googleId: string;
+    fullName?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<User> {
+    const { email, googleId, fullName, avatarUrl } = params;
+    const username = await this.generateUniqueUsername(email);
+
+    const newUser = new User();
+    newUser.username = username;
+    newUser.email = email;
+    newUser.password = null;
+    newUser.google_id = googleId;
+    newUser.status = AccountStatus.ACTIVE;
+    if (fullName) newUser.full_name = fullName;
+    if (avatarUrl) newUser.avatar_url = avatarUrl;
+    return this.usersRepository.save(newUser);
+  }
+
+  /**
+   * Liên kết Google vào 1 user đã tồn tại (tìm theo email).
+   * - takeoverPending=true (account PENDING_VERIFICATION, password untrusted):
+   *   huỷ password cũ + kích hoạt ACTIVE.
+   * - prefill full_name/avatar nếu user chưa có.
+   */
+  async linkGoogleAccount(
+    user: User,
+    params: {
+      googleId: string;
+      fullName?: string | null;
+      avatarUrl?: string | null;
+      takeoverPending: boolean;
+    },
+  ): Promise<User> {
+    const { googleId, fullName, avatarUrl, takeoverPending } = params;
+
+    user.google_id = googleId;
+    if (takeoverPending) {
+      user.password = null; // untrusted (account chưa từng verify email)
+      user.password_changed_at = new Date();
+      user.status = AccountStatus.ACTIVE;
+    }
+    if (!user.full_name && fullName) user.full_name = fullName;
+    if (!user.avatar_url && avatarUrl) user.avatar_url = avatarUrl;
+
+    return this.usersRepository.save(user);
+  }
+
+  /**
+   * Đặt mật khẩu LẦN ĐẦU cho account chưa có mật khẩu (vd: tạo từ Google).
+   * Nếu account đã có mật khẩu → chặn (phải dùng change-password).
+   */
+  async setUserPassword(userId: string, newPassword: string): Promise<void> {
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id: userId })
+      .getOne();
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    if (user.password) {
+      throw new BadRequestException(
+        'Tài khoản đã có mật khẩu. Vui lòng dùng chức năng đổi mật khẩu.',
+      );
+    }
+    user.password = await hashDataHelper(newPassword);
+    user.password_changed_at = new Date();
+    await this.usersRepository.save(user);
+  }
+
+  /** Account có mật khẩu local hay không (để FE quyết định hiện "Tạo mật khẩu" vs "Đổi mật khẩu"). */
+  async userHasPassword(userId: string): Promise<boolean> {
+    const row = await this.usersRepository
+      .createQueryBuilder('user')
+      .select('user.id')
+      .addSelect('user.password')
+      .where('user.id = :id', { id: userId })
+      .getOne();
+    return !!row?.password;
   }
 }

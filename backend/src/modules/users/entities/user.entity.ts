@@ -19,8 +19,12 @@ export class User {
   @Column({ unique: true, nullable: false })
   email: string;
 
-  @Column({ nullable: false, select: false })
-  password: string;
+  @Column({ type: 'varchar', nullable: true, select: false })
+  password: string | null;
+
+  // ID Google (claim `sub`) khi user liên kết đăng nhập Google. NULL nếu chưa link.
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  google_id: string | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CUSTOMER })
   role: UserRole;

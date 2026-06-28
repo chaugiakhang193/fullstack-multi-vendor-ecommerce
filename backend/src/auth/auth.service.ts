@@ -209,7 +209,22 @@ export class AuthService {
     // [Tech Debt D] vẫn chạy 1 phép so sánh bcrypt với hash giả để cân bằng thời gian
     // phản hồi với nhánh "sai mật khẩu", tránh lộ email/username có tồn tại hay không.
     if (!user) {
-      await compareHashedDataHelper(password, await DUMMY_PASSWORD_HASH_PROMISE);
+      await compareHashedDataHelper(
+        password,
+        await DUMMY_PASSWORD_HASH_PROMISE,
+      );
+      throw new UnauthorizedException(
+        'Tài khoản hoặc mật khẩu của bạn không đúng',
+      );
+    }
+
+    // [OAuth] Account chỉ-Google (chưa đặt password): vẫn chạy dummy compare để KHÔNG lộ
+    // qua timing rằng account này không có mật khẩu, rồi báo sai như nhánh sai mật khẩu.
+    if (!user.password) {
+      await compareHashedDataHelper(
+        password,
+        await DUMMY_PASSWORD_HASH_PROMISE,
+      );
       throw new UnauthorizedException(
         'Tài khoản hoặc mật khẩu của bạn không đúng',
       );
@@ -260,6 +275,77 @@ export class AuthService {
     }
 
     return await this.generateAndSaveSession(user);
+  }
+
+  /**
+   * Phân giải danh tính Google → user nội bộ (find-or-create + link).
+   * 3 nhánh: (1) đã link google_id → returning; (2) email trùng → link (kèm
+   * takeover nếu pending); (3) email mới → tạo user Google mới.
+   * KHÔNG cấp token ở đây. Account bị khoá vẫn trả về (controller sẽ chặn + redirect).
+   */
+  async validateGoogleUser(params: {
+    googleId: string;
+    email: string;
+    emailVerified: boolean;
+    fullName?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<UserWithoutPassword> {
+    const { googleId, email, emailVerified, fullName, avatarUrl } = params;
+
+    // Google gần như luôn trả email đã verify; nếu không → từ chối link (an toàn).
+    if (!emailVerified) {
+      throw new UnauthorizedException(
+        'Email Google của bạn chưa được xác thực. Không thể đăng nhập.',
+      );
+    }
+
+    // (1) Đã từng link Google → returning user.
+    const byGoogleId = await this.usersService.findByGoogleId(googleId);
+    if (byGoogleId) {
+      const { password, ...userWithoutPassword } = byGoogleId as User;
+      return userWithoutPassword;
+    }
+
+    // (2) Email đã tồn tại trong hệ thống.
+    const byEmail = await this.usersService.findByEmail(email);
+    if (byEmail) {
+      // Account bị khoá → KHÔNG link, trả nguyên trạng (controller chặn + redirect).
+      const lockedStatuses = [
+        AccountStatus.BANNED,
+        AccountStatus.SUSPENDED,
+        AccountStatus.REJECTED,
+      ];
+      if (lockedStatuses.includes(byEmail.status)) {
+        const { password, ...userWithoutPassword } = byEmail;
+        return userWithoutPassword;
+      }
+
+      const takeoverPending =
+        byEmail.status === AccountStatus.PENDING_VERIFICATION;
+      const linked = await this.usersService.linkGoogleAccount(byEmail, {
+        googleId,
+        fullName,
+        avatarUrl,
+        takeoverPending,
+      });
+      const { password, ...userWithoutPassword } = linked;
+      return userWithoutPassword;
+    }
+
+    // (3) Email mới tinh → tạo user Google mới (ACTIVE).
+    const created = await this.usersService.createGoogleUser({
+      email,
+      googleId,
+      fullName,
+      avatarUrl,
+    });
+    const { password, ...userWithoutPassword } = created;
+    return userWithoutPassword;
+  }
+
+  /** [POST] /auth/set-password — tạo mật khẩu lần đầu cho account Google-only. */
+  async setPassword(userId: string, newPassword: string) {
+    await this.usersService.setUserPassword(userId, newPassword);
   }
 
   // [PUT] /auth/change-password
@@ -495,8 +581,9 @@ export class AuthService {
       );
     }
 
+    const hasPassword = await this.usersService.userHasPassword(userId);
     const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return { ...userWithoutPassword, has_password: hasPassword };
   }
 
   create(createAuthDto: RegisterDto) {

@@ -22,6 +22,7 @@ import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
 import { AccessTokenStrategy } from '@/auth/strategies/jwt-access.strategy';
 import { RefreshTokenStrategy } from '@/auth/strategies/jwt-refresh.strategy';
+import { GoogleStrategy } from '@/auth/strategies/google.strategy';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { RefreshTokenStrategy } from '@/auth/strategies/jwt-refresh.strategy';
     LocalStrategy,
     AccessTokenStrategy,
     RefreshTokenStrategy,
+    GoogleStrategy,
     {
       provide: ACCESS_TOKEN_SERVICE,
       inject: [ConfigService],
