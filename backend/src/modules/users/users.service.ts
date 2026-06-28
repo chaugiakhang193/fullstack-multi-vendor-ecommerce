@@ -660,7 +660,13 @@ export class UsersService {
     if (takeoverPending) {
       user.password = null; // untrusted (account chưa từng verify email)
       user.password_changed_at = new Date();
-      user.status = AccountStatus.ACTIVE;
+      // Takeover = Google thay khâu verify email → set status role-aware HỆT
+      // verifyEmailAndActivateUser: SELLER phải đi tiếp luồng tạo shop → admin duyệt
+      // (NEW_SELLER), KHÔNG nhảy thẳng ACTIVE (sẽ bypass kiểm duyệt seller).
+      user.status =
+        user.role === UserRole.SELLER
+          ? AccountStatus.NEW_SELLER
+          : AccountStatus.ACTIVE;
     }
     if (!user.full_name && fullName) user.full_name = fullName;
     if (!user.avatar_url && avatarUrl) user.avatar_url = avatarUrl;
