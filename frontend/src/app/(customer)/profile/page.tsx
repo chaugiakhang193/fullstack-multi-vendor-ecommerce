@@ -24,6 +24,7 @@ import { getErrorMessage } from '@/lib/http';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+import { SetPasswordForm } from '@/app/(customer)/profile/set-password-form';
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -32,6 +33,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  // null = đang tải; true = đã có mật khẩu; false = chưa có
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
   const avatarPreview = useMemo(
     () => (avatarFile ? URL.createObjectURL(avatarFile) : null),
@@ -61,6 +64,7 @@ export default function ProfilePage() {
         const res = await userApiRequest.getMe();
         if (!active) return;
         setUser(res.data);
+        setHasPassword(Boolean(res.data.has_password));
         reset({
           full_name: res.data.full_name ?? '',
           phone: res.data.phone ?? '',
@@ -266,6 +270,9 @@ export default function ProfilePage() {
           </Button>
         </div>
       </form>
+      {hasPassword !== null && (
+        <SetPasswordForm initialHasPassword={hasPassword} />
+      )}
     </div>
   );
 }

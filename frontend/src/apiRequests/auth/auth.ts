@@ -9,6 +9,8 @@ import {
   ResetPasswordResType,
   ChangePasswordBodyType,
   ChangePasswordResType,
+  SetPasswordBodyType,
+  SetPasswordResType,
   ResendVerificationBodyType,
   ResendVerificationResType,
   VerifyEmailBodyType,
@@ -47,6 +49,9 @@ const authApiRequest = {
 
   changePassword: (body: Omit<ChangePasswordBodyType, 'confirmPassword'>) =>
     http.post<ChangePasswordResType>('/auth/change-password', body),
+
+  setPassword: (body: Omit<SetPasswordBodyType, 'confirmPassword'>) =>
+    http.post<SetPasswordResType>('/auth/set-password', body),
 
   // === 4. Đăng xuất ===
   logout: () => http.post<any>('/auth/logout', {}),

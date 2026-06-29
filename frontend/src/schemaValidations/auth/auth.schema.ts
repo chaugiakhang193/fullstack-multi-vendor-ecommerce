@@ -19,6 +19,9 @@ export const UserSchema = z.object({
   phone: z.string().nullable(),
   avatar_url: z.string().nullable(),
   password_changed_at: z.string().nullable(),
+  // [OAuth] có khi user link Google; has_password chỉ trả ở /auth/me.
+  google_id: z.string().nullable().optional(),
+  has_password: z.boolean().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -119,6 +122,27 @@ export const ResetPasswordBody = z
     path: ['confirmPassword'],
   });
 
+// Tạo mật khẩu lần đầu cho account Google-only (set-password)
+// Không satisfies SetPasswordDto: body có confirmPassword (FE-only, strip trước khi gửi).
+export const SetPasswordBody = z
+  .object({
+    new_password: z
+      .string()
+      .min(AUTH_LIMITS.PASSWORD_MIN_LENGTH, 'Mật khẩu phải có ít nhất 8 ký tự.')
+      .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất 1 chữ hoa.')
+      .regex(/[a-z]/, 'Mật khẩu phải chứa ít nhất 1 chữ thường.')
+      .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất 1 chữ số.')
+      .refine(
+        (val) => !val.includes(' '),
+        'Mật khẩu không được chứa khoảng trắng.',
+      ),
+    confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu.'),
+  })
+  .refine((data) => data.new_password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp.',
+    path: ['confirmPassword'],
+  });
+
 // Đổi mật khẩu (change-password)
 // Không satisfies ChangePasswordDto: body có confirmPassword (FE-only, strip trước khi gửi).
 export const ChangePasswordBody = z
@@ -184,6 +208,9 @@ export type ForgotPasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
 
 export type ResetPasswordBodyType = z.TypeOf<typeof ResetPasswordBody>;
 export type ResetPasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
+
+export type SetPasswordBodyType = z.TypeOf<typeof SetPasswordBody>;
+export type SetPasswordResType = ApiEnvelope<{ message?: string }>;
 
 export type ChangePasswordBodyType = z.TypeOf<typeof ChangePasswordBody>;
 export type ChangePasswordResType = ApiEnvelope<z.TypeOf<typeof AuthRes>>;
