@@ -125,6 +125,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
   const products = productsQueryResult.data?.data?.items || [];
   const meta = productsQueryResult.data?.data?.meta;
   const totalProducts = meta?.totalItems || 0;
+  const totalPages = Math.ceil(totalProducts / 48);
 
   // Load more conditions
   const showLoadMore = !isExpanded && totalProducts > (urlPage - 1) * 48 + 24;
@@ -154,6 +155,12 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
     });
     router.replace(`/shops/${shopId}?${params.toString()}`, { scroll: false });
   };
+
+  useEffect(() => {
+    if (totalProducts > 0 && urlPage > totalPages) {
+      updateQueryParams({ page: '' }); // về trang 1
+    }
+  }, [totalProducts, urlPage, totalPages]);
 
   const handleSortChange = (newOption: SortOption) => {
     const params = mapSortOptionToParams(newOption);
@@ -443,10 +450,10 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
             )}
 
             {/* Pagination Component */}
-            {isExpanded && (
+            {totalPages > 1 && (
               <Pagination
                 currentPage={urlPage}
-                totalPages={Math.ceil(totalProducts / 48)}
+                totalPages={totalPages}
                 onPageChange={handlePageChange}
               />
             )}
