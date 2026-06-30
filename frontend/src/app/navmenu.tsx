@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import useHydrated from '@/hooks/useHydrated';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { toast } from 'sonner';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -147,19 +148,11 @@ export function Navbar() {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition"
                   >
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-sm overflow-hidden">
-                      {user.avatar_url ? (
-                        <img
-                          src={user.avatar_url}
-                          alt={user.username}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        user.username?.charAt(0).toUpperCase() || (
-                          <User className="h-4 w-4" />
-                        )
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={user.avatar_url}
+                      name={user.username}
+                      className="h-8 w-8 text-sm shadow-sm"
+                    />
                     <span className="text-xs font-bold hidden sm:inline-block pr-1">
                       {user.username}
                     </span>

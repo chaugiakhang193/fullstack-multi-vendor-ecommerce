@@ -24,6 +24,7 @@ import { getErrorMessage } from '@/lib/http';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -405,17 +406,11 @@ export default function AdminUsersPage() {
                   >
                     <TableCell className="pl-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="h-11 w-11 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-white shrink-0">
-                          {user.avatar_url ? (
-                            <img
-                              src={user.avatar_url}
-                              alt={user.username}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            user.username.charAt(0).toUpperCase()
-                          )}
-                        </div>
+                        <UserAvatar
+                          src={user.avatar_url}
+                          name={user.username}
+                          className="h-11 w-11 shadow-sm"
+                        />
                         <div className="min-w-0">
                           <p className="font-bold text-foreground truncate">
                             {user.full_name || user.username}

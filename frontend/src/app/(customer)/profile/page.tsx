@@ -22,6 +22,7 @@ import {
 } from '@/schemaValidations/users/profile.schema';
 import { getErrorMessage } from '@/lib/http';
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { SetPasswordForm } from '@/app/(customer)/profile/set-password-form';
@@ -156,15 +157,11 @@ export default function ProfilePage() {
           className="relative h-32 w-32 rounded-full border-4 border-card bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden cursor-pointer group shadow-md shrink-0"
         >
           <input {...getInputProps()} />
-          {displayAvatar ? (
-            <img
-              src={displayAvatar}
-              alt="Avatar"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <UserIcon className="h-14 w-14 text-zinc-400" />
-          )}
+          <UserAvatar
+            src={displayAvatar}
+            name={user?.username}
+            className="w-full h-full text-4xl"
+          />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
             {isUploadingAvatar ? (
               <Loader2 className="h-8 w-8 text-white animate-spin" />

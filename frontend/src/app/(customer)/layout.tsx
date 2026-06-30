@@ -18,6 +18,7 @@ import { UserRole } from '@/constants/enum';
 import { QUERY_KEYS } from '@/constants/query-keys';
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
@@ -528,19 +529,11 @@ export default function CustomerLayout({
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                     className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
                   >
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-base text-white shadow-sm overflow-hidden">
-                      {user.avatar_url ? (
-                        <img
-                          src={user.avatar_url}
-                          alt={user.username}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        user.username?.charAt(0).toUpperCase() || (
-                          <User className="h-5 w-5" />
-                        )
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={user.avatar_url}
+                      name={user.username}
+                      className="h-10 w-10 text-base shadow-sm"
+                    />
                     <span className="text-base font-bold hidden sm:inline-block pr-1">
                       {user.username}
                     </span>

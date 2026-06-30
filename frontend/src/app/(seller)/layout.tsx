@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ProfileDropdown } from '@/components/shared/profile-dropdown';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { useAuthStore } from '@/store/useAuthStore';
 import authApiRequest from '@/apiRequests/auth/auth';
 import sellerShopsApiRequest from '@/apiRequests/shops/seller-shops';
@@ -380,19 +381,11 @@ export default function SellerLayout({
         {/* User Card */}
         <div className="p-6 border-t border-zinc-800 bg-zinc-900/50">
           <div className="flex items-center space-x-3.5 mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-extrabold text-lg text-white shadow-md overflow-hidden">
-              {user?.avatar_url ? (
-                <img
-                  src={user.avatar_url}
-                  alt={user?.username || ''}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                user?.username?.charAt(0).toUpperCase() || (
-                  <User className="h-5 w-5" />
-                )
-              )}
-            </div>
+            <UserAvatar
+              src={user?.avatar_url}
+              name={user?.username}
+              className="h-12 w-12 text-lg shadow-md"
+            />
             <div className="flex-1 min-w-0">
               <p className="text-base font-extrabold text-white truncate leading-none mb-1.5">
                 {user?.username || 'Người bán'}
@@ -476,19 +469,11 @@ export default function SellerLayout({
             {/* User */}
             <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow overflow-hidden">
-                  {user?.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt={user?.username || ''}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    user?.username?.charAt(0).toUpperCase() || (
-                      <User className="h-4 w-4" />
-                    )
-                  )}
-                </div>
+                <UserAvatar
+                  src={user?.avatar_url}
+                  name={user?.username}
+                  className="h-9 w-9 text-sm shadow"
+                />
                 <div>
                   <p className="text-sm font-semibold text-white leading-none mb-1">
                     {user?.username || 'Người bán'}

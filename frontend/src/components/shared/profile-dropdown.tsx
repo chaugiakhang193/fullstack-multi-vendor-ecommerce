@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { User, LogOut } from 'lucide-react';
+import { UserAvatar } from '@/components/shared/user-avatar';
 
 interface ProfileMenuLink {
   href: string;
@@ -63,29 +64,17 @@ export function ProfileDropdown({
   const avatarUrl = user?.avatar_url;
   const username = user?.username;
   const roleName = user?.role;
-  const initialCharIndex = 0;
-  const fallbackChar = username?.charAt(initialCharIndex);
-  const uppercaseFallbackChar = fallbackChar?.toUpperCase();
-
-  const userAvatarImage = avatarUrl ? (
-    <img
-      src={avatarUrl}
-      alt={username || ''}
-      className="h-full w-full object-cover"
-    />
-  ) : (
-    uppercaseFallbackChar || <User className="h-5 w-5" />
-  );
-
   return (
     <div className="relative">
       <button
         onClick={toggleOpen}
         className="flex items-center space-x-3 px-5 h-16 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-900 border-2 transition shadow-sm"
       >
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-black text-base text-white shadow-sm overflow-hidden">
-          {userAvatarImage}
-        </div>
+        <UserAvatar
+          src={avatarUrl}
+          name={username}
+          className="h-10 w-10 text-base shadow-sm font-black"
+        />
         <span className="text-base font-bold hidden sm:inline-block pr-1.5">
           {username || usernameFallback}
         </span>
