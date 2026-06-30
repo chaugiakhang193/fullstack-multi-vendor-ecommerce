@@ -73,7 +73,7 @@ export function ShopCard({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground line-clamp-2">
+                <p className="text-base font-semibold text-foreground line-clamp-2">
                   {item.productName}
                 </p>
                 {item.variantName && (
@@ -91,7 +91,7 @@ export function ShopCard({
                   <span className="text-xs text-muted-foreground">
                     {formatVnd.format(unitPrice)} × {quantity}
                   </span>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-base font-bold text-foreground">
                     {formatVnd.format(lineTotal)}
                   </span>
                 </div>

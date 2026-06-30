@@ -256,7 +256,7 @@ export default function CartItemRow({
                 ? `/products/${item.productSlug}?variant=${item.variantId}`
                 : `/products/${item.productSlug}`
             }
-            className="block text-sm font-extrabold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-snug truncate"
+            className="block text-base font-extrabold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-snug truncate"
             title={item.name}
           >
             {item.name}
@@ -382,7 +382,7 @@ export default function CartItemRow({
           <div className="text-xs text-muted-foreground font-semibold">
             Đơn giá
           </div>
-          <div className="text-sm font-bold text-foreground mt-0.5">
+          <div className="text-base font-bold text-foreground mt-0.5">
             {formattedPrice}
           </div>
         </div>
@@ -401,7 +401,7 @@ export default function CartItemRow({
             >
               <Minus className="h-3 w-3" />
             </button>
-            <span className="px-3.5 text-xs font-black text-foreground min-w-9 text-center select-none">
+            <span className="px-3.5 text-base font-black text-foreground min-w-9 text-center select-none">
               {item.quantity}
             </span>
             <button
@@ -420,7 +420,7 @@ export default function CartItemRow({
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block sm:hidden">
             Tạm tính
           </span>
-          <div className="text-sm font-black text-violet-600 dark:text-violet-400 sm:mt-0.5">
+          <div className="text-base font-black text-violet-600 dark:text-violet-400 sm:mt-0.5">
             {formattedSubtotal}
           </div>
         </div>

@@ -130,7 +130,7 @@ export default function CustomerOrderDetailPage() {
               {address.recipient_name}
             </p>
             <p className="text-sm text-muted-foreground">{address.phone}</p>
-            <p className="text-sm text-foreground/80 leading-relaxed">
+            <p className="text-base text-foreground/80 leading-relaxed">
               {address.address_line}
             </p>
           </section>
@@ -232,7 +232,7 @@ export default function CustomerOrderDetailPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground line-clamp-2">
+                        <p className="text-base font-semibold text-foreground line-clamp-2">
                           {item.product_name}
                         </p>
                         {item.variant_name && (
@@ -244,7 +244,7 @@ export default function CustomerOrderDetailPage() {
                           <span className="text-xs text-muted-foreground">
                             {formatVnd.format(unitPrice)} × {quantity}
                           </span>
-                          <span className="text-sm font-bold text-foreground">
+                          <span className="text-base font-bold text-foreground">
                             {formatVnd.format(unitPrice * quantity)}
                           </span>
                         </div>

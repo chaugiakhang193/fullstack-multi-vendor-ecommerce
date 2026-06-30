@@ -619,7 +619,7 @@ export default function ProductDetailClient({
                 >
                   <Minus className="h-4 w-4" />
                 </button>
-                <span className="px-4 text-sm font-black text-foreground min-w-[50px] text-center select-none">
+                <span className="px-4 text-base font-black text-foreground min-w-[50px] text-center select-none">
                   {isOutOfStock || isOwnProduct ? 0 : quantity}
                 </span>
                 <button
@@ -639,7 +639,7 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isOutOfStock || isOwnProduct}
                 onClick={handleAddToCart}
-                className="flex-1 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-zinc-300 disabled:to-zinc-300 dark:disabled:from-zinc-800 dark:disabled:to-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-violet-500/20 disabled:shadow-none cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-zinc-300 disabled:to-zinc-300 dark:disabled:from-zinc-800 dark:disabled:to-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-base transition flex items-center justify-center gap-2 shadow-md shadow-violet-500/20 disabled:shadow-none cursor-pointer"
               >
                 <ShoppingCart className="h-4 w-4" />
                 <span>
@@ -701,11 +701,11 @@ export default function ProductDetailClient({
         {activeTab === 'description' ? (
           <div className="space-y-4 pt-2">
             {product.description ? (
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-line">
                 {product.description}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-base text-muted-foreground italic">
                 Hiện chưa có mô tả chi tiết cho sản phẩm này.
               </p>
             )}
@@ -715,7 +715,7 @@ export default function ProductDetailClient({
               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
                 Thông số kỹ thuật:
               </h4>
-              <div className="divide-y text-xs border rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/10">
+              <div className="divide-y text-sm border rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/10">
                 <div className="flex p-3">
                   <span className="w-1/3 text-muted-foreground font-semibold">
                     Trọng lượng
@@ -881,7 +881,7 @@ export default function ProductDetailClient({
 
                     {/* Comment content */}
                     {review.comment && (
-                      <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed pl-1">
+                      <p className="text-base text-foreground/90 whitespace-pre-line leading-relaxed pl-1">
                         {review.comment}
                       </p>
                     )}
@@ -952,10 +952,10 @@ export default function ProductDetailClient({
               />
             </div>
             <div className="min-w-0 flex flex-col">
-              <span className="text-xs font-bold text-foreground truncate max-w-[120px] sm:max-w-[200px]">
+              <span className="text-sm font-bold text-foreground truncate max-w-[120px] sm:max-w-[200px]">
                 {product.name}
               </span>
-              <span className="text-xs font-black text-violet-600 dark:text-violet-400">
+              <span className="text-sm font-black text-violet-600 dark:text-violet-400">
                 {formatPrice(finalPrice)}
               </span>
             </div>

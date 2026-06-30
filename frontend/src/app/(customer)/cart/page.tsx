@@ -371,7 +371,7 @@ export default function CartPage() {
                 onChange={handleToggleSelectAll}
                 className="h-5 w-5 rounded border-zinc-300 dark:border-zinc-700 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 disabled:bg-zinc-100 dark:disabled:bg-zinc-900 disabled:border-zinc-200 dark:disabled:border-zinc-800 cursor-pointer disabled:cursor-not-allowed"
               />
-              <span className="text-sm font-black text-foreground">
+              <span className="text-base font-black text-foreground">
                 Chọn tất cả sản phẩm khả dụng
               </span>
             </div>
