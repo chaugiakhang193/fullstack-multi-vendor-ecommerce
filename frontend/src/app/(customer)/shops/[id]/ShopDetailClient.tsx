@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Tag,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -431,7 +432,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
                 >
                   {isExpanding ? (
                     <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Đang tải...</span>
                     </>
                   ) : (

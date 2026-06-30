@@ -163,7 +163,7 @@ export default function AdminPayoutsPage() {
     <div className="space-y-8 animate-fade-in pb-12">
       {/* Header */}
       <div className="space-y-1.5">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
           Duyệt rút tiền (Admin)
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400">

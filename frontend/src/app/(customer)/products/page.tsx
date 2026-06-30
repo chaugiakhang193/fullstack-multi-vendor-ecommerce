@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 // Icons
-import { SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { SlidersHorizontal, RotateCcw, Loader2 } from 'lucide-react';
 
 // Hooks & Services
 import { useProducts } from '@/hooks/useProducts';
@@ -313,7 +313,7 @@ function ProductsListContent() {
                   >
                     {isExpanding ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Đang tải...</span>
                       </>
                     ) : (

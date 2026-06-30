@@ -319,7 +319,7 @@ export default function CartPage() {
   // Skeleton Loader for Cart Page
   if (!isHydrated || isLoading) {
     return (
-      <div className="space-y-8 animate-pulse max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10">
+      <div className="space-y-8 animate-pulse max-w-7xl mx-auto py-10">
         <div className="h-10 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-xl" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-8 space-y-6">
@@ -335,7 +335,7 @@ export default function CartPage() {
   // Empty State
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10">
+      <div className="max-w-7xl mx-auto py-10">
         <EmptyCartWithRecommend />
       </div>
     );
@@ -345,7 +345,7 @@ export default function CartPage() {
   const totalCount = items.length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 animate-fade-in pb-24 sm:pb-10">
+    <div className="max-w-7xl mx-auto py-10 space-y-8 animate-fade-in pb-24 sm:pb-10">
       {/* Page Title */}
       <div className="space-y-2">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">

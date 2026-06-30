@@ -86,7 +86,7 @@ function CustomerCouponsContent() {
   const isLoading = isBrowseLoading;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 min-h-[60vh] animate-fade-in">
+    <div className="max-w-7xl mx-auto py-10 space-y-8 min-h-[60vh] animate-fade-in">
       <div className="space-y-2">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
           <Ticket className="h-8 w-8 text-violet-600 shrink-0" />

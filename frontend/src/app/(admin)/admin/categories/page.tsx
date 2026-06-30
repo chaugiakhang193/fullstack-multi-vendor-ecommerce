@@ -284,9 +284,9 @@ export default function AdminCategoriesPage() {
             resetCreate();
             setIsCreateOpen(true);
           }}
-          className="flex items-center text-sm font-bold px-5 py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow-md shadow-violet-500/20"
+          className="bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20"
         >
-          <Plus className="h-5 w-5 mr-2" /> Thêm danh mục
+          <Plus className="h-4 w-4 mr-2" /> Thêm danh mục
         </Button>
       </div>
 
@@ -361,15 +361,12 @@ export default function AdminCategoriesPage() {
               placeholder="Tìm kiếm danh mục theo tên hoặc slug..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground"
+              className="w-full pl-11 pr-4 py-2.5 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground"
             />
           </div>
-          <button
-            onClick={fetchCategories}
-            className="flex items-center text-sm font-bold px-4 py-2.5 border rounded-lg hover:bg-muted transition shadow-sm bg-background"
-          >
+          <Button onClick={fetchCategories} variant="outline">
             Làm mới
-          </button>
+          </Button>
         </div>
 
         {/* Tree Table */}
@@ -552,7 +549,7 @@ export default function AdminCategoriesPage() {
               <select
                 id="create-parent"
                 {...registerCreate('parentId')}
-                className="w-full h-9 px-3 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground animate-fade-in"
+                className="w-full h-9 px-3 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground animate-fade-in"
               >
                 <option value="">Không có (Danh mục gốc / Level 1)</option>
                 {rootCategories.map((root) => (
@@ -645,7 +642,7 @@ export default function AdminCategoriesPage() {
                 id="edit-parent"
                 {...registerEdit('parentId')}
                 disabled={isSelectedCategoryHasChildren} // Chặn hạ cấp danh mục cha nếu đang có chứa các phần tử con
-                className="w-full h-9 px-3 py-1 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-9 px-3 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="">Không có (Danh mục gốc / Level 1)</option>
                 {rootCategories

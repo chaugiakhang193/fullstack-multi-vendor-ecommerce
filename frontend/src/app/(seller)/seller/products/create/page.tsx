@@ -553,7 +553,7 @@ export default function CreateProductPage() {
           Quay lại danh sách sản phẩm
         </button>
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
             Đăng sản phẩm mới
           </h1>
           <p className="text-muted-foreground text-sm mt-1">

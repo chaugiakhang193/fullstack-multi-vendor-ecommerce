@@ -144,14 +144,14 @@ export function RegisterSellerForm({
             <Button
               onClick={() => router.push('/')}
               variant="outline"
-              className="flex-1 h-12 text-sm font-semibold rounded-xl"
+              className="flex-1 h-12 text-base sm:text-lg font-semibold"
               disabled={isLoggingOut}
             >
               Quay lại Trang chủ
             </Button>
             <Button
               onClick={handleLogout}
-              className="flex-1 h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl"
+              className="flex-1 h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-base sm:text-lg font-semibold"
               disabled={isLoggingOut}
             >
               {isLoggingOut ? (

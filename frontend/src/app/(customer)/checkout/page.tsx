@@ -353,7 +353,7 @@ export default function CheckoutPage() {
   // ===== Loading skeleton =====
   if (!isHydrated || (isAuthenticated && addressesLoading)) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 animate-pulse">
+      <div className="max-w-7xl mx-auto py-10 animate-pulse">
         <div className="h-9 w-56 bg-muted rounded-xl mb-8" />
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-8 space-y-6">
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
     hasOutOfStockItem;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 space-y-8 animate-fade-in pb-24 lg:pb-10">
+    <div className="max-w-7xl mx-auto py-10 space-y-8 animate-fade-in pb-24 lg:pb-10">
       <div className="space-y-2">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
           Thanh toán
@@ -495,7 +495,7 @@ export default function CheckoutPage() {
                       value={globalCouponInput}
                       onChange={handleGlobalCouponInputChange}
                       placeholder="Nhập mã"
-                      className="w-full h-9 pl-9 pr-3 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                      className="w-full h-9 pl-9 pr-3 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
                     />
                   </div>
                   {globalCouponApplied ? (
