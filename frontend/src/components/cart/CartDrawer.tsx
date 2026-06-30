@@ -252,18 +252,18 @@ export default function CartDrawer() {
               <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-muted-foreground/50">
                 <ShoppingBag className="h-10 w-10" />
               </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-extrabold text-foreground">
+              <div className="space-y-1.5">
+                <h4 className="text-lg font-black text-foreground">
                   Giỏ hàng trống
                 </h4>
-                <p className="text-xs text-muted-foreground max-w-[240px]">
+                <p className="text-sm text-muted-foreground max-w-[280px]">
                   Hiện chưa có sản phẩm nào trong giỏ hàng của bạn. Hãy chọn sản
                   phẩm yêu thích và thêm vào giỏ nhé!
                 </p>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-xs font-bold px-5 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition shadow-md shadow-violet-500/20"
+                className="text-sm font-bold px-6 py-3 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition shadow-md shadow-violet-500/20 cursor-pointer"
               >
                 Tiếp tục mua sắm
               </button>

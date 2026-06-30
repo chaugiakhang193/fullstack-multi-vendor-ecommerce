@@ -38,13 +38,13 @@ export function EmptyState({
       )}
 
       {/* Title */}
-      <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">
+      <h3 className="text-lg sm:text-xl font-extrabold text-foreground mb-2">
         {title}
       </h3>
 
       {/* Description */}
       {description && (
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
+        <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
           {description}
         </p>
       )}
@@ -55,14 +55,14 @@ export function EmptyState({
         (actionHref ? (
           <Button
             render={<Link href={actionHref} />}
-            className="rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
+            className="rounded-xl shadow-sm font-bold text-sm"
           >
             {actionLabel}
           </Button>
         ) : (
           <Button
             onClick={onAction}
-            className="rounded-lg shadow-sm font-semibold text-xs sm:text-sm"
+            className="rounded-xl shadow-sm font-bold text-sm"
           >
             {actionLabel}
           </Button>
