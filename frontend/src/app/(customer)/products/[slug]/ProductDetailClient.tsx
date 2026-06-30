@@ -761,7 +761,7 @@ export default function ProductDetailClient({
                     size="md"
                   />
                 </div>
-                <span className="mt-2 text-xs font-bold text-muted-foreground">
+                <span className="mt-2 text-sm font-bold text-muted-foreground">
                   {product.review_count || 0} đánh giá
                 </span>
               </div>
@@ -786,7 +786,7 @@ export default function ProductDetailClient({
                   return (
                     <div
                       key={stars}
-                      className="flex items-center gap-3 text-xs"
+                      className="flex items-center gap-3 text-sm"
                     >
                       <span className="w-12 font-bold text-muted-foreground text-right shrink-0">
                         {stars} sao
@@ -814,7 +814,7 @@ export default function ProductDetailClient({
                   setSelectedRating(undefined);
                   setReviewPage(1);
                 }}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border ${
+                className={`px-4 py-2 rounded-xl text-sm font-extrabold transition-all border ${
                   selectedRating === undefined
                     ? 'bg-violet-600 text-white border-violet-600'
                     : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
@@ -830,7 +830,7 @@ export default function ProductDetailClient({
                     setSelectedRating(stars);
                     setReviewPage(1);
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all border flex items-center gap-1 ${
+                  className={`px-4 py-2 rounded-xl text-sm font-extrabold transition-all border flex items-center gap-1 ${
                     selectedRating === stars
                       ? 'bg-violet-600 text-white border-violet-600'
                       : 'bg-white dark:bg-zinc-950 text-muted-foreground border-zinc-200 dark:border-zinc-800 hover:text-foreground hover:border-zinc-400'
@@ -847,7 +847,7 @@ export default function ProductDetailClient({
                 <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
               </div>
             ) : !reviewsData || reviewsData.items.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground text-sm font-semibold italic">
+              <div className="text-center py-12 text-muted-foreground text-base font-semibold italic">
                 Chưa có đánh giá nào cho sản phẩm này.
               </div>
             ) : (
@@ -857,7 +857,7 @@ export default function ProductDetailClient({
                     {/* User profile & rating */}
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-sm font-extrabold text-foreground">
+                        <div className="text-base font-extrabold text-foreground">
                           {review.user?.username || 'Người dùng ẩn danh'}
                         </div>
                         <div className="mt-1 flex items-center gap-2">
@@ -895,7 +895,7 @@ export default function ProductDetailClient({
                           <MessageSquare className="h-3.5 w-3.5" /> Phản hồi từ
                           người bán
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                           {review.reply_from_seller}
                         </p>
                       </div>
@@ -910,18 +910,18 @@ export default function ProductDetailClient({
                       type="button"
                       disabled={reviewPage <= 1}
                       onClick={() => setReviewPage((p) => p - 1)}
-                      className="px-4 py-2 rounded-xl text-xs font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-sm font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
                     >
                       Trang trước
                     </button>
-                    <span className="text-xs font-extrabold text-muted-foreground">
+                    <span className="text-sm font-extrabold text-muted-foreground">
                       Trang {reviewPage} / {reviewsData.meta.totalPages}
                     </span>
                     <button
                       type="button"
                       disabled={reviewPage >= reviewsData.meta.totalPages}
                       onClick={() => setReviewPage((p) => p + 1)}
-                      className="px-4 py-2 rounded-xl text-xs font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-sm font-extrabold transition-all border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 disabled:opacity-40 hover:text-foreground hover:border-zinc-400 cursor-pointer"
                     >
                       Trang sau
                     </button>
