@@ -215,7 +215,7 @@ export default function SellerPayoutsPage() {
             </div>
           </div>
           <Link href="/seller/settings" passHref>
-            <Button className="w-full sm:w-auto rounded-xl px-4 py-5 bg-rose-600 hover:bg-rose-700 text-white font-medium shrink-0 shadow-sm transition-all text-xs">
+            <Button className="w-full sm:w-auto rounded-xl px-4 py-5 bg-rose-600 hover:bg-rose-700 text-white font-medium shrink-0 shadow-sm transition-all text-sm">
               Thiết lập ngay
             </Button>
           </Link>

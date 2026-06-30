@@ -304,7 +304,7 @@ export default function AdminPayoutsPage() {
                               onClick={() => handleOpenReject(payout)}
                               size="sm"
                               variant="outline"
-                              className="rounded-lg text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 dark:text-rose-400 dark:border-rose-950 dark:hover:bg-rose-950/20"
+                              className="rounded-lg text-sm font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 dark:text-rose-400 dark:border-rose-950 dark:hover:bg-rose-950/20"
                             >
                               Từ chối
                             </Button>
@@ -312,7 +312,7 @@ export default function AdminPayoutsPage() {
                             <Button
                               onClick={() => handleOpenApprove(payout)}
                               size="sm"
-                              className="rounded-lg text-xs font-semibold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-xs"
+                              className="rounded-lg text-sm font-semibold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-xs"
                             >
                               Duyệt chi
                             </Button>

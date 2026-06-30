@@ -213,7 +213,7 @@ export default function CustomerLayout({
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Gợi ý sản phẩm
               </span>
-              <span className="text-[9px] text-muted-foreground font-semibold">
+              <span className="text-xs text-muted-foreground font-semibold">
                 Dùng ↑↓ Enter để chọn
               </span>
             </div>
@@ -1021,7 +1021,7 @@ export default function CustomerLayout({
           <div className="mt-4 flex flex-col gap-2">
             <Button
               variant="destructive"
-              className="w-full font-bold text-xs"
+              className="w-full font-bold text-base"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >
@@ -1036,7 +1036,7 @@ export default function CustomerLayout({
             </Button>
             <Button
               variant="outline"
-              className="w-full font-bold text-xs"
+              className="w-full font-bold text-base"
               onClick={() => setIsLogoutConfirmOpen(false)}
               disabled={isLoggingOut}
             >

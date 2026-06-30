@@ -302,7 +302,7 @@ export default function CartItemRow({
                 <button
                   type="button"
                   onClick={handleToggleEdit}
-                  className="text-[10px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
+                  className="text-xs font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
                 >
                   <span>Thay đổi</span>
                   <ChevronDown
@@ -322,7 +322,7 @@ export default function CartItemRow({
             isAvailable &&
             item.variants.length > 0 && (
               <div className="p-3 mt-2 rounded-lg border border-violet-100 dark:border-violet-950/30 bg-violet-50/5 dark:bg-violet-950/5 space-y-2.5 max-w-sm animate-fade-in">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs font-black text-muted-foreground uppercase tracking-wider">
                   Chọn phân loại mới:
                 </p>
                 <div className="space-y-2">
@@ -334,7 +334,7 @@ export default function CartItemRow({
                         key={key}
                         className="flex items-center justify-between gap-4 text-xs"
                       >
-                        <span className="text-[10px] font-bold text-muted-foreground capitalize">
+                        <span className="text-xs font-bold text-muted-foreground capitalize">
                           {key === 'color'
                             ? 'Màu sắc'
                             : key === 'size'
@@ -346,7 +346,7 @@ export default function CartItemRow({
                           {options.map((opt) => {
                             const isSelectedOpt = opt === currentVal;
                             const optClass = cn(
-                              'px-2.5 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer',
+                              'px-2.5 py-0.5 rounded text-xs font-bold border transition cursor-pointer',
                               isSelectedOpt
                                 ? 'bg-violet-600 border-violet-600 text-white shadow-xs'
                                 : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',

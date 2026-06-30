@@ -965,7 +965,7 @@ export default function ProductDetailClient({
             type="button"
             disabled={isOutOfStock || isOwnProduct}
             onClick={handleStickyAddToCart}
-            className="h-10 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-zinc-300 disabled:to-zinc-300 dark:disabled:from-zinc-800 dark:disabled:to-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-[10px] sm:text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20 disabled:shadow-none cursor-pointer"
+            className="h-10 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-zinc-300 disabled:to-zinc-300 dark:disabled:from-zinc-800 dark:disabled:to-zinc-800 disabled:text-zinc-500 text-white font-extrabold text-sm sm:text-base transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20 disabled:shadow-none cursor-pointer"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>

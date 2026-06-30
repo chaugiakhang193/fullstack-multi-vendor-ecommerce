@@ -541,14 +541,14 @@ export default function AdminSellersPage() {
             <DialogFooter className="border-t px-6 py-4 shrink-0 gap-2">
               <Button
                 variant="outline"
-                className="font-bold text-xs"
+                className="font-bold text-sm"
                 onClick={() => setIsDetailOpen(false)}
               >
                 Đóng
               </Button>
               <Button
                 variant="destructive"
-                className="font-bold text-xs"
+                className="font-bold text-sm"
                 onClick={() => setIsRejectOpen(true)}
               >
                 <XCircle className="h-3.5 w-3.5 mr-1" />
@@ -556,7 +556,7 @@ export default function AdminSellersPage() {
               </Button>
               <Button
                 variant="default"
-                className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                className="font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white border-0"
                 onClick={() => setIsApproveOpen(true)}
               >
                 <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -673,7 +673,7 @@ export default function AdminSellersPage() {
                   {rejectError}
                 </p>
               ) : (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Bắt buộc — người bán sẽ được thông báo lý do này.
                 </p>
               )}
@@ -681,7 +681,7 @@ export default function AdminSellersPage() {
             <div className="mt-4 flex flex-col gap-2">
               <Button
                 variant="destructive"
-                className="w-full font-bold text-xs"
+                className="w-full font-bold text-sm"
                 onClick={handleReject}
                 disabled={actionLoading}
               >

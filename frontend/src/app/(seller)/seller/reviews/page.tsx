@@ -128,7 +128,7 @@ export default function SellerReviewsPage() {
                             {review.product.name}
                           </div>
                           {review.order_item?.variant_name && (
-                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                            <div className="text-xs text-muted-foreground font-semibold mt-0.5">
                               Phân loại: {review.order_item.variant_name}
                             </div>
                           )}

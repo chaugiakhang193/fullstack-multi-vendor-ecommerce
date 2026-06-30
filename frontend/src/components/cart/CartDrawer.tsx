@@ -350,7 +350,7 @@ export default function CartDrawer() {
                                           isEditing ? null : itemKey,
                                         )
                                       }
-                                      className="text-[9px] font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
+                                      className="text-xs font-extrabold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-1"
                                     >
                                       <span>Đổi</span>
                                       <ChevronDown
@@ -374,7 +374,7 @@ export default function CartDrawer() {
                         {/* Expandable Inline Variant Quick Swap Panel */}
                         {isEditing && item.variantId && (
                           <div className="p-2 rounded-lg border border-violet-100 dark:border-violet-950/30 bg-violet-50/10 dark:bg-violet-950/5 space-y-2 animate-fade-in">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                               Chọn phiên bản mới:
                             </p>
                             <div className="space-y-1.5">
@@ -386,7 +386,7 @@ export default function CartDrawer() {
                                     key={key}
                                     className="flex items-center justify-between gap-2 text-xs"
                                   >
-                                    <span className="text-[10px] font-semibold text-muted-foreground capitalize">
+                                    <span className="text-xs font-semibold text-muted-foreground capitalize">
                                       {key === 'color'
                                         ? 'Màu sắc'
                                         : key === 'size'
@@ -409,7 +409,7 @@ export default function CartDrawer() {
                                               )
                                             }
                                             className={cn(
-                                              'px-2 py-0.5 rounded text-[10px] font-bold border transition',
+                                              'px-2 py-0.5 rounded text-xs font-bold border transition',
                                               isSelected
                                                 ? 'bg-violet-600 border-violet-600 text-white'
                                                 : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',

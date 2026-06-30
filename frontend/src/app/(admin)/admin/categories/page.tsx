@@ -558,7 +558,7 @@ export default function AdminCategoriesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Lưu ý: Để trống nếu muốn làm danh mục gốc. Không thể chọn danh
                 mục con làm cha.
               </p>
@@ -654,12 +654,12 @@ export default function AdminCategoriesPage() {
                   ))}
               </select>
               {isSelectedCategoryHasChildren ? (
-                <p className="text-[11px] text-rose-500 font-medium mt-1">
+                <p className="text-xs text-rose-500 font-medium mt-1">
                   ⚠️ Không thể thay đổi cấp độ vì danh mục này đang chứa danh
                   mục con khác.
                 </p>
               ) : (
-                <p className="text-[11px] text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Lưu ý: Chỉ danh mục nào không có danh mục con mới được phép
                   thay đổi cấp độ cha.
                 </p>

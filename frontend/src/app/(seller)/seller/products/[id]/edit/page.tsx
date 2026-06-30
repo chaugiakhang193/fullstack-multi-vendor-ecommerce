@@ -1015,7 +1015,7 @@ export default function EditProductPage() {
                 >
                   <input {...getGalleryInputProps()} />
                   <Plus className="h-6 w-6 text-zinc-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold mt-1">
+                  <span className="text-xs text-muted-foreground font-semibold mt-1">
                     Thêm ({remainingGallerySlots})
                   </span>
                 </div>

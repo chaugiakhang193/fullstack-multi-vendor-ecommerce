@@ -158,14 +158,14 @@ export function CouponPickerModal({
                             <ShoppingBag className="h-2 w-2" /> Shop
                           </span>
                         )}
-                        <span className="text-[9px] text-zinc-400 font-semibold">
+                        <span className="text-xs text-zinc-400 font-semibold">
                           {dateFormatted}
                         </span>
                       </div>
                       <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-100 mt-1 truncate">
                         {discountLabel}
                       </h4>
-                      <p className="text-[10px] text-muted-foreground font-semibold">
+                      <p className="text-xs text-muted-foreground font-semibold">
                         Đơn tối thiểu {formatVnd.format(minVal)}
                       </p>
                     </div>
@@ -183,22 +183,20 @@ export function CouponPickerModal({
                     {isSelected ? (
                       <div className="flex flex-col items-center gap-0.5 text-violet-600 dark:text-violet-400">
                         <Check className="h-4 w-4" />
-                        <span className="text-[10px] font-black">
-                          Đang chọn
-                        </span>
+                        <span className="text-xs font-black">Đang chọn</span>
                       </div>
                     ) : isApplicable ? (
                       <Button
                         size="xs"
                         onClick={() => handleSelect(coupon.code)}
-                        className="bg-violet-600 hover:bg-violet-700 text-white font-bold text-[10px]"
+                        className="bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm"
                       >
                         Áp dụng
                       </Button>
                     ) : (
                       <div className="flex flex-col items-center text-center text-rose-500 gap-0.5 p-1">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <span className="text-[8px] font-bold leading-tight">
+                        <span className="text-xs font-bold leading-tight">
                           Chưa đủ đk
                         </span>
                       </div>

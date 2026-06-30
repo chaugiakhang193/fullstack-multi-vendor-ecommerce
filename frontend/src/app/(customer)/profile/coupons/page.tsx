@@ -166,7 +166,7 @@ export default function CustomerProfileCouponsPage() {
                           Toàn sàn
                         </span>
                       )}
-                      <span className="text-[9px] font-semibold text-zinc-400 flex items-center gap-0.5">
+                      <span className="text-xs font-semibold text-zinc-400 flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
                         {dateFormatted}
                       </span>
@@ -175,13 +175,13 @@ export default function CustomerProfileCouponsPage() {
                     <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 truncate mt-1">
                       {discountLabel}
                     </h3>
-                    <p className="text-[11px] text-muted-foreground font-semibold">
+                    <p className="text-xs text-muted-foreground font-semibold">
                       Đơn tối thiểu{' '}
                       {formatVnd.format(coupon.min_order_value ?? 0)}
                     </p>
                   </div>
 
-                  <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest font-mono">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest font-mono">
                     Code:{' '}
                     <span className="text-violet-600 dark:text-violet-400 font-extrabold">
                       {coupon.code}
@@ -202,7 +202,7 @@ export default function CustomerProfileCouponsPage() {
                     <Link href="/checkout" className="w-full">
                       <Button
                         size="xs"
-                        className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-bold text-[10px] py-1.5 rounded-md"
+                        className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 font-bold text-sm py-1.5 rounded-md"
                       >
                         Dùng ngay
                       </Button>
@@ -211,9 +211,9 @@ export default function CustomerProfileCouponsPage() {
                   {activeTab === 'used' && (
                     <div className="flex flex-col items-center gap-0.5 text-zinc-400">
                       <CheckCircle className="h-4 w-4" />
-                      <span className="text-[10px] font-bold">Đã dùng</span>
+                      <span className="text-xs font-bold">Đã dùng</span>
                       {item.used_at && (
-                        <span className="text-[8px] text-zinc-400">
+                        <span className="text-xs text-zinc-400">
                           {new Date(item.used_at).toLocaleDateString('vi-VN')}
                         </span>
                       )}
@@ -222,7 +222,7 @@ export default function CustomerProfileCouponsPage() {
                   {activeTab === 'expired' && (
                     <div className="flex flex-col items-center gap-0.5 text-rose-500">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-[10px] font-bold">Hết hạn</span>
+                      <span className="text-xs font-bold">Hết hạn</span>
                     </div>
                   )}
                 </div>

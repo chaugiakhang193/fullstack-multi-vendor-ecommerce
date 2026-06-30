@@ -599,7 +599,7 @@ export default function SellerSettingsPage() {
                 error={errors.pickup_address?.message?.toString()}
                 disabled={isSaving}
               />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Địa chỉ nhân viên giao vận tới lấy hàng khi có đơn.
               </p>
             </Field>
