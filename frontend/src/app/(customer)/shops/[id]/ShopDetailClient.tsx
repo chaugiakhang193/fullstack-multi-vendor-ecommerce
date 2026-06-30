@@ -203,13 +203,13 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
           <h2 className="text-2xl font-black text-foreground">
             Gian hàng chưa hoạt động
           </h2>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          <p className="text-base text-muted-foreground max-w-md mx-auto">
             Gian hàng này không tồn tại, đang chờ duyệt hoặc đã bị tạm khóa để
             bảo trì. Vui lòng quay lại sau!
           </p>
         </div>
         <Link href="/" className="inline-block">
-          <Button className="text-xs font-bold px-6 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition shadow-md shadow-violet-500/20">
+          <Button className="text-sm font-bold px-6 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition shadow-md shadow-violet-500/20">
             <ArrowLeft className="h-4 w-4 mr-1.5" /> Quay lại trang chủ
           </Button>
         </Link>
@@ -275,13 +275,13 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
                     </span>
                   </div>
                   {shop?.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 max-w-2xl leading-relaxed">
+                    <p className="text-base text-muted-foreground line-clamp-2 max-w-2xl leading-relaxed">
                       {shop.description}
                     </p>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
                     <span>Tham gia: {formatDate(shop?.created_at)}</span>
@@ -315,7 +315,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               {isOwner ? (
                 /* Manage shop shortcut for owner */
                 <Link href="/seller/settings">
-                  <Button className="w-full sm:w-auto h-11 px-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20">
+                  <Button className="w-full sm:w-auto h-11 px-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20">
                     <Settings className="h-4 w-4" />
                     <span>Quản lý gian hàng ⚙️</span>
                   </Button>
@@ -325,7 +325,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
                 <Button
                   onClick={handleCopyLink}
                   variant="outline"
-                  className="w-full sm:w-auto h-11 px-5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shadow-sm"
+                  className="w-full sm:w-auto h-11 px-5 text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shadow-sm"
                 >
                   <Share2 className="h-4 w-4" />
                   <span>Chia sẻ cửa hàng</span>
@@ -348,7 +348,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Tìm kiếm sản phẩm trong cửa hàng này..."
-              className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
+              className="w-full pl-9 pr-4 py-2 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 bg-background"
             />
           </div>
 
@@ -390,7 +390,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               <h3 className="text-base font-extrabold text-foreground">
                 Không tìm thấy sản phẩm
               </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 {urlQ
                   ? `Cửa hàng không có sản phẩm nào khớp với từ khóa "${urlQ}". Thử tìm kiếm từ khóa khác.`
                   : 'Cửa hàng này hiện chưa đăng bán sản phẩm nào. Hãy quay lại sau nhé!'}
@@ -400,7 +400,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
               <button
                 type="button"
                 onClick={() => setSearchInput('')}
-                className="text-xs font-bold px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shadow-sm bg-background"
+                className="text-sm font-bold px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shadow-sm bg-background"
               >
                 Xóa tìm kiếm
               </button>
@@ -428,7 +428,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
                   onClick={handleLoadMore}
                   disabled={isExpanding}
                   variant="outline"
-                  className="font-semibold px-8 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition-all duration-300 gap-2 text-xs"
+                  className="font-semibold px-8 h-10 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 border transition-all duration-300 gap-2 text-sm"
                 >
                   {isExpanding ? (
                     <>
