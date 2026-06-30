@@ -615,6 +615,29 @@ export class UsersService {
     return `${base}_${Date.now().toString(36)}`;
   }
 
+  /** Tải avatar Google → upload Cloudinary → trả URL Cloudinary. Best-effort, null nếu lỗi. */
+  private async mirrorRemoteAvatarToCloudinary(
+    userId: string,
+    remoteUrl: string,
+  ): Promise<string | null> {
+    try {
+      const res = await fetch(remoteUrl, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const file = { buffer } as Express.Multer.File; // uploadFile chỉ dùng .buffer
+      const asset = await this.cloudinaryService.uploadFile(
+        file,
+        CLOUDINARY_FOLDER.USER_AVATARS,
+        userId,
+        AssetType.USER_AVATAR,
+      );
+      return asset.url;
+    } catch (e) {
+      this.logger.warn('Mirror Google avatar thất bại, giữ URL gốc', e);
+      return null;
+    }
+  }
+
   /**
    * Tạo user mới từ Google (email mới tinh, chưa tồn tại trong hệ thống).
    * Account vào thẳng ACTIVE (email đã được Google verify), password = null.
@@ -635,8 +658,18 @@ export class UsersService {
     newUser.google_id = googleId;
     newUser.status = AccountStatus.ACTIVE;
     if (fullName) newUser.full_name = fullName;
-    if (avatarUrl) newUser.avatar_url = avatarUrl;
-    return this.usersRepository.save(newUser);
+
+    const savedUser = await this.usersRepository.save(newUser);
+
+    if (avatarUrl) {
+      const cloudUrl = await this.mirrorRemoteAvatarToCloudinary(
+        savedUser.id,
+        avatarUrl,
+      );
+      savedUser.avatar_url = cloudUrl ?? avatarUrl;
+      return this.usersRepository.save(savedUser);
+    }
+    return savedUser;
   }
 
   /**
@@ -669,7 +702,13 @@ export class UsersService {
           : AccountStatus.ACTIVE;
     }
     if (!user.full_name && fullName) user.full_name = fullName;
-    if (!user.avatar_url && avatarUrl) user.avatar_url = avatarUrl;
+    if (!user.avatar_url && avatarUrl) {
+      const cloudUrl = await this.mirrorRemoteAvatarToCloudinary(
+        user.id,
+        avatarUrl,
+      );
+      user.avatar_url = cloudUrl ?? avatarUrl;
+    }
 
     return this.usersRepository.save(user);
   }
