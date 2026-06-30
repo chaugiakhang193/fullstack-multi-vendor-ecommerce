@@ -854,7 +854,7 @@ export class OrdersService {
           shop: { id: plan.shop.id } as Shop,
           sub_total: plan.shopSubtotal,
           shipping_fee: plan.shippingFee,
-          discount_amount: plan.shopDiscount,
+          shop_discount_amount: plan.shopDiscount,
           shop_coupon_code: plan.shopCoupon ? plan.shopCoupon.code : null,
           total_amount: plan.shopTotal,
           status: OrderStatus.PENDING,
@@ -1238,7 +1238,7 @@ export class OrdersService {
         shop_name: plan.shop.name,
         sub_total: plan.shopSubtotal,
         shipping_fee: plan.shippingFee,
-        discount_amount: plan.shopDiscount,
+        shop_discount_amount: plan.shopDiscount,
         shop_coupon_code: plan.shopCoupon ? plan.shopCoupon.code : null,
         total_amount: plan.shopTotal,
         items: itemsResponse,
@@ -1278,7 +1278,9 @@ export class OrdersService {
 
       const subTotal = round2(Number(subOrder.sub_total ?? 0));
       const shippingFee = round2(Number(subOrder.shipping_fee ?? 0));
-      const discountAmount = round2(Number(subOrder.discount_amount ?? 0));
+      const rawShopDiscount = subOrder.shop_discount_amount ?? 0;
+      const shopDiscountNumber = Number(rawShopDiscount);
+      const discountAmount = round2(shopDiscountNumber);
       const totalAmount = round2(
         Number(
           subOrder.total_amount ?? subTotal - discountAmount + shippingFee,
@@ -1291,7 +1293,7 @@ export class OrdersService {
         shop_name: subOrder.shop?.name ?? '',
         sub_total: subTotal,
         shipping_fee: shippingFee,
-        discount_amount: discountAmount,
+        shop_discount_amount: discountAmount,
         shop_coupon_code: subOrder.shop_coupon_code,
         total_amount: totalAmount,
         items: itemsResponse,
@@ -1786,7 +1788,7 @@ export class OrdersService {
       : this.dataSource.getRepository(SubOrder);
 
     const alias = 'subOrder';
-    const selectSql = 'SUM(subOrder.sub_total - subOrder.discount_amount)';
+    const selectSql = 'SUM(subOrder.sub_total - subOrder.shop_discount_amount)';
     const selectAlias = 'revenue';
     const whereShopIdStr = 'subOrder.shop_id = :shopId';
     const whereShopIdParam = { shopId };

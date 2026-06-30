@@ -761,7 +761,7 @@ async function seed() {
         order: savedOrderA,
         sub_total: 500000,
         shipping_fee: 0,
-        discount_amount: 0,
+        shop_discount_amount: 0,
         total_amount: 500000,
         status: OrderStatus.DELIVERED,
       });
@@ -796,7 +796,7 @@ async function seed() {
         order: savedOrderB,
         sub_total: 250000,
         shipping_fee: 0,
-        discount_amount: 0,
+        shop_discount_amount: 0,
         total_amount: 250000,
         status: OrderStatus.PENDING,
       });

@@ -2563,7 +2563,7 @@ export interface components {
              * @description Số tiền giảm giá từ coupon shop
              * @example 40000
              */
-            discount_amount: number;
+            shop_discount_amount: number;
             /**
              * @description Mã giảm giá của shop đã dùng
              * @example SHOPVOUCHER10

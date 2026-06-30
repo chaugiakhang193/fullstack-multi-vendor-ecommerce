@@ -165,7 +165,7 @@ export default function CustomerOrderDetailPage() {
           const items = subOrder.items ?? [];
           const subTotal = subOrder.sub_total ?? 0;
           const shippingFee = subOrder.shipping_fee ?? 0;
-          const discount = subOrder.discount_amount ?? 0;
+          const discount = subOrder.shop_discount_amount ?? 0;
           const subGrandTotal =
             subOrder.total_amount ?? subTotal + shippingFee - discount;
           const shopName = subOrder.shop?.name ?? 'Cửa hàng';

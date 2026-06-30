@@ -45,7 +45,7 @@ export class SubOrder {
   shipping_fee: number;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
-  discount_amount: number;
+  shop_discount_amount: number;
 
   @Column({ type: 'varchar', nullable: true })
   shop_coupon_code: string | null;

@@ -113,7 +113,7 @@ export default function SellerOrderDetailPage() {
   const items = order.items ?? [];
   const subTotal = order.sub_total ?? 0;
   const shippingFee = order.shipping_fee ?? 0;
-  const discount = order.discount_amount ?? 0;
+  const discount = order.shop_discount_amount ?? 0;
   const grandTotal = order.total_amount ?? subTotal - discount + shippingFee;
   const shippingLabel =
     shippingFee > 0 ? formatVnd.format(shippingFee) : 'Miễn phí';

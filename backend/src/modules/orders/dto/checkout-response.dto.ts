@@ -88,7 +88,7 @@ export class CheckoutResponseSubOrderDto {
     example: 40000,
     description: 'Số tiền giảm giá từ coupon shop',
   })
-  discount_amount: number;
+  shop_discount_amount: number;
 
   @ApiProperty({
     example: 'SHOPVOUCHER10',
