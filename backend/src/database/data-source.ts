@@ -30,6 +30,11 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: false, // Must always be false for migrations
   logging: true,
+  // Render Postgres bắt buộc SSL; self-signed nên tắt verify.
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
   entities: [path.join(__dirname, '/../**/*.entity{.ts,.js}')],
   migrations: [path.join(__dirname, '/migrations/*{.ts,.js}')],
   subscribers: [],

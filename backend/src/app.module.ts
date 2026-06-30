@@ -118,6 +118,10 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           MediaAsset,
         ],
         synchronize: false,
+        ssl:
+          configService.get<string>('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
   ],

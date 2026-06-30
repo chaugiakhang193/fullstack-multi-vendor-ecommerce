@@ -69,8 +69,12 @@ async function bootstrap() {
     },
   });
 
-  // dùng khi Deploy mà có Cloudfare
-  //app.set('trust proxy', 1);
+  if (process.env.NODE_ENV === 'production') {
+    // Đứng sau proxy HTTPS của Render → tin X-Forwarded-* để cookie `secure` hoạt động.
+    const trustProxyKey = 'trust proxy';
+    const trustProxyValue = 1;
+    app.set(trustProxyKey, trustProxyValue);
+  }
 
   await app.listen(process.env.PORT ?? 3000);
 }
