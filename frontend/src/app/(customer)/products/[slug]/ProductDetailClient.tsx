@@ -445,15 +445,15 @@ export default function ProductDetailClient({
   return (
     <div className="max-w-7xl mx-auto space-y-10 py-6">
       {/* Breadcrumbs Navigation */}
-      <nav className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-white dark:bg-zinc-950 p-4 rounded-xl border">
+      <nav className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider bg-white dark:bg-zinc-950 p-4 rounded-xl border">
         <Link href="/" className="hover:text-violet-600 transition-colors">
           Trang chủ
         </Link>
-        <ChevronRight className="h-3 w-3" />
+        <ChevronRight className="h-3.5 w-3.5" />
         <span className="hover:text-violet-600 transition-colors">
           {product.category?.name || 'Sản phẩm'}
         </span>
-        <ChevronRight className="h-3 w-3" />
+        <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground truncate max-w-[280px]">
           {product.name}
         </span>
@@ -524,18 +524,20 @@ export default function ProductDetailClient({
           <div className="space-y-3">
             {/* Shop badge and details */}
             <div className="flex items-center justify-between gap-4 border-b pb-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                <Store className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
-                <span className="truncate">
-                  {product.shop?.name || 'Cửa hàng'}
-                </span>
-              </div>
-              <Link
-                href={`/shops/${product.shop?.id}`}
-                className="text-xs font-black text-violet-600 dark:text-violet-400 hover:underline"
-              >
-                Xem Shop
-              </Link>
+              {product.shop?.id ? (
+                <Link
+                  href={`/shops/${product.shop.id}`}
+                  className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-widest hover:text-violet-600 dark:hover:text-violet-400 transition-colors group cursor-pointer"
+                >
+                  <Store className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                  <span className="truncate">{product.shop.name}</span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                  <Store className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                  <span className="truncate">Cửa hàng</span>
+                </div>
+              )}
             </div>
 
             {/* Title */}
@@ -654,17 +656,17 @@ export default function ProductDetailClient({
           </div>
 
           {/* Trust Guarantees */}
-          <div className="border-t border-zinc-100 dark:border-zinc-900/60 pt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground font-semibold">
+          <div className="border-t border-zinc-100 dark:border-zinc-900/60 pt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-muted-foreground font-semibold">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+              <ShieldCheck className="h-4.5 w-4.5 text-emerald-500 shrink-0" />
               <span>Chính hãng 100%</span>
             </div>
             <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-violet-500 shrink-0" />
+              <Truck className="h-4.5 w-4.5 text-violet-500 shrink-0" />
               <span>Giao hàng toàn quốc</span>
             </div>
             <div className="flex items-center gap-2">
-              <RotateCcw className="h-4 w-4 text-amber-500 shrink-0" />
+              <RotateCcw className="h-4.5 w-4.5 text-amber-500 shrink-0" />
               <span>Đổi trả 7 ngày</span>
             </div>
           </div>

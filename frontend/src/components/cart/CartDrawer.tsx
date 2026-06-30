@@ -192,7 +192,7 @@ export default function CartDrawer() {
       {/* Drawer Panel */}
       <div
         className={cn(
-          'fixed top-0 right-0 bottom-0 w-full sm:max-w-md bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 transform translate-x-full',
+          'fixed top-0 right-0 bottom-0 w-full sm:max-w-lg bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-zinc-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 transform translate-x-full',
           isOpen && 'translate-x-0',
         )}
       >
@@ -219,7 +219,7 @@ export default function CartDrawer() {
         {/* Free Shipping Bar */}
         {items.length > 0 && (
           <div className="p-4 bg-violet-500/5 border-b border-zinc-100 dark:border-zinc-900 shrink-0 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold">
+            <div className="flex items-center gap-2 text-sm font-bold">
               <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400 animate-pulse" />
               {remainingForFreeShipping > 0 ? (
                 <span className="text-muted-foreground">
@@ -273,7 +273,7 @@ export default function CartDrawer() {
             Object.entries(groupedItems).map(([shopId, group]) => (
               <div key={shopId} className="p-4 space-y-4">
                 {/* Shop Title */}
-                <div className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                <div className="text-sm font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
                   <Store className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
                   <span className="truncate">{group.shopName}</span>
                 </div>
@@ -314,7 +314,7 @@ export default function CartDrawer() {
                                   : `/products/${item.productSlug}`
                               }
                               onClick={() => setIsOpen(false)}
-                              className="block text-xs font-bold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-normal truncate"
+                              className="block text-sm font-bold text-foreground hover:text-violet-600 dark:hover:text-violet-400 transition leading-normal truncate"
                               title={item.name}
                             >
                               {item.name}
@@ -365,7 +365,7 @@ export default function CartDrawer() {
                               )}
 
                             {/* Price */}
-                            <div className="text-xs font-extrabold text-violet-600 dark:text-violet-400">
+                            <div className="text-sm font-extrabold text-violet-600 dark:text-violet-400">
                               {formatPrice(item.price)}
                             </div>
                           </div>
@@ -444,7 +444,7 @@ export default function CartDrawer() {
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="px-3 text-xs font-black text-foreground min-w-8 text-center select-none">
+                            <span className="px-3 text-sm font-black text-foreground min-w-8 text-center select-none">
                               {item.quantity}
                             </span>
                             <button
@@ -486,9 +486,9 @@ export default function CartDrawer() {
         {/* Drawer Footer */}
         {items.length > 0 && (
           <div className="p-6 border-t border-zinc-100 dark:border-zinc-900 shrink-0 bg-white dark:bg-zinc-950 space-y-4">
-            <div className="flex items-center justify-between text-sm font-bold">
+            <div className="flex items-center justify-between text-base font-bold">
               <span className="text-muted-foreground">Tạm tính:</span>
-              <span className="text-lg font-black text-violet-600 dark:text-violet-400">
+              <span className="text-xl font-black text-violet-600 dark:text-violet-400">
                 {formatPrice(subtotal)}
               </span>
             </div>
@@ -496,14 +496,14 @@ export default function CartDrawer() {
             <div className="space-y-2">
               <button
                 onClick={handleCheckoutClick}
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20 cursor-pointer"
+                className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-violet-500/20 cursor-pointer"
               >
                 <span>Tiến hành thanh toán</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
               <button
                 onClick={handleViewCartClick}
-                className="w-full h-11 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-foreground border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold transition cursor-pointer"
+                className="w-full h-11 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-foreground border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold transition cursor-pointer"
               >
                 Xem chi tiết giỏ hàng
               </button>
