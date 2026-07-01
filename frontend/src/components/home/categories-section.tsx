@@ -59,9 +59,8 @@ export default function CategoriesSection() {
   const rootCategories = categoriesData.filter(filterRootCategories);
 
   // Xử lý khi nhấn vào một danh mục
-  const handleCategoryClick = (catId: string) => {
-    const queryParam = `?category_id=${catId}`;
-    const targetUrl = `/products${queryParam}`;
+  const handleCategoryClick = (slug: string) => {
+    const targetUrl = `/categories/${slug}`;
     router.push(targetUrl);
   };
 
@@ -132,12 +131,11 @@ export default function CategoriesSection() {
           {rootCategories.map((cat: CategoryResponseType) => {
             // Lấy icon tương ứng từ map, nếu không có thì dùng Package làm fallback
             const IconComponent = CATEGORY_ICON_MAP[cat.slug] || Package;
-            const currentCategoryId = cat.id;
 
             return (
               <button
                 key={cat.id}
-                onClick={() => handleCategoryClick(currentCategoryId)}
+                onClick={() => handleCategoryClick(cat.slug)}
                 className="flex flex-col items-center justify-center p-6 max-[360px]:p-3 rounded-2xl border bg-card text-card-foreground shadow-sm hover:scale-[1.03] hover:shadow-md hover:border-violet-500/50 dark:hover:border-violet-500/30 transition-all duration-300 gap-4 max-[360px]:gap-2 group text-center"
               >
                 {/* Wrapper cho Icon */}

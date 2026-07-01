@@ -873,7 +873,7 @@ export default function CustomerLayout({
                 </li>
                 <li>
                   <Link
-                    href="/categories"
+                    href="/products"
                     className="hover:text-violet-600 transition-colors"
                   >
                     Danh mục ngành hàng

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use, useRef } from 'react';
+import React, { useState, useEffect, useMemo, use, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -29,6 +29,8 @@ import { useProductDetail } from '@/hooks/useProducts';
 import { useMyShop } from '@/hooks/useShop';
 import { StarRating } from '@/components/shared/star-rating';
 import { useProductReviews } from '@/hooks/useReviews';
+import { useCategories } from '@/hooks/useCategories';
+import { buildCategoryPath } from '@/lib/categories';
 
 // Components
 import VariantSelector from '@/components/products/VariantSelector';
@@ -126,6 +128,13 @@ export default function ProductDetailClient({
   // Fetch seller's own shop if logged in as seller using hook
   const { data: myShopRes } = useMyShop(user?.role === 'seller');
   const myShop = myShopRes?.data;
+
+  // Cây danh mục (hook dùng chung) + dựng chuỗi cha→con cho breadcrumb
+  const { data: categoriesRes } = useCategories();
+  const categoryPath = useMemo(
+    () => buildCategoryPath(categoriesRes?.data ?? [], product?.category?.id),
+    [categoriesRes?.data, product?.category?.id],
+  );
 
   const isOwnProduct =
     product && myShop ? product.shop?.id === myShop.id : false;
@@ -445,17 +454,34 @@ export default function ProductDetailClient({
   return (
     <div className="max-w-7xl mx-auto space-y-10 py-6">
       {/* Breadcrumbs Navigation */}
-      <nav className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider bg-white dark:bg-zinc-950 p-4 rounded-xl border">
+      <nav className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider bg-white dark:bg-zinc-950 p-4 rounded-xl border flex-wrap">
         <Link href="/" className="hover:text-violet-600 transition-colors">
           Trang chủ
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="hover:text-violet-600 transition-colors">
-          {product.category?.name || 'Sản phẩm'}
-        </span>
+        {categoryPath.length > 0 ? (
+          categoryPath.map((c, idx) => (
+            <React.Fragment key={c.id}>
+              {idx > 0 && <ChevronRight className="h-3.5 w-3.5" />}
+              <Link
+                href={`/categories/${c.slug}`}
+                className="hover:text-violet-600 transition-colors"
+              >
+                {c.name}
+              </Link>
+            </React.Fragment>
+          ))
+        ) : (
+          <Link
+            href={`/categories/${product?.category?.slug}`}
+            className="hover:text-violet-600 transition-colors"
+          >
+            {product?.category?.name || 'Sản phẩm'}
+          </Link>
+        )}
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-foreground truncate max-w-[280px]">
-          {product.name}
+          {product?.name}
         </span>
       </nav>
 
