@@ -2,6 +2,9 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import productsApiRequest from '@/apiRequests/products/products';
+import categoriesApiRequest from '@/apiRequests/products/categories';
+import { buildCategoryPath } from '@/lib/categories';
+import { BreadcrumbJsonLd } from '@/components/shared/breadcrumb-json-ld';
 import ProductDetailClient from './ProductDetailClient';
 
 interface PageProps {
@@ -82,5 +85,28 @@ export default async function ProductDetailPage({
     redirect(redirectUrl);
   }
 
-  return <ProductDetailClient params={params} searchParams={searchParams} />;
+  // Breadcrumb JSON-LD best-effort: lỗi fetch categories không được làm vỡ trang.
+  let crumbs: { name: string; url: string }[] = [];
+  try {
+    const catRes = await categoriesApiRequest.getAll();
+    const path = buildCategoryPath(catRes.data ?? [], product.category?.id);
+    const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+    crumbs = [
+      { name: 'Trang chủ', url: `${SITE}/` },
+      ...path.map((c: any) => ({
+        name: c.name,
+        url: `${SITE}/categories/${c.slug}`,
+      })),
+      { name: product.name, url: `${SITE}/products/${canonicalSlug}` },
+    ];
+  } catch {
+    crumbs = [];
+  }
+
+  return (
+    <>
+      {crumbs.length > 0 && <BreadcrumbJsonLd items={crumbs} />}
+      <ProductDetailClient params={params} searchParams={searchParams} />
+    </>
+  );
 }
