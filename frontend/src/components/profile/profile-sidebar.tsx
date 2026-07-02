@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Package, MapPin, Ticket, Star } from 'lucide-react';
+import { User, Package, PackageX, MapPin, Ticket, Star } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/profile', label: 'Tài khoản', icon: User },
   { href: '/profile/orders', label: 'Đơn hàng của tôi', icon: Package },
+  { href: '/profile/returns', label: 'Yêu cầu trả hàng', icon: PackageX },
   { href: '/profile/addresses', label: 'Sổ địa chỉ', icon: MapPin },
   { href: '/profile/coupons', label: 'Ví voucher', icon: Ticket },
   { href: '/profile/reviews', label: 'Đánh giá sản phẩm', icon: Star },

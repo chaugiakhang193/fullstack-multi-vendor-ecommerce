@@ -21,7 +21,12 @@ import {
   useCustomerOrderDetail,
   useCancelSubOrder,
 } from '@/hooks/useCustomerOrders';
+import { ReturnStatus } from '@/constants/enum';
+import { useMyReturns } from '@/hooks/useReturns';
+import { ReturnStatusBadge } from '@/components/returns/return-status';
+import { CreateReturnDialog } from '@/components/returns/create-return-dialog';
 import { type CustomerOrderSubOrderType } from '@/schemaValidations/orders/orders.schema';
+import { type ReturnResponseType } from '@/schemaValidations/returns/returns.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -41,12 +46,24 @@ export default function CustomerOrderDetailPage() {
 
   const [cancelTarget, setCancelTarget] =
     useState<CustomerOrderSubOrderType | null>(null);
+  const [returnTarget, setReturnTarget] =
+    useState<CustomerOrderSubOrderType | null>(null);
 
   const detailQuery = useCustomerOrderDetail(id);
 
   const cancelMutation = useCancelSubOrder(id, {
     onSettled: () => setCancelTarget(null),
   });
+
+  const returnsQuery = useMyReturns(1, true);
+  // Map subOrderId → yêu cầu trả MỚI NHẤT. BE trả DESC (mới→cũ) nên giữ bản
+  // gặp đầu tiên cho mỗi sub-order; tránh để bản cũ (đã hủy/từ chối) ghi đè.
+  const returnBySubOrder = new Map<string, ReturnResponseType>();
+  for (const r of returnsQuery.data?.data.items ?? []) {
+    if (!returnBySubOrder.has(r.subOrderId)) {
+      returnBySubOrder.set(r.subOrderId, r);
+    }
+  }
 
   const handleConfirmCancel = () => {
     if (!cancelTarget) return;
@@ -332,6 +349,27 @@ export default function CustomerOrderDetailPage() {
                         Đơn đang được shop xử lý — vui lòng liên hệ shop để hủy.
                       </span>
                     </div>
+                  ) : subOrder.status === 'delivered' ? (
+                    (() => {
+                      const existing = returnBySubOrder.get(subOrder.id);
+                      // Có yêu cầu đang mở (requested/approved) → hiện badge, ẩn nút.
+                      const isOpen =
+                        existing &&
+                        (existing.status === ReturnStatus.REQUESTED ||
+                          existing.status === ReturnStatus.APPROVED);
+                      if (existing && isOpen) {
+                        return <ReturnStatusBadge status={existing.status} />;
+                      }
+                      return (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setReturnTarget(subOrder)}
+                        >
+                          Trả hàng
+                        </Button>
+                      );
+                    })()
                   ) : null}
                 </div>
               </div>
@@ -382,6 +420,17 @@ export default function CustomerOrderDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {returnTarget && (
+        <CreateReturnDialog
+          subOrder={returnTarget}
+          orderId={id}
+          open={!!returnTarget}
+          onOpenChange={(open) => {
+            if (!open) setReturnTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }

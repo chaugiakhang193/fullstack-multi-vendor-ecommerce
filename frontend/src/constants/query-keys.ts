@@ -23,6 +23,8 @@ export const QUERY_KEYS = {
   REVIEWS: 'reviews',
   PAYOUTS: 'payouts',
   PENDING_SHOPS: 'pending-shops',
+  RETURNS: 'returns',
+  RETURN_DETAIL: 'return-detail',
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -113,4 +115,11 @@ export const payoutKeys = {
   adminAll: [QUERY_KEYS.PAYOUTS, 'admin'] as const,
   adminList: (page: number, status?: string) =>
     [QUERY_KEYS.PAYOUTS, 'admin', page, status ?? 'all'] as const,
+};
+
+export const returnKeys = {
+  all: [QUERY_KEYS.RETURNS] as const,
+  list: (query?: Record<string, unknown>) =>
+    [QUERY_KEYS.RETURNS, 'list', query ?? {}] as const,
+  detail: (id: string) => [QUERY_KEYS.RETURN_DETAIL, id] as const,
 };

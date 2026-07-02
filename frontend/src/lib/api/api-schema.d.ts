@@ -613,6 +613,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bắt đầu đăng nhập bằng Google */
+        get: operations["AuthController_googleAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Callback OAuth Google */
+        get: operations["AuthController_googleAuthCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/set-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tạo mật khẩu lần đầu (account đăng nhập Google) */
+        post: operations["AuthController_setPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -1333,6 +1384,143 @@ export interface paths {
         head?: never;
         /** Admin từ chối yêu cầu rút tiền */
         patch: operations["AdminPayoutsController_rejectPayout"];
+        trace?: never;
+    };
+    "/api/v1/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách yêu cầu trả hàng của khách (phân trang) */
+        get: operations["ReturnsController_list"];
+        put?: never;
+        /** Khách tạo yêu cầu trả hàng (item-level) cho 1 sub-order đã giao */
+        post: operations["ReturnsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/returns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chi tiết 1 yêu cầu trả hàng của khách */
+        get: operations["ReturnsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/returns/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Khách tự hủy yêu cầu trả (chỉ khi còn REQUESTED) */
+        patch: operations["ReturnsController_cancel"];
+        trace?: never;
+    };
+    "/api/v1/seller/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Danh sách yêu cầu trả hàng của shop (phân trang) */
+        get: operations["SellerReturnsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/returns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chi tiết 1 yêu cầu trả hàng của shop */
+        get: operations["SellerReturnsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/seller/returns/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seller duyệt yêu cầu trả (REQUESTED → APPROVED) */
+        patch: operations["SellerReturnsController_approve"];
+        trace?: never;
+    };
+    "/api/v1/seller/returns/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seller từ chối yêu cầu trả (REQUESTED/APPROVED → REJECTED) */
+        patch: operations["SellerReturnsController_reject"];
+        trace?: never;
+    };
+    "/api/v1/seller/returns/{id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seller xác nhận đã nhận hàng trả (APPROVED → RECEIVED) + restock */
+        patch: operations["SellerReturnsController_receive"];
         trace?: never;
     };
 }
@@ -2320,6 +2508,13 @@ export interface components {
              */
             error: string;
         };
+        SetPasswordDto: {
+            /**
+             * @description Mật khẩu mới
+             * @example NewPassword123
+             */
+            new_password: string;
+        };
         ChangePasswordDto: {
             /**
              * @description Mật khẩu hiện tại
@@ -2811,6 +3006,52 @@ export interface components {
              * @example Thông tin tài khoản ngân hàng sai
              */
             reason: string;
+        };
+        ReturnItemInputDto: {
+            /** @description UUID của order_item cần trả */
+            orderItemId: string;
+            /**
+             * @description Số lượng trả (>=1, <= số chưa trả)
+             * @example 1
+             */
+            quantity: number;
+        };
+        CreateReturnRequestDto: {
+            /** @description UUID sub-order (đơn con của 1 shop) cần trả */
+            subOrderId: string;
+            /** @enum {string} */
+            reason: "damaged" | "wrong_item" | "not_as_described" | "missing_parts" | "changed_mind" | "other";
+            /** @description Ghi chú lý do của khách (bắt buộc) */
+            customerNote: string;
+            items: components["schemas"]["ReturnItemInputDto"][];
+        };
+        ReturnItemResponseDto: {
+            id: string;
+            orderItemId: string;
+            productName: string;
+            variantName: Record<string, never>;
+            quantity: number;
+            /** @description Snapshot tiền hoàn (chuỗi decimal) */
+            refundAmount: string;
+        };
+        ReturnRequestResponseDto: {
+            id: string;
+            subOrderId: string;
+            /** @enum {string} */
+            status: "requested" | "approved" | "rejected" | "received" | "cancelled";
+            /** @enum {string} */
+            reason: "damaged" | "wrong_item" | "not_as_described" | "missing_parts" | "changed_mind" | "other";
+            customerNote: Record<string, never>;
+            sellerNote: Record<string, never>;
+            resolvedAt: Record<string, never>;
+            refundTotal: string;
+            items: components["schemas"]["ReturnItemResponseDto"][];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RejectReturnDto: {
+            /** @description Lý do từ chối của seller (bắt buộc) */
+            sellerNote: string;
         };
     };
     responses: never;
@@ -4761,6 +5002,78 @@ export interface operations {
             };
         };
     };
+    AuthController_googleAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_googleAuthCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_setPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPasswordDto"];
+            };
+        };
+        responses: {
+            /** @description Tạo mật khẩu thành công. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example 200 */
+                        statusCode?: number;
+                        /** @example Tạo mật khẩu thành công. */
+                        message?: string;
+                        /** @example null */
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            /** @description Tài khoản đã có mật khẩu. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_changePassword: {
         parameters: {
             query?: never;
@@ -6346,6 +6659,309 @@ export interface operations {
                         data?: components["schemas"]["PayoutResponseDto"];
                     };
                 };
+            };
+        };
+    };
+    ReturnsController_list: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách ReturnRequest + items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReturnsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReturnRequestDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Đơn chưa giao / quá hạn / số lượng vượt / dữ liệu sai */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy đơn hàng con (hoặc không thuộc về bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Đã có yêu cầu trả đang chờ xử lý cho đơn này */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReturnsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Không tìm thấy (hoặc không thuộc về bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReturnsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Đã hủy — trả id + status mới */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu không ở trạng thái REQUESTED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy (hoặc không thuộc về bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerReturnsController_list: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Danh sách ReturnRequest thuộc shop của seller */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerReturnsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerReturnsController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Chuyển trạng thái không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerReturnsController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectReturnDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Chuyển trạng thái không hợp lệ / thiếu lý do */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SellerReturnsController_receive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description UUID ReturnRequest */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRequestResponseDto"];
+                };
+            };
+            /** @description Chuyển trạng thái không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

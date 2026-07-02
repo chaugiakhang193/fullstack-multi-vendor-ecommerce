@@ -84,3 +84,20 @@ export enum PayoutStatus {
   FAILED = "failed",
   REJECTED = "rejected",
 }
+
+export enum ReturnStatus {
+  REQUESTED = "requested",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  RECEIVED = "received",
+  CANCELLED = "cancelled",
+}
+
+export enum ReturnReason {
+  DAMAGED = "damaged",
+  WRONG_ITEM = "wrong_item",
+  NOT_AS_DESCRIBED = "not_as_described",
+  MISSING_PARTS = "missing_parts",
+  CHANGED_MIND = "changed_mind",
+  OTHER = "other",
+}
