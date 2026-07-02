@@ -17,6 +17,8 @@ export class ReturnRequestResponseDto {
   @ApiProperty({ enum: ReturnStatus }) status: ReturnStatus;
   @ApiProperty({ enum: ReturnReason }) reason: ReturnReason;
   @ApiProperty() customerNote: string | null;
+  @ApiProperty() sellerNote: string | null;
+  @ApiProperty() resolvedAt: Date | null;
   @ApiProperty() refundTotal: string;
   @ApiProperty({ type: [ReturnItemResponseDto] })
   items: ReturnItemResponseDto[];

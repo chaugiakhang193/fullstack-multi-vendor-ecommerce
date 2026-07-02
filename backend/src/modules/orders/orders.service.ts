@@ -396,6 +396,36 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Đánh dấu sub-order = RETURNED nếu MỌI order_item của nó đã được trả hết.
+   * `receivedByOrderItem`: map order_item_id → tổng số lượng đã nhận trả (RECEIVED),
+   * do ReturnsService tính từ bảng return_item (nó sở hữu) rồi truyền vào — tránh
+   * OrdersModule phụ thuộc ngược entity của Returns. Trả về true nếu đã set RETURNED.
+   */
+  async markSubOrderReturnedIfComplete(
+    subOrderId: string,
+    receivedByOrderItem: Map<string, number>,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const items = await manager.find(OrderItem, {
+      where: { sub_order: { id: subOrderId } },
+      select: { id: true, quantity: true },
+    });
+    if (items.length === 0) {
+      return false;
+    }
+    const allReturned = items.every(
+      (it) => (receivedByOrderItem.get(it.id) ?? 0) >= (it.quantity ?? 0),
+    );
+    if (!allReturned) {
+      return false;
+    }
+    await manager.update(SubOrder, subOrderId, {
+      status: OrderStatus.RETURNED,
+    });
+    return true;
+  }
+
   // ==========================================
   // CUSTOMER ORDERS — CANCEL SUB-ORDER
   // ==========================================

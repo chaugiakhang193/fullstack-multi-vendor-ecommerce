@@ -16,6 +16,7 @@ import {
   NotificationType,
   OrderStatus,
   PayoutStatus,
+  ReturnStatus,
 } from '@/common/enums';
 import {
   OUTBOX_EVENT_TYPES,
@@ -27,6 +28,8 @@ import {
   PayoutCreatedOutboxPayload,
   PayoutStatusChangedOutboxPayload,
   ShopRegisteredOutboxPayload,
+  ReturnRequestedOutboxPayload,
+  ReturnStatusChangedOutboxPayload,
 } from '@/common/constants/outbox.constants';
 
 // Internal
@@ -61,6 +64,8 @@ const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.PAYOUT_CREATED,
   OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED,
   OUTBOX_EVENT_TYPES.SHOP_REGISTERED,
+  OUTBOX_EVENT_TYPES.RETURN_REQUESTED,
+  OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED,
 ];
 
 @Injectable()
@@ -141,6 +146,12 @@ export class OutboxWorker {
         await this.handlePayoutStatusChanged(event, queryRunner.manager);
       } else if (event.event_type === OUTBOX_EVENT_TYPES.SHOP_REGISTERED) {
         await this.handleShopRegistered(event, queryRunner.manager);
+      } else if (event.event_type === OUTBOX_EVENT_TYPES.RETURN_REQUESTED) {
+        await this.handleReturnRequested(event, queryRunner.manager);
+      } else if (
+        event.event_type === OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED
+      ) {
+        await this.handleReturnStatusChanged(event, queryRunner.manager);
       } else {
         throw new TypeError(
           `Event type không được hỗ trợ: ${event.event_type}`,
@@ -616,6 +627,117 @@ export class OutboxWorker {
       {
         payoutId: p.payoutId,
         amount: p.amount,
+        status: p.status,
+        message: content,
+      },
+    );
+  }
+
+  // ========== HANDLER: return.requested (báo seller) ==========
+  private async handleReturnRequested(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as ReturnRequestedOutboxPayload;
+    if (!p.returnId || !p.subOrderId || !p.orderNumber || !p.shopId) {
+      throw new TypeError(
+        `return.requested payload thiếu field: ${JSON.stringify(p)}`,
+      );
+    }
+
+    const shop = await this.shopRepo.findOne({
+      where: { id: p.shopId },
+      relations: ['seller'],
+      select: { id: true, seller: { id: true } },
+    });
+    if (!shop) {
+      this.logger.warn(
+        `[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ return.requested.`,
+      );
+      return;
+    }
+
+    await this.notificationService.create(
+      {
+        userId: shop.seller.id,
+        type: NotificationType.RETURN_REQUESTED,
+        title: 'Yêu cầu trả hàng mới',
+        content: `Khách vừa gửi yêu cầu trả hàng cho đơn ${p.orderNumber}.`,
+        data: {
+          kind: 'return_requested_seller',
+          returnId: p.returnId,
+          subOrderId: p.subOrderId,
+          orderNumber: p.orderNumber,
+        },
+      },
+      manager,
+    );
+
+    this.notificationGateway.sendToShop(p.shopId, WS_EVENTS.RETURN_REQUESTED, {
+      returnId: p.returnId,
+      subOrderId: p.subOrderId,
+      orderNumber: p.orderNumber,
+      message: `Yêu cầu trả hàng mới cho đơn ${p.orderNumber}`,
+    });
+  }
+
+  // ========== HANDLER: return.status_changed (báo customer) ==========
+  private async handleReturnStatusChanged(
+    event: OutboxEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    const p = event.payload as ReturnStatusChangedOutboxPayload;
+    if (!p.returnId || !p.subOrderId || !p.orderNumber || !p.customerId || !p.status) {
+      throw new TypeError(
+        `return.status_changed payload thiếu field: ${JSON.stringify(p)}`,
+      );
+    }
+
+    // Chỉ APPROVED/REJECTED/RECEIVED được emit (xem ReturnStatusChangedOutboxPayload).
+    const titleMap: Partial<Record<ReturnStatus, string>> = {
+      [ReturnStatus.APPROVED]: 'Yêu cầu trả hàng được duyệt',
+      [ReturnStatus.REJECTED]: 'Yêu cầu trả hàng bị từ chối',
+      [ReturnStatus.RECEIVED]: 'Đã nhận hàng trả',
+    };
+    const contentMap: Partial<Record<ReturnStatus, string>> = {
+      [ReturnStatus.APPROVED]: `Shop đã duyệt yêu cầu trả hàng đơn ${p.orderNumber}. Vui lòng gửi hàng về.`,
+      [ReturnStatus.REJECTED]: `Shop đã từ chối yêu cầu trả hàng đơn ${p.orderNumber}.${p.sellerNote ? ` Lý do: ${p.sellerNote}` : ''}`,
+      [ReturnStatus.RECEIVED]: `Shop đã nhận hàng trả của đơn ${p.orderNumber}. Yêu cầu hoàn tất.`,
+    };
+
+    const title = titleMap[p.status];
+    const content = contentMap[p.status];
+    if (!title || !content) {
+      throw new TypeError(
+        `return.status_changed payload có status không hợp lệ: ${p.status}`,
+      );
+    }
+
+    await this.notificationService.create(
+      {
+        userId: p.customerId,
+        type: NotificationType.RETURN_STATUS_CHANGED,
+        title,
+        content,
+        data: {
+          kind: 'return_status_customer',
+          returnId: p.returnId,
+          subOrderId: p.subOrderId,
+          orderNumber: p.orderNumber,
+          status: p.status,
+          sellerNote: p.sellerNote,
+        },
+      },
+      manager,
+    );
+
+    this.notificationGateway.sendToUser(
+      p.customerId,
+      WS_EVENTS.RETURN_STATUS_CHANGED,
+      {
+        returnId: p.returnId,
+        subOrderId: p.subOrderId,
+        orderNumber: p.orderNumber,
         status: p.status,
         message: content,
       },

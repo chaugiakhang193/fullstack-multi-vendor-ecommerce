@@ -1,4 +1,4 @@
-import { PayoutStatus } from '@/common/enums';
+import { PayoutStatus, ReturnStatus } from '@/common/enums';
 // Event types cho Transactional Outbox pattern
 // Dùng chung giữa Orders module (writer) và Engagements Outbox Worker (reader)
 export const OUTBOX_EVENT_TYPES = {
@@ -103,6 +103,6 @@ export interface ReturnStatusChangedOutboxPayload {
   subOrderId: string;
   orderNumber: string;
   customerId: string; // người nhận thông báo
-  status: 'approved' | 'rejected' | 'received';
-  sellerNote: string | null; // có giá trị khi status = 'rejected'
+  status: ReturnStatus; // chỉ APPROVED | REJECTED | RECEIVED được emit
+  sellerNote: string | null; // có giá trị khi status = REJECTED
 }

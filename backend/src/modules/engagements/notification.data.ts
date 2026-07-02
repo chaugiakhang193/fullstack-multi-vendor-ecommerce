@@ -1,4 +1,4 @@
-import { OrderStatus, PayoutStatus } from '@/common/enums';
+import { OrderStatus, PayoutStatus, ReturnStatus } from '@/common/enums';
 
 // Dữ liệu cấu trúc cho 1 notification. FE render câu hiển thị (localized + in đậm token)
 // TỪ ĐÂY thay vì backend bake sẵn câu chữ. Cột `content` (text) vẫn giữ làm fallback cho
@@ -39,4 +39,18 @@ export type NotificationData =
       amount: number;
       shopName: string;
     }
-  | { kind: 'shop_registered'; shopId: string; shopName: string };
+  | { kind: 'shop_registered'; shopId: string; shopName: string }
+  | {
+      kind: 'return_requested_seller';
+      returnId: string;
+      subOrderId: string;
+      orderNumber: string;
+    }
+  | {
+      kind: 'return_status_customer';
+      returnId: string;
+      subOrderId: string;
+      orderNumber: string;
+      status: ReturnStatus;
+      sellerNote?: string | null;
+    };
