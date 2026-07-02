@@ -65,6 +65,8 @@ export enum NotificationType {
   PAYOUT_CREATED = "payout.created",
   PAYOUT_STATUS_CHANGED = "payout.status_changed",
   SHOP_REGISTERED = "shop.registered",
+  RETURN_REQUESTED = "return.requested",
+  RETURN_STATUS_CHANGED = "return.status_changed",
 }
 
 export enum CartItemUnavailableReason {

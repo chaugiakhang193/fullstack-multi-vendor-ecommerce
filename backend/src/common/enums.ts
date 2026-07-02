@@ -92,6 +92,8 @@ export enum NotificationType {
   PAYOUT_CREATED = 'payout.created',
   PAYOUT_STATUS_CHANGED = 'payout.status_changed',
   SHOP_REGISTERED = 'shop.registered',
+  RETURN_REQUESTED = 'return.requested',
+  RETURN_STATUS_CHANGED = 'return.status_changed',
 }
 
 export enum PayoutStatus {
@@ -100,4 +102,21 @@ export enum PayoutStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   REJECTED = 'rejected',
+}
+
+export enum ReturnStatus {
+  REQUESTED = 'requested',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  RECEIVED = 'received',
+  CANCELLED = 'cancelled',
+}
+
+export enum ReturnReason {
+  DAMAGED = 'damaged',
+  WRONG_ITEM = 'wrong_item',
+  NOT_AS_DESCRIBED = 'not_as_described',
+  MISSING_PARTS = 'missing_parts',
+  CHANGED_MIND = 'changed_mind',
+  OTHER = 'other',
 }

@@ -70,7 +70,16 @@ export const USER_LIMITS = {
 } as const;
 
 export const ORDER_LIMITS = {
-  "MAX_SHOP_COUPONS": 50
+  "MAX_SHOP_COUPONS": 50,
+  "RETURN_WINDOW_DAYS": 14
+} as const;
+
+export const RETURN_LIMITS = {
+  "NOTE_MIN_LENGTH": 10,
+  "NOTE_MAX_LENGTH": 500,
+  "MIN_ITEMS": 1,
+  "SELLER_NOTE_MIN_LENGTH": 5,
+  "SELLER_NOTE_MAX_LENGTH": 500
 } as const;
 
 export const PAYOUT_LIMITS = {

@@ -56,6 +56,12 @@ export class SubOrder {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
+  // Mốc thời điểm sub-order được seller đánh dấu DELIVERED. Dùng làm gốc tính
+  // cửa sổ trả hàng (RETURN_WINDOW_DAYS). Nullable: các đơn giao TRƯỚC khi có
+  // cột này (và đơn chưa giao) sẽ null → không đủ điều kiện trả (xem returns.service).
+  @Column({ type: 'timestamp', nullable: true })
+  delivered_at: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 

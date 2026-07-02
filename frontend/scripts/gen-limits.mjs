@@ -21,6 +21,7 @@ const ALLOWLIST = [
   'CART_LIMITS',
   'USER_LIMITS',
   'ORDER_LIMITS',
+  'RETURN_LIMITS',
   'PAYOUT_LIMITS',
   'SHIPPING_LIMITS',
   'CATEGORY_LIMITS',
@@ -33,15 +34,21 @@ const sf = ts.createSourceFile(
   true,
 );
 
-/** Đệ quy: chỉ chấp nhận số / số âm / object literal. Khác → throw (fail-loud). */
+/**
+ * Đệ quy: chỉ chấp nhận số / số âm / object literal. Khác → throw (fail-loud).
+ * @param {ts.Node} node
+ * @param {string} path
+ * @returns {number | Record<string, unknown>}
+ */
 function evalNode(node, path) {
   if (ts.isNumericLiteral(node)) return Number(node.text);
   if (
     ts.isPrefixUnaryExpression(node) &&
     node.operator === ts.SyntaxKind.MinusToken
   )
-    return -evalNode(node.operand, path);
+    return -Number(evalNode(node.operand, path));
   if (ts.isObjectLiteralExpression(node)) {
+    /** @type {Record<string, unknown>} */
     const obj = {};
     for (const p of node.properties) {
       if (!ts.isPropertyAssignment(p))

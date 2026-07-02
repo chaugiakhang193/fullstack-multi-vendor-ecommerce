@@ -369,6 +369,33 @@ export class OrdersService {
     return order;
   }
 
+  /**
+   * Khóa bare row sub-order (pessimistic_write) rồi load kèm relations cho luồng
+   * trả hàng (order.customer để kiểm quyền, shop denorm, items để tính refund,
+   * order.sub_orders để phân bổ global discount theo tỷ lệ tiền hàng cả đơn).
+   * Chạy trong transaction của caller qua `manager`. Trả null nếu không tồn tại.
+   */
+  async lockAndLoadSubOrderForReturn(
+    subOrderId: string,
+    manager: EntityManager,
+  ): Promise<SubOrder | null> {
+    const lockedRow = await manager.findOne(SubOrder, {
+      where: { id: subOrderId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!lockedRow) {
+      return null;
+    }
+    return manager.findOne(SubOrder, {
+      where: { id: subOrderId },
+      relations: {
+        order: { customer: true, sub_orders: true },
+        shop: true,
+        items: true,
+      },
+    });
+  }
+
   // ==========================================
   // CUSTOMER ORDERS — CANCEL SUB-ORDER
   // ==========================================
@@ -1537,6 +1564,10 @@ export class OrdersService {
       }
 
       subOrder.status = newStatus;
+      // Ghi mốc giao hàng đúng 1 lần để tính cửa sổ trả hàng (RETURN_WINDOW_DAYS).
+      if (newStatus === OrderStatus.DELIVERED) {
+        subOrder.delivered_at = new Date();
+      }
       await manager.save(SubOrder, subOrder);
 
       const order = subOrder.order;

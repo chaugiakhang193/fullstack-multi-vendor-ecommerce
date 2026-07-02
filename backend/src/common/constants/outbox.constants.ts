@@ -10,6 +10,8 @@ export const OUTBOX_EVENT_TYPES = {
   PAYOUT_CREATED: 'payout.created',
   PAYOUT_STATUS_CHANGED: 'payout.status_changed',
   SHOP_REGISTERED: 'shop.registered',
+  RETURN_REQUESTED: 'return.requested',
+  RETURN_STATUS_CHANGED: 'return.status_changed',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -84,4 +86,23 @@ export interface ShopRegisteredOutboxPayload {
   shopId: string;
   shopName: string;
   isReapply: boolean;
+}
+
+// return.requested — báo SELLER khách vừa tạo yêu cầu trả.
+export interface ReturnRequestedOutboxPayload {
+  returnId: string;
+  subOrderId: string;
+  orderNumber: string;
+  shopId: string; // để báo đúng seller chủ shop
+  customerId: string;
+}
+
+// return.status_changed — báo CUSTOMER khi seller duyệt/từ chối/nhận hàng.
+export interface ReturnStatusChangedOutboxPayload {
+  returnId: string;
+  subOrderId: string;
+  orderNumber: string;
+  customerId: string; // người nhận thông báo
+  status: 'approved' | 'rejected' | 'received';
+  sellerNote: string | null; // có giá trị khi status = 'rejected'
 }

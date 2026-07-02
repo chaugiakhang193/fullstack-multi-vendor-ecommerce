@@ -22,6 +22,7 @@ import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
 import { StatisticsModule } from '@/modules/statistics/statistics.module';
 import { PayoutsModule } from '@/modules/payouts/payouts.module';
+import { ReturnsModule } from '@/modules/returns/returns.module';
 
 //entities
 import { User } from '@/modules/users/entities/user.entity';
@@ -45,6 +46,8 @@ import { Payment } from '@/modules/payments/entities/payment.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
 import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
+import { ReturnRequest } from '@/modules/returns/entities/return-request.entity';
+import { ReturnItem } from '@/modules/returns/entities/return-item.entity';
 
 //Global Guard
 import { APP_GUARD } from '@nestjs/core';
@@ -79,6 +82,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     GeocodingModule,
     StatisticsModule,
     PayoutsModule,
+    ReturnsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -116,6 +120,8 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           Review,
           Notification,
           MediaAsset,
+          ReturnRequest,
+          ReturnItem,
         ],
         synchronize: false,
         ssl:
