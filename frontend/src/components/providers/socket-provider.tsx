@@ -41,13 +41,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleConnect = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDERS] });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL],
-      });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SELLER_ORDERS] });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL],
-      });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
     };
 

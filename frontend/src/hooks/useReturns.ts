@@ -51,12 +51,9 @@ export const useCancelReturn = (callbacks?: { onSettled?: () => void }) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => returnApiRequest.cancel(id),
-    onSuccess: (_data, id) => {
+    onSuccess: () => {
       toast.success('Đã hủy yêu cầu trả hàng');
       queryClient.invalidateQueries({ queryKey: returnKeys.all });
-      // RETURN_DETAIL nằm ở root khác returnKeys.all → phải invalidate riêng
-      // để trang chi tiết đang mở refetch ngay sau khi hủy.
-      queryClient.invalidateQueries({ queryKey: returnKeys.detail(id) });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
     onSettled: () => callbacks?.onSettled?.(),

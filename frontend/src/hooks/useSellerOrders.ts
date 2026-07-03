@@ -40,7 +40,7 @@ export const useSellerOrderDetail = (id: string) => {
 
 /**
  * Cập nhật trạng thái đơn (state machine). Đóng gói toast success + invalidate
- * cả list lẫn detail (theo root → match mọi key con). Error toast do
+ * root `all` (1 root → phủ cả list lẫn detail). Error toast do
  * mutationCache.onError global lo. callbacks tùy chọn để page dọn state cục bộ.
  */
 export const useUpdateSellerOrderStatus = (callbacks?: {
@@ -54,7 +54,6 @@ export const useUpdateSellerOrderStatus = (callbacks?: {
     onSuccess: () => {
       toast.success('Cập nhật trạng thái đơn hàng thành công');
       queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
-      queryClient.invalidateQueries({ queryKey: sellerOrderKeys.detailAll });
       callbacks?.onSuccess?.();
     },
     onSettled: () => callbacks?.onSettled?.(),

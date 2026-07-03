@@ -34,19 +34,13 @@ export const useCustomerOrderDetail = (id: string) => {
 };
 
 /** Hủy 1 sub-order. Refetch là nguồn sự thật (không đọc response body). */
-export const useCancelSubOrder = (
-  orderId: string,
-  callbacks?: { onSettled?: () => void },
-) => {
+export const useCancelSubOrder = (callbacks?: { onSettled?: () => void }) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (subOrderId: string) =>
       orderApiRequest.cancelSubOrder(subOrderId),
     onSuccess: () => {
       toast.success('Đã hủy đơn hàng và hoàn kho thành công');
-      queryClient.invalidateQueries({
-        queryKey: customerOrderKeys.detail(orderId),
-      });
       queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
     },
     onSettled: () => callbacks?.onSettled?.(),

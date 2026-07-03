@@ -51,7 +51,7 @@ export default function CustomerOrderDetailPage() {
 
   const detailQuery = useCustomerOrderDetail(id);
 
-  const cancelMutation = useCancelSubOrder(id, {
+  const cancelMutation = useCancelSubOrder({
     onSettled: () => setCancelTarget(null),
   });
 

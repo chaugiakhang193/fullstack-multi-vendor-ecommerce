@@ -14,6 +14,8 @@ import notificationApiRequest from '@/apiRequests/engagements/notifications';
 import {
   QUERY_KEYS,
   payoutKeys,
+  customerOrderKeys,
+  sellerOrderKeys,
   pendingShopKeys,
 } from '@/constants/query-keys';
 import { UserRole } from '@/constants/enum';
@@ -145,6 +147,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     const onOrderNew = (payload: OrderNewPayload) => {
       increment();
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      // Đơn mới của khách → làm mới danh sách đơn seller ngay, khỏi F5.
+      queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
       // order.new thiếu subOrderId → chỉ tới được danh sách seller.
       toast.success(payload.message, {
         description: `Đơn ${payload.orderNumber}`,
@@ -155,12 +159,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     const onStatusChanged = (payload: OrderStatusChangedPayload) => {
       increment();
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.CUSTOMER_ORDER_DETAIL],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.SELLER_ORDER_DETAIL],
-      });
+      queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
       const href =
         role === UserRole.SELLER
           ? `/seller/orders/${payload.subOrderId}`

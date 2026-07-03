@@ -15,16 +15,13 @@ export const QUERY_KEYS = {
   ADDRESSES: 'addresses',
   CHECKOUT_PREVIEW: 'checkout-preview',
   SELLER_ORDERS: 'seller-orders',
-  SELLER_ORDER_DETAIL: 'seller-order-detail',
   CUSTOMER_ORDERS: 'customer-orders',
-  CUSTOMER_ORDER_DETAIL: 'customer-order-detail',
   NOTIFICATIONS: 'notifications',
   COUPONS: 'coupons',
   REVIEWS: 'reviews',
   PAYOUTS: 'payouts',
   PENDING_SHOPS: 'pending-shops',
   RETURNS: 'returns',
-  RETURN_DETAIL: 'return-detail',
   SELLER_RETURNS: 'seller-returns',
 } as const;
 
@@ -69,15 +66,14 @@ export const sellerOrderKeys = {
   all: [QUERY_KEYS.SELLER_ORDERS] as const,
   list: (filter: { tab: string; page: number }) =>
     [QUERY_KEYS.SELLER_ORDERS, 'list', filter] as const,
-  detailAll: [QUERY_KEYS.SELLER_ORDER_DETAIL] as const,
-  detail: (id: string) => [QUERY_KEYS.SELLER_ORDER_DETAIL, id] as const,
+  detail: (id: string) => [QUERY_KEYS.SELLER_ORDERS, 'detail', id] as const,
 };
 
 export const customerOrderKeys = {
   all: [QUERY_KEYS.CUSTOMER_ORDERS] as const,
   list: (filter: { tab: string; page: number }) =>
     [QUERY_KEYS.CUSTOMER_ORDERS, 'list', filter] as const,
-  detail: (id: string) => [QUERY_KEYS.CUSTOMER_ORDER_DETAIL, id] as const,
+  detail: (id: string) => [QUERY_KEYS.CUSTOMER_ORDERS, 'detail', id] as const,
 };
 
 export const notificationKeys = {
@@ -122,7 +118,7 @@ export const returnKeys = {
   all: [QUERY_KEYS.RETURNS] as const,
   list: (query?: Record<string, unknown>) =>
     [QUERY_KEYS.RETURNS, 'list', query ?? {}] as const,
-  detail: (id: string) => [QUERY_KEYS.RETURN_DETAIL, id] as const,
+  detail: (id: string) => [QUERY_KEYS.RETURNS, 'detail', id] as const,
 };
 
 export const sellerReturnKeys = {
