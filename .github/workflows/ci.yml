@@ -40,3 +40,16 @@ jobs:
           npm run gen-limits
           git diff --exit-code src/constants/enum.generated.ts src/constants/limits.generated.ts
         working-directory: frontend
+
+      - name: Build Backend
+        run: npm run build
+        working-directory: backend
+
+      - name: Build Frontend
+        run: npm run build
+        working-directory: frontend
+        env:
+          # URL giả để next build không vỡ; các fetch SSG là best-effort nên chỉ
+          # cần biến hợp lệ, không cần BE chạy thật trong CI.
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
