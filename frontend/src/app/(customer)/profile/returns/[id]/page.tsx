@@ -63,7 +63,9 @@ export default function ReturnDetailPage() {
     <div className="space-y-6 animate-fade-in">
       {back}
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-extrabold">Yêu cầu #{shortId(r.id)}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          Yêu cầu #{shortId(r.id)}
+        </h1>
         <ReturnStatusBadge status={r.status} />
       </div>
 
@@ -71,7 +73,7 @@ export default function ReturnDetailPage() {
         <ReturnStatusTimeline status={r.status} />
       </div>
 
-      <div className="rounded-xl border bg-card p-6 space-y-2 text-sm">
+      <div className="rounded-xl border bg-card p-6 space-y-2 text-base">
         <p>
           <span className="text-muted-foreground">Lý do: </span>
           {RETURN_REASON_LABELS[r.reason]}
@@ -99,7 +101,7 @@ export default function ReturnDetailPage() {
         {r.items.map((it) => (
           <div
             key={it.id}
-            className="flex items-center justify-between text-sm"
+            className="flex items-center justify-between text-base"
           >
             <span className="line-clamp-1">
               {it.productName}

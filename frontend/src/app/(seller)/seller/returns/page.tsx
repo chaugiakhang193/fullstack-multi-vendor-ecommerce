@@ -40,18 +40,25 @@ export default function SellerReturnsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Yêu cầu trả hàng</h1>
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          Yêu cầu trả hàng
+        </h1>
+        <p className="text-muted-foreground text-base mt-2">
+          Xem và xử lý yêu cầu trả hàng từ khách hàng của shop.
+        </p>
+      </div>
       <div className="space-y-3">
         {items.map((r) => (
           <Link
             key={r.id}
             href={`/seller/returns/${r.id}`}
-            className="flex items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs hover:border-violet-400 transition"
+            className="flex items-center justify-between gap-3 rounded-xl border bg-card p-5 shadow-xs hover:border-violet-400 transition"
           >
             <div className="min-w-0">
-              <p className="font-bold">#{shortId(r.id)}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-bold text-base">#{shortId(r.id)}</p>
+              <p className="text-sm text-muted-foreground">
                 {r.items.length} sản phẩm · Hoàn{' '}
                 {formatVnd.format(Number(r.refundTotal))} ·{' '}
                 {formatDateTime(r.createdAt)}
