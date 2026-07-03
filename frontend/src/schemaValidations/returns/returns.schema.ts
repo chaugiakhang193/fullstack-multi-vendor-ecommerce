@@ -55,6 +55,22 @@ export const CreateReturnBody = z.object({
   items: z.array(CreateReturnItemBody).min(RETURN_LIMITS.MIN_ITEMS),
 }) satisfies z.ZodType<CreateReturnRequestDto, any, any>;
 
+// ===== Body: PATCH /seller/returns/:id/reject =====
+type RejectReturnDto = components['schemas']['RejectReturnDto'];
+
+export const RejectReturnBody = z.object({
+  sellerNote: z
+    .string()
+    .min(
+      RETURN_LIMITS.SELLER_NOTE_MIN_LENGTH,
+      `Lý do tối thiểu ${RETURN_LIMITS.SELLER_NOTE_MIN_LENGTH} ký tự`,
+    )
+    .max(
+      RETURN_LIMITS.SELLER_NOTE_MAX_LENGTH,
+      `Lý do tối đa ${RETURN_LIMITS.SELLER_NOTE_MAX_LENGTH} ký tự`,
+    ),
+}) satisfies z.ZodType<RejectReturnDto, any, any>;
+
 // ===== Response (viết tay — decimal → string giữ nguyên để hiển thị tiền) =====
 export const ReturnItemResponse = z.object({
   id: z.string(),
@@ -89,6 +105,7 @@ export const CancelReturnResult = z.object({
 export type ReturnStatusType = z.TypeOf<typeof ReturnStatusEnum>;
 export type ReturnReasonType = z.TypeOf<typeof ReturnReasonEnum>;
 export type CreateReturnBodyType = z.TypeOf<typeof CreateReturnBody>;
+export type RejectReturnBodyType = z.TypeOf<typeof RejectReturnBody>;
 export type ReturnResponseType = z.TypeOf<typeof ReturnResponse>;
 export type ReturnListType = z.TypeOf<typeof ReturnList>;
 

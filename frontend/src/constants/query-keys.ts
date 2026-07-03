@@ -25,6 +25,7 @@ export const QUERY_KEYS = {
   PENDING_SHOPS: 'pending-shops',
   RETURNS: 'returns',
   RETURN_DETAIL: 'return-detail',
+  SELLER_RETURNS: 'seller-returns',
 } as const;
 
 // staleTime presets tập trung (ms) — hết magic number rải rác.
@@ -122,4 +123,11 @@ export const returnKeys = {
   list: (query?: Record<string, unknown>) =>
     [QUERY_KEYS.RETURNS, 'list', query ?? {}] as const,
   detail: (id: string) => [QUERY_KEYS.RETURN_DETAIL, id] as const,
+};
+
+export const sellerReturnKeys = {
+  all: [QUERY_KEYS.SELLER_RETURNS] as const,
+  list: (filter: { page: number }) =>
+    [QUERY_KEYS.SELLER_RETURNS, 'list', filter] as const,
+  detail: (id: string) => [QUERY_KEYS.SELLER_RETURNS, 'detail', id] as const,
 };
