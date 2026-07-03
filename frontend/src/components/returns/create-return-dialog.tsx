@@ -72,18 +72,21 @@ export function CreateReturnDialog({
 
   const setQty = (orderItemId: string, max: number, next: number) => {
     const clamped = Math.max(0, Math.min(max, next));
-    setQtyById((prev) => ({ ...prev, [orderItemId]: clamped }));
+    setQtyById((prev) => {
+      const updated = { ...prev, [orderItemId]: clamped };
+      // Đồng bộ vào form để zod validate đúng lựa chọn thật (không còn rỗng).
+      const chosen = Object.entries(updated)
+        .filter(([, q]) => q > 0)
+        .map(([id, quantity]) => ({ orderItemId: id, quantity }));
+      form.setValue('items', chosen, {
+        shouldValidate: form.formState.isSubmitted,
+      });
+      return updated;
+    });
   };
 
   const onSubmit = form.handleSubmit((values) => {
-    const chosen = Object.entries(qtyById)
-      .filter(([, q]) => q > 0)
-      .map(([orderItemId, quantity]) => ({ orderItemId, quantity }));
-    if (chosen.length === 0) {
-      form.setError('items', { message: 'Chọn ít nhất 1 sản phẩm để trả' });
-      return;
-    }
-    createMutation.mutate({ ...values, items: chosen });
+    createMutation.mutate(values);
   });
 
   return (

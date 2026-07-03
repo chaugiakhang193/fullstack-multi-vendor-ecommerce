@@ -52,7 +52,12 @@ export const CreateReturnBody = z.object({
       RETURN_LIMITS.NOTE_MAX_LENGTH,
       `Ghi chú tối đa ${RETURN_LIMITS.NOTE_MAX_LENGTH} ký tự`,
     ),
-  items: z.array(CreateReturnItemBody).min(RETURN_LIMITS.MIN_ITEMS),
+  items: z
+    .array(CreateReturnItemBody)
+    .min(
+      RETURN_LIMITS.MIN_ITEMS,
+      `Chọn ít nhất ${RETURN_LIMITS.MIN_ITEMS} sản phẩm để trả`,
+    ),
 }) satisfies z.ZodType<CreateReturnRequestDto, any, any>;
 
 // ===== Body: PATCH /seller/returns/:id/reject =====
