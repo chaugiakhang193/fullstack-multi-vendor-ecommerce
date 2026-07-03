@@ -58,6 +58,20 @@ export const NotificationData = z.discriminatedUnion(discriminatorKey, [
     productName: z.string(),
     reviewId: z.string().uuid().optional(),
   }),
+  // Yêu cầu trả hàng
+  z.object({
+    kind: z.literal('return_requested_seller'),
+    orderNumber: z.string(),
+    returnId: z.string().uuid().optional(),
+    subOrderId: z.string().uuid().optional(),
+  }),
+  z.object({
+    kind: z.literal('return_status_customer'),
+    orderNumber: z.string(),
+    status: z.string(),
+    returnId: z.string().uuid().optional(),
+    subOrderId: z.string().uuid().optional(),
+  }),
   z.object({
     kind: z.literal('payout_status_changed'),
     payoutId: z.string().uuid().optional(),

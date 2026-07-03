@@ -16,6 +16,8 @@ import {
   payoutKeys,
   customerOrderKeys,
   sellerOrderKeys,
+  sellerReturnKeys,
+  returnKeys,
   pendingShopKeys,
 } from '@/constants/query-keys';
 import { UserRole } from '@/constants/enum';
@@ -32,6 +34,8 @@ const WS_REVIEW_REPLIED = 'review.replied';
 const WS_PAYOUT_STATUS_CHANGED = 'payout.status_changed';
 const WS_PAYOUT_CREATED = 'payout.created';
 const WS_SHOP_REGISTERED = 'shop.registered';
+const WS_RETURN_REQUESTED = 'return.requested';
+const WS_RETURN_STATUS_CHANGED = 'return.status_changed';
 
 interface OrderNewPayload {
   orderId: string;
@@ -76,6 +80,19 @@ interface ShopRegisteredWsPayload {
   shopName: string;
   message: string;
 }
+interface ReturnRequestedWsPayload {
+  returnId: string;
+  subOrderId: string;
+  orderNumber: string;
+  message: string;
+}
+interface ReturnStatusChangedWsPayload {
+  returnId: string;
+  subOrderId: string;
+  orderNumber: string;
+  status: string;
+  message: string;
+}
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
 const getNotificationHref = (
@@ -99,6 +116,10 @@ const getNotificationHref = (
     case 'review_replied':
       // Dẫn về sản phẩm để xem đánh giá và phản hồi
       return d.productId ? `/products/${d.productId}` : '/profile/orders';
+    case 'return_requested_seller':
+      return d.returnId ? `/seller/returns/${d.returnId}` : '/seller/returns';
+    case 'return_status_customer':
+      return d.returnId ? `/profile/returns/${d.returnId}` : '/profile/returns';
     case 'payout_status_changed':
       return '/seller/payouts';
     case 'payout_created':
@@ -263,6 +284,37 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       });
     };
 
+    // Yêu cầu trả mới → báo seller. Deep-link tới chi tiết yêu cầu.
+    const onReturnRequested = (payload: ReturnRequestedWsPayload) => {
+      increment();
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: sellerReturnKeys.all });
+      toast.info(payload.message, {
+        description: `Đơn ${payload.orderNumber}`,
+        action: {
+          label: 'Xem',
+          onClick: () => router.push(`/seller/returns/${payload.returnId}`),
+        },
+      });
+    };
+
+    // Seller duyệt/từ chối/nhận hàng → báo khách. Deep-link tới chi tiết yêu cầu.
+    const onReturnStatusChanged = (payload: ReturnStatusChangedWsPayload) => {
+      increment();
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: returnKeys.all });
+      // Seller nhận đủ hàng → sub_order thành RETURNED → order detail phải refetch
+      // để đổi badge "Đã trả hàng" + ẩn nút "Trả hàng".
+      queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
+      toast.info(payload.message, {
+        description: `Đơn ${payload.orderNumber}`,
+        action: {
+          label: 'Xem',
+          onClick: () => router.push(`/profile/returns/${payload.returnId}`),
+        },
+      });
+    };
+
     socket.on(WS_ORDER_NEW, onOrderNew);
     socket.on(WS_ORDER_STATUS_CHANGED, onStatusChanged);
     socket.on(WS_REVIEW_NEW, onReviewNew);
@@ -270,6 +322,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     socket.on(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
     socket.on(WS_PAYOUT_CREATED, onPayoutCreated);
     socket.on(WS_SHOP_REGISTERED, onShopRegistered);
+    socket.on(WS_RETURN_REQUESTED, onReturnRequested);
+    socket.on(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
@@ -279,6 +333,8 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       socket.off(WS_PAYOUT_STATUS_CHANGED, onPayoutStatusChanged);
       socket.off(WS_PAYOUT_CREATED, onPayoutCreated);
       socket.off(WS_SHOP_REGISTERED, onShopRegistered);
+      socket.off(WS_RETURN_REQUESTED, onReturnRequested);
+      socket.off(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
     };
   }, [socket, role, router, queryClient, increment]);
 
