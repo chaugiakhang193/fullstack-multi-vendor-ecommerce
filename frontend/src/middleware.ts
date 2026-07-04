@@ -54,8 +54,12 @@ export const SELLER_PERMISSIONS: Record<
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Kiểm tra xem trình duyệt có các cookie cần thiết không
-  const hasToken = request.cookies.has('refresh_token');
+  // Deploy cross-domain (BE Render ≠ FE Vercel): refresh_token là cookie httpOnly của
+  // domain BE → middleware chạy trên domain FE KHÔNG đọc được. Dùng cookie user_role
+  // (FE tự set trên domain FE, xem useAuthStore) làm tín hiệu "đã đăng nhập" để gate
+  // route điều hướng. Bảo mật thật vẫn do JWT guard ở BE lo trên mọi API call.
+  // (Local same-site cũng hoạt động vì FE set cookie này ở cả hai môi trường.)
+  const hasToken = request.cookies.has('user_role');
   const userRole = request.cookies.get('user_role')?.value;
   const userStatus = request.cookies.get('user_status')?.value;
 
