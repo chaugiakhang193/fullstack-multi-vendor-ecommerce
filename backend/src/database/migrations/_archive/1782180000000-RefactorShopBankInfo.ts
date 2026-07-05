@@ -2,7 +2,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class RefactorShopBankInfo1782180000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "shop" ADD COLUMN "bank_account_info_new" jsonb`);
+    await queryRunner.query(
+      `ALTER TABLE "shop" ADD COLUMN "bank_account_info_new" jsonb`,
+    );
 
     // Hàm tạm (session-local, tự hủy cuối session): parse an toàn, không làm abort migration.
     await queryRunner.query(`
@@ -50,15 +52,27 @@ export class RefactorShopBankInfo1782180000000 implements MigrationInterface {
       UPDATE "shop" SET "bank_account_info_new" = pg_temp.migrate_bank_info("bank_account_info")
     `);
 
-    await queryRunner.query(`ALTER TABLE "shop" DROP COLUMN "bank_account_info"`);
-    await queryRunner.query(`ALTER TABLE "shop" RENAME COLUMN "bank_account_info_new" TO "bank_account_info"`);
+    await queryRunner.query(
+      `ALTER TABLE "shop" DROP COLUMN "bank_account_info"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "shop" RENAME COLUMN "bank_account_info_new" TO "bank_account_info"`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Reverse: jsonb -> text (lưu lại dạng chuỗi JSON; có cấu trúc, đọc lại được)
-    await queryRunner.query(`ALTER TABLE "shop" ADD COLUMN "bank_account_info_old" text`);
-    await queryRunner.query(`UPDATE "shop" SET "bank_account_info_old" = "bank_account_info"::text`);
-    await queryRunner.query(`ALTER TABLE "shop" DROP COLUMN "bank_account_info"`);
-    await queryRunner.query(`ALTER TABLE "shop" RENAME COLUMN "bank_account_info_old" TO "bank_account_info"`);
+    await queryRunner.query(
+      `ALTER TABLE "shop" ADD COLUMN "bank_account_info_old" text`,
+    );
+    await queryRunner.query(
+      `UPDATE "shop" SET "bank_account_info_old" = "bank_account_info"::text`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "shop" DROP COLUMN "bank_account_info"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "shop" RENAME COLUMN "bank_account_info_old" TO "bank_account_info"`,
+    );
   }
 }

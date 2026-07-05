@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddReturnNotificationTypes1782900000000
-  implements MigrationInterface
-{
+export class AddReturnNotificationTypes1782900000000 implements MigrationInterface {
   name = 'AddReturnNotificationTypes1782900000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -15,9 +13,7 @@ export class AddReturnNotificationTypes1782900000000
     await queryRunner.query(
       `ALTER TABLE "notification" ALTER COLUMN "type" TYPE "public"."notification_type_enum" USING "type"::"text"::"public"."notification_type_enum"`,
     );
-    await queryRunner.query(
-      `DROP TYPE "public"."notification_type_enum_old"`,
-    );
+    await queryRunner.query(`DROP TYPE "public"."notification_type_enum_old"`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -30,8 +26,6 @@ export class AddReturnNotificationTypes1782900000000
     await queryRunner.query(
       `ALTER TABLE "notification" ALTER COLUMN "type" TYPE "public"."notification_type_enum" USING "type"::"text"::"public"."notification_type_enum"`,
     );
-    await queryRunner.query(
-      `DROP TYPE "public"."notification_type_enum_old"`,
-    );
+    await queryRunner.query(`DROP TYPE "public"."notification_type_enum_old"`);
   }
 }

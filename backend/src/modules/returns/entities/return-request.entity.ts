@@ -22,12 +22,12 @@ export class ReturnRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => SubOrder, { onDelete: 'CASCADE' })
+  @ManyToOne(() => SubOrder, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sub_order_id' })
   sub_order: SubOrder;
 
   // Khách tạo yêu cầu — dùng để kiểm IDOR (chỉ chủ đơn được thao tác).
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'customer_id' })
   customer: User;
 

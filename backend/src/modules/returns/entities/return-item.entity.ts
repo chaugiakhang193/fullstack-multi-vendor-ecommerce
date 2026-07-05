@@ -16,11 +16,14 @@ export class ReturnItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => ReturnRequest, (req) => req.items, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ReturnRequest, (req) => req.items, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'return_request_id' })
   return_request: ReturnRequest;
 
-  @ManyToOne(() => OrderItem, { onDelete: 'CASCADE' })
+  @ManyToOne(() => OrderItem, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'order_item_id' })
   order_item: OrderItem;
 

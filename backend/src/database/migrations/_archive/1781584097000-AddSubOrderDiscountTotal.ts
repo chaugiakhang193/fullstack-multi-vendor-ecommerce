@@ -33,9 +33,16 @@ export class AddSubOrderDiscountTotal1781584097000 implements MigrationInterface
       if (r.discount_type) {
         const value = Number(r.discount_value ?? 0);
         // Note: DiscountType in codebase enum is lowercase 'percentage' / 'fixed_amount'
-        const raw = r.discount_type === 'percentage' ? (subTotal * value) / 100
-                  : r.discount_type === 'fixed_amount' ? value : 0;
-        const cap = r.max_discount_value != null ? Number(r.max_discount_value) : Number.POSITIVE_INFINITY;
+        const raw =
+          r.discount_type === 'percentage'
+            ? (subTotal * value) / 100
+            : r.discount_type === 'fixed_amount'
+              ? value
+              : 0;
+        const cap =
+          r.max_discount_value != null
+            ? Number(r.max_discount_value)
+            : Number.POSITIVE_INFINITY;
         discount = Math.max(0, Math.min(raw, cap, subTotal));
       }
       const total = Math.round((subTotal - discount + shippingFee) * 100) / 100;
