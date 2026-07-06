@@ -1,0 +1,48 @@
+# Full stack local: `docker compose up` -> Postgres + Backend.
+# Backend build từ backend/Dockerfile; migration:run:prod dựng schema từ DB trống
+# (InitialSchema) rồi khởi động app. FE chạy riêng bằng `npm run dev` (trỏ
+# NEXT_PUBLIC_API_URL vào http://localhost:8080/api/v1).
+#
+# Biến DB lấy từ .env (xem .env.docker.example), có default để chạy ngay không cần .env.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ecommerce}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ecommerce}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    # Secret app (JWT / Cloudinary / Mail / Google OAuth / Geocoding) lấy từ file
+    # này; các biến DB + NODE_ENV bên dưới ghi đè để trỏ vào service `db`.
+    env_file:
+      - ./backend/.env
+    environment:
+      # NODE_ENV=development => code tắt SSL Postgres (Postgres local không có SSL).
+      NODE_ENV: development
+      PORT: 8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-ecommerce}
+    ports:
+      - '8080:8080'
+
+volumes:
+  pgdata:

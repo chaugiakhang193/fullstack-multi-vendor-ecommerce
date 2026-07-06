@@ -1,0 +1,23 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+Dockerfile
+.dockerignore
+
+# env / secrets — không đưa vào image
+.env
+.env.*
+!.env.example
+
+# logs & temp
+*.log
+npm-debug.log*
+.temp
+.tmp
+
+# editor / OS
+.vscode
+.idea
+.DS_Store
