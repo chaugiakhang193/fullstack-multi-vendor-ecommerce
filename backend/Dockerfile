@@ -7,7 +7,10 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --include=dev
+# npm install (không phải npm ci) để reconcile lock: lock được sinh bởi npm 11,
+# còn image node:20 ship npm 10 -> npm ci nghiêm ngặt fail vì lệch resolve.
+# Đây cũng đúng cách Render build (npm install --include=dev).
+RUN npm install --include=dev
 
 COPY . .
 # nest build: rewrite alias @/ -> require tương đối và copy asset .hbs vào dist,
@@ -22,7 +25,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
