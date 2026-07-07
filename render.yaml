@@ -1,0 +1,88 @@
+# Render Blueprint (Infrastructure as Code) — Backend deploy-from-image.
+#
+# Render PULL prebuilt image từ GHCR (Public) thay vì
+# build-from-source. Start command đến TỪ IMAGE CMD
+# (`npm run migration:run:prod && node dist/main`) nên KHÔNG khai báo
+# `dockerCommand` ở đây — để image tự chạy CMD của nó.
+#
+# Cách áp dụng:
+#   1. Render Dashboard → xoá service source cũ (build-from-source).
+#   2. Blueprints → New Blueprint Instance → chọn repo này → Render đọc file này.
+#      (Đặt đúng `name` bên dưới = tên service cũ để giữ nguyên URL onrender.com.)
+#   3. Nhập giá trị cho các env đánh `sync: false` (secret — không nằm trong git).
+#
+# Lưu ý free tier: Render KHÔNG cache image → mỗi deploy/restart/wake-from-idle
+# sẽ pull lại image từ GHCR (image phải luôn Public + available). Cold start
+# chậm hơn build-from-source đôi chút. Cron ping /health 10p vẫn giữ để chống
+# spin-down sau 15 phút idle.
+services:
+  - type: web
+    name: fullstack-multi-vendor-ecommerce
+    runtime: image
+    image:
+      url: ghcr.io/chaugiakhang193/fullstack-multi-vendor-ecommerce-backend:latest
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    envVars:
+      # --- Không bí mật: khai báo value luôn -------------------------------
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://fullstack-multi-vendor-ecommerce.vercel.app
+      # --- Database (Supabase Session pooler, IPv4) ------------------------
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      # --- Auth / JWT ------------------------------------------------------
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_EXPIRATION
+        sync: false
+      - key: REFRESH_TOKEN_EXPIRATION
+        sync: false
+      # --- Mail ------------------------------------------------------------
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      # --- Cloudinary ------------------------------------------------------
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # --- Geocoding (Nominatim + fallback + LocationIQ) -------------------
+      - key: NOMINATIM_EMAIL
+        sync: false
+      - key: NOMINATIM_USER_AGENT
+        sync: false
+      - key: NOMINATIM_API_URL
+        sync: false
+      - key: FALLBACK_GEOCODING_PROVIDER
+        sync: false
+      - key: FALLBACK_GEOCODING_API_URL
+        sync: false
+      - key: FALLBACK_GEOCODING_API_KEY
+        sync: false
+      - key: LOCATIONIQ_API_KEY
+        sync: false
+      - key: LOCATIONIQ_AUTOCOMPLETE_URL
+        sync: false
+      # --- Google OAuth ----------------------------------------------------
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
