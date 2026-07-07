@@ -23,7 +23,9 @@ services:
       url: ghcr.io/chaugiakhang193/fullstack-multi-vendor-ecommerce-backend:latest
     plan: free
     region: singapore
-    healthCheckPath: /health
+    # App có global prefix `api/v1` (main.ts) → health thật ở /api/v1/health.
+    # Để /health (thiếu prefix) → Render probe 404 → deploy fail health check.
+    healthCheckPath: /api/v1/health
     envVars:
       # --- Không bí mật: khai báo value luôn -------------------------------
       - key: NODE_ENV
