@@ -26,6 +26,10 @@ jobs:
         run: npm ci
         working-directory: backend
 
+      - name: Run Backend Unit Tests
+        run: npm test
+        working-directory: backend
+
       - name: Install Frontend Dependencies
         run: npm ci
         working-directory: frontend
@@ -97,3 +101,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Đánh thức Render redeploy ngay sau khi image mới đã lên GHCR, tránh
+      # race để Render tự pull theo lịch (có thể vẫn kéo image cũ).
+      # Guard trong script (không dùng `if: env.*`): env cấp step không chắc
+      # đọc được trong `if` của chính nó → step có thể luôn bị skip. Kiểm tra
+      # rỗng ngay trong shell cho chắc, và xử lý luôn case secret chưa set.
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK chưa set — bỏ qua trigger deploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
