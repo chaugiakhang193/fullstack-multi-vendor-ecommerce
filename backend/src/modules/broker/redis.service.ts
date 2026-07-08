@@ -29,12 +29,13 @@ export class RedisConnectionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const client: RedisClientType = createClient({ url });
-    client.on('error', (err: Error) => {
-      this.logger.error(`[RedisConnectionService] Client lỗi: ${err.message}`);
-    });
-
     try {
+      const client: RedisClientType = createClient({ url });
+      client.on('error', (err: Error) => {
+        this.logger.error(
+          `[RedisConnectionService] Client lỗi: ${err.message}`,
+        );
+      });
       await client.connect();
       this.client = client;
       this.logger.log('[RedisConnectionService] Kết nối Redis thành công.');
