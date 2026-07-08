@@ -13,7 +13,7 @@ export class BankAccountInfoResponseDto {
   account_holder: string;
 }
 
-export class UserResponseDto {
+export class ShopOwnerResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
   id: string;
 
@@ -49,12 +49,12 @@ export class ShopResponseDto {
   id: string;
 
   @ApiProperty({
-    type: () => UserResponseDto,
+    type: () => ShopOwnerResponseDto,
     description: 'Thông tin chủ cửa hàng',
     required: false,
     nullable: true,
   })
-  seller?: UserResponseDto;
+  seller?: ShopOwnerResponseDto;
 
   @ApiProperty({ example: 'Cửa hàng quần áo ABC' })
   name: string;
