@@ -1,0 +1,39 @@
+name: CodeQL
+
+# SAST — GitHub quét code JS/TS tìm lỗ bảo mật (injection, XSS, path traversal,
+# hardcoded secret...). Kết quả hiện ở tab Security → Code scanning.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Quét định kỳ hàng tuần (thứ Hai 03:00 UTC) — bắt lỗ mới của advisory DB
+    # dù code không đổi.
+    - cron: '0 3 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze (JS/TS)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write # cần để upload kết quả lên tab Security
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          # javascript-typescript gộp cả JS + TS → quét backend + frontend.
+          languages: javascript-typescript
+          # bộ query bảo mật mở rộng (nhiều rule hơn default)
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'

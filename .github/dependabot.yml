@@ -1,0 +1,49 @@
+version: 2
+
+# Dependabot quét thư viện có lỗ hổng + đề xuất update. Update gộp theo group
+# để đỡ spam PR. Major version tách riêng để review kỹ trước khi merge.
+updates:
+  # Backend (NestJS) npm deps
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Frontend (Next.js) npm deps
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Root dev tooling (husky, lint-staged, prettier)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      root-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Phiên bản các GitHub Actions dùng trong workflow
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions-all:
+        patterns:
+          - '*'
