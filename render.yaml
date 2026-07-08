@@ -91,3 +91,8 @@ services:
       # --- Sentry error tracking --------------------------------------------
       - key: SENTRY_DSN
         sync: false
+      # --- Message broker / Redis (Tier 4 Notification microservice) -------
+      - key: RABBITMQ_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false

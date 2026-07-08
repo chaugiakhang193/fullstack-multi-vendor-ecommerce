@@ -22,11 +22,36 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - '5672:5672' # AMQP
+      - '15672:15672' # Management UI (guest/guest)
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: ./backend
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     # Secret app (JWT / Cloudinary / Mail / Google OAuth / Geocoding) lấy từ file
     # này; các biến DB + NODE_ENV bên dưới ghi đè để trỏ vào service `db`.
@@ -41,6 +66,8 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-ecommerce}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
     ports:
       - '8080:8080'
 

@@ -26,6 +26,7 @@ import { GeocodingModule } from '@/modules/geocoding/geocoding.module';
 import { StatisticsModule } from '@/modules/statistics/statistics.module';
 import { PayoutsModule } from '@/modules/payouts/payouts.module';
 import { ReturnsModule } from '@/modules/returns/returns.module';
+import { BrokerModule } from '@/modules/broker/broker.module';
 
 //entities
 import { User } from '@/modules/users/entities/user.entity';
@@ -116,6 +117,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     StatisticsModule,
     PayoutsModule,
     ReturnsModule,
+    BrokerModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
