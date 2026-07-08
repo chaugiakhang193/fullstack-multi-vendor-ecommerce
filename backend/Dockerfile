@@ -3,12 +3,13 @@
 # ---- Build stage --------------------------------------------------------
 # NODE_ENV=production khiến npm bỏ devDependencies, nhưng build cần nest CLI +
 # typescript nên phải cài đầy đủ (--include=dev) ở stage này.
-FROM node:20-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./
-# npm ci: cài đúng y hệt package-lock.json (tái lập được). Lock đã regen bằng
-# npm 10 khớp npm 10 của image node:20 nên `npm ci` không còn fail resolve.
+# npm ci: cài đúng y hệt package-lock.json (tái lập được). Dùng node:24 (bundle
+# sẵn npm 11) cho khớp máy dev + CI (đều npm 11) → lock npm-11 chạy `npm ci`
+# không lệch (trước dùng node:20/npm 10 lệch với lock npm 11 -> fail resolve).
 # --include=dev để có nest CLI + typescript cho bước build (NODE_ENV=production
 # mặc định bỏ devDeps).
 RUN npm ci --include=dev
@@ -21,7 +22,7 @@ RUN npm run build
 # ---- Runtime stage ------------------------------------------------------
 # Chỉ prod deps: nhỏ + nhanh. typeorm (CLI cho migration), dotenv (qua
 # @nestjs/config) và handlebars đều là dependency nên còn sau --omit=dev.
-FROM node:20-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
