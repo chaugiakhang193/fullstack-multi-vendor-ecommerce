@@ -42,7 +42,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/react-dropzone": "^4.2.2",
+    "@types/react-dropzone": "^5.1.0",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.4",
     "tailwindcss": "^4.2.4",
