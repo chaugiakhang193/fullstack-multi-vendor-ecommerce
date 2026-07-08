@@ -88,3 +88,6 @@ services:
         sync: false
       - key: GOOGLE_CALLBACK_URL
         sync: false
+      # --- Sentry error tracking --------------------------------------------
+      - key: SENTRY_DSN
+        sync: false

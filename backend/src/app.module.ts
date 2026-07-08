@@ -4,10 +4,11 @@ import { AppService } from '@/app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransformInterceptor } from '@/interceptor/transform.interceptor';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 //modules
 import { AuthModule } from '@/auth/auth.module';
@@ -65,6 +66,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -165,6 +167,10 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
