@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransformInterceptor } from '@/interceptor/transform.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LoggerModule } from 'nestjs-pino';
+import { randomUUID } from 'crypto';
 
 //modules
 import { AuthModule } from '@/auth/auth.module';
@@ -63,6 +65,35 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? {
+                target: 'pino-pretty',
+                options: { singleLine: true, colorize: true },
+              }
+            : undefined,
+        genReqId: (req, res) => {
+          const existing = req.headers['x-request-id'];
+          if (existing) return Array.isArray(existing) ? existing[0] : existing;
+          const id = randomUUID();
+          res.setHeader('X-Request-Id', id);
+          return id;
+        },
+        redact: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'res.headers["set-cookie"]',
+        ],
+        // Bỏ log request health-check: cron ping /api/v1/health mỗi 10 phút,
+        // log mọi request sẽ ngập dòng health vô nghĩa.
+        autoLogging: {
+          ignore: (req) => req.url === '/api/v1/health',
+        },
+      },
+    }),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
