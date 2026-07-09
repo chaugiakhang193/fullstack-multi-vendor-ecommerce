@@ -54,6 +54,12 @@ jobs:
         run: npm ci
         working-directory: notification-service
 
+      - name: Check Notification Contracts Drift
+        run: |
+          npm run gen-contracts
+          git diff --exit-code src/contracts/*.generated.ts
+        working-directory: notification-service
+
       - name: Build Notification Service
         run: npm run build
         working-directory: notification-service

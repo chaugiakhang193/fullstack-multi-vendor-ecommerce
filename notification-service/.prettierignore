@@ -1,0 +1,9 @@
+# Build output
+dist/
+node_modules/
+
+# Lockfile
+package-lock.json
+
+# Auto-generated — KHÔNG format (script sinh ra, prettier sẽ phá CI drift guard)
+src/contracts/*.generated.ts

@@ -8,3 +8,4 @@
 # Auto-generated — KHÔNG format (script sinh ra, prettier sẽ phá CI drift guard)
 frontend/src/constants/*.generated.ts
 frontend/src/lib/api/api-schema.d.ts
+notification-service/src/contracts/*.generated.ts
