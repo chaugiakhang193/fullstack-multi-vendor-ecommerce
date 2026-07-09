@@ -96,6 +96,13 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      # --- Notification relay (Phase 3) -----------------------------------
+      # RELAY_ENABLED = kill-switch (sync:false → bật/tắt shadow từ dashboard,
+      # blueprint không ghi đè). SERVICE_URL = non-secret, khai value luôn.
+      - key: NOTIFICATION_RELAY_ENABLED
+        sync: false
+      - key: NOTIFICATION_SERVICE_URL
+        value: https://fullstack-multi-vendor-ecommerce-8qen.onrender.com
 
   # Notification microservice — consumer riêng, scale-to-zero.
   # Free tier chỉ có web service (không có worker) nên NS phải là Nest HTTP
