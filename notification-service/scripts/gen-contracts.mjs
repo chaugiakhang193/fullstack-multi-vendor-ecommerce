@@ -6,10 +6,11 @@
  * context tách riêng) nên không thể re-export trực tiếp — generator COPY nội dung
  * text, viết lại import enum để trỏ vào file generated cùng thư mục.
  *
- * Sinh 3 file (chỉ type/interface/enum thuần, KHÔNG logic/DI):
- *   - contracts/enums.generated.ts            (NotificationType, OrderStatus, PayoutStatus, ReturnStatus)
- *   - contracts/outbox.constants.generated.ts  (OUTBOX_EVENT_TYPES + payload interfaces)
- *   - contracts/notification.data.generated.ts (NotificationData union)
+ * Sinh 4 file (chỉ type/interface/enum/entity thuần, KHÔNG logic/DI):
+ *   - contracts/enums.generated.ts              (NotificationType, OrderStatus, PayoutStatus, ReturnStatus)
+ *   - contracts/outbox.constants.generated.ts   (OUTBOX_EVENT_TYPES + payload interfaces)
+ *   - contracts/notification.data.generated.ts  (NotificationData union)
+ *   - contracts/notification.entity.generated.ts (Notification TypeORM entity, flatten cho NS)
  *
  * Chạy: npm run gen-contracts
  */
@@ -29,11 +30,16 @@ const BE_NOTIFICATION_DATA = resolve(
   __dirname,
   '../../backend/src/modules/engagements/notification.data.ts',
 );
+const BE_NOTIFICATION_ENTITY = resolve(
+  __dirname,
+  '../../backend/src/modules/engagements/entities/notification.entity.ts',
+);
 
 const OUT_DIR = resolve(__dirname, '../src/contracts');
 const OUT_ENUMS = resolve(OUT_DIR, 'enums.generated.ts');
 const OUT_OUTBOX_CONSTANTS = resolve(OUT_DIR, 'outbox.constants.generated.ts');
 const OUT_NOTIFICATION_DATA = resolve(OUT_DIR, 'notification.data.generated.ts');
+const OUT_NOTIFICATION_ENTITY = resolve(OUT_DIR, 'notification.entity.generated.ts');
 
 // Chỉ những enum mà payload/data contract thật sự dùng tới.
 const ALLOWLIST = ['NotificationType', 'OrderStatus', 'PayoutStatus', 'ReturnStatus'];
@@ -143,12 +149,69 @@ function genNotificationData() {
 }
 
 // ---------------------------------------------------------------------------
+// 4. notification.entity.generated.ts — NS ghi (write-only), không bao giờ
+//    load/join User → quan hệ `user: User` (ManyToOne) flatten thành cột thuần
+//    `user_id: string`. NS không có (và không cần) User entity. @Index tham
+//    chiếu property `user` bị DROP theo — index vốn no-op ở NS
+//    (synchronize:false, index thật do backend migration dựng).
+// ---------------------------------------------------------------------------
+function genNotificationEntity() {
+  const raw = readFileSync(BE_NOTIFICATION_ENTITY, 'utf8');
+
+  const out = raw
+    .replace(
+      "import { User } from '@/modules/users/entities/user.entity';\n",
+      '',
+    )
+    .replace("@Index(['user', 'is_read', 'created_at'])\n", '')
+    .replace(
+      `import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';`,
+      "import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';",
+    )
+    .replace(
+      `  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;`,
+      `  @Column({ name: 'user_id', type: 'uuid' })
+  user_id: string;`,
+    )
+    .replace("from '@/common/enums'", "from './enums.generated'")
+    .replace(
+      "from '@/modules/engagements/notification.data'",
+      "from './notification.data.generated'",
+    );
+
+  if (out === raw) {
+    throw new Error(
+      `[gen-contracts] notification.entity.ts không khớp pattern kỳ vọng — kiểm tra lại backend entity có đổi shape.`,
+    );
+  }
+
+  return (
+    banner(
+      'backend/src/modules/engagements/entities/notification.entity.ts',
+    ) +
+    '\n' +
+    out
+  );
+}
+
+// ---------------------------------------------------------------------------
 mkdirSync(OUT_DIR, { recursive: true });
 
 writeFileSync(OUT_ENUMS, genEnums(), 'utf8');
 writeFileSync(OUT_OUTBOX_CONSTANTS, genOutboxConstants(), 'utf8');
 writeFileSync(OUT_NOTIFICATION_DATA, genNotificationData(), 'utf8');
+writeFileSync(OUT_NOTIFICATION_ENTITY, genNotificationEntity(), 'utf8');
 
 console.log(
-  '[gen-contracts] Đã sinh 3 file contract -> notification-service/src/contracts/*.generated.ts',
+  '[gen-contracts] Đã sinh 4 file contract -> notification-service/src/contracts/*.generated.ts',
 );
