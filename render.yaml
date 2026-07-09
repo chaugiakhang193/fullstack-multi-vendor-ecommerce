@@ -121,6 +121,10 @@ services:
     # NS không có global prefix api/v1 -> health thẳng ở /health.
     healthCheckPath: /health
     envVars:
+      # NODE_ENV=production BẮT BUỘC: app.module bật SSL Supabase theo cờ này;
+      # thiếu → ssl:false → pooler từ chối → TypeORM throw → NS crash boot.
+      - key: NODE_ENV
+        value: production
       - key: RABBITMQ_URL
         sync: false
       - key: REDIS_URL
