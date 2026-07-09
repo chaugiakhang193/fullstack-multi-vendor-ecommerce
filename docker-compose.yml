@@ -71,5 +71,20 @@ services:
     ports:
       - '8080:8080'
 
+  notification:
+    build:
+      context: ./notification-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '3001:3001'
+
 volumes:
   pgdata:

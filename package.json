@@ -2,12 +2,12 @@
   "name": "fullstack-web-tooling",
   "version": "1.0.0",
   "private": true,
-  "description": "Repo-root dev tooling only (husky + lint-staged). App code lives in backend/ and frontend/.",
+  "description": "Repo-root dev tooling only (husky + lint-staged). App code lives in backend/, frontend/ and notification-service/.",
   "scripts": {
     "prepare": "husky"
   },
   "lint-staged": {
-    "{frontend,backend}/**/*.{ts,tsx,css}": "prettier --write"
+    "{frontend,backend,notification-service}/**/*.{ts,tsx,css}": "prettier --write"
   },
   "devDependencies": {
     "husky": "^9.1.7",

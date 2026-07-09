@@ -96,3 +96,21 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+
+  # Notification microservice — consumer riêng, scale-to-zero.
+  # Free tier chỉ có web service (không có worker) nên NS phải là Nest HTTP
+  # app tự listen PORT + có /health cho Render port-scan lẫn on-publish poke.
+  - type: web
+    name: fullstack-multi-vendor-ecommerce-notification
+    runtime: image
+    image:
+      url: ghcr.io/chaugiakhang193/fullstack-multi-vendor-ecommerce-notification:latest
+    plan: free
+    region: singapore
+    # NS không có global prefix api/v1 -> health thẳng ở /health.
+    healthCheckPath: /health
+    envVars:
+      - key: RABBITMQ_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false

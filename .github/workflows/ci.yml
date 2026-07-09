@@ -21,6 +21,7 @@ jobs:
           cache-dependency-path: |
             backend/package-lock.json
             frontend/package-lock.json
+            notification-service/package-lock.json
 
       - name: Install Backend Dependencies
         run: npm ci
@@ -48,6 +49,14 @@ jobs:
       - name: Build Backend
         run: npm run build
         working-directory: backend
+
+      - name: Install Notification Service Dependencies
+        run: npm ci
+        working-directory: notification-service
+
+      - name: Build Notification Service
+        run: npm run build
+        working-directory: notification-service
 
       - name: Build Frontend
         run: npm run build
@@ -116,3 +125,32 @@ jobs:
             exit 0
           fi
           curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+
+      - name: Extract notification service image metadata
+        id: meta-notification
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-notification
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Build and push notification service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./notification-service
+          push: true
+          tags: ${{ steps.meta-notification.outputs.tags }}
+          labels: ${{ steps.meta-notification.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger Render deploy (notification service)
+        env:
+          RENDER_DEPLOY_HOOK_NOTIFICATION: ${{ secrets.RENDER_DEPLOY_HOOK_NOTIFICATION }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_NOTIFICATION" ]; then
+            echo "RENDER_DEPLOY_HOOK_NOTIFICATION chưa set — bỏ qua trigger deploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_NOTIFICATION"
