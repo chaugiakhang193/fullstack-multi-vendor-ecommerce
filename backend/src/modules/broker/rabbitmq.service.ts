@@ -19,6 +19,12 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
   private connection: amqplib.ChannelModel | null = null;
 
+  // Confirm channel dùng lại cho relay publish. Lazy tạo, cache lại;
+  // channel chết (error/close) → null hoá để lần publish sau tạo mới.
+  private confirmChannel: amqplib.ConfirmChannel | null = null;
+  // Exchange đã assert trên channel hiện tại — assert idempotent 1 lần/đời channel.
+  private assertedExchanges = new Set<string>();
+
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
@@ -69,6 +75,87 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       await channel.close();
       return true;
     } catch {
+      return false;
+    }
+  }
+
+  // Lấy confirm channel dùng lại (lazy). Trả null nếu chưa có connection hoặc
+  // tạo channel lỗi — mọi lỗi nuốt gọn để non-fatal (không làm sập vòng relay).
+  private async getConfirmChannel(): Promise<amqplib.ConfirmChannel | null> {
+    if (!this.connection) {
+      return null;
+    }
+    if (this.confirmChannel) {
+      return this.confirmChannel;
+    }
+    try {
+      const channel = await this.connection.createConfirmChannel();
+      channel.on('error', (err: Error) => {
+        this.logger.error(
+          `[RabbitMqService] Confirm channel lỗi: ${err.message}`,
+        );
+        this.confirmChannel = null;
+        this.assertedExchanges.clear();
+      });
+      channel.on('close', () => {
+        this.confirmChannel = null;
+        this.assertedExchanges.clear();
+      });
+      this.confirmChannel = channel;
+      return channel;
+    } catch (error) {
+      this.logger.error(
+        `[RabbitMqService] Tạo confirm channel thất bại: ${(error as Error).message}`,
+      );
+      this.confirmChannel = null;
+      return null;
+    }
+  }
+
+  // Publish 1 message lên topic exchange và CHỜ publisher confirm (at-least-once).
+  // Trả true khi broker ACK; false nếu chưa connect / nack / bất kỳ lỗi nào.
+  // Non-fatal toàn bộ: mọi thứ có thể ném đồng bộ đều nằm trong try (bài học #258).
+  async publishWithConfirm(
+    exchange: string,
+    routingKey: string,
+    message: unknown,
+  ): Promise<boolean> {
+    try {
+      const channel = await this.getConfirmChannel();
+      if (!channel) {
+        return false;
+      }
+
+      // Publisher tự declare exchange (idempotent) — consumer declare queue+binding.
+      if (!this.assertedExchanges.has(exchange)) {
+        await channel.assertExchange(exchange, 'topic', { durable: true });
+        this.assertedExchanges.add(exchange);
+      }
+
+      const body = Buffer.from(JSON.stringify(message));
+      return await new Promise<boolean>((resolve) => {
+        channel.publish(
+          exchange,
+          routingKey,
+          body,
+          { persistent: true, contentType: 'application/json' },
+          (err) => {
+            if (err) {
+              const reason = err instanceof Error ? err.message : String(err);
+              this.logger.error(
+                `[RabbitMqService] Publish nack (rk=${routingKey}): ${reason}`,
+              );
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          },
+        );
+      });
+    } catch (error) {
+      this.logger.error(
+        `[RabbitMqService] publishWithConfirm lỗi (rk=${routingKey}): ${(error as Error).message}`,
+      );
       return false;
     }
   }

@@ -12,6 +12,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
 import { OutboxWorker } from './outbox.worker';
+import { OutboxRelay } from './outbox.relay';
 
 // Entities
 import { Shop } from '@/modules/shops/entities/shop.entity';
@@ -19,7 +20,7 @@ import { Notification } from '@/modules/engagements/entities/notification.entity
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 
-// Modules (Rule II.11 — truy cập entity module khác qua service của module đó)
+// Modules
 import { ProductsModule } from '@/modules/products/products.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { ShopsModule } from '@/modules/shops/shops.module';
@@ -52,6 +53,7 @@ import { MailModule } from '@/modules/mail/mail.module';
     NotificationGateway,
     NotificationService,
     OutboxWorker,
+    OutboxRelay,
   ],
   exports: [NotificationService, NotificationGateway],
 })

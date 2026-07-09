@@ -32,4 +32,14 @@ export class OutboxEvent {
 
   @Column({ type: 'timestamp', nullable: true })
   processed_at: Date | null;
+
+  // Trục relay— ĐỘC LẬP với `status` của OutboxWorker cũ.
+  // OutboxRelay đánh dấu đã publish lên RabbitMQ qua cột này; worker cũ không đụng.
+  // NULL = chưa relay. Set = now() CHỈ sau publisher confirm (at-least-once).
+  @Column({ type: 'timestamptz', nullable: true })
+  published_at: Date | null;
+
+  // Số lần relay thử publish event này (tăng mỗi lần mark thành công).
+  @Column({ type: 'int', default: 0 })
+  publish_attempts: number;
 }
