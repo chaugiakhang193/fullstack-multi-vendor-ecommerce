@@ -2,6 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 
 // TypeORM
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -89,7 +90,17 @@ export class OutboxWorker {
     private readonly shopsService: ShopsService,
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
+
+  // 'distributed' = NS đã sở hữu việc tạo notif (consumer riêng đọc cùng event
+  // qua relay). Worker cũ chỉ còn drain outbox → PROCESSED, KHÔNG tạo notif nữa
+  // (tránh double-notify). Producer/relay/outbox không đổi ở cả 2 mode.
+  private isDistributed(): boolean {
+    return (
+      this.configService.get<string>('NOTIFICATION_MODE') === 'distributed'
+    );
+  }
 
   @Interval(OUTBOX_POLL_INTERVAL_MS)
   async processOutbox(): Promise<void> {
@@ -128,34 +139,41 @@ export class OutboxWorker {
     await queryRunner.startTransaction();
 
     try {
-      if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CREATED) {
-        await this.handleOrderCreated(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CANCELLED) {
-        await this.handleOrderCancelled(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED) {
-        await this.handleOrderStatusUpdated(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_CREATED) {
-        await this.handleReviewCreated(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_REPLIED) {
-        await this.handleReviewReplied(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_CREATED) {
-        await this.handlePayoutCreated(event, queryRunner.manager);
-      } else if (
-        event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED
-      ) {
-        await this.handlePayoutStatusChanged(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.SHOP_REGISTERED) {
-        await this.handleShopRegistered(event, queryRunner.manager);
-      } else if (event.event_type === OUTBOX_EVENT_TYPES.RETURN_REQUESTED) {
-        await this.handleReturnRequested(event, queryRunner.manager);
-      } else if (
-        event.event_type === OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED
-      ) {
-        await this.handleReturnStatusChanged(event, queryRunner.manager);
-      } else {
-        throw new TypeError(
-          `Event type không được hỗ trợ: ${event.event_type}`,
-        );
+      // distributed: NS consumer (đọc cùng event qua relay) mới là nơi tạo
+      // notif. Worker cũ CHỈ drain outbox → PROCESSED, bỏ qua toàn bộ
+      // handleXxx (kể cả validate payload — NS tự validate phía nó).
+      if (!this.isDistributed()) {
+        if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CREATED) {
+          await this.handleOrderCreated(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.ORDER_CANCELLED) {
+          await this.handleOrderCancelled(event, queryRunner.manager);
+        } else if (
+          event.event_type === OUTBOX_EVENT_TYPES.ORDER_STATUS_UPDATED
+        ) {
+          await this.handleOrderStatusUpdated(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_CREATED) {
+          await this.handleReviewCreated(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.REVIEW_REPLIED) {
+          await this.handleReviewReplied(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_CREATED) {
+          await this.handlePayoutCreated(event, queryRunner.manager);
+        } else if (
+          event.event_type === OUTBOX_EVENT_TYPES.PAYOUT_STATUS_CHANGED
+        ) {
+          await this.handlePayoutStatusChanged(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.SHOP_REGISTERED) {
+          await this.handleShopRegistered(event, queryRunner.manager);
+        } else if (event.event_type === OUTBOX_EVENT_TYPES.RETURN_REQUESTED) {
+          await this.handleReturnRequested(event, queryRunner.manager);
+        } else if (
+          event.event_type === OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED
+        ) {
+          await this.handleReturnStatusChanged(event, queryRunner.manager);
+        } else {
+          throw new TypeError(
+            `Event type không được hỗ trợ: ${event.event_type}`,
+          );
+        }
       }
 
       const processedUpdate = {
@@ -687,7 +705,13 @@ export class OutboxWorker {
     manager: EntityManager,
   ): Promise<void> {
     const p = event.payload as ReturnStatusChangedOutboxPayload;
-    if (!p.returnId || !p.subOrderId || !p.orderNumber || !p.customerId || !p.status) {
+    if (
+      !p.returnId ||
+      !p.subOrderId ||
+      !p.orderNumber ||
+      !p.customerId ||
+      !p.status
+    ) {
       throw new TypeError(
         `return.status_changed payload thiếu field: ${JSON.stringify(p)}`,
       );
