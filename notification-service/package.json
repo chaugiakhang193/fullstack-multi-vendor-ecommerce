@@ -21,10 +21,12 @@
     "@nestjs/core": "^11.1.19",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.1",
+    "@socket.io/redis-emitter": "^5.1.0",
     "amqplib": "^2.0.1",
     "handlebars": "^4.7.9",
     "pg": "^8.20.0",
     "redis": "^5.12.1",
+    "redis4": "npm:redis@^4.7.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.28"

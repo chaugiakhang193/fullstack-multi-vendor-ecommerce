@@ -31,6 +31,13 @@ import {
 } from "@/notifications/notification.service";
 import { MailService } from "@/mail/mail.service";
 import { PoisonPayloadError } from "./poison-payload.error";
+import {
+  WS_EVENTS,
+  WsEmit,
+  toUser,
+  toShop,
+  toAdmins,
+} from "@/contracts/ws-events.generated";
 
 // Business handlers move từ backend/src/modules/engagements/outbox.worker.ts
 // (Phase 4, P4-6). Khác biệt so với bản backend:
@@ -48,12 +55,16 @@ export class NotificationConsumerService {
     private readonly mailService: MailService,
   ) {}
 
-  /** Dispatch theo eventType. Ném PoisonPayloadError nếu payload hỏng (không retry được). */
+  /**
+   * Dispatch theo eventType, trả về WsEmit[] để broker flush WS sau commit
+   * (P5-5 — return-value per-invocation, KHÔNG buffer nội bộ vì prefetch=10
+   * chạy song song trên singleton). Ném PoisonPayloadError nếu payload hỏng.
+   */
   async dispatch(
     eventType: string,
     payload: unknown,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     switch (eventType) {
       case OUTBOX_EVENT_TYPES.ORDER_CREATED:
         return this.handleOrderCreated(payload as OrderCreatedPayload, manager);
@@ -135,7 +146,7 @@ export class NotificationConsumerService {
   private async handleOrderCreated(
     payload: OrderCreatedPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.orderId ||
       !payload.orderNumber ||
@@ -161,6 +172,7 @@ export class NotificationConsumerService {
     };
     await this.notificationService.create(customerDto, manager);
 
+    const emits: WsEmit[] = [];
     for (const shopId of payload.shopIds) {
       const sellerId = await this.findShopSellerId(manager, shopId);
       if (!sellerId) {
@@ -182,7 +194,16 @@ export class NotificationConsumerService {
         },
       };
       await this.notificationService.create(sellerDto, manager);
+
+      emits.push(
+        toShop(shopId, WS_EVENTS.ORDER_NEW, {
+          orderId: payload.orderId,
+          orderNumber: payload.orderNumber,
+          message: `Đơn hàng mới ${payload.orderNumber}`,
+        }),
+      );
     }
+    return emits;
   }
 
   // ==========================================
@@ -191,7 +212,7 @@ export class NotificationConsumerService {
   private async handleOrderCancelled(
     payload: OrderCancelledPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.orderId ||
       !payload.orderNumber ||
@@ -222,7 +243,7 @@ export class NotificationConsumerService {
       this.logger.warn(
         `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ qua notification hủy đơn.`,
       );
-      return;
+      return [];
     }
 
     const sellerDto: CreateNotificationDto = {
@@ -237,6 +258,16 @@ export class NotificationConsumerService {
       },
     };
     await this.notificationService.create(sellerDto, manager);
+
+    return [
+      toShop(payload.shopId, WS_EVENTS.ORDER_STATUS_CHANGED, {
+        orderId: payload.orderId,
+        orderNumber: payload.orderNumber,
+        subOrderId: payload.subOrderId,
+        status: "cancelled",
+        message: `Đơn ${payload.orderNumber} có 1 shop bị hủy`,
+      }),
+    ];
   }
 
   // ==========================================
@@ -245,7 +276,7 @@ export class NotificationConsumerService {
   private async handleOrderStatusUpdated(
     payload: OrderStatusUpdatedPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.orderId ||
       !payload.orderNumber ||
@@ -271,6 +302,16 @@ export class NotificationConsumerService {
       },
     };
     await this.notificationService.create(dto, manager);
+
+    return [
+      toUser(payload.userId, WS_EVENTS.ORDER_STATUS_CHANGED, {
+        orderId: payload.orderId,
+        orderNumber: payload.orderNumber,
+        subOrderId: payload.subOrderId,
+        status: payload.newStatus,
+        message: `Đơn ${payload.orderNumber} cập nhật: ${payload.newStatus}`,
+      }),
+    ];
   }
 
   // ==========================================
@@ -279,7 +320,7 @@ export class NotificationConsumerService {
   private async handleReviewCreated(
     payload: ReviewCreatedPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.reviewId ||
       !payload.productId ||
@@ -296,7 +337,7 @@ export class NotificationConsumerService {
       this.logger.warn(
         `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ review notif.`,
       );
-      return;
+      return [];
     }
 
     await this.notificationService.create(
@@ -313,6 +354,16 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toShop(payload.shopId, WS_EVENTS.REVIEW_NEW, {
+        reviewId: payload.reviewId,
+        productId: payload.productId,
+        productName: payload.productName,
+        rating: payload.rating,
+        message: `Đánh giá mới cho "${payload.productName}"`,
+      }),
+    ];
   }
 
   // ==========================================
@@ -321,7 +372,7 @@ export class NotificationConsumerService {
   private async handleReviewReplied(
     payload: ReviewRepliedPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.reviewId ||
       !payload.productId ||
@@ -347,6 +398,15 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toUser(payload.customerId, WS_EVENTS.REVIEW_REPLIED, {
+        reviewId: payload.reviewId,
+        productId: payload.productId,
+        productName: payload.productName,
+        message: `Shop đã phản hồi đánh giá "${payload.productName}"`,
+      }),
+    ];
   }
 
   // ==========================================
@@ -355,7 +415,7 @@ export class NotificationConsumerService {
   private async handlePayoutCreated(
     payload: PayoutCreatedOutboxPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.payoutId ||
       !payload.shopId ||
@@ -383,6 +443,16 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toAdmins(WS_EVENTS.PAYOUT_CREATED, {
+        payoutId: payload.payoutId,
+        amount: payload.amount,
+        shopId: payload.shopId,
+        shopName: payload.shopName,
+        message: content,
+      }),
+    ];
   }
 
   // ==========================================
@@ -391,7 +461,7 @@ export class NotificationConsumerService {
   private async handleShopRegistered(
     payload: ShopRegisteredOutboxPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (!payload.shopId || !payload.shopName) {
       throw new PoisonPayloadError(
         `shop.registered payload thiếu field: ${JSON.stringify(payload)}`,
@@ -415,6 +485,14 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toAdmins(WS_EVENTS.SHOP_REGISTERED, {
+        shopId: payload.shopId,
+        shopName: payload.shopName,
+        message: content,
+      }),
+    ];
   }
 
   // ==========================================
@@ -423,7 +501,7 @@ export class NotificationConsumerService {
   private async handlePayoutStatusChanged(
     payload: PayoutStatusChangedOutboxPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (!payload.payoutId || !payload.sellerId || !payload.status) {
       throw new PoisonPayloadError(
         `payout.status_changed payload thiếu field: ${JSON.stringify(payload)}`,
@@ -461,6 +539,15 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toUser(payload.sellerId, WS_EVENTS.PAYOUT_STATUS_CHANGED, {
+        payoutId: payload.payoutId,
+        amount: payload.amount,
+        status: payload.status,
+        message: content,
+      }),
+    ];
   }
 
   // ==========================================
@@ -469,7 +556,7 @@ export class NotificationConsumerService {
   private async handleReturnRequested(
     payload: ReturnRequestedOutboxPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.returnId ||
       !payload.subOrderId ||
@@ -486,7 +573,7 @@ export class NotificationConsumerService {
       this.logger.warn(
         `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ return.requested.`,
       );
-      return;
+      return [];
     }
 
     await this.notificationService.create(
@@ -504,6 +591,15 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toShop(payload.shopId, WS_EVENTS.RETURN_REQUESTED, {
+        returnId: payload.returnId,
+        subOrderId: payload.subOrderId,
+        orderNumber: payload.orderNumber,
+        message: `Yêu cầu trả hàng mới cho đơn ${payload.orderNumber}`,
+      }),
+    ];
   }
 
   // ==========================================
@@ -512,7 +608,7 @@ export class NotificationConsumerService {
   private async handleReturnStatusChanged(
     payload: ReturnStatusChangedOutboxPayload,
     manager: EntityManager,
-  ): Promise<void> {
+  ): Promise<WsEmit[]> {
     if (
       !payload.returnId ||
       !payload.subOrderId ||
@@ -561,5 +657,15 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    return [
+      toUser(payload.customerId, WS_EVENTS.RETURN_STATUS_CHANGED, {
+        returnId: payload.returnId,
+        subOrderId: payload.subOrderId,
+        orderNumber: payload.orderNumber,
+        status: payload.status,
+        message: content,
+      }),
+    ];
   }
 }

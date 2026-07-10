@@ -18,6 +18,8 @@ import * as amqplib from "amqplib";
 import { ProcessedEvent } from "@/entities/processed-event.entity";
 import { NotificationConsumerService } from "@/consumer/notification-consumer.service";
 import { PoisonPayloadError } from "@/consumer/poison-payload.error";
+import { NotificationEmitterService } from "@/modules/broker/notification-emitter.service";
+import { WsEmit } from "@/contracts/ws-events.generated";
 
 // Topology — consumer declare queue + binding (publisher declare exchange).
 const EVENTS_EXCHANGE = "ecommerce.events";
@@ -65,6 +67,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     private readonly notificationConsumer: NotificationConsumerService,
+    private readonly notificationEmitter: NotificationEmitterService,
     @InjectRepository(ProcessedEvent)
     private readonly processedEventRepo: Repository<ProcessedEvent>,
   ) {}
@@ -216,13 +219,30 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      let emits: WsEmit[] = [];
       await this.dataSource.transaction(async (manager) => {
         await manager.insert(ProcessedEvent, { event_id: eventId });
-        await this.notificationConsumer.dispatch(eventType, payload, manager);
+        emits = await this.notificationConsumer.dispatch(
+          eventType,
+          payload,
+          manager,
+        );
       });
       this.logger.log(
         `[RabbitMqService] Event ${eventId} (${eventType}) → processed (distributed).`,
       );
+
+      // WS emit best-effort SAU commit, TRƯỚC ack (P5-5). Lỗi redis không được
+      // chặn ack — DB đã là source of truth, at-least-once do DB đảm bảo, KHÔNG
+      // retry message chỉ vì realtime lỗi (xem "Flush an toàn", plan §1d).
+      try {
+        this.notificationEmitter.flush(emits);
+      } catch (wsError) {
+        this.logger.error(
+          `[RabbitMqService] Event ${eventId} → WS flush lỗi (bỏ qua, không ảnh hưởng ack): ${(wsError as Error).message}`,
+        );
+      }
+
       channel.ack(msg);
     } catch (error) {
       await this.handleProcessingError(channel, msg, eventId, error as Error);
