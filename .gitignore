@@ -6,3 +6,6 @@ node_modules/
 
 # Markdown files
 *.md
+
+# Local env (docker-compose DB overrides) — chứa secret, không commit
+/.env
