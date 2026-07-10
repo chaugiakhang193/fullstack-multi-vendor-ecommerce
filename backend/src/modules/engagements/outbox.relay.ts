@@ -57,6 +57,9 @@ export class OutboxRelay {
   // Guard chống concurrent invocation trong cùng process (như OutboxWorker).
   private isProcessing = false;
 
+  // Guard chống poke chồng nhau — 1 poke có thể giữ kết nối ~60s (cold-start NS).
+  private isPoking = false;
+
   constructor(
     @InjectRepository(OutboxEvent)
     private readonly outboxRepo: Repository<OutboxEvent>,
@@ -175,12 +178,17 @@ export class OutboxRelay {
   // Fire-and-forget: message đã an toàn ở broker, poke chỉ giảm latency — mọi lỗi nuốt.
   private pokeNotificationService(): void {
     const url = this.configService.get<string>('NOTIFICATION_SERVICE_URL');
-    if (!url) {
+    // Bỏ qua nếu chưa khai URL hoặc đang có 1 poke chạy (NS thức 1 lần là đủ).
+    if (!url || this.isPoking) {
       return;
     }
 
+    // NS scale-to-zero: Render cold-start tới ~50s. PHẢI giữ kết nối đủ lâu để
+    // Render dựng xong NS — abort sớm (3s) khiến Render huỷ spin-up giữa chừng
+    // → NS không bao giờ thức → message nằm chờ mãi trong queue. Timeout 60s.
+    this.isPoking = true;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
     fetch(`${url}/health`, { signal: controller.signal })
       .then(() => {
         this.logger.debug('[OutboxRelay] Poke NS /health OK');
@@ -188,6 +196,9 @@ export class OutboxRelay {
       .catch((err: Error) => {
         this.logger.debug(`[OutboxRelay] Poke NS bỏ qua: ${err.message}`);
       })
-      .finally(() => clearTimeout(timeout));
+      .finally(() => {
+        clearTimeout(timeout);
+        this.isPoking = false;
+      });
   }
 }
