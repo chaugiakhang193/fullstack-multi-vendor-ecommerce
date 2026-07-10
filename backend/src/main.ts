@@ -10,12 +10,19 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { RedisIoAdapter } from './modules/broker/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
   app.useLogger(app.get(Logger));
+
+  // WS cross-process (Phase 5) — gắn ở CẢ 2 mode, tự fallback in-memory nếu
+  // thiếu/lỗi Redis (xem RedisIoAdapter).
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
   const configService = app.get(ConfigService);
   const frontendUrl = configService.get<string>('FRONTEND_URL');
 

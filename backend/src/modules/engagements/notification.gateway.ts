@@ -22,7 +22,13 @@ import { parse } from 'cookie';
 import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // WS contract
-import { WsEventName, WsPayloadMap } from './notification.events';
+import {
+  WsEventName,
+  WsPayloadMap,
+  userRoom as buildUserRoom,
+  shopRoom as buildShopRoom,
+  ADMINS_ROOM,
+} from './notification.events';
 
 // Không truyền port → Socket.io chia sẻ cùng HTTP port với REST API.
 // cors.credentials: true → browser gửi httpOnly cookie trong WebSocket handshake.
@@ -92,15 +98,15 @@ export class NotificationGateway
 
       // Join room cá nhân TRƯỚC khi query DB.
       // Đảm bảo user vẫn nhận thông báo cá nhân dù DB query bên dưới thất bại.
-      const userRoom = `room:${userId}`;
+      const userRoom = buildUserRoom(userId);
       client.join(userRoom);
       this.logger.log(
         `[Gateway] User ${userId} (${role}) kết nối. socketId=${client.id}`,
       );
 
       if (role.toUpperCase() === 'ADMIN') {
-        client.join('room:admins');
-        this.logger.log(`[Gateway] Admin ${userId} joined room:admins`);
+        client.join(ADMINS_ROOM);
+        this.logger.log(`[Gateway] Admin ${userId} joined ${ADMINS_ROOM}`);
       }
 
       // Seller → query DB lấy shopId để join room shop.
@@ -116,7 +122,7 @@ export class NotificationGateway
           });
 
           if (shop) {
-            const shopRoom = `room:${shop.id}`;
+            const shopRoom = buildShopRoom(shop.id);
             client.join(shopRoom);
             this.logger.log(
               `[Gateway] Seller ${userId} joined shop room:${shop.id}`,
@@ -161,8 +167,7 @@ export class NotificationGateway
     event: E,
     payload: WsPayloadMap[E],
   ): void {
-    const userRoom = `room:${userId}`;
-    this.server.to(userRoom).emit(event, payload);
+    this.server.to(buildUserRoom(userId)).emit(event, payload);
   }
 
   /**
@@ -174,8 +179,7 @@ export class NotificationGateway
     event: E,
     payload: WsPayloadMap[E],
   ): void {
-    const shopRoom = `room:${shopId}`;
-    this.server.to(shopRoom).emit(event, payload);
+    this.server.to(buildShopRoom(shopId)).emit(event, payload);
   }
 
   /** Gửi event đến TẤT CẢ admin online (room:admins). */
@@ -183,6 +187,6 @@ export class NotificationGateway
     event: E,
     payload: WsPayloadMap[E],
   ): void {
-    this.server.to('room:admins').emit(event, payload);
+    this.server.to(ADMINS_ROOM).emit(event, payload);
   }
 }

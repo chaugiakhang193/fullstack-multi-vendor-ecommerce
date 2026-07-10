@@ -101,3 +101,40 @@ export type WsPayloadMap = {
 };
 
 export type WsEventName = keyof WsPayloadMap;
+
+// Room builder — nguồn sự thật duy nhất cho tên room (gateway + NS emitter đều
+// dùng qua đây, tránh bẫy lệch room:${id} vs user:${id}).
+export const userRoom = (userId: string) => `room:${userId}`;
+export const shopRoom = (shopId: string) => `room:${shopId}`;
+export const ADMINS_ROOM = 'room:admins';
+
+// Descriptor mang qua boundary process (NS trả về, broker flush qua Redis
+// emitter). Union đã widened theo kind — tương quan event↔payload chỉ được
+// đảm bảo tại factory bên dưới, KHÔNG còn ở đây (xem TS gotcha trong plan §1d).
+export type WsEmit = {
+  [E in WsEventName]:
+    | { kind: 'user'; userId: string; event: E; payload: WsPayloadMap[E] }
+    | { kind: 'shop'; shopId: string; event: E; payload: WsPayloadMap[E] }
+    | { kind: 'admins'; event: E; payload: WsPayloadMap[E] };
+}[WsEventName];
+
+// Cast `as WsEmit` cần thiết ở đây: TS không tự distribute object literal
+// generic {event: E, payload: WsPayloadMap[E]} vào union đã widened — type-safety
+// thật sự nằm ở chữ ký hàm (payload PHẢI khớp WsPayloadMap[E]), cast chỉ gom lại
+// kết quả đã đúng thành 1 type mang qua boundary (xem TS gotcha, plan §1d).
+export const toUser = <E extends WsEventName>(
+  userId: string,
+  event: E,
+  payload: WsPayloadMap[E],
+): WsEmit => ({ kind: 'user', userId, event, payload }) as WsEmit;
+
+export const toShop = <E extends WsEventName>(
+  shopId: string,
+  event: E,
+  payload: WsPayloadMap[E],
+): WsEmit => ({ kind: 'shop', shopId, event, payload }) as WsEmit;
+
+export const toAdmins = <E extends WsEventName>(
+  event: E,
+  payload: WsPayloadMap[E],
+): WsEmit => ({ kind: 'admins', event, payload }) as WsEmit;
