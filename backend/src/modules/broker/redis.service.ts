@@ -36,12 +36,23 @@ export class RedisConnectionService implements OnModuleInit, OnModuleDestroy {
           `[RedisConnectionService] Client lỗi: ${err.message}`,
         );
       });
-      await client.connect();
+      // Fire-and-forget: KHÔNG await. connect() treo vòng reconnect khi Redis
+      // unreachable → chặn Nest bootstrap (onApplicationBootstrap + @Interval +
+      // consumer không chạy). Set client ngay; isConnected() kiểm client.isOpen.
       this.client = client;
-      this.logger.log('[RedisConnectionService] Kết nối Redis thành công.');
+      client
+        .connect()
+        .then(() =>
+          this.logger.log('[RedisConnectionService] Kết nối Redis thành công.'),
+        )
+        .catch((error: Error) =>
+          this.logger.error(
+            `[RedisConnectionService] Kết nối Redis thất bại: ${error.message}`,
+          ),
+        );
     } catch (error) {
       this.logger.error(
-        `[RedisConnectionService] Kết nối Redis thất bại: ${(error as Error).message}`,
+        `[RedisConnectionService] createClient lỗi: ${(error as Error).message}`,
       );
       this.client = null;
     }
