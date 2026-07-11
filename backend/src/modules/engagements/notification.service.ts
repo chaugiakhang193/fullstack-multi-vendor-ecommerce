@@ -11,6 +11,7 @@ import { Notification } from '@/modules/engagements/entities/notification.entity
 // Enums
 import { NotificationType } from '@/common/enums';
 import { NotificationData } from '@/modules/engagements/notification.data';
+import { NotificationCreatedPayload } from '@/modules/engagements/notification-inbound.events';
 
 // Pagination + DTO
 import { paginate } from '@/common/helpers/pagination.helper';
@@ -91,6 +92,32 @@ export class NotificationService {
       { is_read: true },
     );
     return { updated: result.affected ?? 0 };
+  }
+
+  // Upsert 1 row read model từ event NS (part_03). ON CONFLICT (id) DO NOTHING:
+  // dedup theo eventId đã chặn trùng, đây là lưới an toàn + BẢO VỆ is_read khỏi
+  // bị reset về false nếu redelivery. created_at lấy từ payload (giữ mốc gốc NS),
+  // KHÔNG dùng default now(). KHÔNG emit WS (NS lo).
+  async upsertProjection(
+    payload: NotificationCreatedPayload,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager
+      .createQueryBuilder()
+      .insert()
+      .into(Notification)
+      .values({
+        id: payload.id,
+        user: { id: payload.userId },
+        type: payload.type as NotificationType,
+        title: payload.title ?? undefined,
+        content: payload.content ?? undefined,
+        data: (payload.data as NotificationData) ?? null,
+        is_read: payload.isRead,
+        created_at: new Date(payload.createdAt),
+      })
+      .orIgnore()
+      .execute();
   }
 
   /** Tạo cùng một notification cho NHIỀU user (bulk). Dùng cho fan-out admin. */

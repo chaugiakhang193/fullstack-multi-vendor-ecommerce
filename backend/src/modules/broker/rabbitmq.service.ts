@@ -159,4 +159,55 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
+  // Đăng ký consumer generic trên topic exchange. Caller truyền handler (tự
+  // ack/nack). Non-fatal: chưa connect → warn + bỏ qua. Consumer declare
+  // queue+binding (publisher declare exchange, nhưng assert idempotent ở đây để
+  // consumer chạy trước publisher vẫn OK).
+  async consume(
+    opts: {
+      exchange: string;
+      queue: string;
+      patterns: string[];
+      prefetch?: number;
+    },
+    handler: (
+      msg: amqplib.ConsumeMessage,
+      channel: amqplib.Channel,
+    ) => Promise<void>,
+  ): Promise<void> {
+    if (!this.connection) {
+      this.logger.warn(
+        `[RabbitMqService] consume(${opts.queue}) bỏ qua — chưa connect.`,
+      );
+      return;
+    }
+    try {
+      const channel = await this.connection.createChannel();
+      await channel.prefetch(opts.prefetch ?? 10);
+      await channel.assertExchange(opts.exchange, 'topic', { durable: true });
+      await channel.assertQueue(opts.queue, { durable: true });
+      for (const pattern of opts.patterns) {
+        await channel.bindQueue(opts.queue, opts.exchange, pattern);
+      }
+      await channel.consume(opts.queue, (msg) => {
+        if (!msg) {
+          return;
+        }
+        handler(msg, channel).catch((err: Error) => {
+          this.logger.error(
+            `[RabbitMqService] consume(${opts.queue}) handler lỗi không bắt: ${err.message}`,
+          );
+          channel.ack(msg);
+        });
+      });
+      this.logger.log(
+        `[RabbitMqService] Consumer online — queue=${opts.queue}.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[RabbitMqService] consume(${opts.queue}) setup lỗi: ${(error as Error).message}`,
+      );
+    }
+  }
 }

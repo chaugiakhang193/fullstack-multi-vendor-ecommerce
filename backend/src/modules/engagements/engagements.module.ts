@@ -13,12 +13,14 @@ import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
 import { OutboxWorker } from './outbox.worker';
 import { OutboxRelay } from './outbox.relay';
+import { NotificationProjectionConsumer } from '@/modules/engagements/notification-projection.consumer';
 
 // Entities
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
+import { ProcessedEvent } from '@/modules/engagements/entities/processed-event.entity';
 
 // Modules
 import { ProductsModule } from '@/modules/products/products.module';
@@ -29,7 +31,13 @@ import { MailModule } from '@/modules/mail/mail.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Shop, Notification, OutboxEvent, Review]),
+    TypeOrmModule.forFeature([
+      Shop,
+      Notification,
+      OutboxEvent,
+      Review,
+      ProcessedEvent,
+    ]),
     ProductsModule,
     OrdersModule,
     ShopsModule,
@@ -54,6 +62,7 @@ import { MailModule } from '@/modules/mail/mail.module';
     NotificationService,
     OutboxWorker,
     OutboxRelay,
+    NotificationProjectionConsumer,
   ],
   exports: [NotificationService, NotificationGateway],
 })

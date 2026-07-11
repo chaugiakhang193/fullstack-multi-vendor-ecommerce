@@ -11,7 +11,7 @@ import { User } from '@/modules/users/entities/user.entity';
 import { NotificationType } from '@/common/enums';
 import { NotificationData } from '@/modules/engagements/notification.data';
 
-@Entity()
+@Entity('notification_read')
 @Index(['user', 'is_read', 'created_at'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')

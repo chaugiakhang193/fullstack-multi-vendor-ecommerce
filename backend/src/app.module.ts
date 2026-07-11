@@ -49,6 +49,7 @@ import { UserCoupon } from '@/modules/promotions/entities/user-coupon.entity';
 import { Payment } from '@/modules/payments/entities/payment.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
+import { ProcessedEvent } from '@/modules/engagements/entities/processed-event.entity';
 import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
 import { ReturnRequest } from '@/modules/returns/entities/return-request.entity';
 import { ReturnItem } from '@/modules/returns/entities/return-item.entity';
@@ -157,6 +158,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           MediaAsset,
           ReturnRequest,
           ReturnItem,
+          ProcessedEvent,
         ],
         synchronize: false,
         ssl:
