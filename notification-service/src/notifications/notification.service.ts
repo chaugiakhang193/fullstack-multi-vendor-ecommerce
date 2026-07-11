@@ -1,14 +1,14 @@
-// NestJS
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-
-// TypeORM
 import { EntityManager, Repository } from "typeorm";
-
-// Contracts (generated)
 import { Notification } from "@/contracts/notification.entity.generated";
 import { NotificationType } from "@/contracts/enums.generated";
 import { NotificationData } from "@/contracts/notification.data.generated";
+import { NotificationOutbox } from "@/entities/notification-outbox.entity";
+import {
+  NOTIFICATION_CREATED_EVENT,
+  NotificationCreatedPayload,
+} from "@/contracts/notification-outbound.events";
 
 export interface CreateNotificationDto {
   userId: string;
@@ -18,53 +18,89 @@ export interface CreateNotificationDto {
   data?: NotificationData;
 }
 
-// NS write-only: chỉ ghi bảng notifications (SHARED Supabase), KHÔNG WS
-// (WS = Phase 5, chưa có gateway ở NS). Nhận manager tuỳ chọn để consumer gộp
-// INSERT vào transaction dedupe — atomic thực sự (P4-4).
+// NS write-only. Mỗi create ghi thêm 1 row notification_outbox CÙNG manager →
+// zero dual-write (Phase 6, part_02). Relay publish notification.created từ outbox.
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
+    @InjectRepository(NotificationOutbox)
+    private readonly outboxRepo: Repository<NotificationOutbox>,
   ) {}
 
   async create(
     dto: CreateNotificationDto,
     manager?: EntityManager,
   ): Promise<Notification> {
-    const repo = manager
+    const notifRepo = manager
       ? manager.getRepository(Notification)
       : this.notificationRepo;
+    const outboxRepo = manager
+      ? manager.getRepository(NotificationOutbox)
+      : this.outboxRepo;
 
-    const notification = repo.create({
+    const notification = notifRepo.create({
       user_id: dto.userId,
       type: dto.type,
       title: dto.title,
       content: dto.content,
       data: dto.data ?? null,
+      is_read: false,
     });
-    return repo.save(notification);
+    const saved = await notifRepo.save(notification);
+
+    await outboxRepo.insert({
+      event_type: NOTIFICATION_CREATED_EVENT,
+      payload: this.toPayload(saved),
+    });
+    return saved;
   }
 
-  /** Tạo cùng một notification cho NHIỀU user (bulk). Dùng cho fan-out admin. */
   async createForUsers(
     userIds: string[],
     dto: Omit<CreateNotificationDto, "userId">,
     manager?: EntityManager,
   ): Promise<void> {
     if (userIds.length === 0) return;
-    const repo = manager
+    const notifRepo = manager
       ? manager.getRepository(Notification)
       : this.notificationRepo;
+    const outboxRepo = manager
+      ? manager.getRepository(NotificationOutbox)
+      : this.outboxRepo;
+
     const rows = userIds.map((userId) =>
-      repo.create({
+      notifRepo.create({
         user_id: userId,
         type: dto.type,
         title: dto.title,
         content: dto.content,
         data: dto.data ?? null,
+        is_read: false,
       }),
     );
-    await repo.save(rows);
+    const saved = await notifRepo.save(rows);
+
+    await outboxRepo.insert(
+      saved.map((n) => ({
+        event_type: NOTIFICATION_CREATED_EVENT,
+        payload: this.toPayload(n),
+      })),
+    );
+  }
+
+  // Snapshot đưa vào outbox.payload → part_03 upsert notification_read.
+  private toPayload(n: Notification): NotificationCreatedPayload {
+    return {
+      id: n.id,
+      userId: n.user_id,
+      type: n.type,
+      title: n.title ?? null,
+      content: n.content ?? null,
+      data: n.data ?? null,
+      isRead: n.is_read,
+      createdAt: n.created_at,
+    };
   }
 }

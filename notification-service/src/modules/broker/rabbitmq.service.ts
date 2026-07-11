@@ -62,6 +62,11 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
   private connection: amqplib.ChannelModel | null = null;
   private consumerChannel: amqplib.Channel | null = null;
+  // Confirm channel RIÊNG cho publish (relay). Lazy tạo, cache; null-hoá khi
+  // error/close để publish sau tạo mới.
+  private confirmChannel: amqplib.ConfirmChannel | null = null;
+  // Exchange đã assert trên confirm channel hiện tại (idempotent 1 lần/đời channel).
+  private assertedExchanges = new Set<string>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -97,6 +102,8 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn("[RabbitMqService] Connection đóng.");
         this.connection = null;
         this.consumerChannel = null;
+        this.confirmChannel = null;
+        this.assertedExchanges.clear();
       });
       this.logger.log("[RabbitMqService] Kết nối RabbitMQ thành công.");
 
@@ -313,9 +320,91 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     return xDeath.reduce((sum, entry) => sum + (entry.count ?? 0), 0);
   }
 
+  // Lazy confirm channel cho publish (relay). Cache; null-hoá khi error/close.
+  private async getConfirmChannel(): Promise<amqplib.ConfirmChannel | null> {
+    if (!this.connection) {
+      return null;
+    }
+    if (this.confirmChannel) {
+      return this.confirmChannel;
+    }
+    try {
+      const channel = await this.connection.createConfirmChannel();
+      channel.on("error", (err: Error) => {
+        this.logger.error(
+          `[RabbitMqService] Confirm channel lỗi: ${err.message}`,
+        );
+        this.confirmChannel = null;
+        this.assertedExchanges.clear();
+      });
+      channel.on("close", () => {
+        this.confirmChannel = null;
+        this.assertedExchanges.clear();
+      });
+      this.confirmChannel = channel;
+      return channel;
+    } catch (error) {
+      this.logger.error(
+        `[RabbitMqService] Tạo confirm channel thất bại: ${(error as Error).message}`,
+      );
+      this.confirmChannel = null;
+      return null;
+    }
+  }
+
+  // Publish 1 message lên topic exchange và CHỜ publisher confirm (at-least-once).
+  // Trả true khi broker ACK; false nếu chưa connect / nack / bất kỳ lỗi nào.
+  // Non-fatal toàn bộ (bài học 258). Publisher tự declare exchange idempotent.
+  async publishWithConfirm(
+    exchange: string,
+    routingKey: string,
+    message: unknown,
+  ): Promise<boolean> {
+    try {
+      const channel = await this.getConfirmChannel();
+      if (!channel) {
+        return false;
+      }
+
+      if (!this.assertedExchanges.has(exchange)) {
+        await channel.assertExchange(exchange, "topic", { durable: true });
+        this.assertedExchanges.add(exchange);
+      }
+
+      const body = Buffer.from(JSON.stringify(message));
+      return await new Promise<boolean>((resolve) => {
+        channel.publish(
+          exchange,
+          routingKey,
+          body,
+          { persistent: true, contentType: "application/json" },
+          (err) => {
+            if (err) {
+              const reason = err instanceof Error ? err.message : String(err);
+              this.logger.error(
+                `[RabbitMqService] Publish nack (rk=${routingKey}): ${reason}`,
+              );
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          },
+        );
+      });
+    } catch (error) {
+      this.logger.error(
+        `[RabbitMqService] publishWithConfirm lỗi (rk=${routingKey}): ${(error as Error).message}`,
+      );
+      return false;
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     if (this.consumerChannel) {
       await this.consumerChannel.close().catch(() => undefined);
+    }
+    if (this.confirmChannel) {
+      await this.confirmChannel.close().catch(() => undefined);
     }
     if (this.connection) {
       await this.connection.close().catch(() => undefined);
