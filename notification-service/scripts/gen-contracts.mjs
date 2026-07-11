@@ -185,6 +185,11 @@ function genNotificationEntity() {
   const raw = readFileSync(BE_NOTIFICATION_ENTITY, "utf8");
 
   const out = raw
+    // CQRS (Phase 6): backend entity là READ model → @Entity('notification_read').
+    // NS là WRITE model, bảng luôn tên 'notification' (mặc định theo class) →
+    // strip tên bảng về @Entity(). Regex nuốt mọi tên để rename backend sau này
+    // không làm NS trỏ nhầm bảng.
+    .replace(/@Entity\('[^']*'\)/, "@Entity()")
     .replace(
       "import { User } from '@/modules/users/entities/user.entity';\n",
       "",
