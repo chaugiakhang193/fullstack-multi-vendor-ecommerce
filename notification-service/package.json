@@ -12,7 +12,12 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "node dist/main",
+    "typeorm": "cross-env TS_NODE_PROJECT=tsconfig.migrations.json ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:generate": "npm run typeorm migration:generate -- -d src/database/data-source.ts",
+    "migration:run": "npm run typeorm migration:run -- -d src/database/data-source.ts",
+    "migration:run:prod": "typeorm migration:run -d dist/database/data-source.js",
+    "migration:revert": "npm run typeorm migration:revert -- -d src/database/data-source.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.3.4",
@@ -35,6 +40,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@types/node": "^24.0.0",
+    "cross-env": "^7.0.3",
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.2",

@@ -11,9 +11,9 @@ import { ProcessedEvent } from "@/entities/processed-event.entity";
       isGlobal: true,
       envFilePath: ".env",
     }),
-    // SHARED Supabase — CÙNG DB backend (Phase 4, P4-3). synchronize:false vì
-    // schema (bảng notification + processed_events) do backend migration dựng;
-    // NS không có migration runner.
+    // OWN Supabase #2 — DB RIÊNG của Notification-Service (Phase 6, source of
+    // truth). Schema quản bằng migration runner của NS (src/database). Bell ở
+    // monolith đọc read model riêng (projection notification_read, part_03).
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
