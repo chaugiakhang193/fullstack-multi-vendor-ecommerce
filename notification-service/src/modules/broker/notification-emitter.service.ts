@@ -53,14 +53,26 @@ export class NotificationEmitterService
           `[NotificationEmitterService] client lỗi: ${err.message}`,
         ),
       );
-      await client.connect();
+      // Fire-and-forget: KHÔNG await (xem RedisConnectionService). connect() treo
+      // vòng reconnect khi Redis chưa tới được → chặn Nest bootstrap. Emitter tạo
+      // ngay; redis-emitter queue publish tới khi nối xong. Redis down = WS emit
+      // best-effort trượt (flush đã bọc try/catch), KHÔNG chặn boot.
       this.emitter = new Emitter(client);
-      this.logger.log(
-        "[NotificationEmitterService] Kết nối Redis thành công — WS emit bật.",
-      );
+      client
+        .connect()
+        .then(() =>
+          this.logger.log(
+            "[NotificationEmitterService] Kết nối Redis thành công — WS emit bật.",
+          ),
+        )
+        .catch((error: Error) =>
+          this.logger.error(
+            `[NotificationEmitterService] Kết nối Redis thất bại, WS emit trượt: ${error.message}`,
+          ),
+        );
     } catch (error) {
       this.logger.error(
-        `[NotificationEmitterService] Kết nối Redis thất bại, WS emit no-op: ${(error as Error).message}`,
+        `[NotificationEmitterService] createClient lỗi, WS emit no-op: ${(error as Error).message}`,
       );
       this.emitter = null;
     }
