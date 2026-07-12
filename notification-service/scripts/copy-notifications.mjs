@@ -12,6 +12,10 @@ const { Client } = pg;
 const SOURCE_URL = process.env.SOURCE_DATABASE_URL;
 const TARGET_URL = process.env.TARGET_DATABASE_URL;
 
+// Tên bảng NGUỒN (prod shared đã rename thành notification_read ở Phase 6 part_03).
+// Đích luôn là 'notification' (write model DB#2). Override qua SOURCE_TABLE nếu cần.
+const SOURCE_TABLE = process.env.SOURCE_TABLE || "notification_read";
+
 if (!SOURCE_URL || !TARGET_URL) {
   console.error("Thiếu SOURCE_DATABASE_URL hoặc TARGET_DATABASE_URL trong .env");
   process.exit(1);
@@ -32,7 +36,7 @@ async function main() {
 
   try {
     const { rows: countRows } = await src.query(
-      `SELECT count(*)::int AS n FROM notification`,
+      `SELECT count(*)::int AS n FROM ${SOURCE_TABLE}`,
     );
     const total = countRows[0].n;
     console.log(`[copy] Nguồn có ${total} notification. Bắt đầu copy...`);
@@ -42,7 +46,7 @@ async function main() {
     while (offset < total) {
       const { rows } = await src.query(
         `SELECT id, user_id, type, title, content, data, is_read, created_at
-         FROM notification
+         FROM ${SOURCE_TABLE}
          ORDER BY created_at ASC
          LIMIT $1 OFFSET $2`,
         [BATCH, offset],
