@@ -25,4 +25,6 @@ COPY --from=builder /app/dist ./dist
 USER node
 EXPOSE 3001
 
-CMD ["node", "dist/main"]
+# Dựng schema DB#2 (CreateNotificationServiceSchema + CreateNotificationOutboxTable) từ DB trống
+# rồi khởi động app — self-migrating y hệt backend. Idempotent: migration đã chạy thì typeorm skip.
+CMD ["sh", "-c", "npm run migration:run:prod && node dist/main"]

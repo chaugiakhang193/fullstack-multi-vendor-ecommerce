@@ -1,0 +1,25 @@
+node_modules
+dist
+# tsc incremental cache — NS để ở root (không trong dist như backend). PHẢI loại,
+# nếu không stale cache bị COPY vào image → nest build emit rỗng → thiếu dist/database/data-source.js.
+*.tsbuildinfo
+.git
+.gitignore
+Dockerfile
+.dockerignore
+
+# env / secrets — không đưa vào image
+.env
+.env.*
+!.env.example
+
+# logs & temp
+*.log
+npm-debug.log*
+.temp
+.tmp
+
+# editor / OS
+.vscode
+.idea
+.DS_Store

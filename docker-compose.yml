@@ -1,11 +1,21 @@
-# Full stack local: `docker compose up` -> Postgres + Backend.
-# Backend build từ backend/Dockerfile; migration:run:prod dựng schema từ DB trống
-# (InitialSchema) rồi khởi động app. FE chạy riêng bằng `npm run dev` (trỏ
-# NEXT_PUBLIC_API_URL vào http://localhost:8080/api/v1).
+# Full-stack DISTRIBUTED local: `docker compose up` → 6 service dựng trọn kiến trúc
+# Tier 4 (database-per-service + message broker + WS cross-process) trên máy trống.
 #
-# Biến DB lấy từ .env (xem .env.docker.example), có default để chạy ngay không cần .env.
+#   db          Postgres DB#1 — monolith backend (outbox_event, notification_read, processed_events)
+#   notif-db    Postgres DB#2 — notification-service (notification = source of truth, processed_events,
+#               notification_outbox)
+#   rabbitmq    Message broker + Management UI (http://localhost:15672 — guest/guest)
+#   redis       Pub/sub cho WebSocket cross-process (socket.io redis-adapter/emitter)
+#   backend     NestJS monolith — producer outbox + WS server (redis-adapter) + projection consumer
+#   notification NestJS microservice — consumer notifications.q + notif source-of-truth + WS emitter
+#
+# Cả 2 service self-migrate (migration:run:prod trong CMD) nên DB rỗng được dựng schema tự động.
+# FE chạy riêng: `cd frontend && npm run dev` (trỏ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1).
+#
+# Biến DB lấy từ .env.docker (xem .env.docker.example), có default để chạy ngay không cần file .env.
 
 services:
+  # ---- DB#1: monolith ------------------------------------------------------
   db:
     image: postgres:16-alpine
     environment:
@@ -22,6 +32,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # ---- DB#2: notification-service (database-per-service) -------------------
+  notif-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ecommerce}
+    ports:
+      - '5433:5432' # host 5433 để không đụng DB#1 (5432)
+    volumes:
+      - notifpgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ecommerce}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- Message broker ------------------------------------------------------
   rabbitmq:
     image: rabbitmq:4-management-alpine
     ports:
@@ -33,6 +61,7 @@ services:
       timeout: 5s
       retries: 10
 
+  # ---- Redis (WS cross-process) -------------------------------------------
   redis:
     image: redis:7-alpine
     ports:
@@ -43,6 +72,7 @@ services:
       timeout: 5s
       retries: 10
 
+  # ---- Monolith backend ----------------------------------------------------
   backend:
     build:
       context: ./backend
@@ -54,9 +84,13 @@ services:
       redis:
         condition: service_healthy
     # Secret app (JWT / Cloudinary / Mail / Google OAuth / Geocoding) lấy từ file
-    # này; các biến DB + NODE_ENV bên dưới ghi đè để trỏ vào service `db`.
+    # này; các biến hạ tầng bên dưới ghi đè để trỏ vào service nội bộ.
+    # required:false → thiếu backend/.env KHÔNG làm compose fail lúc parse (cần
+    # Compose >= v2.24). Nhưng LƯU Ý: demo notif cần đăng nhập → cần JWT secret
+    # thật trong backend/.env, nên thực tế vẫn phải tạo file này (xem Bước 2).
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
     environment:
       # NODE_ENV=development => code tắt SSL Postgres (Postgres local không có SSL).
       NODE_ENV: development
@@ -68,23 +102,42 @@ services:
       DB_NAME: ${DB_NAME:-ecommerce}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_URL: redis://redis:6379
+      # Bật relay (đẩy outbox_event lên RabbitMQ) — bắt buộc cho distributed.
+      NOTIFICATION_RELAY_ENABLED: 'true'
+      NOTIFICATION_SERVICE_URL: http://notification:3001
+      # (tạm — task_0712_part_03 sẽ gỡ khi bỏ feature flag)
+      NOTIFICATION_MODE: distributed
     ports:
       - '8080:8080'
 
+  # ---- Notification microservice ------------------------------------------
   notification:
     build:
       context: ./notification-service
     depends_on:
+      notif-db:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      NODE_ENV: development
       PORT: 3001
+      DB_HOST: notif-db
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-ecommerce}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       REDIS_URL: redis://redis:6379
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # (tạm — task_0712_part_03 sẽ gỡ khi bỏ feature flag)
+      NOTIFICATION_MODE: distributed
     ports:
       - '3001:3001'
 
 volumes:
   pgdata:
+  notifpgdata:
