@@ -12,6 +12,7 @@ import { ReturnItem } from '@/modules/returns/entities/return-item.entity';
 // thay vì inject repo chéo module. Một chiều returns → orders nên không tạo circular.
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { ProductsModule } from '@/modules/products/products.module';
+import { ShopsModule } from '@/modules/shops/shops.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProductsModule } from '@/modules/products/products.module';
     TypeOrmModule.forFeature([ReturnRequest, ReturnItem]),
     OrdersModule,
     ProductsModule, // ProductStockService để restock item-level khi RECEIVED
+    ShopsModule, // ShopsService.getSellerIdsByShopIds để enrich outbox payload
   ],
   controllers: [ReturnsController, SellerReturnsController],
   providers: [ReturnsService],

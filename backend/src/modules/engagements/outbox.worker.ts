@@ -9,7 +9,6 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 
 // Entities
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
-import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // Enums & Constants
 import {
@@ -46,8 +45,6 @@ import {
   ReviewNewWsPayload,
   ReviewRepliedWsPayload,
 } from './notification.events';
-import { ShopsService } from '@/modules/shops/shops.service';
-import { UsersService } from '@/modules/users/users.service';
 import { MailService } from '@/modules/mail/mail.service';
 
 // Tham số tuning của OutboxWorker. Để module-level const (không class field) vì
@@ -81,14 +78,9 @@ export class OutboxWorker {
     @InjectRepository(OutboxEvent)
     private readonly outboxRepo: Repository<OutboxEvent>,
 
-    @InjectRepository(Shop)
-    private readonly shopRepo: Repository<Shop>,
-
     private readonly notificationGateway: NotificationGateway,
     private readonly notificationService: NotificationService,
     private readonly dataSource: DataSource,
-    private readonly shopsService: ShopsService,
-    private readonly usersService: UsersService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {}
@@ -226,7 +218,7 @@ export class OutboxWorker {
     if (
       !payload.orderId ||
       !payload.orderNumber ||
-      !Array.isArray(payload.shopIds) ||
+      !Array.isArray(payload.shops) ||
       !payload.userId
     ) {
       throw new TypeError(
@@ -250,24 +242,17 @@ export class OutboxWorker {
     };
     await this.notificationService.create(customerNotificationDto, manager);
 
-    // Lưu notification + phát WebSocket cho từng Seller.
-    for (const shopId of payload.shopIds) {
-      const findShopOptions = {
-        where: { id: shopId },
-        relations: ['seller'],
-        select: { id: true, seller: { id: true } },
-      };
-      const shop = await this.shopRepo.findOne(findShopOptions);
-
-      if (!shop) {
+    // Lưu notification + phát WebSocket cho từng Seller. sellerId enrich sẵn ở payload.
+    for (const { shopId, sellerId } of payload.shops) {
+      if (!sellerId) {
         this.logger.warn(
-          `[OutboxWorker] Shop ${shopId} không tồn tại — bỏ qua notification.`,
+          `[OutboxWorker] Shop ${shopId} không có seller trong payload — bỏ qua notification.`,
         );
         continue;
       }
 
       const sellerNotificationDto: CreateNotificationDto = {
-        userId: shop.seller.id,
+        userId: sellerId,
         type: NotificationType.ORDER_CREATED,
         title: 'Đơn hàng mới',
         content: `Bạn vừa nhận được đơn hàng mới ${payload.orderNumber}.`,
@@ -329,23 +314,16 @@ export class OutboxWorker {
     };
     await this.notificationService.create(customerNotificationDto, manager);
 
-    // Thông báo + WebSocket cho Seller của shop bị hủy.
-    const findShopOptions = {
-      where: { id: payload.shopId },
-      relations: ['seller'],
-      select: { id: true, seller: { id: true } },
-    };
-    const shop = await this.shopRepo.findOne(findShopOptions);
-
-    if (!shop) {
+    // Thông báo + WebSocket cho Seller của shop bị hủy. sellerId enrich sẵn ở payload.
+    if (!payload.sellerId) {
       this.logger.warn(
-        `[OutboxWorker] Shop ${payload.shopId} không tồn tại — bỏ qua notification hủy đơn.`,
+        `[OutboxWorker] Shop ${payload.shopId} không có seller trong payload — bỏ qua notification hủy đơn.`,
       );
       return;
     }
 
     const sellerNotificationDto: CreateNotificationDto = {
-      userId: shop.seller.id,
+      userId: payload.sellerId,
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: 'Đơn hàng bị hủy',
       content: `Khách đã hủy 1 đơn hàng con thuộc đơn ${payload.orderNumber}.`,
@@ -434,25 +412,17 @@ export class OutboxWorker {
       );
     }
 
-    // Dùng ShopsService thay vì query shopRepo trực tiếp cho review logic
-    const shop = await this.shopsService.getShopWithSeller(p.shopId);
-    if (!shop) {
+    // sellerId enrich sẵn ở payload (NS/worker không tra shop).
+    if (!p.sellerId) {
       this.logger.warn(
-        `[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ review notif.`,
-      );
-      return;
-    }
-
-    if (!shop.seller || !shop.seller.id) {
-      this.logger.warn(
-        `[OutboxWorker] Shop ${p.shopId} không có seller liên kết — bỏ review notif.`,
+        `[OutboxWorker] Shop ${p.shopId} không có seller trong payload — bỏ review notif.`,
       );
       return;
     }
 
     await this.notificationService.create(
       {
-        userId: shop.seller.id,
+        userId: p.sellerId,
         type: NotificationType.REVIEW_CREATED,
         title: 'Đánh giá mới',
         content: `Sản phẩm "${p.productName}" vừa nhận đánh giá ${p.rating}★.`,
@@ -527,16 +497,16 @@ export class OutboxWorker {
       !p.payoutId ||
       !p.shopId ||
       !p.shopName ||
-      typeof p.amount !== 'number'
+      typeof p.amount !== 'number' ||
+      !Array.isArray(p.adminIds)
     ) {
       throw new TypeError(
         `payout.created payload thiếu field: ${JSON.stringify(p)}`,
       );
     }
-    const adminIds = await this.usersService.findAdminIds();
     const content = `Cửa hàng ${p.shopName} vừa gửi yêu cầu rút ${p.amount.toLocaleString('vi-VN')}đ.`;
     await this.notificationService.createForUsers(
-      adminIds,
+      p.adminIds,
       {
         type: NotificationType.PAYOUT_CREATED,
         title: 'Yêu cầu rút tiền mới',
@@ -565,17 +535,16 @@ export class OutboxWorker {
     manager: EntityManager,
   ): Promise<void> {
     const p = event.payload as ShopRegisteredOutboxPayload;
-    if (!p.shopId || !p.shopName) {
+    if (!p.shopId || !p.shopName || !Array.isArray(p.adminIds)) {
       throw new TypeError(
         `shop.registered payload thiếu field: ${JSON.stringify(p)}`,
       );
     }
-    const adminIds = await this.usersService.findAdminIds();
     const content = p.isReapply
       ? `Cửa hàng "${p.shopName}" vừa nộp lại hồ sơ, đang chờ duyệt.`
       : `Cửa hàng "${p.shopName}" vừa đăng ký, đang chờ duyệt.`;
     await this.notificationService.createForUsers(
-      adminIds,
+      p.adminIds,
       {
         type: NotificationType.SHOP_REGISTERED,
         title: p.isReapply ? 'Shop nộp lại hồ sơ' : 'Shop mới chờ duyệt',
@@ -663,21 +632,17 @@ export class OutboxWorker {
       );
     }
 
-    const shop = await this.shopRepo.findOne({
-      where: { id: p.shopId },
-      relations: ['seller'],
-      select: { id: true, seller: { id: true } },
-    });
-    if (!shop) {
+    // sellerId enrich sẵn ở payload (worker không tra shop).
+    if (!p.sellerId) {
       this.logger.warn(
-        `[OutboxWorker] Shop ${p.shopId} không tồn tại — bỏ return.requested.`,
+        `[OutboxWorker] Shop ${p.shopId} không có seller trong payload — bỏ return.requested.`,
       );
       return;
     }
 
     await this.notificationService.create(
       {
-        userId: shop.seller.id,
+        userId: p.sellerId,
         type: NotificationType.RETURN_REQUESTED,
         title: 'Yêu cầu trả hàng mới',
         content: `Khách vừa gửi yêu cầu trả hàng cho đơn ${p.orderNumber}.`,

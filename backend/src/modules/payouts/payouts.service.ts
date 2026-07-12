@@ -11,6 +11,7 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { User } from '@/modules/users/entities/user.entity';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ShopsService } from '@/modules/shops/shops.service';
+import { UsersService } from '@/modules/users/users.service';
 import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 import { OutboxEventStatus, PayoutStatus } from '@/common/enums';
 import {
@@ -36,6 +37,7 @@ export class PayoutsService {
     private readonly payoutRepo: Repository<Payout>,
     private readonly ordersService: OrdersService,
     private readonly shopsService: ShopsService,
+    private readonly usersService: UsersService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -120,11 +122,13 @@ export class PayoutsService {
       const payout = queryRunner.manager.create(Payout, createOptions);
       const savedPayout = await queryRunner.manager.save(Payout, payout);
 
+      const payoutAdminIds = await this.usersService.findAdminIds();
       const payoutCreatedPayload: PayoutCreatedOutboxPayload = {
         payoutId: savedPayout.id,
         amount: Number(savedPayout.amount),
         shopId: shop.id,
         shopName: shop.name,
+        adminIds: payoutAdminIds,
       };
       const payoutCreatedEvent = queryRunner.manager.create(OutboxEvent, {
         event_type: OUTBOX_EVENT_TYPES.PAYOUT_CREATED,

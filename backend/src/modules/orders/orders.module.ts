@@ -24,6 +24,7 @@ import { PromotionsModule } from '@/modules/promotions/promotions.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { CartsModule } from '@/modules/carts/carts.module';
 import { PaymentsModule } from '@/modules/payments/payments.module';
+import { ShopsModule } from '@/modules/shops/shops.module';
 
 // Calculators
 import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping.calculator';
@@ -40,6 +41,7 @@ import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping
     ProductsModule,
     PromotionsModule,
     UsersModule,
+    ShopsModule,
     CartsModule,
     PaymentsModule,
   ],

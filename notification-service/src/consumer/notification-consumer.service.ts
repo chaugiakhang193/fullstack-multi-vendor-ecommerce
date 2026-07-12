@@ -41,11 +41,10 @@ import {
 
 // Business handlers move từ backend/src/modules/engagements/outbox.worker.ts
 // (Phase 4, P4-6). Khác biệt so với bản backend:
-//   - KHÔNG gọi WS gateway (Phase 5 mới có gateway ở NS).
-//   - Shop→seller / admin ids tra bằng raw SQL qua EntityManager thay vì
-//     ShopsService/UsersService — NS chỉ sở hữu bảng notifications, không có
-//     Shop/User entity (tương tự lý do flatten Notification.user_id ở P4-2:
-//     NS không cần toàn bộ entity graph, chỉ cần đọc đúng 1-2 cột FK).
+//   - KHÔNG gọi WS gateway trực tiếp — trả WsEmit[] để broker flush sau commit (P5-5).
+//   - sellerId/adminIds đọc THẲNG từ payload (đã enrich ở producer backend).
+//     NS sống trên DB#2 (own DB) không có bảng shop/user nên tuyệt đối không tra
+//     ngoài payload (tương tự lý do flatten Notification.user_id ở P4-2).
 @Injectable()
 export class NotificationConsumerService {
   private readonly logger = new Logger(NotificationConsumerService.name);
@@ -120,26 +119,6 @@ export class NotificationConsumerService {
     }
   }
 
-  /** Tra seller_id của 1 shop bằng raw SQL (NS không có Shop entity). */
-  private async findShopSellerId(
-    manager: EntityManager,
-    shopId: string,
-  ): Promise<string | null> {
-    const rows = await manager.query<{ seller_id: string }[]>(
-      "SELECT seller_id FROM shop WHERE id = $1",
-      [shopId],
-    );
-    return rows[0]?.seller_id ?? null;
-  }
-
-  /** Tra id các user role=admin bằng raw SQL (NS không có User entity). */
-  private async findAdminIds(manager: EntityManager): Promise<string[]> {
-    const rows = await manager.query<{ id: string }[]>(
-      `SELECT id FROM "user" WHERE role = 'admin'`,
-    );
-    return rows.map((r) => r.id);
-  }
-
   // ==========================================
   // HANDLER: order.created
   // ==========================================
@@ -150,7 +129,7 @@ export class NotificationConsumerService {
     if (
       !payload.orderId ||
       !payload.orderNumber ||
-      !Array.isArray(payload.shopIds) ||
+      !Array.isArray(payload.shops) ||
       !payload.userId
     ) {
       throw new PoisonPayloadError(
@@ -173,11 +152,10 @@ export class NotificationConsumerService {
     await this.notificationService.create(customerDto, manager);
 
     const emits: WsEmit[] = [];
-    for (const shopId of payload.shopIds) {
-      const sellerId = await this.findShopSellerId(manager, shopId);
+    for (const { shopId, sellerId } of payload.shops) {
       if (!sellerId) {
         this.logger.warn(
-          `[NotificationConsumer] Shop ${shopId} không tồn tại — bỏ qua notification.`,
+          `[NotificationConsumer] Shop ${shopId} không có seller trong payload — bỏ qua notification.`,
         );
         continue;
       }
@@ -238,16 +216,15 @@ export class NotificationConsumerService {
     };
     await this.notificationService.create(customerDto, manager);
 
-    const sellerId = await this.findShopSellerId(manager, payload.shopId);
-    if (!sellerId) {
+    if (!payload.sellerId) {
       this.logger.warn(
-        `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ qua notification hủy đơn.`,
+        `[NotificationConsumer] Shop ${payload.shopId} không có seller trong payload — bỏ qua notification hủy đơn.`,
       );
       return [];
     }
 
     const sellerDto: CreateNotificationDto = {
-      userId: sellerId,
+      userId: payload.sellerId,
       type: NotificationType.ORDER_STATUS_CHANGED,
       title: "Đơn hàng bị hủy",
       content: `Khách đã hủy 1 đơn hàng con thuộc đơn ${payload.orderNumber}.`,
@@ -332,17 +309,16 @@ export class NotificationConsumerService {
       );
     }
 
-    const sellerId = await this.findShopSellerId(manager, payload.shopId);
-    if (!sellerId) {
+    if (!payload.sellerId) {
       this.logger.warn(
-        `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ review notif.`,
+        `[NotificationConsumer] Shop ${payload.shopId} không có seller trong payload — bỏ review notif.`,
       );
       return [];
     }
 
     await this.notificationService.create(
       {
-        userId: sellerId,
+        userId: payload.sellerId,
         type: NotificationType.REVIEW_CREATED,
         title: "Đánh giá mới",
         content: `Sản phẩm "${payload.productName}" vừa nhận đánh giá ${payload.rating}★.`,
@@ -420,16 +396,16 @@ export class NotificationConsumerService {
       !payload.payoutId ||
       !payload.shopId ||
       !payload.shopName ||
-      typeof payload.amount !== "number"
+      typeof payload.amount !== "number" ||
+      !Array.isArray(payload.adminIds)
     ) {
       throw new PoisonPayloadError(
         `payout.created payload thiếu field: ${JSON.stringify(payload)}`,
       );
     }
-    const adminIds = await this.findAdminIds(manager);
     const content = `Cửa hàng ${payload.shopName} vừa gửi yêu cầu rút ${payload.amount.toLocaleString("vi-VN")}đ.`;
     await this.notificationService.createForUsers(
-      adminIds,
+      payload.adminIds,
       {
         type: NotificationType.PAYOUT_CREATED,
         title: "Yêu cầu rút tiền mới",
@@ -462,17 +438,20 @@ export class NotificationConsumerService {
     payload: ShopRegisteredOutboxPayload,
     manager: EntityManager,
   ): Promise<WsEmit[]> {
-    if (!payload.shopId || !payload.shopName) {
+    if (
+      !payload.shopId ||
+      !payload.shopName ||
+      !Array.isArray(payload.adminIds)
+    ) {
       throw new PoisonPayloadError(
         `shop.registered payload thiếu field: ${JSON.stringify(payload)}`,
       );
     }
-    const adminIds = await this.findAdminIds(manager);
     const content = payload.isReapply
       ? `Cửa hàng "${payload.shopName}" vừa nộp lại hồ sơ, đang chờ duyệt.`
       : `Cửa hàng "${payload.shopName}" vừa đăng ký, đang chờ duyệt.`;
     await this.notificationService.createForUsers(
-      adminIds,
+      payload.adminIds,
       {
         type: NotificationType.SHOP_REGISTERED,
         title: payload.isReapply ? "Shop nộp lại hồ sơ" : "Shop mới chờ duyệt",
@@ -568,17 +547,16 @@ export class NotificationConsumerService {
       );
     }
 
-    const sellerId = await this.findShopSellerId(manager, payload.shopId);
-    if (!sellerId) {
+    if (!payload.sellerId) {
       this.logger.warn(
-        `[NotificationConsumer] Shop ${payload.shopId} không tồn tại — bỏ return.requested.`,
+        `[NotificationConsumer] Shop ${payload.shopId} không có seller trong payload — bỏ return.requested.`,
       );
       return [];
     }
 
     await this.notificationService.create(
       {
-        userId: sellerId,
+        userId: payload.sellerId,
         type: NotificationType.RETURN_REQUESTED,
         title: "Yêu cầu trả hàng mới",
         content: `Khách vừa gửi yêu cầu trả hàng cho đơn ${payload.orderNumber}.`,

@@ -16,6 +16,7 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 // không inject repo chéo module.
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ProductStockService } from '@/modules/products/product-stock.service';
+import { ShopsService } from '@/modules/shops/shops.service';
 
 // DTOs
 import { CreateReturnRequestDto } from '@/modules/returns/dto/create-return.dto';
@@ -60,6 +61,7 @@ export class ReturnsService {
     private readonly returnRepo: Repository<ReturnRequest>,
     private readonly ordersService: OrdersService,
     private readonly productStockService: ProductStockService,
+    private readonly shopsService: ShopsService,
   ) {}
 
   // ==========================================
@@ -217,11 +219,16 @@ export class ReturnsService {
       });
       const saved = await manager.save(ReturnRequest, request);
 
+      const returnShopId = subOrder.shop?.id ?? '';
+      const returnSellerMap = await this.shopsService.getSellerIdsByShopIds(
+        returnShopId ? [returnShopId] : [],
+      );
       const requestedPayload: ReturnRequestedOutboxPayload = {
         returnId: saved.id,
         subOrderId: subOrder.id,
         orderNumber: subOrder.order.order_number,
-        shopId: subOrder.shop?.id ?? '',
+        shopId: returnShopId,
+        sellerId: returnSellerMap[returnShopId] ?? null,
         customerId: userId,
       };
       await manager.save(
@@ -396,7 +403,12 @@ export class ReturnsService {
       }
       await manager.save(ReturnRequest, request);
 
-      await this.emitReturnStatusChanged(request, newStatus, sellerNote, manager);
+      await this.emitReturnStatusChanged(
+        request,
+        newStatus,
+        sellerNote,
+        manager,
+      );
 
       await queryRunner.commitTransaction();
       return this.getSellerReturnDetail(sellerId, returnId);

@@ -44,6 +44,7 @@ import { ProductStockService } from '@/modules/products/product-stock.service';
 import { PromotionsService } from '@/modules/promotions/promotions.service';
 import { UsersService } from '@/modules/users/users.service';
 import { PaymentsService } from '@/modules/payments/payments.service';
+import { ShopsService } from '@/modules/shops/shops.service';
 
 // Interfaces (chỉ dùng cho type metadata — interface không có runtime)
 import type {
@@ -183,6 +184,7 @@ export class OrdersService {
     private readonly productStockService: ProductStockService,
     private readonly promotionsService: PromotionsService,
     private readonly usersService: UsersService,
+    private readonly shopsService: ShopsService,
     private readonly paymentsService: PaymentsService,
     @Inject('IShippingCalculator')
     private readonly shippingCalculator: IShippingCalculator,
@@ -494,12 +496,17 @@ export class OrdersService {
         manager,
       );
 
+      const cancelShopId = subOrder.shop?.id ?? '';
+      const cancelSellerMap = await this.shopsService.getSellerIdsByShopIds(
+        cancelShopId ? [cancelShopId] : [],
+      );
       const outboxPayload: OrderCancelledPayload = {
         orderId: order.id,
         orderNumber: order.order_number,
         subOrderId: subOrder.id,
         userId,
-        shopId: subOrder.shop?.id ?? '',
+        shopId: cancelShopId,
+        sellerId: cancelSellerMap[cancelShopId] ?? null,
       };
       const outboxEvent = manager.create(OutboxEvent, {
         event_type: OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
@@ -998,11 +1005,17 @@ export class OrdersService {
       // Ghi Outbox Event atomically trong cùng transaction — nguyên tử với đơn hàng.
       // Nếu transaction rollback thì event cũng không tồn tại, tránh thông báo ảo.
       // Worker quét bảng outbox_events và phát WebSocket + lưu Notification.
+      // enrich sellerId theo từng shop để NS (DB#2) đọc thẳng từ payload.
       const shopIdPayload = subOrderPlans.map((plan) => plan.shop.id);
+      const sellerIdByShop =
+        await this.shopsService.getSellerIdsByShopIds(shopIdPayload);
       const outboxPayload: OrderCreatedPayload = {
         orderId: savedOrder.id,
         orderNumber: savedOrder.order_number,
-        shopIds: shopIdPayload,
+        shops: shopIdPayload.map((shopId) => ({
+          shopId,
+          sellerId: sellerIdByShop[shopId] ?? null,
+        })),
         userId,
         totalAmount: grandTotal,
       };

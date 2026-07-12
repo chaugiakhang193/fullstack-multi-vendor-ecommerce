@@ -195,10 +195,12 @@ export class ShopsService {
         status: AccountStatus.PENDING_APPROVAL,
       });
 
+      const registerAdminIds = await this.userService.findAdminIds();
       const newShopPayload: ShopRegisteredOutboxPayload = {
         shopId: savedShop.id,
         shopName: savedShop.name,
         isReapply: false,
+        adminIds: registerAdminIds,
       };
       const outboxRepo = this.dataSource.getRepository(OutboxEvent);
       await outboxRepo.save(
@@ -635,10 +637,12 @@ export class ShopsService {
           status: AccountStatus.PENDING_APPROVAL,
         });
 
+        const reapplyAdminIds = await this.userService.findAdminIds();
         const reapplyPayload: ShopRegisteredOutboxPayload = {
           shopId: shop.id,
           shopName: shop.name,
           isReapply: true,
+          adminIds: reapplyAdminIds,
         };
         await transactionalEntityManager.save(
           OutboxEvent,
@@ -669,6 +673,31 @@ export class ShopsService {
       relations: ['seller'],
       select: { id: true, seller: { id: true } },
     });
+  }
+
+  /**
+   * Bulk: map shopId → sellerId cho nhiều shop (phục vụ enrich outbox payload).
+   * Đọc trên default connection (shop/seller là dữ liệu tham chiếu ổn định, không
+   * cần nằm trong tx của producer). Shop nào không tìm thấy/không có seller → bỏ khỏi map.
+   */
+  async getSellerIdsByShopIds(
+    shopIds: string[],
+  ): Promise<Record<string, string>> {
+    if (shopIds.length === 0) {
+      return {};
+    }
+    const shops = await this.shopsRepository.find({
+      where: { id: In(shopIds) },
+      relations: ['seller'],
+      select: { id: true, seller: { id: true } },
+    });
+    const map: Record<string, string> = {};
+    for (const shop of shops) {
+      if (shop.seller?.id) {
+        map[shop.id] = shop.seller.id;
+      }
+    }
+    return map;
   }
 
   async findUnverifiedShops(limit = 20): Promise<Shop[]> {

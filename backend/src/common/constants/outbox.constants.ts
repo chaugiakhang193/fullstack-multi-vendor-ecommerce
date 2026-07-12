@@ -21,7 +21,10 @@ export const OUTBOX_EVENT_TYPES = {
 export interface OrderCreatedPayload {
   orderId: string;
   orderNumber: string;
-  shopIds: string[];
+  // enrich sellerId theo từng shop để consumer (DB#2, không có bảng shop)
+  // không phải tra. sellerId null nếu shop mất seller (edge) → consumer skip notif
+  // seller nhưng vẫn báo customer.
+  shops: { shopId: string; sellerId: string | null }[];
   userId: string;
   totalAmount: number;
 }
@@ -34,6 +37,7 @@ export interface OrderCancelledPayload {
   subOrderId: string;
   userId: string;
   shopId: string;
+  sellerId: string | null; // enrich để consumer không tra shop
 }
 
 // Payload 'order.status_updated' — seller đổi trạng thái 1 sub-order.
@@ -52,7 +56,8 @@ export interface ReviewCreatedPayload {
   reviewId: string;
   productId: string;
   productName: string;
-  shopId: string; // shop sở hữu product → tìm seller để báo
+  shopId: string; // shop sở hữu product (giữ để route WS toShop)
+  sellerId: string | null; // enrich để consumer không tra shop
   rating: number;
 }
 
@@ -69,6 +74,7 @@ export interface PayoutCreatedOutboxPayload {
   amount: number;
   shopId: string;
   shopName: string;
+  adminIds: string[]; // snapshot admin lúc emit (consumer không có bảng user)
 }
 
 export interface PayoutStatusChangedOutboxPayload {
@@ -86,6 +92,7 @@ export interface ShopRegisteredOutboxPayload {
   shopId: string;
   shopName: string;
   isReapply: boolean;
+  adminIds: string[]; // snapshot admin lúc emit (consumer không có bảng user)
 }
 
 // return.requested — báo SELLER khách vừa tạo yêu cầu trả.
@@ -93,7 +100,8 @@ export interface ReturnRequestedOutboxPayload {
   returnId: string;
   subOrderId: string;
   orderNumber: string;
-  shopId: string; // để báo đúng seller chủ shop
+  shopId: string; // để route WS toShop
+  sellerId: string | null; // enrich để consumer không tra shop
   customerId: string;
 }
 

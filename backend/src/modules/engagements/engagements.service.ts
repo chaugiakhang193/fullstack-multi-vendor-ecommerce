@@ -18,6 +18,7 @@ import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
 import { ProductsService } from '@/modules/products/products.service';
 import { OrdersService } from '@/modules/orders/orders.service';
+import { ShopsService } from '@/modules/shops/shops.service';
 
 // Helpers & Constants
 import { paginate } from '@/common/helpers/pagination.helper';
@@ -35,6 +36,7 @@ export class EngagementsService {
     private readonly reviewRepo: Repository<Review>,
     private readonly productsService: ProductsService,
     private readonly ordersService: OrdersService,
+    private readonly shopsService: ShopsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -53,7 +55,11 @@ export class EngagementsService {
     const excludeIds = reviewedRows.map((row) => row.order_item_id);
 
     // OrdersService sở hữu order_item → trả về danh sách delivered, loại các id đã review.
-    return this.ordersService.getReviewableOrderItems(userId, excludeIds, query);
+    return this.ordersService.getReviewableOrderItems(
+      userId,
+      excludeIds,
+      query,
+    );
   }
 
   // ============================================================
@@ -82,7 +88,8 @@ export class EngagementsService {
   async createReview(userId: string, dto: CreateReviewDto): Promise<Review> {
     const orderItemId = dto.order_item_id;
     // OrdersService sở hữu order_item → lấy kèm quan hệ để validate.
-    const orderItem = await this.ordersService.findOrderItemForReview(orderItemId);
+    const orderItem =
+      await this.ordersService.findOrderItemForReview(orderItemId);
     if (!orderItem) {
       const errorMsg = 'Không tìm thấy mục đơn hàng';
       throw new NotFoundException(errorMsg);
@@ -151,11 +158,16 @@ export class EngagementsService {
       );
 
       // Ghi Outbox event review.created (outbox là hạ tầng dùng chung).
+      // enrich sellerId để NS đọc thẳng từ payload.
+      const reviewSellerMap = await this.shopsService.getSellerIdsByShopIds([
+        product.shop.id,
+      ]);
       const outboxPayload: ReviewCreatedPayload = {
         reviewId: saved.id,
         productId: product.id,
         productName: product.name,
         shopId: product.shop.id,
+        sellerId: reviewSellerMap[product.shop.id] ?? null,
         rating: dto.rating,
       };
       const outboxEventObj = {

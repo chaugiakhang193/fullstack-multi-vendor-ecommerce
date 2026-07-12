@@ -10,6 +10,7 @@ import { ShopsModule } from '@/modules/shops/shops.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { EngagementsModule } from '@/modules/engagements/engagements.module';
+import { UsersModule } from '@/modules/users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EngagementsModule } from '@/modules/engagements/engagements.module';
     OrdersModule,
     MailModule,
     EngagementsModule,
+    UsersModule,
   ],
   controllers: [SellerPayoutsController, AdminPayoutsController],
   providers: [PayoutsService],
