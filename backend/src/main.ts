@@ -11,6 +11,11 @@ import { Logger } from 'nestjs-pino';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { RedisIoAdapter } from './modules/broker/redis-io.adapter';
+import { setDefaultResultOrder } from 'node:dns';
+
+// Render không có route IPv6 egress → smtp.gmail.com qua IPv6 báo ENETUNREACH.
+// Ép Node ưu tiên IPv4 cho MỌI DNS (mail gửi ở request-time nên chạy ở startup là đủ sớm).
+setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
