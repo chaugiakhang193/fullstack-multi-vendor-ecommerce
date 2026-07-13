@@ -491,15 +491,7 @@ export class NotificationConsumerService {
       ? `Yêu cầu rút tiền trị giá ${payload.amount.toLocaleString("vi-VN")}đ đã được phê duyệt thành công.`
       : `Yêu cầu rút tiền trị giá ${payload.amount.toLocaleString("vi-VN")}đ đã bị từ chối. Lý do: ${payload.reason}`;
 
-    // Mail best-effort (sendPayoutStatusEmail tự nuốt lỗi bên trong → không chặn commit).
-    await this.mailService.sendPayoutStatusEmail(
-      { email: payload.sellerEmail, username: payload.sellerName },
-      payload.shopName,
-      payload.amount,
-      payload.status,
-      payload.reason,
-    );
-
+    // Tạo notif TRƯỚC (nguồn sự thật) — nằm trong txn, quyết định commit + WS emit.
     await this.notificationService.create(
       {
         userId: payload.sellerId,
@@ -518,6 +510,23 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    // Mail best-effort, FIRE-AND-FORGET: không await → txn commit + WS emit chạy ngay
+    // → toast payout realtime, không chờ SMTP. sendPayoutStatusEmail tự nuốt lỗi;
+    // .catch phòng trường hợp timeout reject.
+    void this.mailService
+      .sendPayoutStatusEmail(
+        { email: payload.sellerEmail, username: payload.sellerName },
+        payload.shopName,
+        payload.amount,
+        payload.status,
+        payload.reason,
+      )
+      .catch((error) => {
+        this.logger.error(
+          `[payout mail] Gửi thất bại (payout ${payload.payoutId}): ${error?.message ?? error}`,
+        );
+      });
 
     return [
       toUser(payload.sellerId, WS_EVENTS.PAYOUT_STATUS_CHANGED, {

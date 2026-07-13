@@ -196,13 +196,11 @@ export class AuthService {
     username: string,
     password: string,
   ): Promise<UserWithoutPassword | null> {
-    let isLoginByEmail = false;
     let user = await this.usersService.findByUsername(username);
 
     // Nếu không tìm thấy bằng username, thử tìm bằng email
     if (!user) {
       user = await this.usersService.findByEmail(username);
-      isLoginByEmail = true;
     }
 
     // Nếu không có tài khoản nào khớp:
@@ -240,8 +238,10 @@ export class AuthService {
       return null; // LocalStrategy sẽ tự động ném ra lỗi UnauthorizedException
     }
 
-    // Nếu mật khẩu đúng nhưng tài khoản chưa xác thực email, và người dùng đang cố đăng nhập bằng email -> chặn lại
-    if (isLoginByEmail && user.status === AccountStatus.PENDING_VERIFICATION) {
+    // Mật khẩu đúng nhưng tài khoản chưa xác thực email -> chặn, BẤT KỂ đăng nhập
+    // bằng username hay email (trước đây username lách được gate này — bug prod).
+    if (user.status === AccountStatus.PENDING_VERIFICATION) {
+      // Gửi lại mã (fire-and-forget bên trong helper) — không chặn response login.
       await this.generateAndSendVerificationEmail(user);
       throw new UnauthorizedException(
         'Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để kích hoạt.',
@@ -642,10 +642,16 @@ export class AuthService {
       type: VerificationTokenType.VERIFY_EMAIL,
       expires_at: tokenExpiration,
     });
+    // Token PHẢI lưu đồng bộ (await) để user còn verify được.
     await this.verificationTokenRepository.save(newVerificationToken);
 
-    //gửi email xác thực tài khoản
-    await this.mailService.sendVerifacationEmail(user, token);
+    // Gửi mail best-effort, FIRE-AND-FORGET: không await → register/login trả lời ngay,
+    // KHÔNG treo ~15s khi SMTP chậm. Lỗi chỉ log; user vẫn bấm "Gửi lại mã" được.
+    void this.mailService.sendVerifacationEmail(user, token).catch((error) => {
+      this.logger.error(
+        `[verify-email] Gửi mail xác thực thất bại (user ${user.id}): ${error?.message ?? error}`,
+      );
+    });
   }
 
   private async generateAndSaveSession(

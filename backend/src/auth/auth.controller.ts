@@ -84,7 +84,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @Throttle({ default: { limit: 1, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 180000 } })
   @ResponseMessage('Đăng ký tài khoản thành công')
   @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
   @ApiGenericResponse('Đăng ký thành công, vui lòng kiểm tra email.', {
@@ -101,7 +101,7 @@ export class AuthController {
 
   @Public()
   @Post('seller/register')
-  @Throttle({ default: { limit: 1, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 180000 } })
   @ResponseMessage('Đăng ký tài khoản người bán thành công')
   @ApiOperation({ summary: 'Đăng ký tài khoản người bán mới' })
   @ApiGenericResponse('Đăng ký thành công, vui lòng kiểm tra email.', {

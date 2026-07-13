@@ -4,6 +4,7 @@ import { Global, Module } from "@nestjs/common";
 import { MailService } from "@/mail/mail.service";
 import { join } from "path";
 import { ConfigService } from "@nestjs/config";
+import { createBrevoTransport } from "@/mail/brevo-transport";
 
 // Move từ backend (Phase 4, P4-6) — chỉ giữ template payout ở NS vì
 // handlePayoutStatusChanged là handler outbox DUY NHẤT gửi mail. Backend giữ
@@ -13,16 +14,17 @@ import { ConfigService } from "@nestjs/config";
   imports: [
     MailerModule.forRootAsync({
       useFactory: async (config: ConfigService) => ({
-        transport: {
-          host: "smtp.gmail.com",
-          secure: false,
-          auth: {
-            user: config.get("MAIL_USER"),
-            pass: config.get("MAIL_PASSWORD"),
+        transport: createBrevoTransport(
+          config.get<string>("BREVO_API_KEY") ?? "",
+          {
+            email: config.get<string>("MAIL_FROM_EMAIL") ?? "",
+            name: config.get<string>("MAIL_FROM_NAME") ?? "Giang Kha Shop",
           },
-        },
+        ),
         defaults: {
-          from: '"No Reply" <noreply@shopee-clone.com>',
+          from: `${config.get<string>("MAIL_FROM_NAME") ?? "Giang Kha Shop"} <${
+            config.get<string>("MAIL_FROM_EMAIL") ?? "noreply@example.com"
+          }>`,
         },
         template: {
           dir: join(__dirname, "templates"),
