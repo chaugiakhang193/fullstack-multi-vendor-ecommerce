@@ -10,6 +10,7 @@ import { CategoriesService } from '@/modules/products/categories.service';
 import { ProductsController } from '@/modules/products/products.controller';
 import { SellerProductsController } from '@/modules/products/seller-products.controller';
 import { CategoriesController } from '@/modules/products/categories.controller';
+import { AdminProductsController } from '@/modules/products/admin-products.controller';
 
 // Entities
 import { Product } from '@/modules/products/entities/product.entity';
@@ -30,8 +31,9 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     ProductsController,
     SellerProductsController,
     CategoriesController,
+    AdminProductsController,
   ],
   providers: [ProductsService, ProductStockService, CategoriesService],
   exports: [ProductsService, ProductStockService, CategoriesService],
 })
-export class ProductsModule { }
+export class ProductsModule {}

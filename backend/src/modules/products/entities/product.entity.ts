@@ -13,6 +13,7 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Category } from '@/modules/products/entities/category.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 import { ProductStatus } from '@/common/enums';
+import { User } from '@/modules/users/entities/user.entity';
 
 @Entity()
 @Check('stock_quantity >= 0')
@@ -84,6 +85,18 @@ export class Product {
     default: ProductStatus.ACTIVE,
   })
   status: ProductStatus;
+
+  // ===== Moderation (admin take-down) =====
+  @Column({ type: 'text', nullable: true })
+  moderation_reason: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  moderated_at: Date | null;
+
+  // Admin thực hiện; giữ record kể cả khi admin bị xóa (SET NULL).
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'moderated_by' })
+  moderated_by: User | null;
 
   @Column({ type: 'decimal', precision: 2, scale: 1, default: 0 })
   avg_rating: number;

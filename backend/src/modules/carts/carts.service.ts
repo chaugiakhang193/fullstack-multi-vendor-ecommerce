@@ -164,6 +164,9 @@ export class CartsService {
       if (item.product.status === ProductStatus.DELETED) {
         is_available = false;
         reason = CartItemUnavailableReason.PRODUCT_DELETED;
+      } else if (item.product.status === ProductStatus.SUSPENDED) {
+        is_available = false;
+        reason = CartItemUnavailableReason.PRODUCT_SUSPENDED;
       } else if (item.product.is_hidden) {
         is_available = false;
         reason = CartItemUnavailableReason.PRODUCT_HIDDEN;
@@ -406,14 +409,26 @@ export class CartsService {
   }
 
   private validateProductPurchasable(product: Product): void {
-    if (product.status === ProductStatus.DELETED) {
-      throw new BadRequestException('Sản phẩm không tồn tại hoặc đã bị xóa');
+    const status = product.status;
+    const isDeleted = status === ProductStatus.DELETED;
+    if (isDeleted) {
+      const errorMsg = 'Sản phẩm không tồn tại hoặc đã bị xóa';
+      throw new BadRequestException(errorMsg);
     }
-    if (product.is_hidden) {
-      throw new BadRequestException('Sản phẩm đã bị ẩn hoặc ngừng bán');
+    const isSuspended = status === ProductStatus.SUSPENDED;
+    if (isSuspended) {
+      const errorMsg = 'Sản phẩm đã bị khóa hoặc ngừng bán do vi phạm';
+      throw new BadRequestException(errorMsg);
     }
-    if (product.shop?.status !== AccountStatus.ACTIVE) {
-      throw new BadRequestException('Cửa hàng hiện không hoạt động');
+    const isHidden = product.is_hidden;
+    if (isHidden) {
+      const errorMsg = 'Sản phẩm đã bị ẩn hoặc ngừng bán';
+      throw new BadRequestException(errorMsg);
+    }
+    const isShopInactive = product.shop?.status !== AccountStatus.ACTIVE;
+    if (isShopInactive) {
+      const errorMsg = 'Cửa hàng hiện không hoạt động';
+      throw new BadRequestException(errorMsg);
     }
   }
 
@@ -442,6 +457,12 @@ export class CartsService {
       return {
         isAvailable: false,
         reason: CartItemUnavailableReason.PRODUCT_DELETED,
+      };
+    }
+    if (item.product.status === ProductStatus.SUSPENDED) {
+      return {
+        isAvailable: false,
+        reason: CartItemUnavailableReason.PRODUCT_SUSPENDED,
       };
     }
     if (item.product.is_hidden) {

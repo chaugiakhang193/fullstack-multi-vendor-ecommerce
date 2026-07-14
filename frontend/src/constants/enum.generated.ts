@@ -55,6 +55,7 @@ export enum VerificationTokenType {
 export enum ProductStatus {
   ACTIVE = "active",
   DELETED = "deleted",
+  SUSPENDED = "suspended",
 }
 
 export enum NotificationType {
@@ -74,6 +75,7 @@ export enum CartItemUnavailableReason {
   INSUFFICIENT_STOCK = "insufficient_stock",
   PRODUCT_HIDDEN = "product_hidden",
   PRODUCT_DELETED = "product_deleted",
+  PRODUCT_SUSPENDED = "product_suspended",
   SHOP_INACTIVE = "shop_inactive",
 }
 

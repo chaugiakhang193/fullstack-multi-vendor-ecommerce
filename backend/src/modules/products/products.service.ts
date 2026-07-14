@@ -5,6 +5,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -30,6 +31,7 @@ import {
   GetSellerProductsQueryDto,
 } from '@/modules/products/dto/get-products-query.dto';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
+import { AdminProductQueryDto } from '@/modules/products/dto/admin-product-query.dto';
 
 // Helpers
 import { paginate } from '@/common/helpers/pagination.helper';
@@ -39,6 +41,7 @@ import { Product } from '@/modules/products/entities/product.entity';
 import { ProductVariant } from '@/modules/products/entities/product-variant.entity';
 import { Category } from '@/modules/products/entities/category.entity';
 import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
+import { User } from '@/modules/users/entities/user.entity';
 
 // Services
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
@@ -357,6 +360,126 @@ export class ProductsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // ==========================================
+  // ADMIN MODERATION SERVICES
+  // ==========================================
+
+  async findAllForAdmin(
+    query: AdminProductQueryDto,
+  ): Promise<PaginatedResponseDto<Product>> {
+    const productAlias = 'product';
+    const shopAlias = 'shop';
+    const qb = this.productsRepository
+      .createQueryBuilder(productAlias)
+      .leftJoinAndSelect('product.shop', shopAlias)
+      .orderBy('product.created_at', 'DESC');
+
+    const statusParam = query.status;
+    const isStatusDefined = statusParam !== undefined;
+    if (isStatusDefined) {
+      const statusCondition = 'product.status = :status';
+      const statusParams = { status: statusParam };
+      qb.andWhere(statusCondition, statusParams);
+    } else {
+      // Mặc định KHÔNG hiện hàng đã xóa mềm (giống seller list).
+      const deletedStatus = ProductStatus.DELETED;
+      const notDeletedCondition = 'product.status != :deleted';
+      const notDeletedParams = { deleted: deletedStatus };
+      qb.andWhere(notDeletedCondition, notDeletedParams);
+    }
+
+    const shopIdParam = query.shop_id;
+    const isShopIdDefined = !!shopIdParam;
+    if (isShopIdDefined) {
+      const shopCondition = 'shop.id = :shopId';
+      const shopParams = { shopId: shopIdParam };
+      qb.andWhere(shopCondition, shopParams);
+    }
+
+    const qParam = query.q;
+    const isQDefined = !!qParam;
+    if (isQDefined) {
+      const nameCondition = 'product.name ILIKE :q';
+      const nameParams = { q: `%${qParam}%` };
+      qb.andWhere(nameCondition, nameParams);
+    }
+
+    const result = await paginate(qb, query);
+    return result;
+  }
+
+  // part_02 sẽ nhét emit outbox 'product.moderated' (action=taken_down) SAU khi
+  // save, trong cùng transaction — chừa seam ở đây.
+  async takeDown(
+    adminId: string,
+    productId: string,
+    reason: string,
+  ): Promise<Product> {
+    const findConditions = {
+      where: { id: productId },
+      relations: ['shop'],
+    };
+    const product = await this.productsRepository.findOne(findConditions);
+    if (!product) {
+      const notFoundMsg = 'Không tìm thấy sản phẩm';
+      throw new NotFoundException(notFoundMsg);
+    }
+
+    const isDeleted = product.status === ProductStatus.DELETED;
+    if (isDeleted) {
+      const badRequestMsg = 'Sản phẩm đã bị xóa, không thể gỡ.';
+      throw new BadRequestException(badRequestMsg);
+    }
+
+    const isSuspended = product.status === ProductStatus.SUSPENDED;
+    if (isSuspended) {
+      const badRequestMsg = 'Sản phẩm đã bị gỡ trước đó.';
+      throw new BadRequestException(badRequestMsg);
+    }
+
+    product.status = ProductStatus.SUSPENDED;
+    product.moderation_reason = reason;
+
+    const now = new Date();
+    product.moderated_at = now;
+
+    const adminUser = { id: adminId } as User;
+    product.moderated_by = adminUser;
+
+    const savedProduct = await this.productsRepository.save(product);
+    return savedProduct;
+  }
+
+  async restore(adminId: string, productId: string): Promise<Product> {
+    const findConditions = {
+      where: { id: productId },
+      relations: ['shop'],
+    };
+    const product = await this.productsRepository.findOne(findConditions);
+    if (!product) {
+      const notFoundMsg = 'Không tìm thấy sản phẩm';
+      throw new NotFoundException(notFoundMsg);
+    }
+
+    const isNotSuspended = product.status !== ProductStatus.SUSPENDED;
+    if (isNotSuspended) {
+      const badRequestMsg = 'Chỉ khôi phục được sản phẩm đang bị gỡ.';
+      throw new BadRequestException(badRequestMsg);
+    }
+
+    product.status = ProductStatus.ACTIVE;
+    product.moderation_reason = null;
+
+    const now = new Date();
+    product.moderated_at = now;
+
+    const adminUser = { id: adminId } as User;
+    product.moderated_by = adminUser;
+
+    const savedProduct = await this.productsRepository.save(product);
+    return savedProduct;
   }
 
   // ==========================================
@@ -684,7 +807,26 @@ export class ProductsService {
     const realId = extractId(id);
 
     // Tìm sản phẩm và kiểm tra quyền sở hữu
-    const product = await this.findProductEntityOrFail(realId, ['shop', 'variants']);
+    const product = await this.findProductEntityOrFail(realId, [
+      'shop',
+      'variants',
+    ]);
+
+    // Seller KHÔNG được đụng sản phẩm đang bị admin gỡ.
+    const isSuspended = product.status === ProductStatus.SUSPENDED;
+    if (isSuspended) {
+      const errorMsg =
+        'Sản phẩm đang bị gỡ do vi phạm — liên hệ quản trị viên để khôi phục.';
+      throw new ForbiddenException(errorMsg);
+    }
+
+    // Seller KHÔNG được tự đặt trạng thái "bị gỡ" (chỉ admin qua moderation).
+    const isDtoStatusSuspended =
+      updateProductDto.status === ProductStatus.SUSPENDED;
+    if (isDtoStatusSuspended) {
+      const selfSuspendMsg = 'Không thể tự đặt trạng thái "bị gỡ".';
+      throw new ForbiddenException(selfSuspendMsg);
+    }
 
     // Kiểm tra shop của user yêu cầu cập nhật sản phẩm còn đang ở trạng thái ACTIVE không
     const shop = await this.shopsService.findOneByUserId(user.sub);
@@ -1410,7 +1552,11 @@ export class ProductsService {
 
   async getProductForCartValidation(id: string): Promise<Product> {
     const realId = extractId(id);
-    return this.findProductEntityOrFail(realId, ['shop', 'shop.seller', 'variants']);
+    return this.findProductEntityOrFail(realId, [
+      'shop',
+      'shop.seller',
+      'variants',
+    ]);
   }
 
   private async findProductEntityOrFail(

@@ -63,6 +63,7 @@ export enum AssetType {
 export enum ProductStatus {
   ACTIVE = 'active',
   DELETED = 'deleted',
+  SUSPENDED = 'suspended', // admin gỡ (moderation) — seller KHÔNG tự set/gỡ
 }
 
 export enum CartItemUnavailableReason {
@@ -70,6 +71,7 @@ export enum CartItemUnavailableReason {
   INSUFFICIENT_STOCK = 'insufficient_stock',
   PRODUCT_HIDDEN = 'product_hidden',
   PRODUCT_DELETED = 'product_deleted',
+  PRODUCT_SUSPENDED = 'product_suspended',
   SHOP_INACTIVE = 'shop_inactive',
 }
 
