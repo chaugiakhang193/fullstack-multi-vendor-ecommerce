@@ -489,8 +489,15 @@ export class NotificationConsumerService {
     manager: EntityManager,
   ): Promise<WsEmit[]> {
     if (!payload.payoutId || !payload.sellerId || !payload.status) {
+      // Redact (sellerEmail/sellerName) khỏi log —cấm log email
+      // plain-text. Giữ field cấu trúc để debug lý do poison.
+      const safePayload = {
+        ...payload,
+        sellerEmail: payload.sellerEmail ? "[redacted]" : null,
+        sellerName: payload.sellerName ? "[redacted]" : null,
+      };
       throw new PoisonPayloadError(
-        `payout.status_changed payload thiếu field: ${JSON.stringify(payload)}`,
+        `payout.status_changed payload thiếu field: ${JSON.stringify(safePayload)}`,
       );
     }
     const isApproved = payload.status === PayoutStatus.COMPLETED;
