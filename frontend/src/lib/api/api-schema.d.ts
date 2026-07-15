@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AppController_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -526,6 +542,57 @@ export interface paths {
         head?: never;
         /** Admin cập nhật danh mục */
         patch: operations["CategoriesController_update"];
+        trace?: never;
+    };
+    "/api/v1/admin/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin liệt kê sản phẩm mọi shop (lọc + phân trang) */
+        get: operations["AdminProductsController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/products/{id}/take-down": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin gỡ sản phẩm (SUSPENDED) */
+        patch: operations["AdminProductsController_takeDown"];
+        trace?: never;
+    };
+    "/api/v1/admin/products/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Admin khôi phục sản phẩm bị gỡ (→ ACTIVE) */
+        patch: operations["AdminProductsController_restore"];
         trace?: never;
     };
     "/api/v1/auth/register": {
@@ -1523,6 +1590,22 @@ export interface paths {
         patch: operations["SellerReturnsController_receive"];
         trace?: never;
     };
+    "/api/v1/health/broker": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BrokerHealthController_checkBroker"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1716,44 +1799,17 @@ export interface components {
              */
             status: "active" | "suspended" | "banned";
         };
-        UserResponseDto: {
-            /**
-             * @description Tên đăng nhập
-             * @example nguyenvana
-             */
+        ShopOwnerResponseDto: {
+            /** @example 550e8400-e29b-41d4-a716-446655440002 */
+            id: string;
+            /** @example seller01 */
             username: string;
-            /**
-             * @description Địa chỉ email
-             * @example nguyenvana@gmail.com
-             */
+            /** @example seller@example.com */
             email: string;
-            /**
-             * @description Vai trò người dùng
-             * @example customer
-             * @enum {string}
-             */
-            role: "admin" | "customer" | "seller";
-            /**
-             * @description Trạng thái tài khoản
-             * @example active
-             * @enum {string}
-             */
-            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
-            /**
-             * @description Họ và tên đầy đủ
-             * @example Nguyễn Văn A
-             */
-            full_name?: string;
-            /**
-             * @description Số điện thoại
-             * @example 0987654321
-             */
-            phone?: string;
-            /**
-             * @description Mã ID của người dùng
-             * @example 60d0fe4f5311236168a109ca
-             */
-            _id: string;
+            /** @example Nguyễn Văn A */
+            full_name: string;
+            /** @example 0901234567 */
+            phone: string;
         };
         CategoryResponseDto: {
             /**
@@ -1805,7 +1861,7 @@ export interface components {
             /** @example 550e8400-e29b-41d4-a716-446655440001 */
             id: string;
             /** @description Thông tin chủ cửa hàng */
-            seller?: components["schemas"]["UserResponseDto"] | null;
+            seller?: components["schemas"]["ShopOwnerResponseDto"] | null;
             /** @example Cửa hàng quần áo ABC */
             name: string;
             /** @example https://res.cloudinary.com/.../logo.jpg */
@@ -1850,7 +1906,7 @@ export interface components {
             /** @example 550e8400-e29b-41d4-a716-446655440001 */
             id: string;
             /** @description Thông tin chủ cửa hàng */
-            seller?: components["schemas"]["UserResponseDto"] | null;
+            seller?: components["schemas"]["ShopOwnerResponseDto"] | null;
             /** @example Cửa hàng quần áo ABC */
             name: string;
             /** @example https://res.cloudinary.com/.../logo.jpg */
@@ -2171,7 +2227,7 @@ export interface components {
              * @example active
              * @enum {string}
              */
-            status: "active" | "deleted";
+            status: "active" | "deleted" | "suspended";
             /**
              * Format: date-time
              * @example 2024-03-20T10:00:00Z
@@ -2386,7 +2442,7 @@ export interface components {
              * @description Trạng thái hoạt động của sản phẩm
              * @enum {string}
              */
-            status?: "active" | "deleted";
+            status?: "active" | "deleted" | "suspended";
             /** @description Ẩn/hiện sản phẩm với khách hàng */
             is_hidden?: boolean;
             /** @description Danh sách các biến thể của sản phẩm (JSON String) */
@@ -2439,6 +2495,13 @@ export interface components {
              */
             display_order: number;
         };
+        ModerateProductDto: {
+            /**
+             * @description Lý do gỡ sản phẩm (hiển thị cho seller).
+             * @example Hình ảnh vi phạm chính sách nội dung.
+             */
+            reason: string;
+        };
         RegisterDto: {
             /**
              * @description Tên đăng nhập (3–32 ký tự, phải chứa ít nhất 1 chữ cái)
@@ -2462,6 +2525,45 @@ export interface components {
              * @example nguyenvana@gmail.com
              */
             email: string;
+        };
+        UserResponseDto: {
+            /**
+             * @description Tên đăng nhập
+             * @example nguyenvana
+             */
+            username: string;
+            /**
+             * @description Địa chỉ email
+             * @example nguyenvana@gmail.com
+             */
+            email: string;
+            /**
+             * @description Vai trò người dùng
+             * @example customer
+             * @enum {string}
+             */
+            role: "admin" | "customer" | "seller";
+            /**
+             * @description Trạng thái tài khoản
+             * @example active
+             * @enum {string}
+             */
+            status: "pending_verification" | "pending_approval" | "new_seller" | "active" | "suspended" | "banned" | "rejected";
+            /**
+             * @description Họ và tên đầy đủ
+             * @example Nguyễn Văn A
+             */
+            full_name?: string;
+            /**
+             * @description Số điện thoại
+             * @example 0987654321
+             */
+            phone?: string;
+            /**
+             * @description Mã ID của người dùng
+             * @example 60d0fe4f5311236168a109ca
+             */
+            _id: string;
         };
         AuthResponseDto: {
             /**
@@ -2559,7 +2661,7 @@ export interface components {
             thumbnail_url: Record<string, never> | null;
             is_hidden: boolean;
             /** @enum {string} */
-            status: "active" | "deleted";
+            status: "active" | "deleted" | "suspended";
         };
         CartItemVariantDto: {
             id: string;
@@ -2579,7 +2681,7 @@ export interface components {
             available_stock: number;
             is_available: boolean;
             /** @enum {string} */
-            reason?: "out_of_stock" | "insufficient_stock" | "product_hidden" | "product_deleted" | "shop_inactive";
+            reason?: "out_of_stock" | "insufficient_stock" | "product_hidden" | "product_deleted" | "product_suspended" | "shop_inactive";
         };
         CartShopGroupDto: {
             shop: components["schemas"]["CartShopDto"];
@@ -3063,6 +3165,23 @@ export interface components {
 export type $defs = Record<string, never>;
 export interface operations {
     AppController_getHello: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AppController_health: {
         parameters: {
             query?: never;
             header?: never;
@@ -4800,6 +4919,138 @@ export interface operations {
                 content?: never;
             };
             /** @description Không tìm thấy danh mục để cập nhật */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminProductsController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Số trang hiện tại (bắt đầu từ 1) */
+                page?: number;
+                /** @description Số lượng phần tử trên mỗi trang */
+                limit?: number;
+                /** @description Trường sắp xếp (ví dụ: price, created_at, name) */
+                sort?: string;
+                /** @description Chiều sắp xếp (ASC hoặc DESC) */
+                order?: "ASC" | "DESC";
+                /** @description Tìm theo tên sản phẩm. */
+                q?: string;
+                /** @description Lọc theo trạng thái. */
+                status?: "active" | "deleted" | "suspended";
+                /** @description Lọc theo shop. */
+                shop_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminProductsController_takeDown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerateProductDto"];
+            };
+        };
+        responses: {
+            /** @description Trạng thái không hợp lệ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminProductsController_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sản phẩm không ở trạng thái bị gỡ */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Không tìm thấy sản phẩm */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6958,6 +7209,23 @@ export interface operations {
             };
             /** @description Không tìm thấy (hoặc không thuộc shop của bạn) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BrokerHealthController_checkBroker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
