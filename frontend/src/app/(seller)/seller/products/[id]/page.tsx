@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Pencil, Package } from 'lucide-react';
@@ -15,6 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductStatusBadge } from '@/components/products/product-status-badge';
 import { ProductModerationBanner } from '@/components/products/product-moderation-banner';
+import { useSocket } from '@/components/providers/socket-provider';
+
+// Tên event WS — khớp backend
+const WS_PRODUCT_MODERATED = 'product.moderated';
+
+interface ProductModeratedWsPayload {
+  productId: string;
+  productName: string;
+  action: string;
+  message: string;
+}
 
 export default function SellerProductDetailPage() {
   const params = useParams();
@@ -24,32 +35,44 @@ export default function SellerProductDetailPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setIsLoading(true);
+  const socket = useSocket();
+
+  const fetchProduct = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true);
       try {
         const res = await sellerProductsApiRequest.getProductDetail(productId);
-        if (active) {
-          setProduct(res.data ?? null);
-        }
+        setProduct(res.data ?? null);
+        if (!silent) setNotFound(false);
       } catch (error) {
-        const msg = getErrorMessage(error);
-        toast.error(msg);
-        if (active) {
+        if (!silent) {
+          const msg = getErrorMessage(error);
+          toast.error(msg);
           setNotFound(true);
         }
       } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [productId],
+  );
+
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onProductModerated = (payload: ProductModeratedWsPayload) => {
+      if (payload.productId === productId) {
+        fetchProduct(true);
       }
     };
-    load();
+    socket.on(WS_PRODUCT_MODERATED, onProductModerated);
     return () => {
-      active = false;
+      socket.off(WS_PRODUCT_MODERATED, onProductModerated);
     };
-  }, [productId]);
+  }, [socket, productId, fetchProduct]);
 
   if (isLoading) {
     return (
