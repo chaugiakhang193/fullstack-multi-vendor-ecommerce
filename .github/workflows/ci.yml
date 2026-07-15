@@ -10,6 +10,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Postgres tạm cho bước drift-check gen-api: BE boot cần 1 DB connect được
+    # (synchronize=false, không migrate → không cần schema, chỉ cần DB tồn tại).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +66,58 @@ jobs:
       - name: Build Backend
         run: npm run build
         working-directory: backend
+
+      - name: Check API Schema Drift (gen-api)
+        working-directory: backend
+        env:
+          # Boot tối thiểu cho Swagger docs-json. Toàn bộ là GIÁ TRỊ DUMMY dùng
+          # một lần trong CI — KHÔNG phải secret thật (BE chỉ bootstrap + phát
+          # docs-json, không gọi Google/JWT/mail thật). DB trỏ Postgres service.
+          NODE_ENV: test
+          PORT: 8080
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: postgres
+          JWT_ACCESS_SECRET: ci-dummy-access-secret
+          JWT_REFRESH_SECRET: ci-dummy-refresh-secret
+          ACCESS_TOKEN_EXPIRATION: 15m
+          REFRESH_TOKEN_EXPIRATION: 7d
+          GOOGLE_CLIENT_ID: ci-dummy-client-id
+          GOOGLE_CLIENT_SECRET: ci-dummy-client-secret
+          GOOGLE_CALLBACK_URL: http://localhost:8080/api/v1/auth/google/callback
+          # inprocess để không kích nhánh distributed; broker vẫn non-fatal nếu thiếu.
+          NOTIFICATION_MODE: inprocess
+        run: |
+          # Boot BE nền; trap đảm bảo LUÔN kill khi step kết thúc (kể cả diff fail).
+          node dist/main &
+          BE_PID=$!
+          trap "kill $BE_PID 2>/dev/null || true" EXIT
+
+          # Chờ Swagger docs-json sẵn sàng (tối đa ~60s).
+          UP=""
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/api/docs-json > /dev/null 2>&1; then
+              UP="yes"
+              echo "Backend docs-json UP sau ~$((i*2))s"
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$UP" ]; then
+            echo "::error::Backend không boot được để lấy docs-json (kiểm tra env boot)."
+            exit 1
+          fi
+
+          # Regen từ Swagger live rồi so với bản đã commit.
+          cd ../frontend
+          npm run gen-api
+          if ! git diff --exit-code -- src/lib/api/api-schema.d.ts; then
+            echo "::error::api-schema.d.ts LỆCH với backend Swagger. Chạy 'npm run gen-api' (frontend, BE chạy :8080) rồi commit lại."
+            exit 1
+          fi
+          echo "api-schema.d.ts đồng bộ với backend Swagger."
 
       - name: Install Notification Service Dependencies
         run: npm ci
