@@ -1,5 +1,6 @@
 import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 // Move từ backend (Phase 4, P4-6) — chỉ giữ sendPayoutStatusEmail, vì đây là
 // email DUY NHẤT gắn với 1 outbox event (payout.status_changed). Các mail
@@ -7,7 +8,10 @@ import { Injectable } from "@nestjs/common";
 // backend.
 @Injectable()
 export class MailService {
-  constructor(private mailerService: MailerService) {}
+  constructor(
+    private mailerService: MailerService,
+    private configService: ConfigService,
+  ) {}
 
   async sendPayoutStatusEmail(
     user: { email: string; username: string },
@@ -45,6 +49,39 @@ export class MailService {
     } catch (error) {
       // Best-effort: lỗi mail không được chặn PROCESSED/notif.
       console.error("[MailService.sendPayoutStatusEmail] Error:", error);
+    }
+  }
+
+  // email báo seller sản phẩm bị gỡ (CHỈ gọi khi action=taken_down).
+  // Best-effort — tự nuốt lỗi, KHÔNG chặn notif/WS/ack. Deep-link tới trang sản
+  // phẩm seller (nếu có FRONTEND_URL) để seller xem/sửa.
+  async sendProductModeratedEmail(
+    user: { email: string; username: string },
+    productName: string,
+    productId: string,
+    reason: string | null,
+  ) {
+    try {
+      const subject = `[Giang Kha Shop] Sản phẩm "${productName}" đã bị gỡ`;
+      const frontendUrl = this.configService.get<string>("FRONTEND_URL") ?? "";
+      const productUrl = frontendUrl
+        ? `${frontendUrl}/seller/products/${productId}`
+        : "";
+      const defaultReason = "Vi phạm chính sách nội dung của sàn.";
+      const resolvedReason = reason || defaultReason;
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject,
+        template: "take-down-product",
+        context: {
+          name: user.username,
+          productName,
+          reason: resolvedReason,
+          productUrl,
+        },
+      });
+    } catch (error) {
+      console.error("[MailService.sendProductModeratedEmail] Error:", error);
     }
   }
 }

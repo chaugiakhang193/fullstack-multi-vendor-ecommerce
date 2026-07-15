@@ -126,6 +126,8 @@ export interface ProductModeratedOutboxPayload {
   productName: string;
   shopId: string; // route WS toShop
   sellerId: string | null; // enrich để consumer không tra shop
+  sellerEmail: string | null; // enrich để gửi email take-down (chỉ dùng khi taken_down)
+  sellerName: string | null; // tên hiển thị trong email (= seller.username)
   action: ProductModerationAction;
   reason: string | null;
 }

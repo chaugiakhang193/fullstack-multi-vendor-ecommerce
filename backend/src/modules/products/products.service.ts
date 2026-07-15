@@ -564,15 +564,20 @@ export class ProductsService {
     reason: string | null,
   ): Promise<void> {
     const shopId = product.shop?.id ?? '';
-    const shopIdList = shopId ? [shopId] : [];
-    const sellerMap = await this.shopsService.getSellerIdsByShopIds(shopIdList);
-    const sellerId = sellerMap[shopId] ?? null;
+    // Enrich contact seller (id + email + name) để consumer tạo notif + gửi email
+    // take-down mà không tra shop/user ở DB#2. Helper chuyên trách — không nới
+    // relations của query moderation. shopId rỗng (product mất shop) → contact null.
+    const sellerContact = shopId
+      ? await this.shopsService.getSellerContactByShopId(shopId)
+      : null;
 
     const payload: ProductModeratedOutboxPayload = {
       productId: product.id,
       productName: product.name,
       shopId,
-      sellerId,
+      sellerId: sellerContact?.id ?? null,
+      sellerEmail: sellerContact?.email ?? null,
+      sellerName: sellerContact?.name ?? null,
       action,
       reason,
     };

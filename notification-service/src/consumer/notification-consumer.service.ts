@@ -676,8 +676,15 @@ export class NotificationConsumerService {
       !payload.shopId ||
       !payload.action
     ) {
+      // Redact PII (sellerEmail/sellerName) khỏi log — AGENTS.md cấm log email
+      // plain-text. Giữ field cấu trúc để debug lý do poison.
+      const safePayload = {
+        ...payload,
+        sellerEmail: payload.sellerEmail ? "[redacted]" : null,
+        sellerName: payload.sellerName ? "[redacted]" : null,
+      };
       throw new PoisonPayloadError(
-        `product.moderated payload thiếu field: ${JSON.stringify(payload)}`,
+        `product.moderated payload thiếu field: ${JSON.stringify(safePayload)}`,
       );
     }
 
@@ -710,6 +717,24 @@ export class NotificationConsumerService {
       },
       manager,
     );
+
+    // part_02b: email take-down best-effort, FIRE-AND-FORGET — CHỈ khi taken_down
+    // và có email. Không await → notif đã commit, WS emit chạy ngay; email tự nuốt
+    // lỗi (mirror handlePayoutStatusChanged).
+    if (isTakenDown && payload.sellerEmail) {
+      void this.mailService
+        .sendProductModeratedEmail(
+          { email: payload.sellerEmail, username: payload.sellerName ?? "" },
+          payload.productName,
+          payload.productId,
+          payload.reason,
+        )
+        .catch((error) => {
+          this.logger.error(
+            `[product.moderated mail] Gửi thất bại (product ${payload.productId}): ${error?.message ?? error}`,
+          );
+        });
+    }
 
     return [
       toShop(payload.shopId, WS_EVENTS.PRODUCT_MODERATED, {

@@ -700,6 +700,25 @@ export class ShopsService {
     return map;
   }
 
+  // lấy liên hệ seller (id + email + tên) của 1 shop để enrich outbox
+  // 'product.moderated' — consumer (DB#2) dùng gửi email take-down mà không tra
+  // shop/user. Method chuyên trách: tách việc lấy PII khỏi query moderation, KHÔNG
+  // nới relations của findOne product. Shop không tồn tại / không có seller → null.
+  async getSellerContactByShopId(
+    shopId: string,
+  ): Promise<{ id: string; email: string; name: string } | null> {
+    const shop = await this.shopsRepository.findOne({
+      where: { id: shopId },
+      relations: ['seller'],
+      select: { id: true, seller: { id: true, email: true, username: true } },
+    });
+    if (!shop?.seller) {
+      return null;
+    }
+    const seller = shop.seller;
+    return { id: seller.id, email: seller.email, name: seller.username };
+  }
+
   async findUnverifiedShops(limit = 20): Promise<Shop[]> {
     const findOptions = {
       where: { is_coordinates_verified: false },
