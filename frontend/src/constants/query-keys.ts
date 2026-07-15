@@ -46,6 +46,12 @@ export const productKeys = {
     [QUERY_KEYS.SELLER_INVENTORY, params ?? {}] as const,
 };
 
+export const adminProductKeys = {
+  all: ['admin-products'] as const,
+  list: (page: number, q?: string, status?: string, shopId?: string) =>
+    [...adminProductKeys.all, 'list', { page, q, status, shopId }] as const,
+};
+
 export const categoryKeys = {
   all: [QUERY_KEYS.CATEGORIES] as const,
   detail: (id: string) => [QUERY_KEYS.CATEGORY_DETAIL, id] as const,

@@ -20,6 +20,7 @@ import categoriesApiRequest from '@/apiRequests/products/categories'; // API li�
 import { CategoryResponseType } from '@/schemaValidations/products/categories.schema';
 import { getErrorMessage } from '@/lib/http';
 import { ProductResponseType } from '@/schemaValidations/products/products.schema';
+import { ProductModerationBanner } from '@/components/products/product-moderation-banner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -199,6 +200,8 @@ export default function EditProductPage() {
   const [isLoadingProduct, setIsLoadingProduct] = useState(true); // Load thông tin sản phẩm ban đầu
   const [isSubmitting, setIsSubmitting] = useState(false); // Đang submit form
   const [errors, setErrors] = useState<FormErrors>({}); // Chứa thông tin lỗi validate form
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [moderationReason, setModerationReason] = useState<string | null>(null);
 
   // --- CÁC TRẠNG THÁI LIÊN QUAN ĐẾN DANH MỤC ---
   const [categories, setCategories] = useState<CategoryResponseType[]>([]); // Toàn bộ danh mục hệ thống
@@ -272,6 +275,10 @@ export default function EditProductPage() {
         setCategories(allCategories);
 
         const product = productRes.data;
+        if (product) {
+          setIsSuspended(product.status === 'suspended');
+          setModerationReason(product.moderation_reason ?? null);
+        }
         prefillForm(product, allCategories); // Đổ dữ liệu cũ vào form nhập liệu
       } catch (error: any) {
         const msg = getErrorMessage(error);
@@ -763,6 +770,8 @@ export default function EditProductPage() {
         </div>
       </div>
 
+      {isSuspended && <ProductModerationBanner reason={moderationReason} />}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Form: Thông tin cơ bản */}
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
@@ -1209,7 +1218,12 @@ export default function EditProductPage() {
             </button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSuspended}
+              title={
+                isSuspended
+                  ? 'Sản phẩm đang bị gỡ — không thể chỉnh sửa'
+                  : undefined
+              }
               className="flex items-center gap-1.5 px-6 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg font-bold shadow-md shadow-violet-500/25 hover:shadow-violet-500/35 transition-all text-xs hover:scale-[1.01] active:scale-[0.99]"
             >
               {isSubmitting ? (

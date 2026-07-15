@@ -94,6 +94,30 @@ export function renderNotificationData(
           Cửa hàng <B>{shopNameValReg}</B> vừa đăng ký và đang chờ duyệt.
         </>
       );
+    case 'product_moderated': {
+      const isTakenDown = data.action === 'taken_down';
+      const productNameVal = data.productName;
+      const reasonVal = data.reason;
+      if (isTakenDown) {
+        return (
+          <>
+            Sản phẩm <B>{productNameVal}</B> đã bị <B>gỡ</B> khỏi sàn do vi phạm
+            chính sách.
+            {reasonVal && (
+              <span className="block mt-1 text-xs text-rose-500 font-medium italic">
+                Lý do: {reasonVal}
+              </span>
+            )}
+          </>
+        );
+      }
+      return (
+        <>
+          Sản phẩm <B>{productNameVal}</B> đã được <B>khôi phục</B> và bán trở
+          lại.
+        </>
+      );
+    }
     default:
       return null;
   }

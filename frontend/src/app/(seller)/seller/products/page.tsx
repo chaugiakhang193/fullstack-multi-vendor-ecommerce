@@ -393,17 +393,23 @@ export default function SellerProductsPage() {
                         </span>
                       </td>
 
-                      {/* Cột 7: Nhãn trạng thái tồn kho (Hết hàng / Còn hàng) */}
+                      {/* Cột 7: Trạng thái moderation ưu tiên, sau đó tồn kho */}
                       <td className="p-6 text-center">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                            isOutOfStock
-                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                          }`}
-                        >
-                          {isOutOfStock ? 'Hết hàng' : 'Còn hàng'}
-                        </span>
+                        {product.status === 'suspended' ? (
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                            Đã bị gỡ
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                              isOutOfStock
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                            }`}
+                          >
+                            {isOutOfStock ? 'Hết hàng' : 'Còn hàng'}
+                          </span>
+                        )}
                       </td>
 
                       {/* Cột 8: Nút bật/tắt (Toggle) trạng thái ẩn hoặc hiện sản phẩm ngoài trang chủ cửa hàng */}
@@ -435,15 +441,34 @@ export default function SellerProductsPage() {
                       {/* Cột 9: Các thao tác sửa và xóa sản phẩm */}
                       <td className="p-6">
                         <div className="flex items-center justify-center space-x-2">
-                          {/* Nút sửa dẫn đến trang sửa chi tiết sản phẩm qua ID */}
-                          <Link href={`/seller/products/${product.id}/edit`}>
+                          {/* Xem chi tiết sản phẩm — luôn có */}
+                          <Link href={`/seller/products/${product.id}`}>
                             <button
-                              className="p-2 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
-                              title="Chỉnh sửa sản phẩm"
+                              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 transition"
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="h-5 w-5" />
+                            </button>
+                          </Link>
+                          {/* Nút sửa: disabled khi suspended; active → sửa bình thường */}
+                          {product.status === 'suspended' ? (
+                            <button
+                              disabled
+                              className="p-2 rounded-lg text-zinc-300 cursor-not-allowed dark:text-zinc-700"
+                              title="Sản phẩm bị gỡ — không thể sửa (bấm Xem để biết lý do)"
                             >
                               <Edit className="h-5 w-5" />
                             </button>
-                          </Link>
+                          ) : (
+                            <Link href={`/seller/products/${product.id}/edit`}>
+                              <button
+                                className="p-2 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-950 text-violet-600 dark:text-violet-400 transition"
+                                title="Chỉnh sửa sản phẩm"
+                              >
+                                <Edit className="h-5 w-5" />
+                              </button>
+                            </Link>
+                          )}
                           {/* Nút xóa sản phẩm, nhấn vào sẽ kích hoạt state deletingProduct để mở Dialog xác nhận */}
                           <button
                             onClick={() => setDeletingProduct(product)}

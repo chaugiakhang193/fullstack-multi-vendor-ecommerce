@@ -36,6 +36,7 @@ const WS_PAYOUT_CREATED = 'payout.created';
 const WS_SHOP_REGISTERED = 'shop.registered';
 const WS_RETURN_REQUESTED = 'return.requested';
 const WS_RETURN_STATUS_CHANGED = 'return.status_changed';
+const WS_PRODUCT_MODERATED = 'product.moderated';
 
 interface OrderNewPayload {
   orderId: string;
@@ -93,6 +94,12 @@ interface ReturnStatusChangedWsPayload {
   status: string;
   message: string;
 }
+interface ProductModeratedWsPayload {
+  productId: string;
+  productName: string;
+  action: string;
+  message: string;
+}
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
 const getNotificationHref = (
@@ -128,6 +135,12 @@ const getNotificationHref = (
     case 'shop_registered':
       const adminSellersUrl = '/admin/sellers';
       return adminSellersUrl;
+    case 'product_moderated':
+      const prodIdVal = d.productId;
+      const targetHref = prodIdVal
+        ? `/seller/products/${prodIdVal}`
+        : '/seller/products';
+      return targetHref;
     default:
       return role === UserRole.SELLER ? '/seller/orders' : '/profile/orders';
   }
@@ -315,6 +328,28 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       });
     };
 
+    const onProductModerated = (payload: ProductModeratedWsPayload) => {
+      increment();
+      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
+      const invalidateNotifOptions = { queryKey: notificationQueryKey };
+      queryClient.invalidateQueries(invalidateNotifOptions);
+
+      const productIdVal = payload.productId;
+      const productNameVal = payload.productName;
+      const messageVal = payload.message;
+      const hrefVal = `/seller/products/${productIdVal}`;
+      const actionHandler = () => {
+        router.push(hrefVal);
+      };
+      const toastLabelVal = 'Xem';
+      const toastOptions = {
+        description: `Sản phẩm: ${productNameVal}`,
+        action: { label: toastLabelVal, onClick: actionHandler },
+      };
+
+      toast.info(messageVal, toastOptions);
+    };
+
     socket.on(WS_ORDER_NEW, onOrderNew);
     socket.on(WS_ORDER_STATUS_CHANGED, onStatusChanged);
     socket.on(WS_REVIEW_NEW, onReviewNew);
@@ -324,6 +359,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     socket.on(WS_SHOP_REGISTERED, onShopRegistered);
     socket.on(WS_RETURN_REQUESTED, onReturnRequested);
     socket.on(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
+    socket.on(WS_PRODUCT_MODERATED, onProductModerated);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
@@ -335,6 +371,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       socket.off(WS_SHOP_REGISTERED, onShopRegistered);
       socket.off(WS_RETURN_REQUESTED, onReturnRequested);
       socket.off(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
+      socket.off(WS_PRODUCT_MODERATED, onProductModerated);
     };
   }, [socket, role, router, queryClient, increment]);
 

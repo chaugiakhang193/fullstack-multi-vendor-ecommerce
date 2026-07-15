@@ -90,6 +90,13 @@ export const NotificationData = z.discriminatedUnion(discriminatorKey, [
     shopId: z.string().uuid().optional(),
     shopName: z.string(),
   }),
+  z.object({
+    kind: z.literal('product_moderated'),
+    productId: z.string().uuid().optional(),
+    productName: z.string(),
+    action: z.enum(['taken_down', 'restored']),
+    reason: z.string().nullable().optional(),
+  }),
 ]);
 
 export const NotificationItem = z.object({

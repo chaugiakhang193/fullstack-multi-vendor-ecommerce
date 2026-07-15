@@ -1,6 +1,7 @@
 import z from 'zod';
 import { paginated } from '../common.schema';
 import { PRODUCT_LIMITS } from '@/constants/limits.generated';
+import { ProductStatus } from '@/constants/enum.generated';
 import type { components } from '@/lib/api/api-schema';
 import type { ApiEnvelope } from '@/lib/http';
 
@@ -9,6 +10,7 @@ type CreateProductVariantDto = components['schemas']['CreateProductVariantDto'];
 type UpdateProductVariantDto = components['schemas']['UpdateProductVariantDto'];
 type CreateProductSwaggerDto = components['schemas']['CreateProductSwaggerDto'];
 type UpdateProductSwaggerDto = components['schemas']['UpdateProductSwaggerDto'];
+type ModerateProductDto = components['schemas']['ModerateProductDto'];
 
 export type UpdateProductVariantFormType = UpdateProductVariantDto & {
   name: string;
@@ -215,7 +217,8 @@ export const ProductResponse = z.object({
   has_variants: z.boolean(),
   is_hidden: z.boolean(),
   is_featured: z.boolean(),
-  status: z.enum(['active', 'deleted']),
+  status: z.enum(['active', 'deleted', 'suspended']),
+  moderation_reason: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
   avg_rating: z.coerce.number().optional().nullable(),
@@ -223,6 +226,34 @@ export const ProductResponse = z.object({
 });
 
 export const ProductListData = paginated(ProductResponse);
+
+// ===== Admin moderation =====
+
+// Item cho bảng admin — entity Product + shop. price decimal(string) → coerce number.
+export const AdminProductItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  price: z.coerce.number(),
+  thumbnail_url: z.string().nullable().optional(),
+  status: z.nativeEnum(ProductStatus),
+  moderation_reason: z.string().nullable().optional(),
+  moderated_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  shop: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+});
+
+export const AdminProductListSchema = paginated(AdminProductItemSchema);
+
+// Body take-down — reason ≥5 (khớp ModerateProductDto BE, anchor compile-time).
+export const TakeDownProductBody = z
+  .object({
+    reason: z
+      .string()
+      .min(5, { message: 'Lý do phải có ít nhất 5 ký tự.' })
+      .max(500, { message: 'Lý do tối đa 500 ký tự.' }),
+  })
+  .strict() satisfies z.ZodType<ModerateProductDto, any, any>;
 
 // ==========================================
 // Types
@@ -246,3 +277,8 @@ export type ProductListResponseType = ApiEnvelope<
   z.TypeOf<typeof ProductListData>
 >;
 export type SingleProductResponseType = ApiEnvelope<ProductResponseType>;
+
+export type AdminProductItemType = z.TypeOf<typeof AdminProductItemSchema>;
+export type AdminProductListType = z.TypeOf<typeof AdminProductListSchema>;
+export type AdminProductListEnvelopeType = ApiEnvelope<AdminProductListType>;
+export type TakeDownProductBodyType = z.TypeOf<typeof TakeDownProductBody>;
