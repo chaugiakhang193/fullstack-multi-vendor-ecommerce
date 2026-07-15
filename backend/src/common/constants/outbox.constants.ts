@@ -1,4 +1,8 @@
-import { PayoutStatus, ReturnStatus } from '@/common/enums';
+import {
+  PayoutStatus,
+  ReturnStatus,
+  ProductModerationAction,
+} from '@/common/enums';
 // Event types cho Transactional Outbox pattern
 // Dùng chung giữa Orders module (writer) và Engagements Outbox Worker (reader)
 export const OUTBOX_EVENT_TYPES = {
@@ -12,6 +16,7 @@ export const OUTBOX_EVENT_TYPES = {
   SHOP_REGISTERED: 'shop.registered',
   RETURN_REQUESTED: 'return.requested',
   RETURN_STATUS_CHANGED: 'return.status_changed',
+  PRODUCT_MODERATED: 'product.moderated',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -113,4 +118,15 @@ export interface ReturnStatusChangedOutboxPayload {
   customerId: string; // người nhận thông báo
   status: ReturnStatus; // chỉ APPROVED | REJECTED | RECEIVED được emit
   sellerNote: string | null; // có giá trị khi status = REJECTED
+}
+
+// product.moderated — báo SELLER khi admin gỡ (taken_down) hoặc khôi phục (restored) sản phẩm.
+// sellerId enrich để consumer đọc thẳng; reason có giá trị khi taken_down.
+export interface ProductModeratedOutboxPayload {
+  productId: string;
+  productName: string;
+  shopId: string; // route WS toShop
+  sellerId: string | null; // enrich để consumer không tra shop
+  action: ProductModerationAction;
+  reason: string | null;
 }

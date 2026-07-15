@@ -68,6 +68,7 @@ export enum NotificationType {
   SHOP_REGISTERED = "shop.registered",
   RETURN_REQUESTED = "return.requested",
   RETURN_STATUS_CHANGED = "return.status_changed",
+  PRODUCT_MODERATED = "product.moderated",
 }
 
 export enum CartItemUnavailableReason {

@@ -59,6 +59,7 @@ const ALLOWLIST = [
   "OrderStatus",
   "PayoutStatus",
   "ReturnStatus",
+  "ProductModerationAction",
 ];
 
 /**
@@ -139,25 +140,27 @@ function genEnums() {
  */
 function copyWithRewrittenEnumImport(sourcePath, sourceBanner) {
   const raw = readFileSync(sourcePath, "utf8");
-  const lines = raw.split("\n");
 
-  const rewritten = lines.filter((line) => {
-    // Bỏ dòng import gốc trỏ tới '@/common/enums' — sẽ chèn lại bằng import mới.
-    return !/from ['"]@\/common\/enums['"]/.test(line);
-  });
-
+  // Bắt nguyên câu import '@/common/enums' — kể cả dạng multiline (prettier hay
+  // wrap import dài xuống nhiều dòng) — để xoá cả câu, tránh bỏ sót dòng khi lọc
+  // theo từng dòng. `[^}]+` không vượt qua '}' nên chỉ nuốt đúng cặp braces enum.
   const enumImportRegex =
     /import\s*{([^}]+)}\s*from\s*['"]@\/common\/enums['"];?/;
   const match = raw.match(enumImportRegex);
-  const importedNames = match ? match[1].trim() : "";
+  const importedNames = match
+    ? match[1]
+        .replace(/\s+/g, " ")
+        .replace(/,\s*$/, "")
+        .trim()
+    : "";
 
+  // Xoá nguyên câu import gốc khỏi body; chèn lại import trỏ './enums.generated'.
+  const body = raw.replace(enumImportRegex, "");
   const newImport = importedNames
     ? `import { ${importedNames} } from './enums.generated';\n`
     : "";
 
-  return (
-    sourceBanner + "\n" + newImport + rewritten.join("\n").replace(/^\n+/, "")
-  );
+  return sourceBanner + "\n" + newImport + body.replace(/^\n+/, "");
 }
 
 function genOutboxConstants() {
@@ -234,17 +237,17 @@ function genNotificationEntity() {
 }
 
 // ---------------------------------------------------------------------------
-// 5. ws-events.generated.ts — notification.events.ts KHÔNG import gì ngoài
-//    (self-contained: WS_EVENTS, payload interfaces, WsPayloadMap, WsEventName,
-//    room builder, WsEmit, factory toUser/toShop/toAdmins) → copy thuần,
-//    không cần rewrite import (P5-3).
+// 5. ws-events.generated.ts — WS_EVENTS, payload interfaces, WsPayloadMap,
+//    WsEventName, room builder, WsEmit, factory toUser/toShop/toAdmins. Trước
+//    self-contained (không import gì), nhưng payload có thể dùng enum discriminant
+//    (vd ProductModerationAction) → dùng chung copyWithRewrittenEnumImport để viết
+//    lại import '@/common/enums' → './enums.generated'. File không import enum thì
+//    behaviour y hệt copy thuần (importedNames rỗng).
 // ---------------------------------------------------------------------------
 function genWsEvents() {
-  const raw = readFileSync(BE_WS_EVENTS, "utf8");
-  return (
-    banner("backend/src/modules/engagements/notification.events.ts") +
-    "\n" +
-    raw
+  return copyWithRewrittenEnumImport(
+    BE_WS_EVENTS,
+    banner("backend/src/modules/engagements/notification.events.ts"),
   );
 }
 

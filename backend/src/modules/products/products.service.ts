@@ -42,6 +42,7 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 import { Category } from '@/modules/products/entities/category.entity';
 import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
 import { User } from '@/modules/users/entities/user.entity';
+import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 
 // Services
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';
@@ -49,12 +50,24 @@ import { ShopsService } from '@/modules/shops/shops.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 
 // Enums & Interfaces
-import { AccountStatus, AssetType, ProductStatus } from '@/common/enums';
+import {
+  AccountStatus,
+  AssetType,
+  ProductStatus,
+  OutboxEventStatus,
+  ProductModerationAction,
+} from '@/common/enums';
 import {
   UPLOAD_LIMITS,
   CLOUDINARY_FOLDER,
 } from '@/common/constants/upload.constant';
 import { IUser } from '@/interface/user.interface';
+
+// Constants
+import {
+  OUTBOX_EVENT_TYPES,
+  ProductModeratedOutboxPayload,
+} from '@/common/constants/outbox.constants';
 
 @Injectable()
 export class ProductsService {
@@ -411,75 +424,165 @@ export class ProductsService {
   }
 
   // part_02 sẽ nhét emit outbox 'product.moderated' (action=taken_down) SAU khi
-  // save, trong cùng transaction — chừa seam ở đây.
+  // save, trong cùng transaction.
   async takeDown(
     adminId: string,
     productId: string,
     reason: string,
   ): Promise<Product> {
-    const findConditions = {
-      where: { id: productId },
-      relations: ['shop'],
-    };
-    const product = await this.productsRepository.findOne(findConditions);
-    if (!product) {
-      const notFoundMsg = 'Không tìm thấy sản phẩm';
-      throw new NotFoundException(notFoundMsg);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const findConditions = {
+        where: { id: productId },
+        relations: ['shop'],
+      };
+      const manager = queryRunner.manager;
+      const product = await manager.findOne(Product, findConditions);
+      if (!product) {
+        const notFoundMsg = 'Không tìm thấy sản phẩm';
+        throw new NotFoundException(notFoundMsg);
+      }
+
+      const isDeleted = product.status === ProductStatus.DELETED;
+      if (isDeleted) {
+        const badRequestMsg = 'Sản phẩm đã bị xóa, không thể gỡ.';
+        throw new BadRequestException(badRequestMsg);
+      }
+
+      const isSuspended = product.status === ProductStatus.SUSPENDED;
+      if (isSuspended) {
+        const badRequestMsg = 'Sản phẩm đã bị gỡ trước đó.';
+        throw new BadRequestException(badRequestMsg);
+      }
+
+      product.status = ProductStatus.SUSPENDED;
+      product.moderation_reason = reason;
+      const now = new Date();
+      product.moderated_at = now;
+      const adminUser = { id: adminId } as User;
+      product.moderated_by = adminUser;
+
+      const savedProduct = await manager.save(Product, product);
+
+      // Transactional outbox: ghi event 'product.moderated' cùng tx với đổi status.
+      const takenDownAction = ProductModerationAction.TAKEN_DOWN;
+      await this.emitProductModerated(
+        manager,
+        savedProduct,
+        takenDownAction,
+        reason,
+      );
+
+      await queryRunner.commitTransaction();
+      return savedProduct;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const isKnown =
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException;
+      if (isKnown) {
+        throw error;
+      }
+      const errorPrefix = '[ProductsService.takeDown] Error:';
+      console.error(errorPrefix, error);
+      const serverErrorMsg = 'Đã xảy ra lỗi khi gỡ sản phẩm';
+      throw new InternalServerErrorException(serverErrorMsg);
+    } finally {
+      await queryRunner.release();
     }
-
-    const isDeleted = product.status === ProductStatus.DELETED;
-    if (isDeleted) {
-      const badRequestMsg = 'Sản phẩm đã bị xóa, không thể gỡ.';
-      throw new BadRequestException(badRequestMsg);
-    }
-
-    const isSuspended = product.status === ProductStatus.SUSPENDED;
-    if (isSuspended) {
-      const badRequestMsg = 'Sản phẩm đã bị gỡ trước đó.';
-      throw new BadRequestException(badRequestMsg);
-    }
-
-    product.status = ProductStatus.SUSPENDED;
-    product.moderation_reason = reason;
-
-    const now = new Date();
-    product.moderated_at = now;
-
-    const adminUser = { id: adminId } as User;
-    product.moderated_by = adminUser;
-
-    const savedProduct = await this.productsRepository.save(product);
-    return savedProduct;
   }
 
   async restore(adminId: string, productId: string): Promise<Product> {
-    const findConditions = {
-      where: { id: productId },
-      relations: ['shop'],
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const findConditions = {
+        where: { id: productId },
+        relations: ['shop'],
+      };
+      const manager = queryRunner.manager;
+      const product = await manager.findOne(Product, findConditions);
+      if (!product) {
+        const notFoundMsg = 'Không tìm thấy sản phẩm';
+        throw new NotFoundException(notFoundMsg);
+      }
+
+      const isNotSuspended = product.status !== ProductStatus.SUSPENDED;
+      if (isNotSuspended) {
+        const badRequestMsg = 'Chỉ khôi phục được sản phẩm đang bị gỡ.';
+        throw new BadRequestException(badRequestMsg);
+      }
+
+      product.status = ProductStatus.ACTIVE;
+      product.moderation_reason = null;
+      const now = new Date();
+      product.moderated_at = now;
+      const adminUser = { id: adminId } as User;
+      product.moderated_by = adminUser;
+
+      const savedProduct = await manager.save(Product, product);
+
+      // Transactional outbox: báo seller sản phẩm được khôi phục (reason=null).
+      const restoredAction = ProductModerationAction.RESTORED;
+      const noReason = null;
+      await this.emitProductModerated(
+        manager,
+        savedProduct,
+        restoredAction,
+        noReason,
+      );
+
+      await queryRunner.commitTransaction();
+      return savedProduct;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const isKnown =
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException;
+      if (isKnown) {
+        throw error;
+      }
+      const errorPrefix = '[ProductsService.restore] Error:';
+      console.error(errorPrefix, error);
+      const serverErrorMsg = 'Đã xảy ra lỗi khi khôi phục sản phẩm';
+      throw new InternalServerErrorException(serverErrorMsg);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // Ghi outbox 'product.moderated' trong cùng transaction moderation (transactional
+  // outbox). Enrich sellerId để NS (DB#2, không có bảng shop) đọc thẳng từ payload —
+  // mirror return.requested. Relay poll 8s sẽ publish; NS tạo notif + WS toShop cho seller.
+  private async emitProductModerated(
+    manager: EntityManager,
+    product: Product,
+    action: ProductModerationAction,
+    reason: string | null,
+  ): Promise<void> {
+    const shopId = product.shop?.id ?? '';
+    const shopIdList = shopId ? [shopId] : [];
+    const sellerMap = await this.shopsService.getSellerIdsByShopIds(shopIdList);
+    const sellerId = sellerMap[shopId] ?? null;
+
+    const payload: ProductModeratedOutboxPayload = {
+      productId: product.id,
+      productName: product.name,
+      shopId,
+      sellerId,
+      action,
+      reason,
     };
-    const product = await this.productsRepository.findOne(findConditions);
-    if (!product) {
-      const notFoundMsg = 'Không tìm thấy sản phẩm';
-      throw new NotFoundException(notFoundMsg);
-    }
-
-    const isNotSuspended = product.status !== ProductStatus.SUSPENDED;
-    if (isNotSuspended) {
-      const badRequestMsg = 'Chỉ khôi phục được sản phẩm đang bị gỡ.';
-      throw new BadRequestException(badRequestMsg);
-    }
-
-    product.status = ProductStatus.ACTIVE;
-    product.moderation_reason = null;
-
-    const now = new Date();
-    product.moderated_at = now;
-
-    const adminUser = { id: adminId } as User;
-    product.moderated_by = adminUser;
-
-    const savedProduct = await this.productsRepository.save(product);
-    return savedProduct;
+    const eventData = {
+      event_type: OUTBOX_EVENT_TYPES.PRODUCT_MODERATED,
+      payload,
+      status: OutboxEventStatus.PENDING,
+    };
+    const outboxEvent = manager.create(OutboxEvent, eventData);
+    await manager.save(OutboxEvent, outboxEvent);
   }
 
   // ==========================================

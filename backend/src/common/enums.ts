@@ -96,6 +96,16 @@ export enum NotificationType {
   SHOP_REGISTERED = 'shop.registered',
   RETURN_REQUESTED = 'return.requested',
   RETURN_STATUS_CHANGED = 'return.status_changed',
+  PRODUCT_MODERATED = 'product.moderated',
+}
+
+// Hành động kiểm duyệt sản phẩm của admin — dùng làm discriminant cho event
+// 'product.moderated' (outbox payload, notification.data, WS payload). Enum thay
+// literal 'taken_down' | 'restored' để 1 nguồn sự thật, mirror cách ReturnStatus
+// làm discriminant cho 'return.status_changed'.
+export enum ProductModerationAction {
+  TAKEN_DOWN = 'taken_down',
+  RESTORED = 'restored',
 }
 
 export enum PayoutStatus {

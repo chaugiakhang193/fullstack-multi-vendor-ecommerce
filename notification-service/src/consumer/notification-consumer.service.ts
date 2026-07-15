@@ -9,6 +9,7 @@ import {
   NotificationType,
   PayoutStatus,
   ReturnStatus,
+  ProductModerationAction,
 } from "@/contracts/enums.generated";
 import {
   OUTBOX_EVENT_TYPES,
@@ -22,6 +23,7 @@ import {
   ShopRegisteredOutboxPayload,
   ReturnRequestedOutboxPayload,
   ReturnStatusChangedOutboxPayload,
+  ProductModeratedOutboxPayload,
 } from "@/contracts/outbox.constants.generated";
 
 // Internal
@@ -110,6 +112,11 @@ export class NotificationConsumerService {
       case OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED:
         return this.handleReturnStatusChanged(
           payload as ReturnStatusChangedOutboxPayload,
+          manager,
+        );
+      case OUTBOX_EVENT_TYPES.PRODUCT_MODERATED:
+        return this.handleProductModerated(
+          payload as ProductModeratedOutboxPayload,
           manager,
         );
       default:
@@ -651,6 +658,64 @@ export class NotificationConsumerService {
         subOrderId: payload.subOrderId,
         orderNumber: payload.orderNumber,
         status: payload.status,
+        message: content,
+      }),
+    ];
+  }
+
+  // ==========================================
+  // HANDLER: product.moderated (báo seller)
+  // ==========================================
+  private async handleProductModerated(
+    payload: ProductModeratedOutboxPayload,
+    manager: EntityManager,
+  ): Promise<WsEmit[]> {
+    if (
+      !payload.productId ||
+      !payload.productName ||
+      !payload.shopId ||
+      !payload.action
+    ) {
+      throw new PoisonPayloadError(
+        `product.moderated payload thiếu field: ${JSON.stringify(payload)}`,
+      );
+    }
+
+    if (!payload.sellerId) {
+      this.logger.warn(
+        `[NotificationConsumer] Shop ${payload.shopId} không có seller trong payload — bỏ product.moderated.`,
+      );
+      return [];
+    }
+
+    const isTakenDown = payload.action === ProductModerationAction.TAKEN_DOWN;
+    const title = isTakenDown ? "Sản phẩm bị gỡ" : "Sản phẩm được khôi phục";
+    const content = isTakenDown
+      ? `Sản phẩm "${payload.productName}" đã bị gỡ do vi phạm.${payload.reason ? ` Lý do: ${payload.reason}` : ""}`
+      : `Sản phẩm "${payload.productName}" đã được khôi phục và bán trở lại.`;
+
+    await this.notificationService.create(
+      {
+        userId: payload.sellerId,
+        type: NotificationType.PRODUCT_MODERATED,
+        title,
+        content,
+        data: {
+          kind: "product_moderated",
+          productId: payload.productId,
+          productName: payload.productName,
+          action: payload.action,
+          reason: payload.reason,
+        },
+      },
+      manager,
+    );
+
+    return [
+      toShop(payload.shopId, WS_EVENTS.PRODUCT_MODERATED, {
+        productId: payload.productId,
+        productName: payload.productName,
+        action: payload.action,
         message: content,
       }),
     ];

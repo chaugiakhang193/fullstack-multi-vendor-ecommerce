@@ -1,7 +1,7 @@
 // AUTO-GENERATED bởi notification-service/scripts/gen-contracts.mjs — DO NOT EDIT.
 // Nguồn: backend/src/modules/engagements/notification.data.ts. Chạy lại: npm run gen-contracts.
 
-import { OrderStatus, PayoutStatus, ReturnStatus } from './enums.generated';
+import { OrderStatus, PayoutStatus, ReturnStatus, ProductModerationAction } from './enums.generated';
 // Dữ liệu cấu trúc cho 1 notification. FE render câu hiển thị (localized + in đậm token)
 // TỪ ĐÂY thay vì backend bake sẵn câu chữ. Cột `content` (text) vẫn giữ làm fallback cho
 // notification cũ (trước migration) và cho các kênh khác (email...) nếu có sau này.
@@ -55,4 +55,11 @@ export type NotificationData =
       orderNumber: string;
       status: ReturnStatus;
       sellerNote?: string | null;
+    }
+  | {
+      kind: 'product_moderated';
+      productId: string;
+      productName: string;
+      action: ProductModerationAction;
+      reason?: string | null;
     };

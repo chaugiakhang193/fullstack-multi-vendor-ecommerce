@@ -33,6 +33,7 @@ const BINDING_PATTERNS = [
   "payout.*",
   "return.*",
   "shop.*",
+  "product.*",
 ];
 
 // Retry/DLQ app-driven (P4-5). DLX là direct exchange riêng — consumer TỰ

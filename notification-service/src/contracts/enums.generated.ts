@@ -11,6 +11,7 @@ export enum NotificationType {
   SHOP_REGISTERED = "shop.registered",
   RETURN_REQUESTED = "return.requested",
   RETURN_STATUS_CHANGED = "return.status_changed",
+  PRODUCT_MODERATED = "product.moderated",
 }
 
 export enum OrderStatus {
@@ -36,4 +37,9 @@ export enum ReturnStatus {
   REJECTED = "rejected",
   RECEIVED = "received",
   CANCELLED = "cancelled",
+}
+
+export enum ProductModerationAction {
+  TAKEN_DOWN = "taken_down",
+  RESTORED = "restored",
 }

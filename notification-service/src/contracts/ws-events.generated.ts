@@ -1,9 +1,12 @@
 // AUTO-GENERATED bởi notification-service/scripts/gen-contracts.mjs — DO NOT EDIT.
 // Nguồn: backend/src/modules/engagements/notification.events.ts. Chạy lại: npm run gen-contracts.
 
+import { ProductModerationAction } from './enums.generated';
 // Hợp đồng WebSocket giữa OutboxWorker (phát) và frontend (nhận qua socket).
 // Map event name → payload shape: phát payload sai shape so với event là FAIL COMPILE.
 // Thêm event mới chỉ cần khai báo tại đây, gateway và worker tự được canh kiểu theo map này.
+
+
 
 export const WS_EVENTS = {
   ORDER_NEW: 'order.new',
@@ -15,6 +18,7 @@ export const WS_EVENTS = {
   SHOP_REGISTERED: 'shop.registered',
   RETURN_REQUESTED: 'return.requested',
   RETURN_STATUS_CHANGED: 'return.status_changed',
+  PRODUCT_MODERATED: 'product.moderated', // báo seller admin gỡ/khôi phục sản phẩm
 } as const;
 
 // Payload event 'order.new' — báo Seller có đơn hàng mới.
@@ -90,6 +94,14 @@ export interface ReturnStatusChangedWsPayload {
   message: string;
 }
 
+// Payload product.moderated — báo seller admin gỡ/khôi phục sản phẩm
+export interface ProductModeratedWsPayload {
+  productId: string;
+  productName: string;
+  action: ProductModerationAction;
+  message: string;
+}
+
 // Map tên event → kiểu payload. Nguồn sự thật duy nhất cho mọi event WebSocket.
 export type WsPayloadMap = {
   [WS_EVENTS.ORDER_NEW]: OrderNewWsPayload;
@@ -101,6 +113,7 @@ export type WsPayloadMap = {
   [WS_EVENTS.SHOP_REGISTERED]: ShopRegisteredWsPayload;
   [WS_EVENTS.RETURN_REQUESTED]: ReturnRequestedWsPayload;
   [WS_EVENTS.RETURN_STATUS_CHANGED]: ReturnStatusChangedWsPayload;
+  [WS_EVENTS.PRODUCT_MODERATED]: ProductModeratedWsPayload;
 };
 
 export type WsEventName = keyof WsPayloadMap;
