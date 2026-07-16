@@ -137,6 +137,7 @@ export class ProductsService {
       thumbnail?: Express.Multer.File[];
       general_gallery?: Express.Multer.File[];
       variant_images?: Express.Multer.File[];
+      color_images?: Express.Multer.File[];
     },
     user: IUser,
   ) {
@@ -179,6 +180,11 @@ export class ProductsService {
     }
 
     const hasVariants = createProductDto.has_variants;
+    // Model màu: ảnh gom theo màu qua colorImages. Fallback protocol cũ
+    // (per-variant imageCount + variant_images) khi colorImages vắng mặt (back-compat).
+    const usingColorModel =
+      Array.isArray(createProductDto.colorImages) &&
+      createProductDto.colorImages.length > 0;
     if (hasVariants) {
       const hasNoVariants =
         !createProductDto.variants || createProductDto.variants.length === 0;
@@ -188,18 +194,31 @@ export class ProductsService {
         throw new BadRequestException(missingVariantsMsg);
       }
 
-      const sumImagesFn = (sum: number, v: { imageCount: number }) =>
-        sum + v.imageCount;
-      const totalExpectedImages = createProductDto.variants!.reduce(
-        sumImagesFn,
-        0,
-      );
-      const actualImages = files.variant_images?.length || 0;
+      if (usingColorModel) {
+        const totalColorImages = createProductDto.colorImages!.reduce(
+          (sum, g) => sum + g.imageCount,
+          0,
+        );
+        const actualColorImages = files.color_images?.length || 0;
+        const isColorMismatch = totalColorImages !== actualColorImages;
+        if (isColorMismatch) {
+          const mismatchMsg = `Số ảnh màu không khớp (Khai báo: ${totalColorImages}, Thực tế: ${actualColorImages})`;
+          throw new BadRequestException(mismatchMsg);
+        }
+      } else {
+        const sumImagesFn = (sum: number, v: { imageCount?: number }) =>
+          sum + (v.imageCount || 0);
+        const totalExpectedImages = createProductDto.variants!.reduce(
+          sumImagesFn,
+          0,
+        );
+        const actualImages = files.variant_images?.length || 0;
 
-      const isImagesCountMismatch = totalExpectedImages !== actualImages;
-      if (isImagesCountMismatch) {
-        const mismatchMsg = `Số lượng ảnh biến thể không khớp (Khai báo: ${totalExpectedImages}, Thực tế: ${actualImages})`;
-        throw new BadRequestException(mismatchMsg);
+        const isImagesCountMismatch = totalExpectedImages !== actualImages;
+        if (isImagesCountMismatch) {
+          const mismatchMsg = `Số lượng ảnh biến thể không khớp (Khai báo: ${totalExpectedImages}, Thực tế: ${actualImages})`;
+          throw new BadRequestException(mismatchMsg);
+        }
       }
     }
 
@@ -243,6 +262,29 @@ export class ProductsService {
       const mapAssetUrlFn = (asset: { url: string }) => asset.url;
       const galleryUrls = galleryAssets.map(mapAssetUrlFn);
 
+      // Upload ảnh theo MÀU → color_images map. Nguồn sự thật ảnh biến thể (model C-normalized).
+      const colorImagesMap: Record<string, string[]> = {};
+      if (usingColorModel) {
+        let colorOffset = 0;
+        for (const group of createProductDto.colorImages!) {
+          const nextOffset = colorOffset + group.imageCount;
+          const groupFiles = (files.color_images || []).slice(
+            colorOffset,
+            nextOffset,
+          );
+          colorOffset = nextOffset;
+          const groupAssets = await this.cloudinaryService.uploadMultipleFiles(
+            groupFiles,
+            CLOUDINARY_FOLDER.PRODUCT_VARIANTS,
+            userSub,
+            AssetType.PRODUCT_VARIANT_IMAGE,
+            shopId,
+            uploadedAssets,
+          );
+          colorImagesMap[group.color] = groupAssets.map(mapAssetUrlFn);
+        }
+      }
+
       const productSlug = generateSlug(createProductDto.name);
       const initialStock = createProductDto.stock_quantity || 0;
 
@@ -255,6 +297,7 @@ export class ProductsService {
         shop,
         thumbnail_url: thumbnailResult.url,
         gallery: galleryUrls,
+        color_images: usingColorModel ? colorImagesMap : null,
         slug: productSlug,
         sku: createProductDto.sku,
         weight: createProductDto.weight,
@@ -274,29 +317,32 @@ export class ProductsService {
         const variantsToSave: ProductVariant[] = [];
 
         for (const variantDto of createProductDto.variants!) {
-          // Lấy các file ảnh thuộc về biến thể này
-          const nextOffset = imageOffset + variantDto.imageCount;
-          const variantFiles = (files.variant_images || []).slice(
-            imageOffset,
-            nextOffset,
-          );
-          imageOffset = nextOffset;
-
-          // Upload ảnh của biến thể
-          const variantFolder = CLOUDINARY_FOLDER.PRODUCT_VARIANTS;
-          const assetTypeVariant = AssetType.PRODUCT_VARIANT_IMAGE;
-
-          const variantAssets =
-            await this.cloudinaryService.uploadMultipleFiles(
-              variantFiles,
-              variantFolder,
-              userSub,
-              assetTypeVariant,
-              shopId,
-              uploadedAssets,
+          // Model màu: KHÔNG ghi ảnh per-variant (ảnh nằm ở color_images → resolver bơm khi đọc).
+          // Model cũ (back-compat): slice + upload variant_images theo imageCount.
+          let variantUrls: string[] = [];
+          if (!usingColorModel) {
+            const nextOffset = imageOffset + (variantDto.imageCount || 0);
+            const variantFiles = (files.variant_images || []).slice(
+              imageOffset,
+              nextOffset,
             );
+            imageOffset = nextOffset;
 
-          const variantUrls = variantAssets.map(mapAssetUrlFn);
+            const variantFolder = CLOUDINARY_FOLDER.PRODUCT_VARIANTS;
+            const assetTypeVariant = AssetType.PRODUCT_VARIANT_IMAGE;
+
+            const variantAssets =
+              await this.cloudinaryService.uploadMultipleFiles(
+                variantFiles,
+                variantFolder,
+                userSub,
+                assetTypeVariant,
+                shopId,
+                uploadedAssets,
+              );
+
+            variantUrls = variantAssets.map(mapAssetUrlFn);
+          }
 
           const variantName = variantDto.name;
           const attributes =
@@ -829,6 +875,20 @@ export class ProductsService {
     return result;
   }
 
+  // Bơm ảnh biến thể từ color_images theo attributes.color (giữ contract variant.images).
+  // Legacy (color_images null / màu thiếu) → giữ variant.images cũ. Áp ở MỌI read site
+  // serialize variant.images (findOne detail + hydrateProductPage list).
+  private resolveVariantImages(product: Product): void {
+    const colorMap = product.color_images || {};
+    if (!product.variants) return;
+    for (const v of product.variants) {
+      const color = v.attributes?.color;
+      const fromColor =
+        color && colorMap[color]?.length ? colorMap[color] : null;
+      v.images = fromColor ?? v.images ?? [];
+    }
+  }
+
   async findOne(id: string, isPublic?: boolean) {
     const realId = extractId(id);
     const whereCondition: any = { id: realId };
@@ -852,6 +912,9 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Không tìm thấy sản phẩm');
     }
+
+    // Bơm variant.images từ color_images TRƯỚC khi gộp aggregated_gallery.
+    this.resolveVariantImages(product);
 
     // Tạo Aggregated Gallery (Bộ sưu tập ảnh tổng hợp)
     const galleryUrls = product.gallery || [];
@@ -909,6 +972,7 @@ export class ProductsService {
       thumbnail?: Express.Multer.File[];
       general_gallery?: Express.Multer.File[];
       variant_images?: Express.Multer.File[];
+      color_images?: Express.Multer.File[];
     },
     user: IUser,
   ) {
@@ -1130,6 +1194,19 @@ export class ProductsService {
             await queryRunner.manager.remove(ProductVariant, variant);
           }
           product.variants = [];
+
+          // Dọn ảnh gom theo màu (normalized) khi bỏ biến thể → tránh rác asset.
+          const colorUrlsToDelete = Object.values(
+            product.color_images || {},
+          ).flat();
+          for (const url of colorUrlsToDelete) {
+            const asset = await this.cloudinaryService.findAssetByUrl(url);
+            if (asset) {
+              oldPublicIdsToDelete.push(asset.public_id);
+              await queryRunner.manager.remove(MediaAsset, asset);
+            }
+          }
+          product.color_images = null;
         }
         product.has_variants = updateProductDto.has_variants!;
       }
@@ -1149,6 +1226,58 @@ export class ProductsService {
         const leafCategoryId = updateProductDto.category_id;
         product.category =
           await this.categoriesService.validateLeafCategory(leafCategoryId);
+      }
+
+      // Model màu: dựng color_images mới (existing giữ lại + upload mới),
+      // xóa asset của URL cũ không còn được giữ. usingColorModel = FE gửi mảng colorImages.
+      const usingColorModel = Array.isArray(updateProductDto.colorImages);
+      let newColorImagesMap: Record<string, string[]> | null = null;
+      if (usingColorModel) {
+        newColorImagesMap = {};
+        const oldColorImages = product.color_images || {};
+        // URL cũ còn được giữ (union existingImages mọi màu) để tính ảnh bị xóa.
+        const keptUrls = new Set<string>();
+        updateProductDto.colorImages!.forEach((g) =>
+          (g.existingImages || []).forEach((u) => keptUrls.add(u)),
+        );
+        // Xóa asset của URL cũ không còn giữ.
+        const allOldUrls = Object.values(oldColorImages).flat();
+        for (const url of allOldUrls) {
+          if (!keptUrls.has(url)) {
+            const asset = await this.cloudinaryService.findAssetByUrl(url);
+            if (asset) {
+              oldPublicIdsToDelete.push(asset.public_id);
+              await queryRunner.manager.remove(MediaAsset, asset);
+            }
+          }
+        }
+        // Upload ảnh mới theo màu (thứ tự khớp file color_images) + gộp existing.
+        let colorOffset = 0;
+        for (const group of updateProductDto.colorImages!) {
+          const cnt = group.imageCount || 0;
+          let newUrls: string[] = [];
+          if (cnt > 0 && files.color_images) {
+            const groupFiles = files.color_images.slice(
+              colorOffset,
+              colorOffset + cnt,
+            );
+            colorOffset += cnt;
+            const groupAssets =
+              await this.cloudinaryService.uploadMultipleFiles(
+                groupFiles,
+                CLOUDINARY_FOLDER.PRODUCT_VARIANTS,
+                user.sub,
+                AssetType.PRODUCT_VARIANT_IMAGE,
+                shop.id,
+                uploadedAssets,
+              );
+            newUrls = groupAssets.map((a) => a.url);
+          }
+          newColorImagesMap[group.color] = [
+            ...(group.existingImages || []),
+            ...newUrls,
+          ];
+        }
       }
 
       // Xử lý Biến thể (Variants) - Chỉ thực hiện nếu sản phẩm có trạng thái có biến thể
@@ -1174,8 +1303,13 @@ export class ProductsService {
         const variantsToDelete = oldVariants.filter(isOldVariantDeleted);
 
         for (const variantToDelete of variantsToDelete) {
+          // Model màu: variant.images KHÔNG còn authoritative (ảnh ở color_images) →
+          // KHÔNG xóa asset theo variant.images. Với sp legacy các URL này đã được
+          // migrate vào color_images.existingImages; xóa ở đây sẽ phá ảnh vừa giữ.
           const hasImagesToDelete =
-            variantToDelete.images && variantToDelete.images.length > 0;
+            !usingColorModel &&
+            variantToDelete.images &&
+            variantToDelete.images.length > 0;
           if (hasImagesToDelete) {
             for (const url of variantToDelete.images) {
               const asset = await this.cloudinaryService.findAssetByUrl(url);
@@ -1196,9 +1330,11 @@ export class ProductsService {
           let finalUrls: string[] = [];
           const existingImages = variantDto.existingImages || [];
 
-          // Upload ảnh mới (nếu có)
+          // Upload ảnh mới (nếu có). Model màu KHÔNG upload ảnh per-variant
+          // (ảnh nằm ở color_images) → newUploadedUrls giữ rỗng, images cuối = [].
           let newUploadedUrls: string[] = [];
           const hasNewVariantImages =
+            !usingColorModel &&
             files.variant_images &&
             variantDto.imageCount &&
             variantDto.imageCount > 0;
@@ -1240,12 +1376,14 @@ export class ProductsService {
               throw new BadRequestException(notFoundVarMsg);
             }
 
-            // Tìm các ảnh bị xóa bởi user
+            // Tìm các ảnh bị xóa bởi user.
+            // Model màu: variant.images KHÔNG authoritative (ảnh ở color_images) →
+            // KHÔNG xóa asset theo nó (tránh phá ảnh legacy vừa migrate vào color_images).
             const isVarImageDeleted = (url: string) =>
               !existingImages.includes(url);
-            const imagesDeletedByUser = (oldVariant.images || []).filter(
-              isVarImageDeleted,
-            );
+            const imagesDeletedByUser = usingColorModel
+              ? []
+              : (oldVariant.images || []).filter(isVarImageDeleted);
 
             // Đưa vào thùng rác
             for (const url of imagesDeletedByUser) {
@@ -1266,13 +1404,9 @@ export class ProductsService {
               throw new BadRequestException(limitMsg);
             }
 
-            const isVarImagesEmpty = totalVarImagesCount < 1;
-            if (isVarImagesEmpty) {
-              const minImagesMsg = `Biến thể "${variantDto.name}" phải có ít nhất 1 ảnh.`;
-              throw new BadRequestException(minImagesMsg);
-            }
+            // Model màu: ảnh biến thể lấy từ color_images khi đọc → KHÔNG ép ≥1 ảnh per-variant.
 
-            // Gộp ảnh
+            // Gộp ảnh (model màu: existingImages/newUploadedUrls rỗng → finalUrls = []).
             finalUrls = [...existingImages, ...newUploadedUrls];
 
             // Cập nhật giá trị (chỉ cập nhật những trường được gửi lên)
@@ -1310,11 +1444,7 @@ export class ProductsService {
               throw new BadRequestException(limitMsg);
             }
 
-            const isNewVarImagesEmpty = newVarImagesCount < 1;
-            if (isNewVarImagesEmpty) {
-              const minImagesMsg = `Biến thể "${variantDto.name}" phải có ít nhất 1 ảnh.`;
-              throw new BadRequestException(minImagesMsg);
-            }
+            // Model màu: KHÔNG ép ≥1 ảnh per-variant (ảnh nằm ở color_images).
 
             finalUrls = newUploadedUrls;
 
@@ -1350,6 +1480,11 @@ export class ProductsService {
         const sumStockFn = (sum: number, variant: ProductVariant) =>
           sum + variant.stock_quantity;
         product.stock_quantity = variantsToSave.reduce(sumStockFn, 0);
+      }
+
+      // Model màu: cập nhật nguồn sự thật ảnh biến thể (chạy cả khi không đổi list biến thể).
+      if (usingColorModel) {
+        product.color_images = newColorImagesMap;
       }
 
       // Kiểm tra tính nhất quán của has_variants
@@ -1651,6 +1786,11 @@ export class ProductsService {
       relations,
       ...(select && { select }),
     });
+
+    // Bơm variant.images từ color_images cho các item có nạp variants (list seller/public).
+    if (relations.includes('variants')) {
+      detailedItems.forEach((item) => this.resolveVariantImages(item));
+    }
 
     // Ép mảng kết quả phải xếp đúng thứ tự ID gốc mà phân trang đã cắt ra
     result.items = productIds

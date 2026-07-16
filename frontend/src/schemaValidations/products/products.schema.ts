@@ -212,6 +212,7 @@ export const ProductResponse = z.object({
   variants: z.array(ProductVariantResponse),
   thumbnail_url: z.any().nullable(),
   gallery: z.any().nullable(),
+  color_images: z.record(z.array(z.string())).nullable().optional(),
   aggregated_gallery: z.array(z.string()),
   stock_quantity: z.number(),
   has_variants: z.boolean(),

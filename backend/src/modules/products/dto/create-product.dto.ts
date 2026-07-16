@@ -50,15 +50,23 @@ export class CreateProductVariantDto {
   @Min(0, { message: 'Số lượng tồn kho không được nhỏ hơn 0' })
   stock_quantity: number;
 
-  @ApiProperty({ example: 1, description: 'Số lượng ảnh của biến thể này' })
-  @IsNotEmpty({ message: 'Số lượng ảnh không được để trống' })
-  @Transform(({ value }) => (value ? Number(value) : value))
+  @ApiProperty({
+    example: 0,
+    description:
+      '[Deprecated] Số ảnh per-variant (model cũ). Model màu dùng colorImages.',
+    required: false,
+    default: 0,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null ? 0 : Number(value),
+  )
   @IsNumber({}, { message: 'Số lượng ảnh phải là một số' })
-  @Min(1, { message: 'Mỗi biến thể phải có ít nhất 1 ảnh' })
+  @Min(0, { message: 'Số lượng ảnh không được âm' })
   @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, {
     message: `Mỗi biến thể chỉ được phép có tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} hình ảnh`,
   })
-  imageCount: number;
+  imageCount?: number;
 
   @ApiProperty({
     example: { color: 'Đỏ', size: 'L' },
@@ -68,6 +76,24 @@ export class CreateProductVariantDto {
   })
   @IsOptional()
   attributes?: Record<string, string>;
+}
+
+export class ColorImageGroupDto {
+  @ApiProperty({ example: 'Đỏ', description: 'Giá trị màu (khóa gom ảnh)' })
+  @IsNotEmpty({ message: 'Tên màu không được để trống' })
+  @IsString({ message: 'Tên màu phải là chuỗi' })
+  color: string;
+
+  @ApiProperty({ example: 2, description: 'Số ảnh mới upload cho màu này' })
+  @Transform(({ value }) =>
+    value === undefined || value === null ? 0 : Number(value),
+  )
+  @IsNumber({}, { message: 'Số ảnh màu phải là số' })
+  @Min(0, { message: 'Số ảnh màu không được âm' })
+  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES, {
+    message: `Mỗi màu tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES} ảnh`,
+  })
+  imageCount: number;
 }
 
 export class CreateProductDto {
@@ -178,4 +204,27 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => CreateProductVariantDto)
   variants?: CreateProductVariantDto[];
+
+  @ApiProperty({
+    type: [ColorImageGroupDto],
+    description:
+      'Nhóm ảnh theo màu (JSON String). Thứ tự khớp thứ tự file color_images.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return plainToInstance(ColorImageGroupDto, JSON.parse(value));
+      } catch (e) {
+        return value;
+      }
+    }
+    return value;
+  })
+  @IsArray({ message: 'colorImages phải là mảng' })
+  @ArrayMaxSize(30, { message: 'Tối đa 30 nhóm màu' })
+  @ValidateNested({ each: true })
+  @Type(() => ColorImageGroupDto)
+  colorImages?: ColorImageGroupDto[];
 }

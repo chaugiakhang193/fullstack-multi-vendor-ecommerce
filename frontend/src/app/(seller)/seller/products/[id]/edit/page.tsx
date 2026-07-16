@@ -26,17 +26,40 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
-// Định nghĩa kiểu dữ liệu cho một biến thể trong Form Chỉnh sửa
-type EditVariantFormItem = {
-  id?: string; // ID của biến thể (chỉ có với các biến thể cũ đã tồn tại trên cơ sở dữ liệu)
-  name: string; // Tên biến thể (Ví dụ: "Đỏ - XL")
-  sku: string; // Mã định danh hàng hóa (SKU) cho riêng biến thể
-  additional_price: number; // Giá cộng thêm so với giá gốc sản phẩm
-  stock_quantity: number; // Số lượng hàng tồn kho của biến thể này
-  existingImages: string[]; // Danh sách các URL ảnh cũ của biến thể đang được giữ lại
-  newImages: File[]; // Các file ảnh mới được thêm vào ở phiên làm việc này
-  newImagePreviews: string[]; // URL dạng Blob để hiển thị trước ảnh mới tải lên
+// 1 dòng phân loại-2 trong 1 màu (giữ id biến thể cũ để không tạo trùng khi lưu)
+type EditColorOptionItem = {
+  id?: string; // ID biến thể cũ (nếu đã tồn tại trên DB) — giữ lại để UPDATE đúng
+  value: string; // "L" | "4gb"
+  sku: string;
+  additional_price: number;
+  stock_quantity: number;
 };
+
+// 1 nhóm màu: ảnh cũ giữ lại + ảnh mới + danh sách phân loại-2 (ragged)
+type EditColorGroupItem = {
+  color: string;
+  existingImages: string[]; // URL ảnh màu cũ giữ lại
+  newImages: File[]; // File ảnh mới thêm ở phiên này
+  newImagePreviews: string[]; // Blob preview ảnh mới
+  options: EditColorOptionItem[];
+};
+
+// Loại phân loại-2 → key canonical (khớp translateKey + hasAnyParams + parseVariantAttributes)
+const ATTR2_PRESETS = [
+  { label: 'Kích thước', key: 'size' },
+  { label: 'RAM', key: 'ram' },
+  { label: 'Dung lượng', key: 'storage' },
+  { label: 'Vi xử lý', key: 'cpu' },
+] as const;
+
+// Tách "Đỏ, L" → ["Đỏ", "L"] cho data legacy thiếu attributes chuẩn
+function splitVariantName(name: string): [string, string] {
+  const parts = (name || '')
+    .split(/\s*[-,\/|]\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [parts[0] ?? '', parts.slice(1).join(' ')];
+}
 
 // Kiểu dữ liệu chứa thông tin các lỗi khi validate Form
 type FormErrors = {
@@ -49,16 +72,19 @@ type FormErrors = {
   [key: string]: string | undefined;
 };
 
-// Hàm khởi tạo một đối tượng biến thể trống rỗng
-function createEmptyEditVariant(): EditVariantFormItem {
+// Hàm khởi tạo một dòng phân loại trống
+function createEmptyEditOption(): EditColorOptionItem {
+  return { value: '', sku: '', additional_price: 0, stock_quantity: 0 };
+}
+
+// Hàm khởi tạo một nhóm màu trống (kèm 1 phân loại)
+function createEmptyEditColorGroup(): EditColorGroupItem {
   return {
-    name: '',
-    sku: '',
-    additional_price: 0,
-    stock_quantity: 0,
+    color: '',
     existingImages: [],
     newImages: [],
     newImagePreviews: [],
+    options: [createEmptyEditOption()],
   };
 }
 
@@ -120,7 +146,7 @@ function EditVariantImageDropzone({
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-muted-foreground">
-        Ảnh biến thể (tối đa 3)
+        Ảnh của màu (tối đa 3)
       </p>
       <div className="flex flex-wrap gap-2">
         {/* Vòng lặp hiển thị những ảnh Cũ đang được giữ lại */}
@@ -236,16 +262,17 @@ export default function EditProductPage() {
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]); // File ảnh gallery mới chọn
   const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]); // Preview ảnh gallery mới
 
-  // --- DANH SÁCH BIẾN THỂ ---
-  const [variants, setVariants] = useState<EditVariantFormItem[]>([]);
+  // --- DANH SÁCH BIẾN THỂ (nhóm theo màu, ragged) ---
+  const [colorGroups, setColorGroups] = useState<EditColorGroupItem[]>([]);
+  const [attr2Key, setAttr2Key] = useState<string>('size'); // key phân-loại-2 canonical
 
   // DỌN DẸP BỘ NHỚ: Thu hồi (revoke) các đường dẫn xem trước ảnh tạm thời (Blob URLs) khi component unmount
   useEffect(() => {
     return () => {
       if (newThumbnailPreview) URL.revokeObjectURL(newThumbnailPreview);
       newGalleryPreviews.forEach((url) => URL.revokeObjectURL(url));
-      variants.forEach((v) =>
-        v.newImagePreviews.forEach((url) => URL.revokeObjectURL(url)),
+      colorGroups.forEach((g) =>
+        g.newImagePreviews.forEach((url) => URL.revokeObjectURL(url)),
       );
     };
   }, []);
@@ -335,19 +362,63 @@ export default function EditProductPage() {
       }
     }
 
-    // Gán danh sách biến thể cũ
+    // Gán danh sách biến thể cũ — gom theo MÀU (model C-normalized).
     if (product.has_variants && product.variants.length > 0) {
-      const editVariants: EditVariantFormItem[] = product.variants.map((v) => ({
-        id: v.id,
-        name: v.name,
-        sku: v.sku || '',
-        additional_price: v.additional_price,
-        stock_quantity: v.stock_quantity,
-        existingImages: v.images, // Các ảnh cũ của biến thể
-        newImages: [],
-        newImagePreviews: [],
-      }));
-      setVariants(editVariants);
+      const colorImages = (product.color_images ?? {}) as Record<
+        string,
+        string[]
+      >;
+      // Có color_images (sp mới) → ảnh lấy từ đó; legacy (null) → seed từ variant.images.
+      const usingColorImages = Object.keys(colorImages).length > 0;
+
+      let inferredKey = 'size';
+      const groupsMap = new Map<string, EditColorGroupItem>();
+
+      product.variants.forEach((v) => {
+        const attrs = (v.attributes ?? {}) as Record<string, string>;
+        const [fallbackColor, fallbackVal] = splitVariantName(v.name);
+        const color = (attrs.color ?? fallbackColor ?? '').trim();
+
+        // Key phân-loại-2 = key attributes khác 'color' (ram/size/storage/cpu…).
+        const nonColorKey = Object.keys(attrs).find((k) => k !== 'color');
+        if (nonColorKey) inferredKey = nonColorKey;
+        const value = nonColorKey ? attrs[nonColorKey] : fallbackVal;
+
+        if (!groupsMap.has(color)) {
+          groupsMap.set(color, {
+            color,
+            existingImages: usingColorImages ? (colorImages[color] ?? []) : [],
+            newImages: [],
+            newImagePreviews: [],
+            options: [],
+          });
+        }
+        const group = groupsMap.get(color)!;
+
+        // Legacy: gom ảnh per-variant thành ảnh của màu (dedupe, tối đa 3).
+        if (!usingColorImages) {
+          (v.images ?? []).forEach((url) => {
+            if (
+              group.existingImages.length < 3 &&
+              !group.existingImages.includes(url)
+            ) {
+              group.existingImages.push(url);
+            }
+          });
+        }
+
+        group.options.push({
+          id: v.id, // giữ id biến thể cũ → không tạo trùng/mất variant, URL cache còn match
+          value: value ?? '',
+          sku: v.sku || '',
+          additional_price: v.additional_price,
+          stock_quantity: v.stock_quantity,
+        });
+      });
+
+      // Nếu key suy ra ngoài preset → không mất giá trị, vẫn set để hiển thị đúng.
+      setAttr2Key(inferredKey);
+      setColorGroups(Array.from(groupsMap.values()));
     }
   };
 
@@ -480,120 +551,148 @@ export default function EditProductPage() {
     setNewGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // --- CÁC HÀM TƯƠNG TÁC BIẾN THỂ ---
+  // --- CÁC HÀM TƯƠNG TÁC NHÓM MÀU ---
 
-  // Thêm một hàng biến thể rỗng mới vào form
-  const handleAddVariant = () => {
-    setVariants((prev) => [...prev, createEmptyEditVariant()]);
+  const handleAddColorGroup = () => {
+    setColorGroups((prev) => [...prev, createEmptyEditColorGroup()]);
     if (errors.variants) {
       setErrors((prev) => ({ ...prev, variants: undefined }));
     }
   };
 
-  // Xóa một hàng biến thể ra khỏi danh sách
-  const handleRemoveVariant = (index: number) => {
-    const variant = variants[index];
-    // Dọn dẹp link xem trước ảnh của biến thể đó để tránh rò rỉ bộ nhớ
-    variant.newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
-    setVariants((prev) => prev.filter((_, i) => i !== index));
-
-    // Clear errors associated with the removed variant
+  const handleRemoveColorGroup = (colorIndex: number) => {
+    const group = colorGroups[colorIndex];
+    group.newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    setColorGroups((prev) => prev.filter((_, i) => i !== colorIndex));
     setErrors((prev) => {
       const next = { ...prev };
-      delete next[`variant_${index}_name`];
-      delete next[`variant_${index}_stock`];
-      delete next[`variant_${index}_images`];
+      Object.keys(next).forEach((k) => {
+        if (k.startsWith(`color_${colorIndex}_`)) delete next[k];
+      });
       return next;
     });
   };
 
-  // Xử lý thay đổi dữ liệu (tên, sku, tồn kho, giá...) tại một trường bất kỳ của biến thể
-  const handleVariantChange = (
-    index: number,
-    field: keyof Omit<
-      EditVariantFormItem,
-      'id' | 'existingImages' | 'newImages' | 'newImagePreviews'
-    >,
-    value: string | number,
-  ) => {
-    setVariants((prev) =>
-      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+  const handleColorNameChange = (colorIndex: number, value: string) => {
+    setColorGroups((prev) =>
+      prev.map((g, i) => (i === colorIndex ? { ...g, color: value } : g)),
     );
-
-    // Clear dynamic error keys when modified
-    const errKeyName = `variant_${index}_name`;
-    const errKeyStock = `variant_${index}_stock`;
-    if (field === 'name' && errors[errKeyName]) {
-      setErrors((prev) => ({ ...prev, [errKeyName]: undefined }));
-    }
-    if (field === 'stock_quantity' && errors[errKeyStock]) {
-      setErrors((prev) => ({ ...prev, [errKeyStock]: undefined }));
-    }
+    const errKey = `color_${colorIndex}_name`;
+    if (errors[errKey]) setErrors((prev) => ({ ...prev, [errKey]: undefined }));
     if (errors.variants) {
       setErrors((prev) => ({ ...prev, variants: undefined }));
     }
   };
 
-  // Xóa ảnh cũ của một biến thể cụ thể
-  const handleRemoveExistingVariantImage = (
-    variantIndex: number,
+  // Xóa 1 ảnh màu cũ (chỉ bỏ khỏi danh sách gửi lên; BE xóa asset khi nhận submit)
+  const handleRemoveExistingColorImage = (
+    colorIndex: number,
     imageUrl: string,
   ) => {
-    setVariants((prev) =>
-      prev.map((v, i) =>
-        i === variantIndex
+    setColorGroups((prev) =>
+      prev.map((g, i) =>
+        i === colorIndex
           ? {
-              ...v,
-              existingImages: v.existingImages.filter(
+              ...g,
+              existingImages: g.existingImages.filter(
                 (url) => url !== imageUrl,
               ),
             }
-          : v,
+          : g,
       ),
     );
-
-    // Check if dynamic error is cleared
-    // Note: User deleted an image, which might trigger errors again on submit, but we don't clear image count errors here as they are not inputting more yet.
   };
 
-  // Thêm các ảnh mới cho một biến thể cụ thể
-  const handleAddNewVariantImages = (variantIndex: number, files: File[]) => {
+  const handleAddNewColorImages = (colorIndex: number, files: File[]) => {
     const newPreviews = files.map((f) => URL.createObjectURL(f));
-    setVariants((prev) =>
-      prev.map((v, i) =>
-        i === variantIndex
+    setColorGroups((prev) =>
+      prev.map((g, i) =>
+        i === colorIndex
           ? {
-              ...v,
-              newImages: [...v.newImages, ...files],
-              newImagePreviews: [...v.newImagePreviews, ...newPreviews],
+              ...g,
+              newImages: [...g.newImages, ...files],
+              newImagePreviews: [...g.newImagePreviews, ...newPreviews],
             }
-          : v,
+          : g,
       ),
     );
-    const errKeyImages = `variant_${variantIndex}_images`;
-    if (errors[errKeyImages]) {
-      setErrors((prev) => ({ ...prev, [errKeyImages]: undefined }));
-    }
   };
 
-  // Xóa ảnh mới (chưa upload) của một biến thể cụ thể
-  const handleRemoveNewVariantImage = (
-    variantIndex: number,
+  const handleRemoveNewColorImage = (
+    colorIndex: number,
     imageIndex: number,
   ) => {
-    setVariants((prev) =>
-      prev.map((v, i) => {
-        if (i !== variantIndex) return v;
-        URL.revokeObjectURL(v.newImagePreviews[imageIndex]);
+    setColorGroups((prev) =>
+      prev.map((g, i) => {
+        if (i !== colorIndex) return g;
+        URL.revokeObjectURL(g.newImagePreviews[imageIndex]);
         return {
-          ...v,
-          newImages: v.newImages.filter((_, idx) => idx !== imageIndex),
-          newImagePreviews: v.newImagePreviews.filter(
+          ...g,
+          newImages: g.newImages.filter((_, idx) => idx !== imageIndex),
+          newImagePreviews: g.newImagePreviews.filter(
             (_, idx) => idx !== imageIndex,
           ),
         };
       }),
     );
+  };
+
+  // --- CÁC HÀM TƯƠNG TÁC PHÂN LOẠI (option) ---
+
+  const handleAddOption = (colorIndex: number) => {
+    setColorGroups((prev) =>
+      prev.map((g, i) =>
+        i === colorIndex
+          ? { ...g, options: [...g.options, createEmptyEditOption()] }
+          : g,
+      ),
+    );
+    const errKey = `color_${colorIndex}_opts`;
+    if (errors[errKey]) setErrors((prev) => ({ ...prev, [errKey]: undefined }));
+  };
+
+  const handleRemoveOption = (colorIndex: number, optionIndex: number) => {
+    setColorGroups((prev) =>
+      prev.map((g, i) =>
+        i === colorIndex
+          ? { ...g, options: g.options.filter((_, oi) => oi !== optionIndex) }
+          : g,
+      ),
+    );
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[`color_${colorIndex}_opt_${optionIndex}_val`];
+      delete next[`color_${colorIndex}_opt_${optionIndex}_stock`];
+      return next;
+    });
+  };
+
+  const handleOptionChange = (
+    colorIndex: number,
+    optionIndex: number,
+    field: keyof Omit<EditColorOptionItem, 'id'>,
+    value: string | number,
+  ) => {
+    setColorGroups((prev) =>
+      prev.map((g, i) =>
+        i === colorIndex
+          ? {
+              ...g,
+              options: g.options.map((o, oi) =>
+                oi === optionIndex ? { ...o, [field]: value } : o,
+              ),
+            }
+          : g,
+      ),
+    );
+    const errKeyVal = `color_${colorIndex}_opt_${optionIndex}_val`;
+    const errKeyStock = `color_${colorIndex}_opt_${optionIndex}_stock`;
+    if (field === 'value' && errors[errKeyVal]) {
+      setErrors((prev) => ({ ...prev, [errKeyVal]: undefined }));
+    }
+    if (field === 'stock_quantity' && errors[errKeyStock]) {
+      setErrors((prev) => ({ ...prev, [errKeyStock]: undefined }));
+    }
   };
 
   // --- HÀM VALIDATE FORM TRƯỚC KHI SUBMIT ---
@@ -612,24 +711,28 @@ export default function EditProductPage() {
         newErrors.stock_quantity = 'Tồn kho không hợp lệ.';
       }
     } else {
-      // Nếu CÓ biến thể, kiểm tra từng dòng biến thể
-      if (variants.length === 0) {
-        newErrors.variants = 'Cần ít nhất 1 biến thể.';
+      // Nếu CÓ biến thể, kiểm tra từng màu + phân loại (KHÔNG ép ảnh — ảnh optional)
+      if (colorGroups.length === 0) {
+        newErrors.variants = 'Cần ít nhất 1 màu.';
       } else {
-        for (let i = 0; i < variants.length; i++) {
-          const variant = variants[i];
-          if (!variant.name.trim()) {
-            newErrors[`variant_${i}_name`] =
-              'Tên biến thể không được để trống.';
+        for (let ci = 0; ci < colorGroups.length; ci++) {
+          const g = colorGroups[ci];
+          if (!g.color.trim()) {
+            newErrors[`color_${ci}_name`] = 'Tên màu không được để trống.';
           }
-          if (variant.stock_quantity < 0) {
-            newErrors[`variant_${i}_stock`] = 'Tồn kho không được âm.';
+          if (g.options.length === 0) {
+            newErrors[`color_${ci}_opts`] = 'Mỗi màu cần ít nhất 1 phân loại.';
           }
-          // Yêu cầu bắt buộc mỗi phân loại phải có ít nhất 1 ảnh (cũ hoặc mới)
-          const totalVariantImages =
-            variant.existingImages.length + variant.newImages.length;
-          if (totalVariantImages === 0) {
-            newErrors[`variant_${i}_images`] = 'Biến thể cần ít nhất 1 ảnh.';
+          for (let oi = 0; oi < g.options.length; oi++) {
+            const o = g.options[oi];
+            if (!o.value.trim()) {
+              newErrors[`color_${ci}_opt_${oi}_val`] =
+                'Giá trị phân loại trống.';
+            }
+            if (o.stock_quantity < 0) {
+              newErrors[`color_${ci}_opt_${oi}_stock`] =
+                'Tồn kho không được âm.';
+            }
           }
         }
       }
@@ -684,27 +787,31 @@ export default function EditProductPage() {
         formData.append('general_gallery', file);
       });
 
-      // Xử lý đính kèm mảng biến thể
+      // Xử lý đính kèm biến thể (flatten màu × phân loại) + nhóm ảnh theo màu (model C-normalized)
       if (hasVariants) {
-        // Tạo cấu trúc dữ liệu JSON gửi lên cho biến thể.
-        // Chỉ lưu thông tin metadata + "imageCount" tương ứng số ảnh mới để backend map đúng file tương ứng.
-        const variantsData = variants.map((v) => ({
-          ...(v.id ? { id: v.id } : {}), // Gửi kèm ID để backend biết đây là biến thể cũ cần sửa, không có ID sẽ là thêm mới
-          name: v.name,
-          sku: v.sku || undefined,
-          additional_price: v.additional_price,
-          stock_quantity: v.stock_quantity,
-          existingImages: v.existingImages, // Ảnh cũ được giữ lại của biến thể này
-          imageCount: v.newImages.length, // Số lượng file ảnh mới của biến thể này
-        }));
+        // Flatten lá: mỗi (màu × option) → 1 variant. Giữ id biến thể cũ → BE UPDATE đúng,
+        // không tạo trùng/mất variant (URL/localStorage cache còn match). Option mới (không id) → tạo mới.
+        const variantsData = colorGroups.flatMap((g) =>
+          g.options.map((o) => ({
+            ...(o.id ? { id: o.id } : {}),
+            name: `${g.color}, ${o.value}`,
+            sku: o.sku || undefined,
+            additional_price: o.additional_price,
+            stock_quantity: o.stock_quantity,
+            attributes: { color: g.color, [attr2Key]: o.value },
+          })),
+        );
         formData.append('variants', JSON.stringify(variantsData));
 
-        // Duỗi phẳng (flatten) tất cả các file ảnh của mọi biến thể và đẩy lên cùng key 'variant_images'.
-        // Backend dựa trên thứ tự xuất hiện và trường 'imageCount' bên trên để gán ảnh đúng vào biến thể.
-        variants.forEach((v) => {
-          v.newImages.forEach((imageFile) => {
-            formData.append('variant_images', imageFile);
-          });
+        // Nhóm ảnh theo màu: existingImages giữ lại + imageCount ảnh mới; flatten file mới đúng thứ tự
+        const colorImagesMeta = colorGroups.map((g) => ({
+          color: g.color,
+          existingImages: g.existingImages,
+          imageCount: g.newImages.length,
+        }));
+        formData.append('colorImages', JSON.stringify(colorImagesMeta));
+        colorGroups.forEach((g) => {
+          g.newImages.forEach((file) => formData.append('color_images', file));
         });
       }
 
@@ -1074,135 +1181,231 @@ export default function EditProductPage() {
             </Field>
           )}
 
-          {/* Danh sách form biến thể chi tiết (chỉ hiện khi bật nhiều biến thể) */}
+          {/* Nhóm ảnh theo màu × phân loại-2 (ragged) — chỉ hiện khi bật nhiều biến thể */}
           {hasVariants && (
             <div className="space-y-4">
               {errors.variants && <FieldError>{errors.variants}</FieldError>}
-              {variants.map((variant, idx) => (
-                <div
-                  key={variant.id || `new-${idx}`}
-                  className="rounded-lg border bg-muted/20 p-4 space-y-3 relative"
+
+              {/* Loại phân loại-2 (áp cho toàn sản phẩm) — key canonical, KHÔNG gõ tự do */}
+              <Field>
+                <FieldLabel htmlFor="edit-attr2-key">Loại phân loại</FieldLabel>
+                <select
+                  id="edit-attr2-key"
+                  value={attr2Key}
+                  onChange={(e) => setAttr2Key(e.target.value)}
+                  className="w-full max-w-[220px] h-9 px-2.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
                 >
-                  {/* Nút xóa dòng biến thể (chỉ cho phép xóa khi tổng số biến thể lớn hơn 1) */}
-                  {variants.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVariant(idx)}
-                      className="absolute top-3 right-3 p-1 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-500 transition"
-                      title="Xóa biến thể này"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  {ATTR2_PRESETS.map((preset) => (
+                    <option key={preset.key} value={preset.key}>
+                      {preset.label}
+                    </option>
+                  ))}
+                  {/* Key legacy ngoài preset → thêm tạm để không mất giá trị */}
+                  {!ATTR2_PRESETS.some((p) => p.key === attr2Key) && (
+                    <option value={attr2Key}>{attr2Key}</option>
                   )}
-                  {/* Tiêu đề biến thể và nhãn hiển thị loại biến thể mới hoặc đã lưu trên DB */}
-                  <div className="flex items-center gap-2">
+                </select>
+              </Field>
+
+              {colorGroups.map((group, ci) => {
+                const attr2Label =
+                  ATTR2_PRESETS.find((p) => p.key === attr2Key)?.label ??
+                  attr2Key;
+                return (
+                  <div
+                    key={ci}
+                    className="rounded-lg border bg-muted/20 p-4 space-y-3 relative"
+                  >
+                    {/* Nút xóa màu */}
+                    {colorGroups.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveColorGroup(ci)}
+                        className="absolute top-3 right-3 p-1 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-500 transition"
+                        title="Xóa màu này"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                     <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">
-                      Biến thể #{idx + 1}
+                      Màu #{ci + 1}
                     </p>
-                    {variant.id && (
-                      <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-muted-foreground px-1.5 py-0.5 rounded font-mono">
-                        Hiện có
-                      </span>
-                    )}
-                    {!variant.id && (
-                      <span className="text-[10px] bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-bold">
-                        Mới
-                      </span>
-                    )}
-                  </div>
-                  {/* Grid nhập thông số của từng biến thể */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="md:col-span-2">
+
+                    {/* Tên màu */}
+                    <div className="max-w-[280px]">
                       <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                        Tên biến thể *
+                        Tên màu *
                       </label>
                       <Input
-                        placeholder="Ví dụ: Đỏ, Size L"
-                        value={variant.name}
+                        placeholder="Ví dụ: Đỏ"
+                        value={group.color}
                         onChange={(e) =>
-                          handleVariantChange(idx, 'name', e.target.value)
+                          handleColorNameChange(ci, e.target.value)
                         }
-                        aria-invalid={!!errors[`variant_${idx}_name`]}
+                        aria-invalid={!!errors[`color_${ci}_name`]}
                       />
-                      {errors[`variant_${idx}_name`] && (
-                        <FieldError>{errors[`variant_${idx}_name`]}</FieldError>
+                      {errors[`color_${ci}_name`] && (
+                        <FieldError>{errors[`color_${ci}_name`]}</FieldError>
                       )}
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                        SKU biến thể
-                      </label>
-                      <Input
-                        placeholder="SKU-RED-L"
-                        value={variant.sku}
-                        onChange={(e) =>
-                          handleVariantChange(idx, 'sku', e.target.value)
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                        Giá thêm (VNĐ)
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={variant.additional_price}
-                        onChange={(e) =>
-                          handleVariantChange(
-                            idx,
-                            'additional_price',
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                        Tồn kho *
-                      </label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={variant.stock_quantity}
-                        onChange={(e) =>
-                          handleVariantChange(
-                            idx,
-                            'stock_quantity',
-                            parseInt(e.target.value) || 0,
-                          )
-                        }
-                        aria-invalid={!!errors[`variant_${idx}_stock`]}
-                      />
-                      {errors[`variant_${idx}_stock`] && (
-                        <FieldError>
-                          {errors[`variant_${idx}_stock`]}
-                        </FieldError>
+
+                    {/* Ảnh của màu (cũ + mới, up 1 lần/màu, optional) */}
+                    <EditVariantImageDropzone
+                      variantIndex={ci}
+                      existingImages={group.existingImages}
+                      newImages={group.newImages}
+                      newImagePreviews={group.newImagePreviews}
+                      onRemoveExisting={handleRemoveExistingColorImage}
+                      onAddNewImages={handleAddNewColorImages}
+                      onRemoveNewImage={handleRemoveNewColorImage}
+                    />
+
+                    {/* Danh sách phân loại-2 trong màu (ragged) */}
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Phân loại theo {attr2Label.toLowerCase()}
+                      </p>
+                      {errors[`color_${ci}_opts`] && (
+                        <FieldError>{errors[`color_${ci}_opts`]}</FieldError>
                       )}
+                      {group.options.map((option, oi) => (
+                        <div
+                          key={option.id || `new-${oi}`}
+                          className="grid grid-cols-2 md:grid-cols-12 gap-2 items-start rounded-md bg-background/60 border p-2"
+                        >
+                          <div className="md:col-span-3">
+                            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                              {attr2Label} *
+                            </label>
+                            <Input
+                              placeholder="Ví dụ: L / 4gb"
+                              value={option.value}
+                              onChange={(e) =>
+                                handleOptionChange(
+                                  ci,
+                                  oi,
+                                  'value',
+                                  e.target.value,
+                                )
+                              }
+                              aria-invalid={
+                                !!errors[`color_${ci}_opt_${oi}_val`]
+                              }
+                            />
+                            {errors[`color_${ci}_opt_${oi}_val`] && (
+                              <FieldError>
+                                {errors[`color_${ci}_opt_${oi}_val`]}
+                              </FieldError>
+                            )}
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                              SKU
+                            </label>
+                            <Input
+                              placeholder="SKU-RED-L"
+                              value={option.sku}
+                              onChange={(e) =>
+                                handleOptionChange(
+                                  ci,
+                                  oi,
+                                  'sku',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                              Giá thêm (VNĐ)
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={option.additional_price}
+                              onChange={(e) =>
+                                handleOptionChange(
+                                  ci,
+                                  oi,
+                                  'additional_price',
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                              Tồn kho *
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={option.stock_quantity}
+                              onChange={(e) =>
+                                handleOptionChange(
+                                  ci,
+                                  oi,
+                                  'stock_quantity',
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              aria-invalid={
+                                !!errors[`color_${ci}_opt_${oi}_stock`]
+                              }
+                            />
+                            {errors[`color_${ci}_opt_${oi}_stock`] && (
+                              <FieldError>
+                                {errors[`color_${ci}_opt_${oi}_stock`]}
+                              </FieldError>
+                            )}
+                          </div>
+                          <div className="md:col-span-1 flex items-center gap-1 md:justify-center md:items-end md:h-full md:pb-1">
+                            {option.id ? (
+                              <span
+                                className="text-[9px] bg-zinc-200 dark:bg-zinc-800 text-muted-foreground px-1 py-0.5 rounded font-mono"
+                                title="Biến thể đã lưu"
+                              >
+                                cũ
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[9px] bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1 py-0.5 rounded font-bold"
+                                title="Biến thể mới"
+                              >
+                                mới
+                              </span>
+                            )}
+                            {group.options.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOption(ci, oi)}
+                                className="p-1 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-500 transition"
+                                title="Xóa phân loại này"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => handleAddOption(ci)}
+                        className="flex items-center text-[11px] font-semibold px-3 py-1.5 border border-dashed border-violet-300 dark:border-violet-800 text-violet-600 dark:text-violet-400 rounded-md hover:bg-violet-50 dark:hover:bg-violet-950/20 transition"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Thêm phân loại
+                      </button>
                     </div>
                   </div>
-                  {/* Dropzone quản lý ảnh dành riêng cho biến thể này */}
-                  <EditVariantImageDropzone
-                    variantIndex={idx}
-                    existingImages={variant.existingImages}
-                    newImages={variant.newImages}
-                    newImagePreviews={variant.newImagePreviews}
-                    onRemoveExisting={handleRemoveExistingVariantImage}
-                    onAddNewImages={handleAddNewVariantImages}
-                    onRemoveNewImage={handleRemoveNewVariantImage}
-                  />
-                  {errors[`variant_${idx}_images`] && (
-                    <FieldError>{errors[`variant_${idx}_images`]}</FieldError>
-                  )}
-                </div>
-              ))}
-              {/* Nút bấm để nối tiếp thêm 1 biến thể trống mới */}
+                );
+              })}
+
               <button
                 type="button"
-                onClick={handleAddVariant}
+                onClick={handleAddColorGroup}
                 className="flex items-center text-xs font-semibold px-4 py-2 border-2 border-dashed border-violet-400 text-violet-600 dark:text-violet-400 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/20 transition w-2/5 mx-auto justify-center"
               >
-                <Plus className="h-4 w-4 mr-1.5" /> Thêm biến thể mới
+                <Plus className="h-4 w-4 mr-1.5" /> Thêm màu
               </button>
             </div>
           )}

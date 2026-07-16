@@ -55,8 +55,35 @@ export class UpdateProductVariantDto extends PartialType(
   imageCount?: number;
 }
 
+export class UpdateColorImageGroupDto {
+  @ApiProperty({ example: 'Đỏ' })
+  @IsString()
+  color: string;
+
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'URL ảnh màu cũ giữ lại',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  existingImages?: string[];
+
+  @ApiProperty({
+    required: false,
+    default: 0,
+    description: 'Số ảnh mới upload cho màu',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @Min(0)
+  @Max(UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_IMAGES)
+  imageCount?: number;
+}
+
 export class UpdateProductDto extends PartialType(
-  OmitType(CreateProductDto, ['variants'] as const),
+  OmitType(CreateProductDto, ['variants', 'colorImages'] as const),
 ) {
   @ApiProperty({
     required: false,
@@ -102,6 +129,28 @@ export class UpdateProductDto extends PartialType(
   @ValidateNested({ each: true })
   @Type(() => UpdateProductVariantDto)
   variants?: UpdateProductVariantDto[];
+
+  @ApiProperty({
+    type: [UpdateColorImageGroupDto],
+    required: false,
+    description: 'Nhóm ảnh theo màu (JSON String)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return plainToInstance(UpdateColorImageGroupDto, JSON.parse(value));
+      } catch (e) {
+        return value;
+      }
+    }
+    return value;
+  })
+  @IsArray()
+  @ArrayMaxSize(30, { message: 'Tối đa 30 nhóm màu' })
+  @ValidateNested({ each: true })
+  @Type(() => UpdateColorImageGroupDto)
+  colorImages?: UpdateColorImageGroupDto[];
 
   @ApiProperty({
     required: false,

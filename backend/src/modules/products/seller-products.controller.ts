@@ -70,6 +70,10 @@ export class SellerProductsController {
         name: 'variant_images',
         maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
       },
+      {
+        name: 'color_images',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
+      },
     ]),
   )
   @ApiOperation({ summary: 'Seller tạo sản phẩm mới' })
@@ -96,6 +100,7 @@ export class SellerProductsController {
       thumbnail?: Express.Multer.File[];
       general_gallery?: Express.Multer.File[];
       variant_images?: Express.Multer.File[];
+      color_images?: Express.Multer.File[];
     },
     @User() user: IUser,
   ) {
@@ -129,6 +134,10 @@ export class SellerProductsController {
         name: 'variant_images',
         maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
       },
+      {
+        name: 'color_images',
+        maxCount: UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH,
+      },
     ]),
   )
   @ApiOperation({ summary: 'Seller cập nhật sản phẩm' })
@@ -154,6 +163,7 @@ export class SellerProductsController {
       thumbnail?: Express.Multer.File[];
       general_gallery?: Express.Multer.File[];
       variant_images?: Express.Multer.File[];
+      color_images?: Express.Multer.File[];
     },
     @User() user: IUser,
   ) {

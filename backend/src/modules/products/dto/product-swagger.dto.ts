@@ -27,6 +27,14 @@ export class CreateProductSwaggerDto extends CreateProductDto {
     required: false,
   })
   variant_images?: any[];
+
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+    description: `Ảnh gom theo màu (nguồn sự thật ảnh biến thể, tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH} files)`,
+    required: false,
+  })
+  color_images?: any[];
 }
 
 export class UpdateProductSwaggerDto extends UpdateProductDto {
@@ -53,4 +61,12 @@ export class UpdateProductSwaggerDto extends UpdateProductDto {
     required: false,
   })
   variant_images?: any[];
+
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+    description: `Cập nhật ảnh gom theo màu (tối đa ${UPLOAD_LIMITS.PRODUCT.MAX_VARIANT_FILES_BATCH} files)`,
+    required: false,
+  })
+  color_images?: any[];
 }

@@ -2203,6 +2203,18 @@ export interface components {
              */
             aggregated_gallery: string[];
             /**
+             * @description Ảnh gom theo màu (nguồn sự thật ảnh biến thể)
+             * @example {
+             *       "Đỏ": [
+             *         "https://…/red1.jpg"
+             *       ],
+             *       "Xanh": [
+             *         "https://…/blue1.jpg"
+             *       ]
+             *     }
+             */
+            color_images: Record<string, never> | null;
+            /**
              * @description Tổng số lượng tồn kho của tất cả biến thể hoặc của chính sản phẩm gốc
              * @example 150
              */
@@ -2261,8 +2273,9 @@ export interface components {
              */
             stock_quantity: number;
             /**
-             * @description Số lượng ảnh của biến thể này
-             * @example 1
+             * @description [Deprecated] Số ảnh per-variant (model cũ). Model màu dùng colorImages.
+             * @default 0
+             * @example 0
              */
             imageCount: number;
             /**
@@ -2273,6 +2286,18 @@ export interface components {
              *     }
              */
             attributes?: Record<string, never>;
+        };
+        ColorImageGroupDto: {
+            /**
+             * @description Giá trị màu (khóa gom ảnh)
+             * @example Đỏ
+             */
+            color: string;
+            /**
+             * @description Số ảnh mới upload cho màu này
+             * @example 2
+             */
+            imageCount: number;
         };
         CreateProductSwaggerDto: {
             /**
@@ -2332,6 +2357,8 @@ export interface components {
             has_variants: boolean;
             /** @description Danh sách các biến thể của sản phẩm (JSON String) */
             variants?: components["schemas"]["CreateProductVariantDto"][];
+            /** @description Nhóm ảnh theo màu (JSON String). Thứ tự khớp thứ tự file color_images. */
+            colorImages?: components["schemas"]["ColorImageGroupDto"][];
             /**
              * Format: binary
              * @description Ảnh đại diện (Thumbnail) của sản phẩm (1 file)
@@ -2341,6 +2368,8 @@ export interface components {
             general_gallery?: string[];
             /** @description Danh sách các ảnh phục vụ cho các biến thể sản phẩm (tối đa 30 files) */
             variant_images?: string[];
+            /** @description Ảnh gom theo màu (nguồn sự thật ảnh biến thể, tối đa 30 files) */
+            color_images?: string[];
         };
         UpdateProductVariantDto: {
             /**
@@ -2366,7 +2395,7 @@ export interface components {
             /**
              * @description Số lượng ảnh mới sẽ upload
              * @default 0
-             * @example 1
+             * @example 0
              */
             imageCount: number;
             /**
@@ -2381,6 +2410,17 @@ export interface components {
             id?: string;
             /** @description Danh sách URL ảnh cũ giữ lại */
             existingImages?: string[];
+        };
+        UpdateColorImageGroupDto: {
+            /** @example Đỏ */
+            color: string;
+            /** @description URL ảnh màu cũ giữ lại */
+            existingImages?: string[];
+            /**
+             * @description Số ảnh mới upload cho màu
+             * @default 0
+             */
+            imageCount: number;
         };
         UpdateProductSwaggerDto: {
             /**
@@ -2447,6 +2487,8 @@ export interface components {
             is_hidden?: boolean;
             /** @description Danh sách các biến thể của sản phẩm (JSON String) */
             variants?: components["schemas"]["UpdateProductVariantDto"][];
+            /** @description Nhóm ảnh theo màu (JSON String) */
+            colorImages?: components["schemas"]["UpdateColorImageGroupDto"][];
             /** @description Danh sách URL ảnh phụ cũ giữ lại */
             existingGalleryImages?: string[];
             /**
@@ -2458,6 +2500,8 @@ export interface components {
             general_gallery?: string[];
             /** @description Cập nhật thêm ảnh phục vụ các biến thể sản phẩm (tối đa 30 files) */
             variant_images?: string[];
+            /** @description Cập nhật ảnh gom theo màu (tối đa 30 files) */
+            color_images?: string[];
         };
         CreateCategoryDto: {
             /**

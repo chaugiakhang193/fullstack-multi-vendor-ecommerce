@@ -157,6 +157,13 @@ export class ProductResponseDto {
   aggregated_gallery?: string[];
 
   @ApiProperty({
+    example: { Đỏ: ['https://…/red1.jpg'], Xanh: ['https://…/blue1.jpg'] },
+    nullable: true,
+    description: 'Ảnh gom theo màu (nguồn sự thật ảnh biến thể)',
+  })
+  color_images: Record<string, string[]> | null;
+
+  @ApiProperty({
     example: 150,
     description:
       'Tổng số lượng tồn kho của tất cả biến thể hoặc của chính sản phẩm gốc',
