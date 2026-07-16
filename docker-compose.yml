@@ -105,8 +105,6 @@ services:
       # Bật relay (đẩy outbox_event lên RabbitMQ) — bắt buộc cho distributed.
       NOTIFICATION_RELAY_ENABLED: 'true'
       NOTIFICATION_SERVICE_URL: http://notification:3001
-      # (tạm — task_0712_part_03 sẽ gỡ khi bỏ feature flag)
-      NOTIFICATION_MODE: distributed
     ports:
       - '8080:8080'
 
@@ -133,8 +131,6 @@ services:
       REDIS_URL: redis://redis:6379
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      # (tạm — task_0712_part_03 sẽ gỡ khi bỏ feature flag)
-      NOTIFICATION_MODE: distributed
     ports:
       - '3001:3001'
 

@@ -103,10 +103,6 @@ services:
         sync: false
       - key: NOTIFICATION_SERVICE_URL
         value: https://fullstack-multi-vendor-ecommerce-8qen.onrender.com
-      # --- Notification mode (Phase 4) — kill-switch strangler, KHÔNG ghi đè
-      # từ blueprint (sync:false). Cả 2 service phải khớp nhau. Prod GIỮ inprocess.
-      - key: NOTIFICATION_MODE
-        sync: false
 
   # Notification microservice — consumer riêng, scale-to-zero.
   # Free tier chỉ có web service (không có worker) nên NS phải là Nest HTTP
@@ -129,9 +125,7 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: NOTIFICATION_MODE
-        sync: false
-      # --- Database (SHARED Supabase, CÙNG DB backend — Phase 4 P4-3) -------
+      # --- Database (DB#2 own — database-per-service, Phase 6) --------------
       - key: DB_HOST
         sync: false
       - key: DB_PORT
