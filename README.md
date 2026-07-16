@@ -1,39 +1,85 @@
-# Fullstack Multi-Vendor E-commerce
+# Fullstack Multi-Vendor E-Commerce
 
-Nền tảng thương mại điện tử multi-vendor (khách hàng · người bán · admin) xây bằng **NestJS** +
-**Next.js** + **PostgreSQL**, với một **hệ thống thông báo hướng sự kiện tách thành microservice**
-(transactional outbox, message broker, CQRS read model, WebSocket cross-process).
+A production-deployed multi-vendor marketplace (customer · seller · admin) built with **NestJS**,
+**Next.js**, and **PostgreSQL** — featuring an **event-driven notification system split into its own
+microservice** (transactional outbox, message broker, CQRS read model, cross-process WebSocket).
 
-- **Backend:** NestJS 11 · TypeORM · PostgreSQL · Socket.IO · JWT + Google OAuth
-- **Notification Service:** NestJS 11 · RabbitMQ (amqplib) · Redis · Postgres riêng (database-per-service)
-- **Frontend:** Next.js · React Query · Zustand
-- **Hạ tầng:** Docker Compose (local) · Render + Supabase + CloudAMQP + Upstash (prod)
+**🔗 [Live Demo](https://fullstack-multi-vendor-ecommerce.vercel.app)** ·
+**[API Docs (Swagger)](https://fullstack-multi-vendor-ecommerce.onrender.com/api/docs)** ·
+**[Source](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce)**
+
+> ⏳ The API runs on a free-tier host — the **first request may take ~50s** to cold-start, then it's fast.
+
+<!-- SCREENSHOT: storefront homepage — save as docs/screenshots/home.png -->
+![Storefront](docs/screenshots/home.png)
 
 ---
 
-## Điểm nhấn kiến trúc: hệ thống thông báo phân tán
+## ✨ Highlights
 
-Thông báo (đơn mới, đổi trạng thái, review, payout, trả hàng…) được xử lý bởi một **microservice
-riêng**, tách khỏi monolith bằng mô hình **strangler fig**. Đường đi của một sự kiện đảm bảo
-**không mất, không trùng** notification kể cả khi service/broker chập chờn.
+- **Distributed architecture** — notifications run as a **separate microservice** with its own database
+  (database-per-service), communicating with the monolith over **RabbitMQ** + **Redis**.
+- **Reliable messaging** — **transactional outbox** + **publisher confirms** + **idempotent consumers**
+  with a dedup ledger and **DLQ retry** guarantee notifications are never lost or duplicated.
+- **CQRS read model** — the microservice owns the source of truth; the monolith keeps an
+  eventually-consistent read projection so the notification bell stays fast.
+- **Cross-process realtime** — Socket.IO with a **Redis adapter/emitter** lets the microservice push
+  WebSocket events to clients connected to the monolith.
+- **Zero-downtime migration** — the notification path was carved out of the monolith using the
+  **strangler-fig pattern** with a feature-flag cutover, verified in production.
+- **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **11 domain event types**,
+  **2 services / 2 databases**.
+- **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
+  logging (pino), Sentry, CodeQL, Dependabot.
 
-### Cơ chế (keyword thật, ánh xạ tới code)
+---
 
-| Cơ chế | Nơi hiện thực |
-|--------|---------------|
-| **Transactional outbox (×2 chiều)** | `outbox_event` (monolith→NS) · `notification_outbox` (NS→monolith) — ghi cùng transaction nghiệp vụ |
-| **Polling publisher + publisher confirms** | `outbox.relay.ts` (monolith) · `notification-outbox.relay.ts` (NS) — poll row chưa publish, chờ broker confirm mới mark `published_at` |
+## 🖼️ Screenshots
+
+| Product detail | Realtime notification (cross-user) | Seller portal |
+|---|---|---|
+| ![Product detail](docs/screenshots/product.png) | ![Realtime notification](docs/screenshots/notification.png) | ![Seller portal](docs/screenshots/seller.png) |
+
+> The realtime shot shows a customer placing an order (left) and the seller receiving the matching
+> order notification live (right) — same order id on both sides.
+
+---
+
+## 🧩 Features
+
+**Customer** — browse & search products, multi-shop cart, checkout with shipping & coupons, order
+tracking, returns, product reviews, realtime notifications, Google login.
+
+**Seller** — shop setup, product & variant management, order fulfilment, payouts, a stats dashboard,
+and realtime new-order alerts.
+
+**Admin** — user management, shop approval, product moderation (take-down / restore), payout approval.
+
+---
+
+## 🏛️ Architecture: distributed notification system
+
+Notifications (new order, status change, review, payout, return…) are handled by a **dedicated
+microservice**, carved out of the monolith with the **strangler-fig** pattern. An event's journey
+guarantees notifications are **never lost or duplicated**, even when a service or the broker is flaky.
+
+### Mechanisms (mapped to code)
+
+| Mechanism | Where |
+|-----------|-------|
+| **Transactional outbox (both directions)** | `outbox_event` (monolith→NS) · `notification_outbox` (NS→monolith) — written in the same business transaction |
+| **Polling publisher + publisher confirms** | `outbox.relay.ts` · `notification-outbox.relay.ts` — poll unpublished rows, mark `published_at` only after broker confirm |
 | **Topic exchange + routing keys** | `ecommerce.events` (order.\* / review.\* / payout.\* / return.\* / shop.\*) |
-| **DLX + TTL retry + parking-lot DLQ** | `notifications.dlx` → `notifications.retry` (TTL 30s, tối đa 5 lần) → `notifications.dlq` (inspect thủ công) |
-| **Idempotent consumer** | 2 bảng `processed_events` (mỗi service 1) — dedup theo `eventId`, unique-violation coi như đã xử lý |
-| **At-least-once → effectively-exactly-once** | outbox đảm bảo at-least-once; dedup + `ON CONFLICT DO NOTHING` đưa về hiệu quả exactly-once |
-| **CQRS read model** | NS giữ **source of truth** (`notification`, DB#2); monolith giữ **read projection** (`notification_read`, DB#1) cho Notification Bell |
-| **Database-per-service** | DB#1 (monolith) và DB#2 (NS) tách hẳn — chỉ giao tiếp qua broker + Redis |
-| **WS cross-process** | socket.io **redis-adapter** (monolith giữ kết nối client) + **redis-emitter** (NS bắn event vào adapter) |
-| **Scale-to-zero + event-driven wake** | NS free-tier idle→sleep; monolith relay "poke" `/health` NS sau khi publish để đánh thức |
-| **Strangler cutover** | Feature-flag `NOTIFICATION_MODE` chuyển inprocess→distributed, cutover không downtime (xem [Migration](#migration-monolith--microservice-strangler-fig)) |
+| **DLX + TTL retry + parking-lot DLQ** | `notifications.dlx` → `notifications.retry` (TTL 30s, max 5) → `notifications.dlq` (manual inspect) |
+| **Idempotent consumer** | `processed_events` (one per service) — dedup by `eventId`; unique-violation = already processed |
+| **At-least-once → effectively-exactly-once** | outbox gives at-least-once; dedup + `ON CONFLICT DO NOTHING` makes it effectively exactly-once |
+| **CQRS read model** | NS holds the **source of truth** (`notification`, DB#2); monolith keeps a **read projection** (`notification_read`, DB#1) for the bell |
+| **Database-per-service** | DB#1 (monolith) and DB#2 (NS) are fully separate — they only talk via broker + Redis |
+| **Cross-process WebSocket** | socket.io **redis-adapter** (monolith holds the client sockets) + **redis-emitter** (NS emits into the adapter) |
+| **Scale-to-zero + event-driven wake** | NS sleeps when idle (free tier); the monolith relay "pokes" `/health` after publishing to wake it |
+| **Strangler cutover** | feature-flag `NOTIFICATION_MODE` (inprocess→distributed), zero-downtime — see [Migration](#-migration-monolith--microservice-strangler-fig) |
 
-### Sơ đồ kiến trúc
+### Architecture diagram
 
 ```mermaid
 flowchart LR
@@ -82,7 +128,11 @@ flowchart LR
     EMIT -->|emit rooms| REDIS --> WSSRV -->|realtime| CLIENT([Browser client])
 ```
 
-### Sequence 🅐 — realtime tới client (qua Redis)
+**Live RabbitMQ broker** — the exchanges/queues, DLX/retry/DLQ topology, and message rates in production:
+
+![RabbitMQ management UI](docs/screenshots/rabbitmq.png)
+
+### Sequence 🅐 — realtime to the client (via Redis)
 
 ```mermaid
 sequenceDiagram
@@ -93,18 +143,18 @@ sequenceDiagram
     participant R as Redis
     participant C as Client (socket)
 
-    U->>BE: đặt đơn / đổi trạng thái
-    BE->>BE: ghi outbox_event (cùng tx nghiệp vụ)
+    U->>BE: place order / change status
+    BE->>BE: write outbox_event (same business tx)
     BE->>MQ: relay publish (confirm) → ecommerce.events
     MQ->>NS: notifications.q
-    NS->>NS: dedup (processed_events) + ghi notification (DB#2)
-    NS->>R: redis-emitter emit tới room user/shop/admin
-    R->>BE: redis-adapter (monolith giữ socket)
-    BE->>C: WS event realtime
-    Note over NS,C: WS best-effort — Redis lỗi không chặn ack, DB#2 vẫn là source of truth
+    NS->>NS: dedup (processed_events) + write notification (DB#2)
+    NS->>R: redis-emitter emits to user/shop/admin room
+    R->>BE: redis-adapter (monolith holds the socket)
+    BE->>C: realtime WS event
+    Note over NS,C: WS is best-effort — a Redis failure does not block ack, and DB#2 stays source of truth
 ```
 
-### Sequence 🅑 — projection về monolith (qua RabbitMQ)
+### Sequence 🅑 — projection back to the monolith (via RabbitMQ)
 
 ```mermaid
 sequenceDiagram
@@ -114,61 +164,76 @@ sequenceDiagram
     participant BE as Monolith projection consumer
     participant NR as notification_read (DB#1)
 
-    NS->>NOBX: ghi notification_outbox (cùng tx với notification)
+    NS->>NOBX: write notification_outbox (same tx as notification)
     NS->>MQ: relay publish (confirm)
     MQ->>BE: notification.created
     BE->>BE: dedup (processed_events)
     BE->>NR: upsert notification_read (ON CONFLICT DO NOTHING)
-    Note over BE,NR: id khớp source-of-truth NS, Bell của monolith đọc cùng notification
+    Note over BE,NR: id matches the NS source of truth, so the monolith bell reads the same notification
 ```
 
 ---
 
-## Chạy local (Docker Compose)
+## 🛠️ Tech stack
 
-Dựng **trọn kiến trúc distributed** local. Chuẩn bị env trước (secret app không nằm trong repo):
+| Layer | Stack |
+|---|---|
+| **Backend (monolith)** | NestJS 11 · TypeORM · PostgreSQL · Socket.IO · Passport (JWT access/refresh + Google OAuth2) |
+| **Notification Service** | NestJS 11 · RabbitMQ (amqplib) · Redis · PostgreSQL (database-per-service) |
+| **Frontend** | Next.js · React · TanStack Query · Zustand · Tailwind / shadcn-style UI |
+| **Messaging & realtime** | RabbitMQ (topic exchange, DLX/retry/DLQ) · Redis (socket.io adapter/emitter) |
+| **DevOps** | Docker (multi-stage) · Docker Compose · GitHub Actions → GHCR → Render · pino · Sentry · CodeQL · Dependabot |
+| **Infra (prod)** | Render · Supabase (2 databases) · CloudAMQP · Upstash Redis · Vercel |
+
+---
+
+## 🚀 Run locally (Docker Compose)
+
+Spin up the **full distributed stack** locally. Prepare env first (app secrets are not in the repo):
 
 ```bash
-# 1) Secret backend (BẮT BUỘC — cần ít nhất JWT_* để đăng nhập/tạo đơn demo notif):
-cp backend/.env.example backend/.env      # rồi điền JWT_ACCESS_SECRET / JWT_REFRESH_SECRET...
-# 2) (tùy chọn) đổi mặc định DB cho compose:
-cp .env.docker.example .env               # compose tự đọc file .env ở root
+# 1) Backend secrets (required — at least JWT_* to log in / create demo notifications):
+cp backend/.env.example backend/.env      # then fill JWT_ACCESS_SECRET / JWT_REFRESH_SECRET...
+# 2) (optional) override compose DB defaults:
+cp .env.docker.example .env               # compose reads the root .env
 
-# 3) Dựng toàn bộ:
+# 3) Bring everything up:
 docker compose up --build
 ```
 
-> DB/RabbitMQ/Redis được compose trỏ nội bộ tự động; chỉ secret app cần `backend/.env`.
+> Postgres / RabbitMQ / Redis are wired internally by compose; only app secrets need `backend/.env`.
 
-Sau khi lên:
+Once up:
 
-| Thành phần | URL / cổng |
+| Component | URL / port |
 |-----------|-----------|
 | Backend API | http://localhost:8080/api/v1 |
+| Swagger API docs | http://localhost:8080/api/docs |
 | Notification Service health | http://localhost:3001/health |
 | RabbitMQ Management UI | http://localhost:15672 (guest / guest) |
 | Postgres DB#1 (monolith) | localhost:5432 |
 | Postgres DB#2 (notification) | localhost:5433 |
 
-Frontend chạy riêng: `cd frontend && npm run dev` (đặt `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`).
+Run the frontend separately: `cd frontend && npm run dev` (set
+`NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`).
 
-Cả `backend` và `notification` **self-migrate** khi khởi động (chạy `migration:run:prod` trước
-`node dist/main`), nên DB rỗng được dựng schema tự động.
+Both `backend` and `notification` **self-migrate** on startup (`migration:run:prod` before
+`node dist/main`), so an empty database is provisioned automatically.
 
 ---
 
-## Migration: monolith → microservice (strangler fig)
+## 🔀 Migration: monolith → microservice (strangler fig)
 
-Hệ thống thông báo ban đầu nằm **inprocess** trong monolith (một `OutboxWorker` đọc `outbox_event`
-rồi tạo notification + bắn WebSocket trực tiếp). Nó được tách dần thành microservice mà **không
-downtime**, điều khiển bằng feature-flag `NOTIFICATION_MODE`:
+The notification system originally lived **inprocess** inside the monolith (an `OutboxWorker` read
+`outbox_event`, created notifications, and emitted WebSockets directly). It was carved into a
+microservice **without downtime**, driven by the `NOTIFICATION_MODE` feature flag:
 
-1. **inprocess** — worker monolith tạo notif; NS chỉ log (shadow, verify song song).
-2. **distributed** — NS consumer trở thành nơi tạo notif (source of truth); worker monolith ngừng
-   tạo, monolith chỉ giữ read projection.
-3. **cut-off** — sau khi distributed ổn định prod, code inprocess cũ được gỡ bỏ hẳn.
+1. **inprocess** — the monolith worker creates notifications; the NS only logs (shadow, verified in parallel).
+2. **distributed** — the NS consumer becomes the source of truth; the monolith worker stops creating and
+   keeps only the read projection.
+3. **cut-off** — once distributed was stable in production, the old inprocess code was removed entirely.
 
-> Toàn bộ hành trình nằm trong lịch sử commit. Trạng thái **dual-mode** (còn cả 2 đường
-> inprocess/distributed) được đánh dấu ở git tag
+> The whole journey is in the commit history. The **dual-mode** checkpoint (both inprocess and
+> distributed paths present) is tagged at
 > [`notif-strangler-dualmode`](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/tree/notif-strangler-dualmode) —
-> checkout tag này để xem code trước khi cut-off.
+> check out that tag to see the code just before cut-off.
