@@ -52,12 +52,10 @@ interface OutboxEnvelope {
   payload: unknown;
 }
 
-// Kết nối RabbitMQ + consumer notifications.q. Mode-gating (P4-6):
-// NOTIFICATION_MODE=distributed → dedupe (processed_events) + dispatch handler
-// (NotificationConsumerService) trong 1 transaction rồi ack; ngoài ra (kể cả
-// 'inprocess') → log-only ack (Phase 3 behavior, worker cũ ở backend vẫn tạo
-// notif). Connect + setup non-fatal: broker chưa sẵn sàng thì service vẫn
-// boot, /health vẫn 200.
+// Kết nối RabbitMQ + consumer notifications.q. Nhận event → dedup
+// (processed_events) + dispatch handler (NotificationConsumerService) trong 1
+// transaction rồi ack, WS emit best-effort sau commit. Connect + setup
+// non-fatal: broker chưa sẵn sàng thì service vẫn boot, /health vẫn 200.
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqService.name);
@@ -77,12 +75,6 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(ProcessedEvent)
     private readonly processedEventRepo: Repository<ProcessedEvent>,
   ) {}
-
-  private isDistributed(): boolean {
-    return (
-      this.configService.get<string>("NOTIFICATION_MODE") === "distributed"
-    );
-  }
 
   async onModuleInit(): Promise<void> {
     const url = this.configService.get<string>("RABBITMQ_URL");
@@ -202,15 +194,6 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
 
     const { eventId, eventType, payload } = envelope;
-
-    if (!this.isDistributed()) {
-      // inprocess (default) — worker cũ ở backend tạo notif, NS chỉ log (Phase 3).
-      this.logger.log(
-        `[RabbitMqService] Nhận event rk=${routingKey} eventId=${eventId} eventType=${eventType} (inprocess — log-only)`,
-      );
-      channel.ack(msg);
-      return;
-    }
 
     try {
       // Dedupe check NẰM TRONG try: nếu DB chớp lỗi lúc đọc processed_events,

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ConfigService } from "@nestjs/config";
 import { DataSource, Repository } from "typeorm";
 import { NotificationOutbox } from "@/entities/notification-outbox.entity";
 import { RabbitMqService } from "@/modules/broker/rabbitmq.service";
@@ -22,9 +21,8 @@ interface OutboxEnvelope {
 }
 
 // Polling publisher phía NS (mirror OutboxRelay monolith, chiều ngược). Poll row
-// notification_outbox chưa publish → publishWithConfirm → mark published_at. Gated
-// isDistributed(): inprocess KHÔNG có outbox row nên poll rỗng, nhưng gate sớm cho
-// gọn. KHÔNG poke (monolith luôn warm).
+// notification_outbox chưa publish → publishWithConfirm → mark published_at.
+// KHÔNG poke (monolith luôn warm).
 @Injectable()
 export class NotificationOutboxRelay {
   private readonly logger = new Logger(NotificationOutboxRelay.name);
@@ -35,18 +33,11 @@ export class NotificationOutboxRelay {
     private readonly outboxRepo: Repository<NotificationOutbox>,
     private readonly dataSource: DataSource,
     private readonly rabbitMq: RabbitMqService,
-    private readonly configService: ConfigService,
   ) {}
-
-  private isDistributed(): boolean {
-    return (
-      this.configService.get<string>("NOTIFICATION_MODE") === "distributed"
-    );
-  }
 
   @Interval(RELAY_POLL_INTERVAL_MS)
   async relayOutbox(): Promise<void> {
-    if (!this.isDistributed() || this.isProcessing) {
+    if (this.isProcessing) {
       return;
     }
     this.isProcessing = true;
