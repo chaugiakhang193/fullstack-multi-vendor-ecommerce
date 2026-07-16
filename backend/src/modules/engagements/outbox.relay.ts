@@ -20,11 +20,10 @@ import { RabbitMqService } from '@/modules/broker/rabbitmq.service';
 const RELAY_EXCHANGE = 'ecommerce.events';
 
 // Tuning relay. Module-level const vì @Interval() cần hằng compile-time (không dùng `this`).
-const RELAY_POLL_INTERVAL_MS = 8000; // 8s — cùng nhịp với OutboxWorker cũ
+const RELAY_POLL_INTERVAL_MS = 8000;
 const RELAY_BATCH_SIZE = 10;
 
-// Chỉ relay đúng các event_type mà pipeline notification biết xử lý — khớp
-// HANDLED_EVENT_TYPES của OutboxWorker để hai trục shadow đi song song.
+// Chỉ relay đúng các event_type mà pipeline notification (NS) biết xử lý.
 const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.ORDER_CREATED,
   OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
@@ -47,15 +46,16 @@ interface OutboxEnvelope {
   payload: unknown;
 }
 
-// Relay(shadow): publish event outbox MỚI lên topic exchange với publisher
-// confirm, rồi mark `published_at`. Trục ĐỘC LẬP với OutboxWorker (cột `status`) —
-// worker cũ vẫn tạo notif; relay chỉ đẩy message để NS log. Gated bởi cờ
-// NOTIFICATION_RELAY_ENABLED (default off) → deploy 0 tác động cho tới khi bật.
+// Publisher DUY NHẤT của pipeline notification: drain `outbox_event` chưa
+// publish → topic exchange với publisher confirm, rồi mark `published_at`.
+// (Trước đây chạy song song OutboxWorker inprocess — đã gỡ ở cut-off, xem tag
+// `notif-strangler-dualmode`.) Gated bởi cờ NOTIFICATION_RELAY_ENABLED
+// (default off) → deploy 0 tác động cho tới khi bật.
 @Injectable()
 export class OutboxRelay {
   private readonly logger = new Logger(OutboxRelay.name);
 
-  // Guard chống concurrent invocation trong cùng process (như OutboxWorker).
+  // Guard chống concurrent invocation trong cùng process.
   private isProcessing = false;
 
   // Guard chống poke chồng nhau — 1 poke có thể giữ kết nối ~60s (cold-start NS).

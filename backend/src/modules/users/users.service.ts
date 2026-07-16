@@ -577,7 +577,7 @@ export class UsersService {
     return this.usersRepository.count({ where: { role } });
   }
 
-  /** Lấy id của tất cả user role ADMIN (phục vụ fan-out notification trong OutboxWorker). */
+  /** Lấy id của tất cả user role ADMIN (producer payouts/shops dùng để enrich adminIds vào outbox payload). */
   async findAdminIds(): Promise<string[]> {
     const admins = await this.usersRepository.find({
       where: { role: UserRole.ADMIN },

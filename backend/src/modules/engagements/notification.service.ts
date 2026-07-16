@@ -18,41 +18,12 @@ import { paginate } from '@/common/helpers/pagination.helper';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 import { NotificationQueryDto } from '@/modules/engagements/dto/notification-query.dto';
 
-export interface CreateNotificationDto {
-  userId: string;
-  type: NotificationType;
-  title: string;
-  content: string;
-  data?: NotificationData;
-}
-
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
   ) {}
-
-  // Nhận manager tuỳ chọn để OutboxWorker gộp INSERT vào transaction của nó — atomic thực sự.
-  // Khi không truyền manager (gọi độc lập), dùng default repo với auto-commit.
-  async create(
-    dto: CreateNotificationDto,
-    manager?: EntityManager,
-  ): Promise<Notification> {
-    const repo = manager
-      ? manager.getRepository(Notification)
-      : this.notificationRepo;
-
-    const notificationData = {
-      user: { id: dto.userId },
-      type: dto.type,
-      title: dto.title,
-      content: dto.content,
-      data: dto.data ?? null,
-    };
-    const notification = repo.create(notificationData);
-    return repo.save(notification);
-  }
 
   /** Danh sách notification của user (phân trang + lọc is_read), mới nhất trước. */
   async getNotifications(
@@ -118,27 +89,5 @@ export class NotificationService {
       })
       .orIgnore()
       .execute();
-  }
-
-  /** Tạo cùng một notification cho NHIỀU user (bulk). Dùng cho fan-out admin. */
-  async createForUsers(
-    userIds: string[],
-    dto: Omit<CreateNotificationDto, 'userId'>,
-    manager?: EntityManager,
-  ): Promise<void> {
-    if (userIds.length === 0) return;
-    const repo = manager
-      ? manager.getRepository(Notification)
-      : this.notificationRepo;
-    const rows = userIds.map((userId) =>
-      repo.create({
-        user: { id: userId },
-        type: dto.type,
-        title: dto.title,
-        content: dto.content,
-        data: dto.data ?? null,
-      }),
-    );
-    await repo.save(rows);
   }
 }

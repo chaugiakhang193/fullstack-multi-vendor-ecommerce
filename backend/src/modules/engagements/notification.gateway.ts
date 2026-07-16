@@ -23,8 +23,6 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 
 // WS contract
 import {
-  WsEventName,
-  WsPayloadMap,
   userRoom as buildUserRoom,
   shopRoom as buildShopRoom,
   ADMINS_ROOM,
@@ -154,39 +152,5 @@ export class NotificationGateway
     // Socket.io tự động xóa client khỏi tất cả rooms khi disconnect.
     // Không cần gọi client.leave() thủ công.
     this.logger.log(`[Gateway] Socket ${client.id} ngắt kết nối.`);
-  }
-
-  // Public API cho OutboxWorker (Commit #3)
-
-  /**
-   * Gửi event đến TẤT CẢ socket của 1 user.
-   * Hoạt động đúng khi user mở nhiều tab (nhiều socket cùng 1 room).
-   */
-  sendToUser<E extends WsEventName>(
-    userId: string,
-    event: E,
-    payload: WsPayloadMap[E],
-  ): void {
-    this.server.to(buildUserRoom(userId)).emit(event, payload);
-  }
-
-  /**
-   * Gửi event đến TẤT CẢ socket đang theo dõi 1 shop.
-   * Dùng để báo Seller khi có đơn hàng mới.
-   */
-  sendToShop<E extends WsEventName>(
-    shopId: string,
-    event: E,
-    payload: WsPayloadMap[E],
-  ): void {
-    this.server.to(buildShopRoom(shopId)).emit(event, payload);
-  }
-
-  /** Gửi event đến TẤT CẢ admin online (room:admins). */
-  sendToAdmins<E extends WsEventName>(
-    event: E,
-    payload: WsPayloadMap[E],
-  ): void {
-    this.server.to(ADMINS_ROOM).emit(event, payload);
   }
 }

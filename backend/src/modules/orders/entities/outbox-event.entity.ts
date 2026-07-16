@@ -33,8 +33,9 @@ export class OutboxEvent {
   @Column({ type: 'timestamp', nullable: true })
   processed_at: Date | null;
 
-  // Trục relay— ĐỘC LẬP với `status` của OutboxWorker cũ.
-  // OutboxRelay đánh dấu đã publish lên RabbitMQ qua cột này; worker cũ không đụng.
+  // Cột `status` (bên trên) là di sản — không còn ai chuyển PENDING→PROCESSED
+  // sau cut-off; relay dùng cột này (`published_at`) độc lập, không đọc `status`.
+  // OutboxRelay đánh dấu đã publish lên RabbitMQ qua cột này.
   // NULL = chưa relay. Set = now() CHỈ sau publisher confirm (at-least-once).
   @Column({ type: 'timestamptz', nullable: true })
   published_at: Date | null;

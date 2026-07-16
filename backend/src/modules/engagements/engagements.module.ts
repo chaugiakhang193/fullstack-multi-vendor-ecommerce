@@ -11,7 +11,6 @@ import { SellerReviewsController } from './seller-reviews.controller';
 import { NotificationsController } from './notifications.controller';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
-import { OutboxWorker } from './outbox.worker';
 import { OutboxRelay } from './outbox.relay';
 import { NotificationProjectionConsumer } from '@/modules/engagements/notification-projection.consumer';
 
@@ -27,7 +26,6 @@ import { ProductsModule } from '@/modules/products/products.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { ShopsModule } from '@/modules/shops/shops.module';
 import { UsersModule } from '@/modules/users/users.module';
-import { MailModule } from '@/modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -42,7 +40,6 @@ import { MailModule } from '@/modules/mail/mail.module';
     OrdersModule,
     ShopsModule,
     UsersModule,
-    MailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -60,7 +57,6 @@ import { MailModule } from '@/modules/mail/mail.module';
     EngagementsService,
     NotificationGateway,
     NotificationService,
-    OutboxWorker,
     OutboxRelay,
     NotificationProjectionConsumer,
   ],
