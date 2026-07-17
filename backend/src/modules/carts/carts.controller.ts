@@ -20,6 +20,7 @@ import {
 
 // Services
 import { CartsService } from '@/modules/carts/carts.service';
+import { NsWarmupService } from '@/modules/ns-warmup/ns-warmup.service';
 
 // DTOs
 import { AddCartItemDto } from '@/modules/carts/dto/add-cart-item.dto';
@@ -42,7 +43,10 @@ import type { IUser } from '@/interface/user.interface';
 @Roles(UserRole.CUSTOMER, UserRole.SELLER)
 @Controller('cart')
 export class CartsController {
-  constructor(private readonly cartsService: CartsService) {}
+  constructor(
+    private readonly cartsService: CartsService,
+    private readonly nsWarmup: NsWarmupService,
+  ) {}
 
   @Post('items')
   @ApiOperation({ summary: 'Thêm sản phẩm vào giỏ hàng' })
@@ -61,6 +65,8 @@ export class CartsController {
     description: 'Admin không được phép thực hiện hành động này',
   })
   addItem(@User() user: IUser, @Body() dto: AddCartItemDto) {
+    // Pre-warm NS: buyer sắp bước vào phễu checkout → đánh thức NS sớm để notif realtime kịp ấm.
+    this.nsWarmup.warm();
     const userId = user.sub;
     return this.cartsService.addItem(userId, dto);
   }
@@ -74,7 +80,10 @@ export class CartsController {
     description: 'Admin không được phép thực hiện hành động này',
   })
   getCart(@User() user: IUser) {
-    return this.cartsService.getCart(user.sub);
+    // Giữ NS ấm giữa phễu (throttle global tự gộp nếu addItem vừa poke).
+    this.nsWarmup.warm();
+    const userId = user.sub;
+    return this.cartsService.getCart(userId);
   }
 
   @Patch('items/:id')

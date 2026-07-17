@@ -28,6 +28,7 @@ import {
 
 // Services
 import { OrdersService } from '@/modules/orders/orders.service';
+import { NsWarmupService } from '@/modules/ns-warmup/ns-warmup.service';
 
 // DTOs
 import { CreateOrderDto } from '@/modules/orders/dto/create-order.dto';
@@ -54,7 +55,10 @@ const UUID_PATTERN =
 @Roles(UserRole.CUSTOMER, UserRole.SELLER)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly nsWarmup: NsWarmupService,
+  ) {}
 
   @Post('checkout')
   @HttpCode(201)
@@ -71,7 +75,11 @@ export class OrdersController {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ResponseMessage('Đặt hàng thành công')
-  @ApiResponse({ status: 201, type: CheckoutResponseDto, description: 'Tạo đơn hàng thành công' })
+  @ApiResponse({
+    status: 201,
+    type: CheckoutResponseDto,
+    description: 'Tạo đơn hàng thành công',
+  })
   @ApiBadRequestResponse({
     description:
       'Dữ liệu không hợp lệ (thiếu/sai Idempotency-Key, sản phẩm hết hàng, coupon không hợp lệ, ...)',
@@ -113,16 +121,20 @@ export class OrdersController {
   @ResponseMessage('Tính toán checkout thành công')
   @ApiResponse({ status: 200, type: CheckoutPreviewResponseDto })
   @ApiBadRequestResponse({
-    description:
-      'Giỏ trống / có sản phẩm không khả dụng / coupon không hợp lệ',
+    description: 'Giỏ trống / có sản phẩm không khả dụng / coupon không hợp lệ',
   })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
   checkoutPreview(@User() user: IUser, @Body() dto: CheckoutPreviewDto) {
-    return this.ordersService.checkoutPreview(user.sub, dto);
+    // Chốt hạ pre-warm: FE gọi preview ngay trước khi đặt đơn → đảm bảo NS ấm khi order.created bắn ra.
+    this.nsWarmup.warm();
+    const userId = user.sub;
+    return this.ordersService.checkoutPreview(userId, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách đơn hàng của khách (phân trang + lọc status)' })
+  @ApiOperation({
+    summary: 'Danh sách đơn hàng của khách (phân trang + lọc status)',
+  })
   @ResponseMessage('Lấy danh sách đơn hàng thành công')
   @ApiOkResponse({ description: 'Danh sách đơn hàng Master kèm sub-orders' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
@@ -134,8 +146,12 @@ export class OrdersController {
   @ApiOperation({ summary: 'Chi tiết 1 đơn hàng của khách' })
   @ApiParam({ name: 'id', description: 'UUID đơn hàng Master' })
   @ResponseMessage('Lấy chi tiết đơn hàng thành công')
-  @ApiOkResponse({ description: 'Chi tiết Master + sub-orders + items (snapshot)' })
-  @ApiNotFoundResponse({ description: 'Không tìm thấy đơn hàng (hoặc không thuộc về bạn)' })
+  @ApiOkResponse({
+    description: 'Chi tiết Master + sub-orders + items (snapshot)',
+  })
+  @ApiNotFoundResponse({
+    description: 'Không tìm thấy đơn hàng (hoặc không thuộc về bạn)',
+  })
   getMyOrderDetail(
     @User() user: IUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -147,9 +163,15 @@ export class OrdersController {
   @ApiOperation({ summary: 'Khách hủy 1 đơn hàng con (chỉ khi PENDING)' })
   @ApiParam({ name: 'subOrderId', description: 'UUID sub-order' })
   @ResponseMessage('Hủy đơn hàng con thành công')
-  @ApiOkResponse({ description: 'Đã hủy, trả về status + tổng tiền Master mới' })
-  @ApiBadRequestResponse({ description: 'Sub-order không ở trạng thái PENDING' })
-  @ApiNotFoundResponse({ description: 'Không tìm thấy sub-order (hoặc không thuộc về bạn)' })
+  @ApiOkResponse({
+    description: 'Đã hủy, trả về status + tổng tiền Master mới',
+  })
+  @ApiBadRequestResponse({
+    description: 'Sub-order không ở trạng thái PENDING',
+  })
+  @ApiNotFoundResponse({
+    description: 'Không tìm thấy sub-order (hoặc không thuộc về bạn)',
+  })
   cancelSubOrder(
     @User() user: IUser,
     @Param('subOrderId', ParseUUIDPipe) subOrderId: string,

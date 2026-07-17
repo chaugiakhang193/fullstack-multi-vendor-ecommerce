@@ -16,6 +16,9 @@ import { OUTBOX_EVENT_TYPES } from '@/common/constants/outbox.constants';
 // Broker
 import { RabbitMqService } from '@/modules/broker/rabbitmq.service';
 
+// NS warm-up (đánh thức Render scale-to-zero)
+import { NsWarmupService } from '@/modules/ns-warmup/ns-warmup.service';
+
 // Topic exchange chung backend↔NS (publisher declare, xem RabbitMqService.publishWithConfirm).
 const RELAY_EXCHANGE = 'ecommerce.events';
 
@@ -58,15 +61,13 @@ export class OutboxRelay {
   // Guard chống concurrent invocation trong cùng process.
   private isProcessing = false;
 
-  // Guard chống poke chồng nhau — 1 poke có thể giữ kết nối ~60s (cold-start NS).
-  private isPoking = false;
-
   constructor(
     @InjectRepository(OutboxEvent)
     private readonly outboxRepo: Repository<OutboxEvent>,
     private readonly dataSource: DataSource,
     private readonly rabbitMq: RabbitMqService,
     private readonly configService: ConfigService,
+    private readonly nsWarmup: NsWarmupService,
   ) {}
 
   private isEnabled(): boolean {
@@ -97,9 +98,10 @@ export class OutboxRelay {
         }
       }
 
-      // Poke NS đúng 1 lần/batch có publish — NGOÀI đường mark, fire-and-forget.
+      // Đánh thức NS sau khi có message durable trong RabbitMQ — backstop cho các path
+      // KHÔNG đi qua giỏ hàng (admin moderation / payout / return). Fire-and-forget, có throttle.
       if (publishedCount > 0) {
-        this.pokeNotificationService();
+        this.nsWarmup.warm();
       }
     } finally {
       this.isProcessing = false;
@@ -173,33 +175,5 @@ export class OutboxRelay {
       );
     }
     return true;
-  }
-
-  // Đánh thức NS (Render scale-to-zero) sau khi có message durable trong RabbitMQ.
-  // Fire-and-forget: message đã an toàn ở broker, poke chỉ giảm latency — mọi lỗi nuốt.
-  private pokeNotificationService(): void {
-    const url = this.configService.get<string>('NOTIFICATION_SERVICE_URL');
-    // Bỏ qua nếu chưa khai URL hoặc đang có 1 poke chạy (NS thức 1 lần là đủ).
-    if (!url || this.isPoking) {
-      return;
-    }
-
-    // NS scale-to-zero: Render cold-start tới ~50s. PHẢI giữ kết nối đủ lâu để
-    // Render dựng xong NS — abort sớm (3s) khiến Render huỷ spin-up giữa chừng
-    // → NS không bao giờ thức → message nằm chờ mãi trong queue. Timeout 60s.
-    this.isPoking = true;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-    fetch(`${url}/health`, { signal: controller.signal })
-      .then(() => {
-        this.logger.debug('[OutboxRelay] Poke NS /health OK');
-      })
-      .catch((err: Error) => {
-        this.logger.debug(`[OutboxRelay] Poke NS bỏ qua: ${err.message}`);
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        this.isPoking = false;
-      });
   }
 }
