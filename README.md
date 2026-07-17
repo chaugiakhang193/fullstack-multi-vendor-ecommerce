@@ -36,12 +36,14 @@ microservice** (transactional outbox, message broker, CQRS read model, cross-pro
 
 ## 🖼️ Screenshots
 
-| Product detail | Realtime notification (cross-user) | Seller portal |
-|---|---|---|
-| ![Product detail](docs/screenshots/product.png) | ![Realtime notification](docs/screenshots/notification.png) | ![Seller portal](docs/screenshots/seller.png) |
+**Realtime notification across two users** — a customer places an order (left) and the seller receives
+the matching order live (right, same order id), with no page refresh:
 
-> The realtime shot shows a customer placing an order (left) and the seller receiving the matching
-> order notification live (right) — same order id on both sides.
+![Realtime notification demo](docs/screenshots/notification.gif)
+
+| Product detail | Seller portal |
+|---|---|
+| ![Product detail](docs/screenshots/product.png) | ![Seller portal](docs/screenshots/seller.png) |
 
 ---
 
