@@ -12,8 +12,11 @@ interface VariantSelectorProps {
   onVariantSelect: (variant: ProductVariantResponseType | null) => void;
 }
 
-// Color map helper for visual color swatches
+// Bản đồ tên màu → hex cho chấm màu. Hỗ trợ cả Tiếng Việt lẫn Tiếng Anh.
+// Lưu ý: đây chỉ là lớp FALLBACK (đoán hex từ tên). Về lâu dài sẽ lưu hex tường
+// minh do seller chọn (product.color_hex) — xem memory project_color_hex_followup.
 const COLOR_MAP: Record<string, string> = {
+  // Tiếng Việt
   Đen: '#18181b',
   'Đen Nhám': '#27272a',
   Trắng: '#ffffff',
@@ -22,10 +25,101 @@ const COLOR_MAP: Record<string, string> = {
   Xanh: '#3b82f6',
   'Xanh Dương': '#2563eb',
   'Xanh Lá': '#10b981',
+  'Xanh Rêu': '#4d7c0f',
+  Rêu: '#4d7c0f',
   Vàng: '#f59e0b',
+  Cam: '#f97316',
+  Tím: '#8b5cf6',
+  Nâu: '#78350f',
+  Bạc: '#cbd5e1',
+  Be: '#e7d8b1',
+  Kem: '#f5f0e1',
   'Titan Tự Nhiên': '#a1a1aa',
   Xám: '#71717a',
   Hồng: '#ec4899',
+  // English
+  black: '#18181b',
+  white: '#ffffff',
+  red: '#ef4444',
+  blue: '#3b82f6',
+  navy: '#1e3a8a',
+  green: '#10b981',
+  olive: '#4d7c0f',
+  yellow: '#f59e0b',
+  orange: '#f97316',
+  purple: '#8b5cf6',
+  brown: '#78350f',
+  silver: '#cbd5e1',
+  gold: '#d4af37',
+  beige: '#e7d8b1',
+  gray: '#71717a',
+  grey: '#71717a',
+  pink: '#ec4899',
+};
+
+// Chuẩn hoá key màu để tra bảng: NFC (gộp dấu tiếng Việt) + bỏ khoảng trắng thừa +
+// thường hoá. Fix lỗi "Đỏ" (NFD) / "đỏ" / "Đỏ " không khớp literal NFC trong map.
+const normalizeColorKey = (s: string): string =>
+  s.normalize('NFC').trim().toLowerCase();
+
+const NORMALIZED_COLOR_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(COLOR_MAP).map(([k, v]) => [normalizeColorKey(k), v]),
+);
+
+// Tra hex theo tên màu (đã normalize). Không có trong bảng → null (chỉ hiện chữ, không chấm).
+const resolveColorHex = (name: string): string | null =>
+  NORMALIZED_COLOR_MAP[normalizeColorKey(name)] ?? null;
+
+// Thứ tự section thuộc tính: màu trước, rồi các phân loại thường gặp; key lạ xuống cuối.
+const ATTR_KEY_ORDER = ['color', 'size', 'ram', 'storage', 'cpu'];
+const attrKeyWeight = (key: string): number => {
+  const i = ATTR_KEY_ORDER.indexOf(key);
+  return i === -1 ? ATTR_KEY_ORDER.length : i;
+};
+
+// Thứ tự size chuẩn để không bị "L đứng trước S".
+const SIZE_ORDER = [
+  'xs',
+  's',
+  'm',
+  'l',
+  'xl',
+  'xxl',
+  '2xl',
+  'xxxl',
+  '3xl',
+  '4xl',
+];
+
+// Rút số + đơn vị (GB/TB/MB) để sort RAM/dung lượng theo giá trị thật ("128gb" < "1tb").
+const parseNumericValue = (s: string): number | null => {
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(tb|gb|mb)?/i);
+  if (!m) return null;
+  let n = parseFloat(m[1]);
+  const unit = (m[2] || '').toLowerCase();
+  if (unit === 'tb') n *= 1024 * 1024;
+  else if (unit === 'gb') n *= 1024;
+  return n;
+};
+
+// So sánh giá trị option: size chuẩn → giá trị số → alphabet (vi). Tất định, FE-only.
+const compareOptionValues = (a: string, b: string): number => {
+  const na = a.trim().toLowerCase();
+  const nb = b.trim().toLowerCase();
+
+  const sa = SIZE_ORDER.indexOf(na);
+  const sb = SIZE_ORDER.indexOf(nb);
+  if (sa !== -1 && sb !== -1) return sa - sb;
+  if (sa !== -1) return -1;
+  if (sb !== -1) return 1;
+
+  const va = parseNumericValue(na);
+  const vb = parseNumericValue(nb);
+  if (va !== null && vb !== null) return va - vb;
+  if (va !== null) return -1;
+  if (vb !== null) return 1;
+
+  return a.localeCompare(b, 'vi');
 };
 
 export default function VariantSelector({
@@ -44,7 +138,12 @@ export default function VariantSelector({
         Object.keys(v.attributes).forEach((k) => keys.add(k));
       }
     });
-    return Array.from(keys);
+    // Ép thứ tự: màu trước, rồi size/ram/storage/cpu (jsonb không giữ thứ tự key).
+    return Array.from(keys).sort((a, b) => {
+      const wa = attrKeyWeight(a);
+      const wb = attrKeyWeight(b);
+      return wa !== wb ? wa - wb : a.localeCompare(b);
+    });
   }, [variants]);
 
   // 2. Thu thập danh sách các giá trị khả dụng cho từng key thuộc tính
@@ -58,7 +157,8 @@ export default function VariantSelector({
           vals.add(val);
         }
       });
-      options[key] = Array.from(vals);
+      // Sort tất định (S<M<L, số theo giá trị) — variant từ BE không có ORDER BY.
+      options[key] = Array.from(vals).sort(compareOptionValues);
     });
     return options;
   }, [variants, allAttrKeys]);
@@ -206,52 +306,10 @@ export default function VariantSelector({
               {options.map((option) => {
                 const isSelected = selectedAttributes[key] === option;
                 const isDisabled = isOptionDisabled(key, option);
+                // Màu: chấm màu từ hex (đã normalize); không tra được → null (chỉ hiện chữ).
+                const colorHex = isColor ? resolveColorHex(option) : null;
 
-                if (isColor) {
-                  // Render Color Swatches
-                  const hexColor = COLOR_MAP[option] || '#e4e4e7';
-                  const isWhite = option.toLowerCase().includes('trắng');
-
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      disabled={isDisabled}
-                      onClick={() => handleSelectAttribute(key, option)}
-                      className={cn(
-                        'relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 border-2 cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed',
-                        isSelected
-                          ? 'border-violet-600 scale-110 ring-2 ring-violet-500/20'
-                          : 'border-zinc-200 dark:border-zinc-800 hover:scale-105',
-                      )}
-                      title={option}
-                    >
-                      <span
-                        className={cn(
-                          'w-7 h-7 rounded-full block border',
-                          isWhite ? 'border-zinc-200' : 'border-transparent',
-                        )}
-                        style={{ backgroundColor: hexColor }}
-                      />
-                      {/* Checkmark or indicator when selected */}
-                      {isSelected && (
-                        <span
-                          className={cn(
-                            'absolute inset-0 rounded-full border-2 border-white pointer-events-none',
-                          )}
-                        />
-                      )}
-                      {/* X lines if out of stock */}
-                      {isDisabled && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-8 h-[2px] bg-rose-500/80 rotate-45" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                }
-
-                // Render Size or other attributes as Chips
+                // Render đồng nhất dạng chip chữ (màu = chip + chấm màu, kiểu Shopee).
                 return (
                   <button
                     key={option}
@@ -259,7 +317,7 @@ export default function VariantSelector({
                     disabled={isDisabled}
                     onClick={() => handleSelectAttribute(key, option)}
                     className={cn(
-                      'min-w-12 h-10 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center cursor-pointer select-none disabled:cursor-not-allowed',
+                      'min-w-12 h-10 px-4 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer select-none disabled:cursor-not-allowed',
                       isSelected
                         ? 'bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/10'
                         : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-foreground hover:bg-zinc-50 dark:hover:bg-zinc-900',
@@ -267,6 +325,17 @@ export default function VariantSelector({
                         'opacity-30 line-through bg-zinc-100 dark:bg-zinc-900 border-zinc-200 text-muted-foreground',
                     )}
                   >
+                    {colorHex && (
+                      <span
+                        className={cn(
+                          'w-3.5 h-3.5 rounded-full border shrink-0',
+                          isSelected
+                            ? 'border-white/60'
+                            : 'border-zinc-300 dark:border-zinc-700',
+                        )}
+                        style={{ backgroundColor: colorHex }}
+                      />
+                    )}
                     {option}
                   </button>
                 );
