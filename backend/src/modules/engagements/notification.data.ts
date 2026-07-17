@@ -16,13 +16,23 @@ export type NotificationData =
       orderNumber: string;
       amount: number;
     }
-  | { kind: 'order_new_seller'; orderId: string; orderNumber: string }
+  | {
+      kind: 'order_new_seller';
+      orderId: string;
+      orderNumber: string;
+      subOrderId: string;
+    }
   | {
       kind: 'suborder_cancelled_customer';
       orderId: string;
       orderNumber: string;
     }
-  | { kind: 'suborder_cancelled_seller'; orderId: string; orderNumber: string }
+  | {
+      kind: 'suborder_cancelled_seller';
+      orderId: string;
+      orderNumber: string;
+      subOrderId: string;
+    }
   | {
       kind: 'suborder_status_changed';
       orderId: string;

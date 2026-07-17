@@ -159,7 +159,7 @@ export class NotificationConsumerService {
     await this.notificationService.create(customerDto, manager);
 
     const emits: WsEmit[] = [];
-    for (const { shopId, sellerId } of payload.shops) {
+    for (const { shopId, sellerId, subOrderId } of payload.shops) {
       if (!sellerId) {
         this.logger.warn(
           `[NotificationConsumer] Shop ${shopId} không có seller trong payload — bỏ qua notification.`,
@@ -176,6 +176,7 @@ export class NotificationConsumerService {
           kind: "order_new_seller",
           orderId: payload.orderId,
           orderNumber: payload.orderNumber,
+          subOrderId,
         },
       };
       await this.notificationService.create(sellerDto, manager);
@@ -239,6 +240,7 @@ export class NotificationConsumerService {
         kind: "suborder_cancelled_seller",
         orderId: payload.orderId,
         orderNumber: payload.orderNumber,
+        subOrderId: payload.subOrderId,
       },
     };
     await this.notificationService.create(sellerDto, manager);

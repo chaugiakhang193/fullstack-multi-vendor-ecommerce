@@ -26,10 +26,11 @@ export const OUTBOX_EVENT_TYPES = {
 export interface OrderCreatedPayload {
   orderId: string;
   orderNumber: string;
-  // enrich sellerId theo từng shop để consumer (DB#2, không có bảng shop)
-  // không phải tra. sellerId null nếu shop mất seller (edge) → consumer skip notif
-  // seller nhưng vẫn báo customer.
-  shops: { shopId: string; sellerId: string | null }[];
+  // enrich sellerId + subOrderId theo từng shop để consumer (DB#2, không có bảng shop/sub_order)
+  // đọc thẳng từ payload. sellerId null nếu shop mất seller (edge) → consumer skip notif seller.
+  // subOrderId để deep-link seller trỏ đúng sub-order của shop đó (route /seller/orders/[id]
+  // fetch bằng sub-order id, KHÔNG phải master orderId).
+  shops: { shopId: string; sellerId: string | null; subOrderId: string }[];
   userId: string;
   totalAmount: number;
 }

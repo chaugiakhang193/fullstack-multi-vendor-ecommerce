@@ -117,7 +117,7 @@ const getNotificationHref = (
       return d.orderId ? `/profile/orders/${d.orderId}` : '/profile/orders';
     case 'order_new_seller':
     case 'suborder_cancelled_seller':
-      return d.orderId ? `/seller/orders/${d.orderId}` : '/seller/orders';
+      return d.subOrderId ? `/seller/orders/${d.subOrderId}` : '/seller/orders';
     case 'review_new_seller':
       return '/seller/reviews';
     case 'review_replied':

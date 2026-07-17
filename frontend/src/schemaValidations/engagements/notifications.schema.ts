@@ -28,6 +28,7 @@ export const NotificationData = z.discriminatedUnion(discriminatorKey, [
     kind: z.literal('order_new_seller'),
     orderNumber: z.string(),
     orderId: z.string().uuid().optional(),
+    subOrderId: z.string().uuid().optional(),
   }),
   z.object({
     kind: z.literal('suborder_cancelled_customer'),
@@ -38,6 +39,7 @@ export const NotificationData = z.discriminatedUnion(discriminatorKey, [
     kind: z.literal('suborder_cancelled_seller'),
     orderNumber: z.string(),
     orderId: z.string().uuid().optional(),
+    subOrderId: z.string().uuid().optional(),
   }),
   z.object({
     kind: z.literal('suborder_status_changed'),

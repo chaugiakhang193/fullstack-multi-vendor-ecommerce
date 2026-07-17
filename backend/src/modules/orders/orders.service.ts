@@ -1012,9 +1012,10 @@ export class OrdersService {
       const outboxPayload: OrderCreatedPayload = {
         orderId: savedOrder.id,
         orderNumber: savedOrder.order_number,
-        shops: shopIdPayload.map((shopId) => ({
-          shopId,
-          sellerId: sellerIdByShop[shopId] ?? null,
+        shops: subOrderPlans.map((plan) => ({
+          shopId: plan.shop.id,
+          sellerId: sellerIdByShop[plan.shop.id] ?? null,
+          subOrderId: plan.savedSubOrder!.id,
         })),
         userId,
         totalAmount: grandTotal,
