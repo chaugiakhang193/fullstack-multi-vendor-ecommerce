@@ -30,7 +30,7 @@ export async function generateMetadata({
   try {
     const response = await productsApiRequest.getProductDetail(productId);
     const product = response.data;
-    const titleVal = `${product.name} | Giang Kha Multi-Vendor`;
+    const titleVal = product.name;
     const descriptionVal =
       product.description ||
       `Mua ngay ${product.name} chất lượng cao, giá tốt tại Giang Kha Store.`;
@@ -51,7 +51,7 @@ export async function generateMetadata({
       },
     };
   } catch (err) {
-    const fallbackTitle = 'Không tìm thấy sản phẩm | Giang Kha Multi-Vendor';
+    const fallbackTitle = 'Không tìm thấy sản phẩm';
     return {
       title: fallbackTitle,
     };

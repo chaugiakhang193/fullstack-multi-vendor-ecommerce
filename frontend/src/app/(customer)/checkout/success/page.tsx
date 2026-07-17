@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+
+export const metadata: Metadata = {
+  title: 'Đặt hàng thành công',
+};
 
 // Next 15: searchParams là Promise — bắt buộc await.
 interface CheckoutSuccessPageProps {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, LogOut, ArrowLeft, Store, RefreshCw } from 'lucide-react';
@@ -27,6 +28,7 @@ import {
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SellerPendingPage() {
+  useDocumentTitle('Chờ duyệt · Dashboard');
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);

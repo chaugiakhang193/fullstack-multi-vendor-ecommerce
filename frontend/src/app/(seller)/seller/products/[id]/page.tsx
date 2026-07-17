@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,6 +29,7 @@ interface ProductModeratedWsPayload {
 }
 
 export default function SellerProductDetailPage() {
+  useDocumentTitle('Chi tiết sản phẩm · Dashboard');
   const params = useParams();
   const productId = String(params.id);
 

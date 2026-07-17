@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,6 +41,7 @@ import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { getErrorMessage } from '@/lib/http';
 
 export default function SellerSettingsPage() {
+  useDocumentTitle('Cài đặt · Dashboard');
   const [shop, setShop] = useState<ShopResponseType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

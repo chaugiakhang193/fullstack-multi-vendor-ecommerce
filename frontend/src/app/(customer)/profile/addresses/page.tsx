@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useState } from 'react';
 import { MapPin, Plus } from 'lucide-react';
 
@@ -17,6 +18,7 @@ import { USER_LIMITS } from '@/constants/limits.generated';
 import { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
 
 export default function AddressesPage() {
+  useDocumentTitle('Sổ địa chỉ');
   const { addresses = [], isLoading } = useAddresses();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AddressResponseType | null>(null);

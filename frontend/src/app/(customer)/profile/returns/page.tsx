@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Loader2, PackageX } from 'lucide-react';
@@ -9,6 +10,7 @@ import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 import { getErrorMessage } from '@/lib/http';
 
 export default function MyReturnsPage() {
+  useDocumentTitle('Đổi trả');
   const [page] = useState(1);
   const query = useMyReturns(page, true);
 

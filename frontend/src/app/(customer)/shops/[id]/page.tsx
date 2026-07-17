@@ -23,7 +23,7 @@ export async function generateMetadata({
   try {
     const response = await shopsApiRequest.getPublicShopDetail(shopId);
     const shop = response.data;
-    const titleVal = `${shop.name} | Gian Hàng Giang Kha`;
+    const titleVal = shop.name;
     const descriptionVal =
       shop.description ||
       `Khám phá các sản phẩm nổi bật của cửa hàng ${shop.name} tại Giang Kha Multi-Vendor.`;
@@ -44,7 +44,7 @@ export async function generateMetadata({
       },
     };
   } catch (err) {
-    const fallbackTitle = 'Không tìm thấy cửa hàng | Giang Kha Multi-Vendor';
+    const fallbackTitle = 'Không tìm thấy cửa hàng';
     return {
       title: fallbackTitle,
     };

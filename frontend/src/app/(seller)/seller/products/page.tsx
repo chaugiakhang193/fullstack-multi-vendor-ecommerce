@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 // Import các biểu tượng từ thư viện lucide-react để dựng giao diện trực quan
 import {
   Plus,
@@ -55,6 +56,7 @@ function formatPrice(price: number): string {
 }
 
 export default function SellerProductsPage() {
+  useDocumentTitle('Sản phẩm · Dashboard');
   // --- ĐỊNH NGHĨA CÁC STATE (TRẠNG THÁI) ---
 
   // Lưu trữ danh sách sản phẩm của gian hàng được tải về từ API

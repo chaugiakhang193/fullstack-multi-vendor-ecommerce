@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -246,6 +247,7 @@ function CustomerCouponsContent() {
 }
 
 export default function CustomerCouponsBrowsePage() {
+  useDocumentTitle('Mã giảm giá');
   return (
     <Suspense
       fallback={

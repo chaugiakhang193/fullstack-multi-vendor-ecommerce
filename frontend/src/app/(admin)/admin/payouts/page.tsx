@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import {
   Wallet,
@@ -46,6 +47,7 @@ const PAYOUT_FILTER_OPTIONS: { value: PayoutFilter; label: string }[] = [
 ];
 
 export default function AdminPayoutsPage() {
+  useDocumentTitle('Đối soát · Admin');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [filterStatus, setFilterStatus] = useState<PayoutFilter>('all');
 

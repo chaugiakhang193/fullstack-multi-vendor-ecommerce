@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -41,6 +42,7 @@ import { OrderStatusBadge } from '@/components/orders/seller-order-status';
 import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 export default function CustomerOrderDetailPage() {
+  useDocumentTitle('Chi tiết đơn hàng');
   const params = useParams<{ id: string }>();
   const id = params.id;
 

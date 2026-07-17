@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
@@ -20,6 +21,7 @@ import { formatVnd } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 
 export default function CustomerProfileCouponsPage() {
+  useDocumentTitle('Mã giảm giá của tôi');
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [activeTab, setActiveTab] = useState<'unused' | 'used' | 'expired'>(
     'unused',

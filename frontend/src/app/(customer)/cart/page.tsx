@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -96,6 +97,7 @@ function EmptyCartWithRecommend() {
 }
 
 export default function CartPage() {
+  useDocumentTitle('Giỏ hàng');
   const router = useRouter();
   const isHydrated = useHydrated();
   const { items, isLoading, updateQuantity, removeItem, updateVariant } =

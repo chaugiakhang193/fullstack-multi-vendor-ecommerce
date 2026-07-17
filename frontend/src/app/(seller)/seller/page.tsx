@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
@@ -25,6 +26,7 @@ import {
 } from '@/schemaValidations/orders/orders.schema';
 
 export default function SellerDashboardPage() {
+  useDocumentTitle('Dashboard');
   const [stats, setStats] = useState<SellerStatsType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 

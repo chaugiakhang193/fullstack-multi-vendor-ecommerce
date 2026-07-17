@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import {
@@ -141,6 +142,7 @@ function formatDate(dateString: string): string {
 }
 
 export default function AdminUsersPage() {
+  useDocumentTitle('Người dùng · Admin');
   const [users, setUsers] = useState<AdminUserItemType[]>([]);
   const [meta, setMeta] = useState<AdminUserPaginationMetaType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

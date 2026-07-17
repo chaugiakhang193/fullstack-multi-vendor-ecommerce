@@ -20,7 +20,7 @@ export default function CustomerNotFound() {
 
   return (
     <>
-      <title>Không tìm thấy trang | Giang Kha Multi-Vendor</title>
+      <title>Không tìm thấy trang — Giang Kha</title>
       <div className="min-h-[75vh] flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in">
         <div className="max-w-lg w-full text-center space-y-8 p-10 md:p-12 rounded-3xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient background decoration */}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +29,7 @@ import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { SetPasswordForm } from '@/app/(customer)/profile/set-password-form';
 
 export default function ProfilePage() {
+  useDocumentTitle('Trang cá nhân');
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 

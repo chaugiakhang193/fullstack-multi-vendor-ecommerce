@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import {
   CheckCircle2,
@@ -43,6 +44,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function AdminSellersPage() {
+  useDocumentTitle('Cửa hàng · Admin');
   const [selectedShop, setSelectedShop] = useState<ShopType | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [isApproveOpen, setIsApproveOpen] = useState<boolean>(false);

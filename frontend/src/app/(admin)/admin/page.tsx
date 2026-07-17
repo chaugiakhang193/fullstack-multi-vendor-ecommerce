@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
@@ -18,6 +19,7 @@ import { formatVnd } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboardPage() {
+  useDocumentTitle('Tổng quan · Admin');
   const [stats, setStats] = useState<AdminStatsType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
@@ -166,6 +167,7 @@ function VariantImageDropzone({
 }
 
 export default function CreateProductPage() {
+  useDocumentTitle('Thêm sản phẩm · Dashboard');
   const router = useRouter();
 
   // State danh mục

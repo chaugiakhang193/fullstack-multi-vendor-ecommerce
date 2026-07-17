@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,6 +44,7 @@ import {
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 export default function AdminCategoriesPage() {
+  useDocumentTitle('Danh mục · Admin');
   const [categories, setCategories] = useState<CategoryResponseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

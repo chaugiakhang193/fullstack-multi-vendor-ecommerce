@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import { useSellerReviews, useSellerReplyReview } from '@/hooks/useReviews';
 import { StarRating } from '@/components/shared/star-rating';
@@ -8,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, MessageSquare, Reply } from 'lucide-react';
 
 export default function SellerReviewsPage() {
+  useDocumentTitle('Đánh giá · Dashboard');
   const [page, setPage] = useState(1);
   const [selectedRating, setSelectedRating] = useState<number | undefined>(
     undefined,

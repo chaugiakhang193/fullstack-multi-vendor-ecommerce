@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -38,6 +39,7 @@ const TABS: { label: string; value: OrderStatusType | 'all' }[] = [
 ];
 
 export default function CustomerOrdersPage() {
+  useDocumentTitle('Đơn hàng của tôi');
   const router = useRouter();
   const isHydrated = useHydrated();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);

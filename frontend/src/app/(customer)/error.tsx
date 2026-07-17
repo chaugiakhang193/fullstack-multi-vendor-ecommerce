@@ -26,7 +26,7 @@ export default function CustomerError({ error, reset }: ErrorProps) {
 
   return (
     <>
-      <title>Đã xảy ra sự cố | Giang Kha Multi-Vendor</title>
+      <title>Đã xảy ra sự cố — Giang Kha</title>
       <div className="min-h-[60vh] flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in">
         <div className="max-w-md w-full space-y-8 p-8 rounded-2xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient accent */}

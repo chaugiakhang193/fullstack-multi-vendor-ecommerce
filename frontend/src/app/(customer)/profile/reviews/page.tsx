@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useReviewableItems } from '@/hooks/useReviews';
@@ -9,6 +10,7 @@ import { Loader2, Calendar, Gift } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CustomerReviewsPage() {
+  useDocumentTitle('Đánh giá của tôi');
   const [page, setPage] = useState(1);
   const { data: reviewableRes, isLoading } = useReviewableItems({
     page,

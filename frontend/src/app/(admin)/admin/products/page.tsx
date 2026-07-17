@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Package, ShieldOff, RotateCcw, AlertTriangle, X } from 'lucide-react';
@@ -444,6 +445,7 @@ function AdminProductsInner() {
 }
 
 export default function AdminProductsPage() {
+  useDocumentTitle('Sản phẩm · Admin');
   const loadingFallback = (
     <div className="space-y-8 animate-fade-in">
       <div className="space-y-2">

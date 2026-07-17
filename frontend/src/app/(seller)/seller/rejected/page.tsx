@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -35,6 +36,7 @@ import {
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SellerRejectedPage() {
+  useDocumentTitle('Hồ sơ bị từ chối · Dashboard');
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);

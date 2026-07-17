@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +40,7 @@ import {
 } from '@/components/ui/card';
 
 export default function SellerSetupPage() {
+  useDocumentTitle('Thiết lập cửa hàng · Dashboard');
   const router = useRouter();
   const { user } = useAuthStore();
   const isRejected = user?.status === 'rejected';

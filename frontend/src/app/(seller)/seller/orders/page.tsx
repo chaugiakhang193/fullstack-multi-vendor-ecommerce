@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Eye, Loader2, Package, AlertTriangle } from 'lucide-react';
@@ -55,6 +56,7 @@ function subOrderAmount(order: SellerOrderType): number {
 }
 
 export default function SellerOrdersPage() {
+  useDocumentTitle('Đơn hàng · Dashboard');
   const [activeTab, setActiveTab] = useState<OrderStatusType | 'all'>('all');
   const [page, setPage] = useState(1);
   const [actingId, setActingId] = useState<string | null>(null);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ import {
 import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 export default function SellerOrderDetailPage() {
+  useDocumentTitle('Chi tiết đơn hàng · Dashboard');
   const params = useParams<{ id: string }>();
   const id = params.id;
 

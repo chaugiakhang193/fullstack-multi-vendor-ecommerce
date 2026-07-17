@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -54,6 +55,7 @@ import type {
 import type { AddressResponseType } from '@/schemaValidations/users/addresses.schema';
 
 export default function CheckoutPage() {
+  useDocumentTitle('Thanh toán');
   const router = useRouter();
   const isHydrated = useHydrated();
   const queryClient = useQueryClient();

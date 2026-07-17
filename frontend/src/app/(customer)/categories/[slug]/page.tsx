@@ -31,9 +31,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const { category } = await resolveCategoryBySlug(slug);
   if (!category) {
-    return { title: 'Không tìm thấy danh mục | Giang Kha Multi-Vendor' };
+    return { title: 'Không tìm thấy danh mục' };
   }
-  const title = `${category.name} | Giang Kha Multi-Vendor`;
+  const title = category.name;
   const description = `Mua sắm ${category.name} chất lượng, giá tốt tại Giang Kha — đa dạng sản phẩm từ nhiều nhà bán uy tín.`;
   return {
     title,

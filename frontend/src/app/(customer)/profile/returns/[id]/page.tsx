@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -15,6 +16,7 @@ import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 import { getErrorMessage } from '@/lib/http';
 
 export default function ReturnDetailPage() {
+  useDocumentTitle('Chi tiết đổi trả');
   const params = useParams<{ id: string }>();
   const id = params.id;
   const query = useReturnDetail(id);

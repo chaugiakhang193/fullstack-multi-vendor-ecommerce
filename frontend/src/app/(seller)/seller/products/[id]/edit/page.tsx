@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useDropzone } from 'react-dropzone'; // Thư viện kéo thả file
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner'; // Thông báo dạng pop-up
 import {
   Plus,
@@ -220,6 +221,7 @@ function EditVariantImageDropzone({
 }
 
 export default function EditProductPage() {
+  useDocumentTitle('Sửa sản phẩm · Dashboard');
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string; // Lấy ID sản phẩm cần chỉnh sửa từ URL

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import React, { useState, useEffect } from 'react';
 import {
   Wallet,
@@ -40,6 +41,7 @@ import { PayoutStatus } from '@/constants/enum.generated';
 import { PAYOUT_LIMITS } from '@/constants/limits.generated';
 
 export default function SellerPayoutsPage() {
+  useDocumentTitle('Đối soát · Dashboard');
   const queryClient = useQueryClient();
   const socket = useSocket();
   const [currentPage, setCurrentPage] = useState<number>(1);
