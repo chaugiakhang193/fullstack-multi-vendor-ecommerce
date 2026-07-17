@@ -17,10 +17,10 @@ import { hashDataHelper } from '@/common/helpers/utils';
 import * as crypto from 'crypto';
 
 /**
- * Kịch bản chính: EDIT một sản phẩm LEGACY (color_images = null, ảnh nằm ở
+ * Kịch bản chính: EDIT một sản phẩm LEGACY (color_groups = null, ảnh nằm ở
  * variant.images) bằng protocol MÀU (colorImages). Bug đã sửa: vòng lặp variant
  * KHÔNG được xóa asset theo variant.images khi usingColorModel — vì các URL đó
- * vừa được migrate vào color_images.existingImages. Nếu xóa → phá ảnh vừa giữ.
+ * vừa được migrate vào color_groups.existingImages. Nếu xóa → phá ảnh vừa giữ.
  */
 describe('Variant color-images — legacy edit (e2e)', () => {
   let app: INestApplication<App>;
@@ -168,8 +168,8 @@ describe('Variant color-images — legacy edit (e2e)', () => {
     }
   });
 
-  it('edit legacy product via color protocol → giữ nguyên ảnh cũ, KHÔNG xóa asset, migrate sang color_images', async () => {
-    // 1) Seed sản phẩm LEGACY: color_images=null, ảnh nằm ở variant.images.
+  it('edit legacy product via color protocol → giữ nguyên ảnh cũ, KHÔNG xóa asset, migrate sang color_groups', async () => {
+    // 1) Seed sản phẩm LEGACY: color_groups=null, ảnh nằm ở variant.images.
     const productRepo = dataSource.getRepository(Product);
     const variantRepo = dataSource.getRepository(ProductVariant);
 
@@ -181,7 +181,7 @@ describe('Variant color-images — legacy edit (e2e)', () => {
       price: 100000,
       weight: 200,
       has_variants: true,
-      color_images: null, // ← LEGACY: chưa có cột màu
+      color_groups: null, // ← LEGACY: chưa có cột màu
       thumbnail_url:
         'https://res.cloudinary.com/mock/upload/v1/thumb-legacy.jpg',
       gallery: [],
@@ -256,11 +256,13 @@ describe('Variant color-images — legacy edit (e2e)', () => {
     // 3) ASSERT chính: KHÔNG được xóa asset của ảnh legacy vừa migrate.
     expect(deletedPublicIds).not.toContain(publicIdOf(LEGACY_RED));
 
-    // 4) color_images đã migrate đúng URL cũ.
+    // 4) color_groups đã migrate đúng URL cũ (hex null vì legacy không có).
     const data = response.body.data;
-    expect(data.color_images).toEqual({ Đỏ: [LEGACY_RED] });
+    expect(data.color_groups).toEqual({
+      Đỏ: { hex: null, images: [LEGACY_RED] },
+    });
 
-    // 5) Resolver bơm variant.images từ color_images (contract giữ nguyên).
+    // 5) Resolver bơm variant.images từ color_groups (contract giữ nguyên).
     expect(data.variants.length).toBe(2);
     data.variants.forEach((v: { images: string[] }) => {
       expect(v.images).toEqual([LEGACY_RED]);
@@ -270,6 +272,8 @@ describe('Variant color-images — legacy edit (e2e)', () => {
     const reloaded = await productRepo.findOne({
       where: { id: legacyProduct.id },
     });
-    expect(reloaded!.color_images).toEqual({ Đỏ: [LEGACY_RED] });
+    expect(reloaded!.color_groups).toEqual({
+      Đỏ: { hex: null, images: [LEGACY_RED] },
+    });
   });
 });

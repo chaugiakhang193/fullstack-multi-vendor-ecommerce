@@ -262,8 +262,11 @@ export class ProductsService {
       const mapAssetUrlFn = (asset: { url: string }) => asset.url;
       const galleryUrls = galleryAssets.map(mapAssetUrlFn);
 
-      // Upload ảnh theo MÀU → color_images map. Nguồn sự thật ảnh biến thể (model C-normalized).
-      const colorImagesMap: Record<string, string[]> = {};
+      // Upload ảnh theo MÀU → color_groups map { màu: { hex, images } }. Nguồn sự thật màu.
+      const colorGroupsMap: Record<
+        string,
+        { hex: string | null; images: string[] }
+      > = {};
       if (usingColorModel) {
         let colorOffset = 0;
         for (const group of createProductDto.colorImages!) {
@@ -281,7 +284,10 @@ export class ProductsService {
             shopId,
             uploadedAssets,
           );
-          colorImagesMap[group.color] = groupAssets.map(mapAssetUrlFn);
+          colorGroupsMap[group.color] = {
+            hex: group.hex ?? null,
+            images: groupAssets.map(mapAssetUrlFn),
+          };
         }
       }
 
@@ -297,7 +303,7 @@ export class ProductsService {
         shop,
         thumbnail_url: thumbnailResult.url,
         gallery: galleryUrls,
-        color_images: usingColorModel ? colorImagesMap : null,
+        color_groups: usingColorModel ? colorGroupsMap : null,
         slug: productSlug,
         sku: createProductDto.sku,
         weight: createProductDto.weight,
@@ -317,7 +323,7 @@ export class ProductsService {
         const variantsToSave: ProductVariant[] = [];
 
         for (const variantDto of createProductDto.variants!) {
-          // Model màu: KHÔNG ghi ảnh per-variant (ảnh nằm ở color_images → resolver bơm khi đọc).
+          // Model màu: KHÔNG ghi ảnh per-variant (ảnh nằm ở color_groups → resolver bơm khi đọc).
           // Model cũ (back-compat): slice + upload variant_images theo imageCount.
           let variantUrls: string[] = [];
           if (!usingColorModel) {
@@ -875,16 +881,16 @@ export class ProductsService {
     return result;
   }
 
-  // Bơm ảnh biến thể từ color_images theo attributes.color (giữ contract variant.images).
-  // Legacy (color_images null / màu thiếu) → giữ variant.images cũ. Áp ở MỌI read site
-  // serialize variant.images (findOne detail + hydrateProductPage list).
+  // Bơm ảnh biến thể từ color_groups[color].images theo attributes.color (giữ contract
+  // variant.images). Legacy (color_groups null / màu thiếu) → giữ variant.images cũ.
+  // Áp ở MỌI read site serialize variant.images (findOne detail + hydrateProductPage list).
   private resolveVariantImages(product: Product): void {
-    const colorMap = product.color_images || {};
+    const groups = product.color_groups || {};
     if (!product.variants) return;
     for (const v of product.variants) {
       const color = v.attributes?.color;
-      const fromColor =
-        color && colorMap[color]?.length ? colorMap[color] : null;
+      const imgs = color ? groups[color]?.images : null;
+      const fromColor = imgs?.length ? imgs : null;
       v.images = fromColor ?? v.images ?? [];
     }
   }
@@ -913,7 +919,7 @@ export class ProductsService {
       throw new NotFoundException('Không tìm thấy sản phẩm');
     }
 
-    // Bơm variant.images từ color_images TRƯỚC khi gộp aggregated_gallery.
+    // Bơm variant.images từ color_groups TRƯỚC khi gộp aggregated_gallery.
     this.resolveVariantImages(product);
 
     // Tạo Aggregated Gallery (Bộ sưu tập ảnh tổng hợp)
@@ -1195,10 +1201,10 @@ export class ProductsService {
           }
           product.variants = [];
 
-          // Dọn ảnh gom theo màu (normalized) khi bỏ biến thể → tránh rác asset.
+          // Dọn ảnh gom theo màu (color_groups) khi bỏ biến thể → tránh rác asset.
           const colorUrlsToDelete = Object.values(
-            product.color_images || {},
-          ).flat();
+            product.color_groups || {},
+          ).flatMap((g) => g.images);
           for (const url of colorUrlsToDelete) {
             const asset = await this.cloudinaryService.findAssetByUrl(url);
             if (asset) {
@@ -1206,7 +1212,7 @@ export class ProductsService {
               await queryRunner.manager.remove(MediaAsset, asset);
             }
           }
-          product.color_images = null;
+          product.color_groups = null;
         }
         product.has_variants = updateProductDto.has_variants!;
       }
@@ -1228,20 +1234,25 @@ export class ProductsService {
           await this.categoriesService.validateLeafCategory(leafCategoryId);
       }
 
-      // Model màu: dựng color_images mới (existing giữ lại + upload mới),
+      // Model màu: dựng color_groups mới (hex + existing giữ lại + upload mới),
       // xóa asset của URL cũ không còn được giữ. usingColorModel = FE gửi mảng colorImages.
       const usingColorModel = Array.isArray(updateProductDto.colorImages);
-      let newColorImagesMap: Record<string, string[]> | null = null;
+      let newColorGroupsMap: Record<
+        string,
+        { hex: string | null; images: string[] }
+      > | null = null;
       if (usingColorModel) {
-        newColorImagesMap = {};
-        const oldColorImages = product.color_images || {};
+        newColorGroupsMap = {};
+        const oldColorGroups = product.color_groups || {};
         // URL cũ còn được giữ (union existingImages mọi màu) để tính ảnh bị xóa.
         const keptUrls = new Set<string>();
         updateProductDto.colorImages!.forEach((g) =>
           (g.existingImages || []).forEach((u) => keptUrls.add(u)),
         );
         // Xóa asset của URL cũ không còn giữ.
-        const allOldUrls = Object.values(oldColorImages).flat();
+        const allOldUrls = Object.values(oldColorGroups).flatMap(
+          (g) => g.images,
+        );
         for (const url of allOldUrls) {
           if (!keptUrls.has(url)) {
             const asset = await this.cloudinaryService.findAssetByUrl(url);
@@ -1273,10 +1284,10 @@ export class ProductsService {
               );
             newUrls = groupAssets.map((a) => a.url);
           }
-          newColorImagesMap[group.color] = [
-            ...(group.existingImages || []),
-            ...newUrls,
-          ];
+          newColorGroupsMap[group.color] = {
+            hex: group.hex ?? null,
+            images: [...(group.existingImages || []), ...newUrls],
+          };
         }
       }
 
@@ -1303,9 +1314,9 @@ export class ProductsService {
         const variantsToDelete = oldVariants.filter(isOldVariantDeleted);
 
         for (const variantToDelete of variantsToDelete) {
-          // Model màu: variant.images KHÔNG còn authoritative (ảnh ở color_images) →
+          // Model màu: variant.images KHÔNG còn authoritative (ảnh ở color_groups) →
           // KHÔNG xóa asset theo variant.images. Với sp legacy các URL này đã được
-          // migrate vào color_images.existingImages; xóa ở đây sẽ phá ảnh vừa giữ.
+          // migrate vào color_groups.existingImages; xóa ở đây sẽ phá ảnh vừa giữ.
           const hasImagesToDelete =
             !usingColorModel &&
             variantToDelete.images &&
@@ -1331,7 +1342,7 @@ export class ProductsService {
           const existingImages = variantDto.existingImages || [];
 
           // Upload ảnh mới (nếu có). Model màu KHÔNG upload ảnh per-variant
-          // (ảnh nằm ở color_images) → newUploadedUrls giữ rỗng, images cuối = [].
+          // (ảnh nằm ở color_groups) → newUploadedUrls giữ rỗng, images cuối = [].
           let newUploadedUrls: string[] = [];
           const hasNewVariantImages =
             !usingColorModel &&
@@ -1377,7 +1388,7 @@ export class ProductsService {
             }
 
             // Tìm các ảnh bị xóa bởi user.
-            // Model màu: variant.images KHÔNG authoritative (ảnh ở color_images) →
+            // Model màu: variant.images KHÔNG authoritative (ảnh ở color_groups) →
             // KHÔNG xóa asset theo nó (tránh phá ảnh legacy vừa migrate vào color_images).
             const isVarImageDeleted = (url: string) =>
               !existingImages.includes(url);
@@ -1404,7 +1415,7 @@ export class ProductsService {
               throw new BadRequestException(limitMsg);
             }
 
-            // Model màu: ảnh biến thể lấy từ color_images khi đọc → KHÔNG ép ≥1 ảnh per-variant.
+            // Model màu: ảnh biến thể lấy từ color_groups khi đọc → KHÔNG ép ≥1 ảnh per-variant.
 
             // Gộp ảnh (model màu: existingImages/newUploadedUrls rỗng → finalUrls = []).
             finalUrls = [...existingImages, ...newUploadedUrls];
@@ -1444,7 +1455,7 @@ export class ProductsService {
               throw new BadRequestException(limitMsg);
             }
 
-            // Model màu: KHÔNG ép ≥1 ảnh per-variant (ảnh nằm ở color_images).
+            // Model màu: KHÔNG ép ≥1 ảnh per-variant (ảnh nằm ở color_groups).
 
             finalUrls = newUploadedUrls;
 
@@ -1484,7 +1495,7 @@ export class ProductsService {
 
       // Model màu: cập nhật nguồn sự thật ảnh biến thể (chạy cả khi không đổi list biến thể).
       if (usingColorModel) {
-        product.color_images = newColorImagesMap;
+        product.color_groups = newColorGroupsMap;
       }
 
       // Kiểm tra tính nhất quán của has_variants
@@ -1787,7 +1798,7 @@ export class ProductsService {
       ...(select && { select }),
     });
 
-    // Bơm variant.images từ color_images cho các item có nạp variants (list seller/public).
+    // Bơm variant.images từ color_groups cho các item có nạp variants (list seller/public).
     if (relations.includes('variants')) {
       detailedItems.forEach((item) => this.resolveVariantImages(item));
     }

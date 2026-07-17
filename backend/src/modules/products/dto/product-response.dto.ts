@@ -157,11 +157,14 @@ export class ProductResponseDto {
   aggregated_gallery?: string[];
 
   @ApiProperty({
-    example: { Đỏ: ['https://…/red1.jpg'], Xanh: ['https://…/blue1.jpg'] },
+    example: {
+      Đỏ: { hex: '#ef4444', images: ['https://…/red1.jpg'] },
+      Xanh: { hex: null, images: ['https://…/blue1.jpg'] },
+    },
     nullable: true,
-    description: 'Ảnh gom theo màu (nguồn sự thật ảnh biến thể)',
+    description: 'Nhóm màu (nguồn sự thật màu): hex + ảnh theo màu',
   })
-  color_images: Record<string, string[]> | null;
+  color_groups: Record<string, { hex: string | null; images: string[] }> | null;
 
   @ApiProperty({
     example: 150,

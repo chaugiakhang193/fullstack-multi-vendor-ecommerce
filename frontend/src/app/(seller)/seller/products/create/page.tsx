@@ -31,9 +31,10 @@ type VariantOptionItem = {
   stock_quantity: number;
 };
 
-// 1 nhóm màu: ảnh (up 1 lần/màu) + danh sách thuộc-tính-2 (ma trận ragged)
+// 1 nhóm màu: ảnh (up 1 lần/màu) + hex (optional) + danh sách thuộc-tính-2 (ragged)
 type ColorGroupItem = {
   color: string; // "Đỏ"
+  hex: string; // mã màu seller chọn, '' = chưa chọn
   images: File[];
   imagePreviews: string[];
   options: VariantOptionItem[];
@@ -69,6 +70,7 @@ function createEmptyOption(): VariantOptionItem {
 function createEmptyColorGroup(): ColorGroupItem {
   return {
     color: '',
+    hex: '',
     images: [],
     imagePreviews: [],
     options: [createEmptyOption()],
@@ -400,6 +402,13 @@ export default function CreateProductPage() {
     }
   };
 
+  // Đặt/bỏ mã màu hex cho nhóm màu ('' = bỏ chọn → chấm màu fallback COLOR_MAP khi hiển thị).
+  const handleColorHexChange = (colorIndex: number, value: string) => {
+    setColorGroups((prev) =>
+      prev.map((g, i) => (i === colorIndex ? { ...g, hex: value } : g)),
+    );
+  };
+
   const handleAddColorImages = (colorIndex: number, files: File[]) => {
     const newPreviews = files.map((f) => URL.createObjectURL(f));
     setColorGroups((prev) =>
@@ -588,9 +597,10 @@ export default function CreateProductPage() {
         );
         formData.append('variants', JSON.stringify(variantsData));
 
-        // Nhóm ảnh theo màu (imageCount) + flatten file theo đúng thứ tự nhóm
+        // Nhóm ảnh theo màu (imageCount + hex optional) + flatten file theo đúng thứ tự nhóm
         const colorImagesMeta = colorGroups.map((g) => ({
           color: g.color,
+          hex: g.hex || undefined,
           imageCount: g.images.length,
         }));
         formData.append('colorImages', JSON.stringify(colorImagesMeta));
@@ -965,22 +975,62 @@ export default function CreateProductPage() {
                       Màu #{ci + 1}
                     </p>
 
-                    {/* Tên màu */}
-                    <div className="max-w-[280px]">
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                        Tên màu *
-                      </label>
-                      <Input
-                        placeholder="Ví dụ: Đỏ"
-                        value={group.color}
-                        onChange={(e) =>
-                          handleColorNameChange(ci, e.target.value)
-                        }
-                        aria-invalid={!!errors[`color_${ci}_name`]}
-                      />
-                      {errors[`color_${ci}_name`] && (
-                        <FieldError>{errors[`color_${ci}_name`]}</FieldError>
-                      )}
+                    {/* Tên màu + mã màu (hex, tùy chọn) */}
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="max-w-[280px] flex-1 min-w-[180px]">
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                          Tên màu *
+                        </label>
+                        <Input
+                          placeholder="Ví dụ: Đỏ"
+                          value={group.color}
+                          onChange={(e) =>
+                            handleColorNameChange(ci, e.target.value)
+                          }
+                          aria-invalid={!!errors[`color_${ci}_name`]}
+                        />
+                        {errors[`color_${ci}_name`] && (
+                          <FieldError>{errors[`color_${ci}_name`]}</FieldError>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                          Mã màu (tùy chọn)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <label
+                            className="relative h-9 w-9 rounded-lg border border-zinc-200 dark:border-zinc-800 cursor-pointer overflow-hidden shrink-0"
+                            style={{
+                              backgroundColor: group.hex || 'transparent',
+                            }}
+                            title="Chọn mã màu"
+                          >
+                            <input
+                              type="color"
+                              value={group.hex || '#000000'}
+                              onChange={(e) =>
+                                handleColorHexChange(ci, e.target.value)
+                              }
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            {!group.hex && (
+                              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-muted-foreground">
+                                ?
+                              </span>
+                            )}
+                          </label>
+                          {group.hex && (
+                            <button
+                              type="button"
+                              onClick={() => handleColorHexChange(ci, '')}
+                              className="text-[11px] font-semibold text-muted-foreground hover:text-rose-500 transition"
+                              title="Bỏ mã màu"
+                            >
+                              bỏ chọn
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Ảnh của màu (up 1 lần/màu, optional) */}

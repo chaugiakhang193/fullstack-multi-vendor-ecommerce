@@ -10,6 +10,7 @@ import {
   Max,
   ArrayMaxSize,
   MaxLength,
+  Matches,
 } from 'class-validator';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -79,10 +80,19 @@ export class CreateProductVariantDto {
 }
 
 export class ColorImageGroupDto {
-  @ApiProperty({ example: 'Đỏ', description: 'Giá trị màu (khóa gom ảnh)' })
+  @ApiProperty({ example: 'Đỏ', description: 'Giá trị màu (khóa gom nhóm)' })
   @IsNotEmpty({ message: 'Tên màu không được để trống' })
   @IsString({ message: 'Tên màu phải là chuỗi' })
   color: string;
+
+  @ApiProperty({
+    example: '#ef4444',
+    description: 'Mã màu hex do seller chọn (optional) — dùng cho chấm màu',
+    required: false,
+  })
+  @IsOptional()
+  @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'Mã màu phải dạng #RRGGBB' })
+  hex?: string;
 
   @ApiProperty({ example: 2, description: 'Số ảnh mới upload cho màu này' })
   @Transform(({ value }) =>

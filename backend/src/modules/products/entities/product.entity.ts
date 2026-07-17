@@ -67,11 +67,11 @@ export class Product {
   @Column({ type: 'simple-array', nullable: true })
   gallery: string[] | null;
 
-  // Ảnh gom theo màu — nguồn sự thật cho ảnh biến thể. { [color]: string[] }.
-  // Variant KHÔNG còn ghi ảnh riêng (cột images giữ cho data cũ). Đọc: resolver bơm
-  // variant.images = color_images[variant.attributes.color]. Xem products.service resolver.
+  // Nhóm màu — nguồn sự thật cho metadata màu: { [color]: { hex, images } }.
+  // hex (optional) cho chấm màu; images là ảnh của màu (variant KHÔNG ghi ảnh riêng).
+  // Đọc: resolver bơm variant.images = color_groups[attributes.color].images. Xem resolver.
   @Column({ type: 'jsonb', nullable: true })
-  color_images: Record<string, string[]> | null;
+  color_groups: Record<string, { hex: string | null; images: string[] }> | null;
 
   @Column({ type: 'int', default: 0 })
   stock_quantity: number;

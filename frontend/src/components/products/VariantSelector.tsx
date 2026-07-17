@@ -9,6 +9,8 @@ import type { ProductVariantResponseType } from '@/schemaValidations/products/pr
 
 interface VariantSelectorProps {
   variants: ProductVariantResponseType[];
+  // Nhóm màu { màu: { hex, images } } — hex tường minh do seller chọn (ưu tiên chấm màu).
+  colorGroups?: Record<string, { hex: string | null; images: string[] }> | null;
   onVariantSelect: (variant: ProductVariantResponseType | null) => void;
 }
 
@@ -124,6 +126,7 @@ const compareOptionValues = (a: string, b: string): number => {
 
 export default function VariantSelector({
   variants,
+  colorGroups,
   onVariantSelect,
 }: VariantSelectorProps) {
   const router = useRouter();
@@ -306,8 +309,11 @@ export default function VariantSelector({
               {options.map((option) => {
                 const isSelected = selectedAttributes[key] === option;
                 const isDisabled = isOptionDisabled(key, option);
-                // Màu: chấm màu từ hex (đã normalize); không tra được → null (chỉ hiện chữ).
-                const colorHex = isColor ? resolveColorHex(option) : null;
+                // Màu: chấm màu ưu tiên hex tường minh (seller chọn), fallback COLOR_MAP
+                // normalize; không có cả 2 → null (chỉ hiện chữ, không chấm).
+                const colorHex = isColor
+                  ? (colorGroups?.[option]?.hex ?? resolveColorHex(option))
+                  : null;
 
                 // Render đồng nhất dạng chip chữ (màu = chip + chấm màu, kiểu Shopee).
                 return (

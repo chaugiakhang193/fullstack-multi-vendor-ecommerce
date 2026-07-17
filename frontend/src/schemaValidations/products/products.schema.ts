@@ -19,14 +19,24 @@ export type UpdateProductVariantFormType = UpdateProductVariantDto & {
   stock_quantity: number;
 };
 
+// Omit các field KHÔNG đi qua zod body: file fields (thumbnail/gallery/variant_images/
+// color_images) + colorImages metadata (form gửi dạng JSON string trong FormData, không validate ở đây).
 type CleanCreateProductDto = Omit<
   CreateProductSwaggerDto,
-  'thumbnail' | 'general_gallery' | 'variant_images'
+  | 'thumbnail'
+  | 'general_gallery'
+  | 'variant_images'
+  | 'color_images'
+  | 'colorImages'
 >;
 
 type CleanUpdateProductDto = Omit<
   UpdateProductSwaggerDto,
-  'thumbnail' | 'general_gallery' | 'variant_images'
+  | 'thumbnail'
+  | 'general_gallery'
+  | 'variant_images'
+  | 'color_images'
+  | 'colorImages'
 >;
 
 type UpdateProductFormType = Omit<CleanUpdateProductDto, 'variants'> & {
@@ -212,7 +222,15 @@ export const ProductResponse = z.object({
   variants: z.array(ProductVariantResponse),
   thumbnail_url: z.any().nullable(),
   gallery: z.any().nullable(),
-  color_images: z.record(z.array(z.string())).nullable().optional(),
+  color_groups: z
+    .record(
+      z.object({
+        hex: z.string().nullable(),
+        images: z.array(z.string()),
+      }),
+    )
+    .nullable()
+    .optional(),
   aggregated_gallery: z.array(z.string()),
   stock_quantity: z.number(),
   has_variants: z.boolean(),

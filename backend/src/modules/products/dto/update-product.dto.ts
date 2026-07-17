@@ -16,6 +16,7 @@ import {
   ArrayMaxSize,
   IsEnum,
   IsBoolean,
+  Matches,
 } from 'class-validator';
 import { ProductStatus } from '@/common/enums';
 import { UPLOAD_LIMITS } from '@/common/constants/upload.constant';
@@ -59,6 +60,15 @@ export class UpdateColorImageGroupDto {
   @ApiProperty({ example: 'Đỏ' })
   @IsString()
   color: string;
+
+  @ApiProperty({
+    example: '#ef4444',
+    required: false,
+    description: 'Mã màu hex (optional) — dùng cho chấm màu',
+  })
+  @IsOptional()
+  @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'Mã màu phải dạng #RRGGBB' })
+  hex?: string;
 
   @ApiProperty({
     required: false,

@@ -2203,17 +2203,23 @@ export interface components {
              */
             aggregated_gallery: string[];
             /**
-             * @description Ảnh gom theo màu (nguồn sự thật ảnh biến thể)
+             * @description Nhóm màu (nguồn sự thật màu): hex + ảnh theo màu
              * @example {
-             *       "Đỏ": [
-             *         "https://…/red1.jpg"
-             *       ],
-             *       "Xanh": [
-             *         "https://…/blue1.jpg"
-             *       ]
+             *       "Đỏ": {
+             *         "hex": "#ef4444",
+             *         "images": [
+             *           "https://…/red1.jpg"
+             *         ]
+             *       },
+             *       "Xanh": {
+             *         "hex": null,
+             *         "images": [
+             *           "https://…/blue1.jpg"
+             *         ]
+             *       }
              *     }
              */
-            color_images: Record<string, never> | null;
+            color_groups: Record<string, never> | null;
             /**
              * @description Tổng số lượng tồn kho của tất cả biến thể hoặc của chính sản phẩm gốc
              * @example 150
@@ -2289,10 +2295,15 @@ export interface components {
         };
         ColorImageGroupDto: {
             /**
-             * @description Giá trị màu (khóa gom ảnh)
+             * @description Giá trị màu (khóa gom nhóm)
              * @example Đỏ
              */
             color: string;
+            /**
+             * @description Mã màu hex do seller chọn (optional) — dùng cho chấm màu
+             * @example #ef4444
+             */
+            hex?: string;
             /**
              * @description Số ảnh mới upload cho màu này
              * @example 2
@@ -2414,6 +2425,11 @@ export interface components {
         UpdateColorImageGroupDto: {
             /** @example Đỏ */
             color: string;
+            /**
+             * @description Mã màu hex (optional) — dùng cho chấm màu
+             * @example #ef4444
+             */
+            hex?: string;
             /** @description URL ảnh màu cũ giữ lại */
             existingImages?: string[];
             /**

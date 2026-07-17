@@ -618,6 +618,7 @@ export default function ProductDetailClient({
               >
                 <VariantSelector
                   variants={product.variants}
+                  colorGroups={product.color_groups}
                   onVariantSelect={setSelectedVariant}
                 />
               </div>
