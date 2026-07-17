@@ -61,8 +61,8 @@ export class NotificationService {
     userIds: string[],
     dto: Omit<CreateNotificationDto, "userId">,
     manager?: EntityManager,
-  ): Promise<void> {
-    if (userIds.length === 0) return;
+  ): Promise<Notification[]> {
+    if (userIds.length === 0) return [];
     const notifRepo = manager
       ? manager.getRepository(Notification)
       : this.notificationRepo;
@@ -88,6 +88,31 @@ export class NotificationService {
         payload: this.toPayload(n),
       })),
     );
+    return saved;
+  }
+
+  // Map 1 dòng notification đã lưu → payload WS notification.new (mirror toPayload).
+  toWsRow(n: Notification): {
+    id: string;
+    type: string;
+    title: string | null;
+    content: string | null;
+    data: unknown | null;
+    isRead: boolean;
+    createdAt: string;
+  } {
+    return {
+      id: n.id,
+      type: n.type,
+      title: n.title ?? null,
+      content: n.content ?? null,
+      data: n.data ?? null,
+      isRead: n.is_read,
+      createdAt:
+        n.created_at instanceof Date
+          ? n.created_at.toISOString()
+          : new Date(n.created_at).toISOString(),
+    };
   }
 
   // Snapshot đưa vào outbox.payload → part_03 upsert notification_read.

@@ -19,6 +19,7 @@ export const WS_EVENTS = {
   RETURN_REQUESTED: 'return.requested',
   RETURN_STATUS_CHANGED: 'return.status_changed',
   PRODUCT_MODERATED: 'product.moderated', // báo seller admin gỡ/khôi phục sản phẩm
+  NOTIFICATION_NEW: 'notification.new', // báo CHÍNH CHỦ (toUser) có notif mới — mang đủ dòng notif
 } as const;
 
 // Payload event 'order.new' — báo Seller có đơn hàng mới.
@@ -102,6 +103,18 @@ export interface ProductModeratedWsPayload {
   message: string;
 }
 
+// Payload notification.new — mang NGUYÊN dòng notification vừa tạo để FE prepend
+// vào cache list + tăng badge, KHÔNG cần refetch (né race projection notification_read).
+export interface NotificationNewWsPayload {
+  id: string;
+  type: string;
+  title: string | null;
+  content: string | null;
+  data: unknown | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 // Map tên event → kiểu payload. Nguồn sự thật duy nhất cho mọi event WebSocket.
 export type WsPayloadMap = {
   [WS_EVENTS.ORDER_NEW]: OrderNewWsPayload;
@@ -114,6 +127,7 @@ export type WsPayloadMap = {
   [WS_EVENTS.RETURN_REQUESTED]: ReturnRequestedWsPayload;
   [WS_EVENTS.RETURN_STATUS_CHANGED]: ReturnStatusChangedWsPayload;
   [WS_EVENTS.PRODUCT_MODERATED]: ProductModeratedWsPayload;
+  [WS_EVENTS.NOTIFICATION_NEW]: NotificationNewWsPayload;
 };
 
 export type WsEventName = keyof WsPayloadMap;

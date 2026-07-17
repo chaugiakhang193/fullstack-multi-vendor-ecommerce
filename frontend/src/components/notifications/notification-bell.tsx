@@ -19,12 +19,16 @@ import {
   sellerReturnKeys,
   returnKeys,
   pendingShopKeys,
+  notificationKeys,
 } from '@/constants/query-keys';
 import { UserRole } from '@/constants/enum';
 import { getErrorMessage } from '@/lib/http';
 import { formatDateTime, formatVnd } from '@/lib/format';
 import { renderNotificationData } from '@/components/notifications/notification-content';
-import type { NotificationItemType } from '@/schemaValidations/engagements/notifications.schema';
+import type {
+  NotificationItemType,
+  NotificationListEnvelope,
+} from '@/schemaValidations/engagements/notifications.schema';
 
 // Tên event WS — khớp backend notification.events.ts WS_EVENTS.
 const WS_ORDER_NEW = 'order.new';
@@ -37,6 +41,7 @@ const WS_SHOP_REGISTERED = 'shop.registered';
 const WS_RETURN_REQUESTED = 'return.requested';
 const WS_RETURN_STATUS_CHANGED = 'return.status_changed';
 const WS_PRODUCT_MODERATED = 'product.moderated';
+const WS_NOTIFICATION_NEW = 'notification.new';
 
 interface OrderNewPayload {
   orderId: string;
@@ -99,6 +104,15 @@ interface ProductModeratedWsPayload {
   productName: string;
   action: string;
   message: string;
+}
+interface NotificationNewWsPayload {
+  id: string;
+  type: string;
+  title: string | null;
+  content: string | null;
+  data: NotificationItemType['data'];
+  isRead: boolean;
+  createdAt: string;
 }
 
 // Thêm hàm sinh Href thông minh dựa vào kind và các IDs có sẵn
@@ -178,9 +192,37 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
   useEffect(() => {
     if (!socket) return;
 
-    const onOrderNew = (payload: OrderNewPayload) => {
+    const DROPDOWN_LIMIT = 5;
+    const onNotificationNew = (row: NotificationNewWsPayload) => {
       increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.setQueryData(
+        notificationKeys.list,
+        (old: NotificationListEnvelope | undefined) => {
+          if (!old) return old; // chưa fetch lần nào → để lần mở dropdown đầu tự fetch từ projection
+          if (
+            old.data.items.some((it: NotificationItemType) => it.id === row.id)
+          )
+            return old; // dedupe redelivery
+          const item: NotificationItemType = {
+            id: row.id,
+            type: row.type as NotificationItemType['type'],
+            title: row.title,
+            content: row.content,
+            data: row.data,
+            is_read: row.isRead,
+            created_at: row.createdAt,
+          };
+          const items = [item, ...old.data.items].slice(0, DROPDOWN_LIMIT);
+          const meta = {
+            ...old.data.meta,
+            totalItems: old.data.meta.totalItems + 1,
+          };
+          return { ...old, data: { ...old.data, items, meta } };
+        },
+      );
+    };
+
+    const onOrderNew = (payload: OrderNewPayload) => {
       // Đơn mới của khách → làm mới danh sách đơn seller ngay, khỏi F5.
       queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
       // order.new thiếu subOrderId → chỉ tới được danh sách seller.
@@ -191,8 +233,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onStatusChanged = (payload: OrderStatusChangedPayload) => {
-      increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
       queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
       const href =
@@ -206,8 +246,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onReviewNew = (payload: ReviewNewPayload) => {
-      increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       toast.info(
         `Khách hàng vừa đánh giá ${payload.rating}⭐ cho ${payload.productName}`,
         {
@@ -220,8 +258,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onReviewReplied = (payload: ReviewRepliedPayload) => {
-      increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       toast.info(`Shop đã phản hồi đánh giá sản phẩm ${payload.productName}`, {
         action: {
           label: 'Xem',
@@ -231,9 +267,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onPayoutStatusChanged = (payload: PayoutStatusChangedWsPayload) => {
-      increment();
-      // Invalidate cả thông báo lẫn số dư/lịch sử payout
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      // Invalidate số dư/lịch sử payout
       queryClient.invalidateQueries({ queryKey: payoutKeys.all });
 
       const sellerPayoutsHref = '/seller/payouts';
@@ -252,9 +286,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onPayoutCreated = (payload: PayoutCreatedWsPayload) => {
-      increment();
-      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
-      queryClient.invalidateQueries({ queryKey: notificationQueryKey });
       const payoutAllQueryKey = payoutKeys.all;
       queryClient.invalidateQueries({ queryKey: payoutAllQueryKey });
 
@@ -275,10 +306,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onShopRegistered = (payload: ShopRegisteredWsPayload) => {
-      increment();
-      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
-      queryClient.invalidateQueries({ queryKey: notificationQueryKey });
-
       const pendingShopsKey = pendingShopKeys.all;
       const invalidateOptions = { queryKey: pendingShopsKey };
       queryClient.invalidateQueries(invalidateOptions);
@@ -299,8 +326,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
 
     // Yêu cầu trả mới → báo seller. Deep-link tới chi tiết yêu cầu.
     const onReturnRequested = (payload: ReturnRequestedWsPayload) => {
-      increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       queryClient.invalidateQueries({ queryKey: sellerReturnKeys.all });
       toast.info(payload.message, {
         description: `Đơn ${payload.orderNumber}`,
@@ -313,8 +338,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
 
     // Seller duyệt/từ chối/nhận hàng → báo khách. Deep-link tới chi tiết yêu cầu.
     const onReturnStatusChanged = (payload: ReturnStatusChangedWsPayload) => {
-      increment();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
       queryClient.invalidateQueries({ queryKey: returnKeys.all });
       // Seller nhận đủ hàng → sub_order thành RETURNED → order detail phải refetch
       // để đổi badge "Đã trả hàng" + ẩn nút "Trả hàng".
@@ -329,11 +352,6 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     };
 
     const onProductModerated = (payload: ProductModeratedWsPayload) => {
-      increment();
-      const notificationQueryKey = [QUERY_KEYS.NOTIFICATIONS];
-      const invalidateNotifOptions = { queryKey: notificationQueryKey };
-      queryClient.invalidateQueries(invalidateNotifOptions);
-
       const productIdVal = payload.productId;
       const productNameVal = payload.productName;
       const messageVal = payload.message;
@@ -360,6 +378,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     socket.on(WS_RETURN_REQUESTED, onReturnRequested);
     socket.on(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
     socket.on(WS_PRODUCT_MODERATED, onProductModerated);
+    socket.on(WS_NOTIFICATION_NEW, onNotificationNew);
 
     return () => {
       socket.off(WS_ORDER_NEW, onOrderNew);
@@ -372,6 +391,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
       socket.off(WS_RETURN_REQUESTED, onReturnRequested);
       socket.off(WS_RETURN_STATUS_CHANGED, onReturnStatusChanged);
       socket.off(WS_PRODUCT_MODERATED, onProductModerated);
+      socket.off(WS_NOTIFICATION_NEW, onNotificationNew);
     };
   }, [socket, role, router, queryClient, increment]);
 

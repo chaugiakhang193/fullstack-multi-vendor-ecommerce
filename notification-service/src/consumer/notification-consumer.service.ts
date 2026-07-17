@@ -156,9 +156,20 @@ export class NotificationConsumerService {
         amount: payload.totalAmount,
       },
     };
-    await this.notificationService.create(customerDto, manager);
+    const savedCustomer = await this.notificationService.create(
+      customerDto,
+      manager,
+    );
 
     const emits: WsEmit[] = [];
+    emits.push(
+      toUser(
+        savedCustomer.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(savedCustomer),
+      ),
+    );
+
     for (const { shopId, sellerId, subOrderId } of payload.shops) {
       if (!sellerId) {
         this.logger.warn(
@@ -179,7 +190,17 @@ export class NotificationConsumerService {
           subOrderId,
         },
       };
-      await this.notificationService.create(sellerDto, manager);
+      const savedSeller = await this.notificationService.create(
+        sellerDto,
+        manager,
+      );
+      emits.push(
+        toUser(
+          savedSeller.user_id,
+          WS_EVENTS.NOTIFICATION_NEW,
+          this.notificationService.toWsRow(savedSeller),
+        ),
+      );
 
       emits.push(
         toShop(shopId, WS_EVENTS.ORDER_NEW, {
@@ -222,13 +243,25 @@ export class NotificationConsumerService {
         orderNumber: payload.orderNumber,
       },
     };
-    await this.notificationService.create(customerDto, manager);
+    const savedCustomer = await this.notificationService.create(
+      customerDto,
+      manager,
+    );
+
+    const emits: WsEmit[] = [];
+    emits.push(
+      toUser(
+        savedCustomer.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(savedCustomer),
+      ),
+    );
 
     if (!payload.sellerId) {
       this.logger.warn(
         `[NotificationConsumer] Shop ${payload.shopId} không có seller trong payload — bỏ qua notification hủy đơn.`,
       );
-      return [];
+      return emits;
     }
 
     const sellerDto: CreateNotificationDto = {
@@ -243,9 +276,19 @@ export class NotificationConsumerService {
         subOrderId: payload.subOrderId,
       },
     };
-    await this.notificationService.create(sellerDto, manager);
+    const savedSeller = await this.notificationService.create(
+      sellerDto,
+      manager,
+    );
+    emits.push(
+      toUser(
+        savedSeller.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(savedSeller),
+      ),
+    );
 
-    return [
+    emits.push(
       toShop(payload.shopId, WS_EVENTS.ORDER_STATUS_CHANGED, {
         orderId: payload.orderId,
         orderNumber: payload.orderNumber,
@@ -253,7 +296,9 @@ export class NotificationConsumerService {
         status: "cancelled",
         message: `Đơn ${payload.orderNumber} có 1 shop bị hủy`,
       }),
-    ];
+    );
+
+    return emits;
   }
 
   // ==========================================
@@ -287,9 +332,14 @@ export class NotificationConsumerService {
         status: payload.newStatus as any,
       },
     };
-    await this.notificationService.create(dto, manager);
+    const saved = await this.notificationService.create(dto, manager);
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toUser(payload.userId, WS_EVENTS.ORDER_STATUS_CHANGED, {
         orderId: payload.orderId,
         orderNumber: payload.orderNumber,
@@ -325,7 +375,7 @@ export class NotificationConsumerService {
       return [];
     }
 
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.sellerId,
         type: NotificationType.REVIEW_CREATED,
@@ -341,6 +391,11 @@ export class NotificationConsumerService {
     );
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toShop(payload.shopId, WS_EVENTS.REVIEW_NEW, {
         reviewId: payload.reviewId,
         productId: payload.productId,
@@ -369,7 +424,7 @@ export class NotificationConsumerService {
       );
     }
 
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.customerId,
         type: NotificationType.REVIEW_REPLIED,
@@ -385,6 +440,11 @@ export class NotificationConsumerService {
     );
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toUser(payload.customerId, WS_EVENTS.REVIEW_REPLIED, {
         reviewId: payload.reviewId,
         productId: payload.productId,
@@ -413,7 +473,7 @@ export class NotificationConsumerService {
       );
     }
     const content = `Cửa hàng ${payload.shopName} vừa gửi yêu cầu rút ${payload.amount.toLocaleString("vi-VN")}đ.`;
-    await this.notificationService.createForUsers(
+    const savedAdmins = await this.notificationService.createForUsers(
       payload.adminIds,
       {
         type: NotificationType.PAYOUT_CREATED,
@@ -429,7 +489,14 @@ export class NotificationConsumerService {
       manager,
     );
 
-    return [
+    const emits: WsEmit[] = savedAdmins.map((n) =>
+      toUser(
+        n.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(n),
+      ),
+    );
+    emits.push(
       toAdmins(WS_EVENTS.PAYOUT_CREATED, {
         payoutId: payload.payoutId,
         amount: payload.amount,
@@ -437,7 +504,8 @@ export class NotificationConsumerService {
         shopName: payload.shopName,
         message: content,
       }),
-    ];
+    );
+    return emits;
   }
 
   // ==========================================
@@ -459,7 +527,7 @@ export class NotificationConsumerService {
     const content = payload.isReapply
       ? `Cửa hàng "${payload.shopName}" vừa nộp lại hồ sơ, đang chờ duyệt.`
       : `Cửa hàng "${payload.shopName}" vừa đăng ký, đang chờ duyệt.`;
-    await this.notificationService.createForUsers(
+    const savedAdmins = await this.notificationService.createForUsers(
       payload.adminIds,
       {
         type: NotificationType.SHOP_REGISTERED,
@@ -474,13 +542,21 @@ export class NotificationConsumerService {
       manager,
     );
 
-    return [
+    const emits: WsEmit[] = savedAdmins.map((n) =>
+      toUser(
+        n.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(n),
+      ),
+    );
+    emits.push(
       toAdmins(WS_EVENTS.SHOP_REGISTERED, {
         shopId: payload.shopId,
         shopName: payload.shopName,
         message: content,
       }),
-    ];
+    );
+    return emits;
   }
 
   // ==========================================
@@ -508,7 +584,7 @@ export class NotificationConsumerService {
       : `Yêu cầu rút tiền trị giá ${payload.amount.toLocaleString("vi-VN")}đ đã bị từ chối. Lý do: ${payload.reason}`;
 
     // Tạo notif TRƯỚC (nguồn sự thật) — nằm trong txn, quyết định commit + WS emit.
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.sellerId,
         type: NotificationType.PAYOUT_STATUS_CHANGED,
@@ -545,6 +621,11 @@ export class NotificationConsumerService {
       });
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toUser(payload.sellerId, WS_EVENTS.PAYOUT_STATUS_CHANGED, {
         payoutId: payload.payoutId,
         amount: payload.amount,
@@ -579,7 +660,7 @@ export class NotificationConsumerService {
       return [];
     }
 
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.sellerId,
         type: NotificationType.RETURN_REQUESTED,
@@ -596,6 +677,11 @@ export class NotificationConsumerService {
     );
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toShop(payload.shopId, WS_EVENTS.RETURN_REQUESTED, {
         returnId: payload.returnId,
         subOrderId: payload.subOrderId,
@@ -643,7 +729,7 @@ export class NotificationConsumerService {
       );
     }
 
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.customerId,
         type: NotificationType.RETURN_STATUS_CHANGED,
@@ -662,6 +748,11 @@ export class NotificationConsumerService {
     );
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toUser(payload.customerId, WS_EVENTS.RETURN_STATUS_CHANGED, {
         returnId: payload.returnId,
         subOrderId: payload.subOrderId,
@@ -710,7 +801,7 @@ export class NotificationConsumerService {
       ? `Sản phẩm "${payload.productName}" đã bị gỡ do vi phạm.${payload.reason ? ` Lý do: ${payload.reason}` : ""}`
       : `Sản phẩm "${payload.productName}" đã được khôi phục và bán trở lại.`;
 
-    await this.notificationService.create(
+    const saved = await this.notificationService.create(
       {
         userId: payload.sellerId,
         type: NotificationType.PRODUCT_MODERATED,
@@ -746,6 +837,11 @@ export class NotificationConsumerService {
     }
 
     return [
+      toUser(
+        saved.user_id,
+        WS_EVENTS.NOTIFICATION_NEW,
+        this.notificationService.toWsRow(saved),
+      ),
       toShop(payload.shopId, WS_EVENTS.PRODUCT_MODERATED, {
         productId: payload.productId,
         productName: payload.productName,
