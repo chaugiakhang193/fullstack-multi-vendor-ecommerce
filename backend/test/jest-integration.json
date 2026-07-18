@@ -1,0 +1,10 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".int-spec.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "moduleNameMapper": { "^@/(.*)$": "<rootDir>/../src/$1" },
+  "transformIgnorePatterns": ["/node_modules/(?!(uuid)/)"],
+  "testTimeout": 180000
+}
