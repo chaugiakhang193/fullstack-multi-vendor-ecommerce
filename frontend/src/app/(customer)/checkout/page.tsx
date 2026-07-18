@@ -45,6 +45,7 @@ import { getErrorMessage, HttpError } from '@/lib/http';
 
 // Constants & types
 import { QUERY_KEYS, cartKeys } from '@/constants/query-keys';
+import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { HTTP_STATUS } from '@/constants/http-status';
 import { cn } from '@/lib/utils';
 import { formatVnd } from '@/lib/format';
@@ -245,6 +246,19 @@ export default function CheckoutPage() {
       clearGuestCart();
       const cartQueryFilter = { queryKey: cartKeys.all };
       await queryClient.invalidateQueries(cartQueryFilter);
+
+      // Báo các tab khác giỏ đã rỗng sau checkout → tab đang mở drawer tự làm mới,
+      // không phải F5. Listener nằm ở useActiveCart (kênh BROADCAST_CHANNELS.CART).
+      if (typeof window !== 'undefined') {
+        try {
+          const channel = new BroadcastChannel(BROADCAST_CHANNELS.CART);
+          channel.postMessage(BROADCAST_EVENTS.CART_UPDATED);
+          channel.close();
+        } catch (e) {
+          console.error('Failed to broadcast cart update:', e);
+        }
+      }
+
       const successQuery = {
         orderNumber: data.order_number,
         orderId: data.order_id,
