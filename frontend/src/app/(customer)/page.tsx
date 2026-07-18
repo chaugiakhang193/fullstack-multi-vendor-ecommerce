@@ -8,7 +8,9 @@ import ProductsSection from '@/components/home/products-section';
 
 // Định nghĩa SEO Metadata cho Trang chủ (Next.js Server Component Metadata)
 export const metadata = {
-  title: 'Trang chủ',
+  title: {
+    absolute: 'Giang Kha — Sàn Thương Mại Điện Tử Multi-Vendor Chính Hãng',
+  },
   description:
     'Chào mừng bạn đến với Giang Kha - Sàn thương mại điện tử Multi-Vendor thế hệ mới. Mua sắm thông minh, giá cả tốt nhất, giao hàng siêu tốc và thanh toán bảo mật.',
 };

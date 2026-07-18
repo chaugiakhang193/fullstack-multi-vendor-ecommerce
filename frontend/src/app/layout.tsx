@@ -29,7 +29,8 @@ export const metadata: Metadata = {
   },
   description:
     'Giang Kha — Sàn thương mại điện tử Multi-Vendor: mua sắm đa dạng từ nhiều nhà bán uy tín, giao hàng nhanh, thanh toán an toàn.',
-  // Ảnh OG lấy tự động từ app/opengraph-image.tsx (khỏi khai images ở đây).
+  // Ảnh OG TĨNH (/og-image.png, 1200×630 trong public/) — đuôi .png + không query
+  // → Zalo/crawler VN fetch ăn chắc. Route động next/og trước đó bị Zalo "chớp rồi mất ảnh".
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
@@ -37,12 +38,21 @@ export const metadata: Metadata = {
     title: 'Giang Kha — Sàn thương mại điện tử Multi-Vendor',
     description:
       'Mua sắm thông minh, giá cả tốt nhất — hàng chính hãng từ nhiều gian hàng uy tín, giao hàng nhanh, thanh toán an toàn.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Giang Kha — Sàn thương mại điện tử Multi-Vendor',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Giang Kha — Sàn thương mại điện tử Multi-Vendor',
     description:
       'Mua sắm thông minh, giá cả tốt nhất — hàng chính hãng từ nhiều gian hàng uy tín.',
+    images: ['/og-image.png'],
   },
 };
 
