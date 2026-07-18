@@ -25,6 +25,17 @@ export default function NotFoundView({
     }
   };
 
+  const handleBack = () => {
+    // Có trang trước trong cùng phiên duyệt (đi từ trang khác trong app) → quay lại.
+    // Vào thẳng 404 (bấm link sai từ Zalo / gõ URL → history chỉ 1 entry) → về trang chủ,
+    // tránh router.back() làm văng người dùng RA KHỎI web (về Zalo/tab ngoài).
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
+
   return (
     <>
       <title>Không tìm thấy trang — Giang Kha</title>
@@ -80,7 +91,7 @@ export default function NotFoundView({
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2 relative z-10">
             <button
-              onClick={() => router.back()}
+              onClick={handleBack}
               className="flex-1 flex items-center justify-center space-x-2 py-3 px-6 border rounded-xl text-sm font-bold hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer bg-background"
             >
               <ArrowLeft className="h-4 w-4" />
