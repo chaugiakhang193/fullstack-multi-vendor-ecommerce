@@ -59,11 +59,11 @@ export function StarRating({
     let newRating = rating;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
       e.preventDefault();
-      newRating = Math.min(rating + 0.5, maxRating);
+      newRating = Math.min(rating + 1, maxRating);
       onChange(newRating);
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
-      newRating = Math.max(rating - 0.5, 0);
+      newRating = Math.max(rating - 1, 1);
       onChange(newRating);
     }
   };
@@ -104,22 +104,13 @@ export function StarRating({
           </div>
         )}
 
-        {/* Khối tương tác chia đôi ngôi sao (chỉ khi interactive=true) */}
+        {/* Khối tương tác nguyên sao (chỉ khi interactive=true) */}
         {interactive && (
-          <>
-            {/* Nửa trái (chọn starValue - 0.5) */}
-            <div
-              className="absolute top-0 left-0 w-1/2 h-full z-10 cursor-pointer"
-              onMouseEnter={() => handleMouseEnter(starValue - 0.5)}
-              onClick={() => handleClick(starValue - 0.5)}
-            />
-            {/* Nửa phải (chọn starValue) */}
-            <div
-              className="absolute top-0 right-0 w-1/2 h-full z-10 cursor-pointer"
-              onMouseEnter={() => handleMouseEnter(starValue)}
-              onClick={() => handleClick(starValue)}
-            />
-          </>
+          <div
+            className="absolute inset-0 z-10 cursor-pointer"
+            onMouseEnter={() => handleMouseEnter(starValue)}
+            onClick={() => handleClick(starValue)}
+          />
         )}
       </div>
     );
