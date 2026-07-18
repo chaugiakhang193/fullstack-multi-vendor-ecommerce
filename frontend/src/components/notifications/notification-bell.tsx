@@ -12,7 +12,6 @@ import { useSocket } from '@/components/providers/socket-provider';
 import { useNotificationsList, useUnreadCount } from '@/hooks/useNotifications';
 import notificationApiRequest from '@/apiRequests/engagements/notifications';
 import {
-  QUERY_KEYS,
   payoutKeys,
   customerOrderKeys,
   sellerOrderKeys,
@@ -405,7 +404,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     try {
       if (!item.is_read) {
         await notificationApiRequest.markAsRead(item.id);
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+        queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       }
     } catch {
       // đánh dấu đọc lỗi không chặn điều hướng
@@ -418,7 +417,7 @@ export function NotificationBell({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
     try {
       await notificationApiRequest.markAllAsRead();
       reset();
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     } catch (e) {
       toast.error(getErrorMessage(e));
     }

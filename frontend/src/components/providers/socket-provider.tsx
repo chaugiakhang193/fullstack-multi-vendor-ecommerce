@@ -6,7 +6,12 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import useHydrated from '@/hooks/useHydrated';
 import { useAuthStore } from '@/store/useAuthStore';
-import { QUERY_KEYS } from '@/constants/query-keys';
+import {
+  QUERY_KEYS,
+  customerOrderKeys,
+  sellerOrderKeys,
+  notificationKeys,
+} from '@/constants/query-keys';
 import { connectSocket, disconnectSocket } from '@/lib/socket';
 
 const SocketContext = createContext<Socket | null>(null);
@@ -40,9 +45,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Invalidate rộng — query không có observer là no-op (React Query không refetch).
     const handleConnect = () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CUSTOMER_ORDERS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SELLER_ORDERS] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     };
 
     s.on('connect', handleConnect);

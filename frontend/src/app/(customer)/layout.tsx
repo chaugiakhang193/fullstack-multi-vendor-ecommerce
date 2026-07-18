@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { tabId } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/http';
 import { UserRole } from '@/constants/enum';
-import { QUERY_KEYS } from '@/constants/query-keys';
+import { QUERY_KEYS, categoryKeys } from '@/constants/query-keys';
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/shared/user-avatar';
@@ -336,7 +336,7 @@ export default function CustomerLayout({
   // Gọi API lấy danh mục sản phẩm qua React Query
   const fetchCategoriesFn = () => categoriesApiRequest.getAll();
   const queryConfig = {
-    queryKey: [QUERY_KEYS.CATEGORIES],
+    queryKey: categoryKeys.all,
     queryFn: fetchCategoriesFn,
   };
   const { data: categoriesRes } = useQuery(queryConfig);
