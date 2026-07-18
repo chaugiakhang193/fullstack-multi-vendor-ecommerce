@@ -177,7 +177,7 @@ export function RegisterSellerForm({
             Đăng ký người bán
           </CardTitle>
           <CardDescription className="text-base sm:text-lg">
-            Chào mừng bạn đến với <b>Giang Kha shop</b>!<br />
+            Chào mừng bạn đến với <b>Giang Kha</b>!<br />
             Đăng ký để trở thành người bán hàng của chúng tôi nhé!
           </CardDescription>
         </CardHeader>

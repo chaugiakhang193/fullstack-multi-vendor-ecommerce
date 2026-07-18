@@ -97,7 +97,7 @@ export function RegisterForm({
             Tạo tài khoản
           </CardTitle>
           <CardDescription className="text-base sm:text-lg">
-            Chào mừng bạn đến với <b>Giang Kha shop</b>!<br />
+            Chào mừng bạn đến với <b>Giang Kha</b>!<br />
             Hãy tạo tài khoản để tiếp tục nhé!
           </CardDescription>
         </CardHeader>

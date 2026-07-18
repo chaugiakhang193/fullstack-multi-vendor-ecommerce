@@ -348,7 +348,7 @@ export default function SellerLayout({
           <Store className="h-8 w-8 text-violet-400" />
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-tight text-white leading-none">
-              Giang Kha Shop
+              Giang Kha
             </span>
             <span className="text-xs text-violet-400 font-black uppercase mt-1 tracking-wider">
               Seller Portal
@@ -438,7 +438,7 @@ export default function SellerLayout({
               <Store className="h-6 w-6 text-violet-400" />
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-white leading-none">
-                  Giang Kha Shop
+                  Giang Kha
                 </span>
                 <span className="text-[10px] text-violet-400 font-extrabold uppercase mt-0.5 tracking-wider">
                   Seller Portal

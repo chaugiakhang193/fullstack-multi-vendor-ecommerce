@@ -280,7 +280,7 @@ export default function AdminLayout({
               <Shield className="h-6 w-6 text-violet-400" />
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-white leading-none">
-                  Giang Kha Shop
+                  Giang Kha
                 </span>
                 <span className="text-[10px] text-violet-400 font-extrabold uppercase mt-0.5 tracking-wider">
                   Admin Portal
