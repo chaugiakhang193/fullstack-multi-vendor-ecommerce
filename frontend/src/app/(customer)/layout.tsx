@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { tabId } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/http';
 import { UserRole } from '@/constants/enum';
-import { QUERY_KEYS, categoryKeys } from '@/constants/query-keys';
+import { QUERY_KEYS, categoryKeys, cartKeys } from '@/constants/query-keys';
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/shared/user-avatar';
@@ -303,7 +303,7 @@ export default function CustomerLayout({
           await cartApiRequest.merge(mergePayload);
           clearLocalCart();
 
-          const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+          const queryKeyObj = { queryKey: cartKeys.all };
           await queryClient.invalidateQueries(queryKeyObj);
 
           // Broadcast to other tabs

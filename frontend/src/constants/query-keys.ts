@@ -36,6 +36,10 @@ export const STALE_TIME = {
 // ===== Query Key Factories =====
 // Quy ước: phần tử [0] LUÔN là root string cũ → invalidate prefix tương thích ngược.
 
+export const cartKeys = {
+  all: [QUERY_KEYS.CART] as const,
+};
+
 export const productKeys = {
   all: [QUERY_KEYS.PRODUCTS] as const,
   list: (params?: Record<string, unknown>) =>

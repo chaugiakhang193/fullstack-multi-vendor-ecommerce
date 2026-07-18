@@ -44,7 +44,7 @@ import orderApiRequest from '@/apiRequests/orders/orders';
 import { getErrorMessage, HttpError } from '@/lib/http';
 
 // Constants & types
-import { QUERY_KEYS } from '@/constants/query-keys';
+import { QUERY_KEYS, cartKeys } from '@/constants/query-keys';
 import { HTTP_STATUS } from '@/constants/http-status';
 import { cn } from '@/lib/utils';
 import { formatVnd } from '@/lib/format';
@@ -243,7 +243,7 @@ export default function CheckoutPage() {
       // Backend đã rỗng server-cart khi checkout. FE chỉ cần dọn store guest (nếu còn)
       // + invalidate query cart để các nơi khác refetch về giỏ trống.
       clearGuestCart();
-      const cartQueryFilter = { queryKey: [QUERY_KEYS.CART] };
+      const cartQueryFilter = { queryKey: cartKeys.all };
       await queryClient.invalidateQueries(cartQueryFilter);
       const successQuery = {
         orderNumber: data.order_number,

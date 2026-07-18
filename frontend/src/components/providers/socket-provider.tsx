@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import useHydrated from '@/hooks/useHydrated';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
-  QUERY_KEYS,
+  cartKeys,
   customerOrderKeys,
   sellerOrderKeys,
   notificationKeys,
@@ -44,7 +44,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Health-sync: sau mỗi (re)connect, data có thể cũ do lỡ event lúc rớt mạng.
     // Invalidate rộng — query không có observer là no-op (React Query không refetch).
     const handleConnect = () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
+      queryClient.invalidateQueries({ queryKey: cartKeys.all });
       queryClient.invalidateQueries({ queryKey: customerOrderKeys.all });
       queryClient.invalidateQueries({ queryKey: sellerOrderKeys.all });
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });

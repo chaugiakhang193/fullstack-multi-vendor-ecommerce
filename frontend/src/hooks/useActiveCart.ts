@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { QUERY_KEYS } from '@/constants/query-keys';
+import { QUERY_KEYS, cartKeys } from '@/constants/query-keys';
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { CART_LIMITS } from '@/constants/limits.generated';
 
@@ -136,7 +136,7 @@ export function useActiveCart() {
   // Database Cart query - Only query if user is logged in AND is not an admin (admins do not have a cart)
   const isAuthorizedToCart = isAuthenticated && user?.role !== 'admin';
   const cartQueryConfig = {
-    queryKey: [QUERY_KEYS.CART],
+    queryKey: cartKeys.all,
     queryFn: () => cartApiRequest.getCart(),
     enabled: isAuthorizedToCart,
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
@@ -171,7 +171,7 @@ export function useActiveCart() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data === BROADCAST_EVENTS.CART_UPDATED) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CART] });
+        queryClient.invalidateQueries({ queryKey: cartKeys.all });
         // Tab khác đổi giỏ → làm mới luôn checkout preview ở tab này (nếu đang ở /checkout).
         queryClient.invalidateQueries({
           queryKey: [QUERY_KEYS.CHECKOUT_PREVIEW],
@@ -339,7 +339,7 @@ export function useActiveCart() {
         toast.success(successMsg);
 
         // Invalidate cache
-        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+        const queryKeyObj = { queryKey: cartKeys.all };
         await queryClient.invalidateQueries(queryKeyObj);
 
         // Broadcast to other tabs
@@ -389,11 +389,11 @@ export function useActiveCart() {
       }
 
       // 2. Cancel query and modify cache immediately
-      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+      const queryKeyObj = { queryKey: cartKeys.all };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>([
-        QUERY_KEYS.CART,
-      ]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>(
+        cartKeys.all,
+      );
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -439,7 +439,7 @@ export function useActiveCart() {
         };
 
         queryClient.setQueryData<CartGenericResponseType>(
-          [QUERY_KEYS.CART],
+          cartKeys.all,
           newCartPayloadObj,
         );
       }
@@ -451,7 +451,7 @@ export function useActiveCart() {
           const bodyObj = { quantity: newQty };
           await cartApiRequest.updateQuantity(cartItemId, bodyObj);
 
-          const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+          const queryKeyObj = { queryKey: cartKeys.all };
           await queryClient.invalidateQueries(queryKeyObj);
 
           // Broadcast to other tabs
@@ -459,7 +459,7 @@ export function useActiveCart() {
         } catch (error) {
           // Rollback on error
           if (previousCart) {
-            queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
+            queryClient.setQueryData(cartKeys.all, previousCart);
           }
           const errorMsg = getErrorMessage(error);
           toast.error(errorMsg);
@@ -490,11 +490,11 @@ export function useActiveCart() {
         return;
       }
 
-      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+      const queryKeyObj = { queryKey: cartKeys.all };
       await queryClient.cancelQueries(queryKeyObj);
-      const previousCart = queryClient.getQueryData<CartGenericResponseType>([
-        QUERY_KEYS.CART,
-      ]);
+      const previousCart = queryClient.getQueryData<CartGenericResponseType>(
+        cartKeys.all,
+      );
 
       if (previousCart?.data) {
         const oldCart = previousCart.data;
@@ -537,7 +537,7 @@ export function useActiveCart() {
         };
 
         queryClient.setQueryData<CartGenericResponseType>(
-          [QUERY_KEYS.CART],
+          cartKeys.all,
           newCartPayloadObj,
         );
       }
@@ -548,7 +548,7 @@ export function useActiveCart() {
         const successMsg = 'Đã xóa sản phẩm khỏi giỏ hàng!';
         toast.success(successMsg);
 
-        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+        const queryKeyObj = { queryKey: cartKeys.all };
         await queryClient.invalidateQueries(queryKeyObj);
 
         // Broadcast to other tabs
@@ -556,7 +556,7 @@ export function useActiveCart() {
       } catch (error) {
         // Rollback
         if (previousCart) {
-          queryClient.setQueryData([QUERY_KEYS.CART], previousCart);
+          queryClient.setQueryData(cartKeys.all, previousCart);
         }
         const errorMsg = getErrorMessage(error);
         toast.error(errorMsg);
@@ -580,7 +580,7 @@ export function useActiveCart() {
       const successMsg = 'Đã làm trống giỏ hàng!';
       toast.success(successMsg);
 
-      const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+      const queryKeyObj = { queryKey: cartKeys.all };
       await queryClient.invalidateQueries(queryKeyObj);
 
       // Broadcast to other tabs
@@ -626,7 +626,7 @@ export function useActiveCart() {
         };
         await cartApiRequest.add(bodyObj);
 
-        const queryKeyObj = { queryKey: [QUERY_KEYS.CART] };
+        const queryKeyObj = { queryKey: cartKeys.all };
         await queryClient.invalidateQueries(queryKeyObj);
 
         // Broadcast to other tabs
