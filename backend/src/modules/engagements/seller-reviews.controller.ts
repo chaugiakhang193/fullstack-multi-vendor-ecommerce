@@ -15,6 +15,7 @@ import { EngagementsService } from '@/modules/engagements/engagements.service';
 // DTOs
 import { ReplyReviewDto } from '@/modules/engagements/dto/reply-review.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { ReviewQueryDto } from '@/modules/engagements/dto/review-query.dto';
 
 // Decorators & Enums
 import { Roles } from '@/decorator/roles.decorator';
@@ -32,7 +33,7 @@ export class SellerReviewsController {
 
   @Get()
   @ResponseMessage('Lấy đánh giá của shop thành công')
-  list(@User() user: IUser, @Query() query: PaginationQueryDto) {
+  list(@User() user: IUser, @Query() query: ReviewQueryDto) {
     const sellerId = user.sub;
     const result = this.service.getSellerReviews(sellerId, query);
     return result;

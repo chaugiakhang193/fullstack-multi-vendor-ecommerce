@@ -15,6 +15,7 @@ import { EngagementsService } from '@/modules/engagements/engagements.service';
 // DTOs
 import { CreateReviewDto } from '@/modules/engagements/dto/create-review.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { ReviewQueryDto } from '@/modules/engagements/dto/review-query.dto';
 
 // Decorators & Enums
 import { Roles } from '@/decorator/roles.decorator';
@@ -54,10 +55,7 @@ export class ReviewsController {
   @Get('products/:id/reviews')
   @Public()
   @ResponseMessage('Lấy danh sách đánh giá thành công')
-  list(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Query() query: PaginationQueryDto,
-  ) {
+  list(@Param('id', ParseUUIDPipe) id: string, @Query() query: ReviewQueryDto) {
     const result = this.service.getProductReviews(id, query);
     return result;
   }

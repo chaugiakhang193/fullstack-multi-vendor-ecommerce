@@ -26,6 +26,10 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/shared/pagination';
 import { cn } from '@/lib/utils';
+import {
+  mapParamsToSortOption,
+  mapSortOptionToParams,
+} from '@/lib/product-sort';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -48,28 +52,7 @@ const formatDate = (dateString?: string) => {
   });
 };
 
-// Sort options mapper
-const mapSortOptionToParams = (option: SortOption) => {
-  const orderAscVal = 'ASC';
-  const orderDescVal = 'DESC';
-  switch (option) {
-    case 'price_asc':
-      return { sort: 'price', order: orderAscVal };
-    case 'price_desc':
-      return { sort: 'price', order: orderDescVal };
-    case 'popular':
-      return { sort: 'name', order: orderAscVal };
-    default:
-      return { sort: 'created_at', order: orderDescVal };
-  }
-};
-
-const mapParamsToSortOption = (sort?: string, order?: string): SortOption => {
-  if (sort === 'price' && order === 'ASC') return 'price_asc';
-  if (sort === 'price' && order === 'DESC') return 'price_desc';
-  if (sort === 'name') return 'popular';
-  return 'newest';
-};
+// Logic mappers extracted to '@/lib/product-sort'
 
 export default function ShopDetailClient({ params, searchParams }: PageProps) {
   const router = useRouter();

@@ -15,6 +15,7 @@ const productsApiRequest = {
     category_id?: string;
     min_price?: number;
     max_price?: number;
+    rating?: number;
     sort?: string;
     order?: 'ASC' | 'DESC';
   }) => {
@@ -29,6 +30,9 @@ const productsApiRequest = {
     }
     if (params?.max_price !== undefined) {
       queryParams.append('max_price', String(params.max_price));
+    }
+    if (params?.rating !== undefined) {
+      queryParams.append('rating', String(params.rating));
     }
     if (params?.sort) queryParams.append('sort', params.sort);
     if (params?.order) queryParams.append('order', params.order);
@@ -47,6 +51,7 @@ const productsApiRequest = {
       category_id?: string;
       min_price?: number;
       max_price?: number;
+      rating?: number;
       sort?: string;
       order?: 'ASC' | 'DESC';
     },
@@ -62,6 +67,9 @@ const productsApiRequest = {
     }
     if (params?.max_price !== undefined) {
       queryParams.append('max_price', String(params.max_price));
+    }
+    if (params?.rating !== undefined) {
+      queryParams.append('rating', String(params.rating));
     }
     if (params?.sort) queryParams.append('sort', params.sort);
     if (params?.order) queryParams.append('order', params.order);

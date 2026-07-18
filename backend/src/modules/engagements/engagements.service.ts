@@ -15,6 +15,7 @@ import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
 // DTOs
 import { CreateReviewDto } from '@/modules/engagements/dto/create-review.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { ReviewQueryDto } from '@/modules/engagements/dto/review-query.dto';
 
 import { ProductsService } from '@/modules/products/products.service';
 import { OrdersService } from '@/modules/orders/orders.service';
@@ -186,7 +187,7 @@ export class EngagementsService {
   // ============================================================
   // PUBLIC: lấy danh sách đánh giá của sản phẩm và phân phối sao
   // ============================================================
-  async getProductReviews(productId: string, query: PaginationQueryDto) {
+  async getProductReviews(productId: string, query: ReviewQueryDto) {
     // Endpoint public scoped theo product → 404 nếu product không tồn tại
     // (đồng bộ GET /products/:id; tránh trả rỗng cho UUID ảo che lỗi phía client).
     await this.productsService.ensureExists(productId);
@@ -202,6 +203,11 @@ export class EngagementsService {
       .addSelect(['oi.variant_name'])
       .where(productCondition, productParams)
       .orderBy('r.created_at', 'DESC');
+
+    // Lọc DANH SÁCH theo số sao khi có (distribution bên dưới vẫn tính TOÀN BỘ).
+    if (query.rating) {
+      qb.andWhere('r.rating = :rating', { rating: query.rating });
+    }
 
     const page = await paginate(qb, query);
 
@@ -283,7 +289,7 @@ export class EngagementsService {
   // ============================================================
   // SELLER: lấy danh sách đánh giá của shop
   // ============================================================
-  async getSellerReviews(sellerId: string, query: PaginationQueryDto) {
+  async getSellerReviews(sellerId: string, query: ReviewQueryDto) {
     const sellerCondition = 's.seller_id = :sellerId';
     const sellerParams = { sellerId };
 
@@ -298,6 +304,11 @@ export class EngagementsService {
       .addSelect(['oi.variant_name'])
       .where(sellerCondition, sellerParams)
       .orderBy('r.created_at', 'DESC');
+
+    // Lọc theo số sao khi có
+    if (query.rating) {
+      qb.andWhere('r.rating = :rating', { rating: query.rating });
+    }
 
     const result = await paginate(qb, query);
     return result;

@@ -705,8 +705,21 @@ export class ProductsService {
     // 5. Áp dụng logic lọc khoảng giá thông qua helper toàn cục (Tự động ghim parameter cực an toàn)
     this.applyPriceFilter(queryBuilder, min_price, max_price);
 
+    // Lọc theo điểm đánh giá trung bình (từ X sao trở lên).
+    if (query.rating) {
+      queryBuilder.andWhere('product.avg_rating >= :rating', {
+        rating: query.rating,
+      });
+    }
+
     // 6. Sắp xếp mặc định hoặc theo trường được yêu cầu an toàn chống SQL Injection
-    const allowedSortFields = ['price', 'created_at', 'name'];
+    const allowedSortFields = [
+      'price',
+      'created_at',
+      'name',
+      'avg_rating',
+      'is_featured',
+    ];
     const isSortAllowed = sort && allowedSortFields.includes(sort);
     const sortField = isSortAllowed ? sort : 'created_at';
     const sortPath = `product.${sortField}`;
@@ -788,8 +801,21 @@ export class ProductsService {
     // Lọc khoảng giá qua helper toàn cục
     this.applyPriceFilter(queryBuilder, min_price, max_price);
 
+    // Lọc theo điểm đánh giá trung bình (từ X sao trở lên).
+    if (query.rating) {
+      queryBuilder.andWhere('product.avg_rating >= :rating', {
+        rating: query.rating,
+      });
+    }
+
     // Sắp xếp
-    const allowedSortFields = ['price', 'created_at', 'name'];
+    const allowedSortFields = [
+      'price',
+      'created_at',
+      'name',
+      'avg_rating',
+      'is_featured',
+    ];
     const isSortAllowed = sort && allowedSortFields.includes(sort);
     const sortField = isSortAllowed ? sort : 'created_at';
     const sortPath = `product.${sortField}`;

@@ -9,24 +9,16 @@ import SkeletonProductCard from '@/components/products/skeleton-product-card';
 import { EmptyProducts } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/shared/pagination';
+import {
+  mapParamsToSortOption,
+  mapSortOptionToParams,
+} from '@/lib/product-sort';
 
 interface CategoryCatalogProps {
   categoryId: string;
 }
 
-const mapParamsToSortOption = (sort?: string, order?: string): SortOption => {
-  if (sort === 'price' && order === 'ASC') return 'price_asc';
-  if (sort === 'price' && order === 'DESC') return 'price_desc';
-  if (sort === 'name') return 'popular';
-  return 'newest';
-};
-
-const mapSortOptionToParams = (option: SortOption) => {
-  if (option === 'price_asc') return { sort: 'price', order: 'ASC' };
-  if (option === 'price_desc') return { sort: 'price', order: 'DESC' };
-  if (option === 'popular') return { sort: 'name', order: 'ASC' };
-  return { sort: 'created_at', order: 'DESC' };
-};
+// Logic mappers extracted to '@/lib/product-sort'
 
 function CategoryCatalogContent({ categoryId }: CategoryCatalogProps) {
   const searchParams = useSearchParams();

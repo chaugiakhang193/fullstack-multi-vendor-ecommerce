@@ -21,6 +21,10 @@ import { EmptyProducts } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/shared/pagination';
 import { cn } from '@/lib/utils';
+import {
+  mapParamsToSortOption,
+  mapSortOptionToParams,
+} from '@/lib/product-sort';
 
 // Helper to construct category tree from flat list
 const buildCategoryTree = (categories: CategoryResponseType[]): any[] => {
@@ -41,30 +45,7 @@ const buildCategoryTree = (categories: CategoryResponseType[]): any[] => {
   return roots;
 };
 
-// Mapper between SortDropdown string and API params
-const mapSortOptionToParams = (option: SortOption) => {
-  const orderAscVal = 'ASC' as const;
-  const orderDescVal = 'DESC' as const;
-
-  switch (option) {
-    case 'price_asc':
-      return { sort: 'price', order: orderAscVal };
-    case 'price_desc':
-      return { sort: 'price', order: orderDescVal };
-    case 'popular':
-      return { sort: 'name', order: orderAscVal }; // Fallback name to popular
-    case 'newest':
-    default:
-      return { sort: 'created_at', order: orderDescVal };
-  }
-};
-
-const mapParamsToSortOption = (sort?: string, order?: string): SortOption => {
-  if (sort === 'price' && order === 'ASC') return 'price_asc';
-  if (sort === 'price' && order === 'DESC') return 'price_desc';
-  if (sort === 'name') return 'popular';
-  return 'newest';
-};
+// Logic mappers extracted to '@/lib/product-sort'
 
 function ProductsListContent() {
   const searchParams = useSearchParams();
@@ -117,6 +98,7 @@ function ProductsListContent() {
     category_id: categoryId,
     min_price: minPrice,
     max_price: maxPrice,
+    rating,
     sort,
     order,
     q,

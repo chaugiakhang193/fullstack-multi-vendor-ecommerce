@@ -10,6 +10,7 @@ type PublicProductsParams = {
   category_id?: string;
   min_price?: number;
   max_price?: number;
+  rating?: number;
   sort?: string;
   order?: 'ASC' | 'DESC';
 };

@@ -9,7 +9,12 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 
-export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popular';
+export type SortOption =
+  | 'newest'
+  | 'price_asc'
+  | 'price_desc'
+  | 'popular'
+  | 'top_rated';
 
 interface SortDropdownProps {
   value: SortOption;
@@ -19,9 +24,10 @@ interface SortDropdownProps {
 
 const sortItems = [
   { value: 'newest', label: '🆕 Mới nhất' },
+  { value: 'top_rated', label: '⭐ Đánh giá cao nhất' },
+  { value: 'popular', label: '🔥 Phổ biến nhất' },
   { value: 'price_asc', label: '💰 Giá thấp → cao' },
   { value: 'price_desc', label: '💰 Giá cao → thấp' },
-  { value: 'popular', label: '🔥 Phổ biến nhất' },
 ];
 
 export function SortDropdown({
