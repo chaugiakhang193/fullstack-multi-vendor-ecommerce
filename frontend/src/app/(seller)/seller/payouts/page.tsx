@@ -41,7 +41,7 @@ import { PayoutStatus } from '@/constants/enum.generated';
 import { PAYOUT_LIMITS } from '@/constants/limits.generated';
 
 export default function SellerPayoutsPage() {
-  useDocumentTitle('Đối soát · Dashboard');
+  useDocumentTitle('Rút tiền · Dashboard');
   const queryClient = useQueryClient();
   const socket = useSocket();
   const [currentPage, setCurrentPage] = useState<number>(1);

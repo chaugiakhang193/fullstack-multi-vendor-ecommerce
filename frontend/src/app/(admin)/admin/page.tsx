@@ -19,7 +19,7 @@ import { formatVnd } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboardPage() {
-  useDocumentTitle('Tổng quan · Admin');
+  useDocumentTitle('Dashboard · Admin');
   const [stats, setStats] = useState<AdminStatsType | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
