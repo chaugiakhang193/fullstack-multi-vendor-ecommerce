@@ -4366,6 +4366,8 @@ export interface operations {
                 min_price?: number;
                 /** @description Giá tối đa */
                 max_price?: number;
+                /** @description Lọc sản phẩm có điểm đánh giá trung bình từ X sao trở lên (1-5) */
+                rating?: number;
             };
             header?: never;
             path?: never;
@@ -4412,6 +4414,8 @@ export interface operations {
                 min_price?: number;
                 /** @description Giá tối đa */
                 max_price?: number;
+                /** @description Lọc sản phẩm có điểm đánh giá trung bình từ X sao trở lên (1-5) */
+                rating?: number;
             };
             header?: never;
             path: {
@@ -6580,6 +6584,8 @@ export interface operations {
                 sort?: string;
                 /** @description Chiều sắp xếp (ASC hoặc DESC) */
                 order?: "ASC" | "DESC";
+                /** @description Lọc review theo số sao chính xác (1-5). Bỏ trống = tất cả. */
+                rating?: number;
             };
             header?: never;
             path: {
@@ -6608,6 +6614,8 @@ export interface operations {
                 sort?: string;
                 /** @description Chiều sắp xếp (ASC hoặc DESC) */
                 order?: "ASC" | "DESC";
+                /** @description Lọc review theo số sao chính xác (1-5). Bỏ trống = tất cả. */
+                rating?: number;
             };
             header?: never;
             path?: never;
