@@ -176,6 +176,74 @@ sequenceDiagram
 
 ---
 
+## 🧭 Architecture Decision Records
+
+Short records of the *expensive* decisions — **why this over the obvious alternative**, and the
+trade-off accepted. (The full rationale for each lives in the commit history; these are the summaries.)
+
+### ADR-1 — Transactional outbox instead of two-phase commit
+
+- **Decision** — write the event to an `outbox_event` row **in the same DB transaction** as the business
+  change, then a polling relay publishes it to the broker with publisher confirms.
+- **Rejected** — a distributed transaction (2PC/XA) spanning PostgreSQL and RabbitMQ.
+- **Why** — RabbitMQ has no practical XA support, and 2PC blocks on a coordinator (worse availability and
+  throughput, heavy to operate). The outbox keeps the write **local and atomic**, then turns delivery into
+  *at-least-once* which an idempotent consumer (`processed_events`) collapses into **effectively
+  exactly-once**.
+- **Trade-off** — extra moving parts (a relay + a dedup ledger) and eventual, not instant, delivery
+  (bounded by the poll interval).
+
+### ADR-2 — Strangler-fig + feature flag to split the microservice
+
+- **Decision** — carve the notification path out of the monolith incrementally behind a
+  `NOTIFICATION_MODE` flag: `inprocess` → `distributed` (shadow-verified in parallel) → cut-off.
+- **Rejected** — a big-bang extract/rewrite in a single release.
+- **Why** — **zero downtime**, the new service is verified against the old one *in production* before it
+  owns the truth, and rollback is a single flag flip — the right risk profile for a solo project.
+  See [Migration](#-migration-monolith--microservice-strangler-fig).
+- **Trade-off** — dual code paths and extra complexity *during* the migration window (removed at cut-off).
+
+### ADR-3 — Backend-owned auth (Passport) instead of NextAuth
+
+- **Decision** — issue and own JWT access/refresh tokens and Google OAuth2 in **NestJS via Passport**;
+  the frontend just carries tokens.
+- **Rejected** — NextAuth, with session/auth state living on the Next.js side.
+- **Why** — the API is consumed by **more than the web app** (Swagger, future mobile), so auth must live
+  at the **API boundary**, not inside one client. One source of truth for sessions and refresh rotation,
+  and a uniform contract for every client.
+- **Trade-off** — I implement refresh rotation and guards myself instead of getting them off the shelf.
+
+### ADR-4 — API-first codegen with a CI drift check
+
+- **Decision** — the backend OpenAPI spec is the source of truth; the typed frontend client is
+  **generated** from it (`gen-api`), and **CI fails if the committed schema drifts** from the backend.
+- **Rejected** — hand-written frontend request/response types kept in sync manually.
+- **Why** — eliminates frontend/backend type drift: a backend DTO change surfaces as a **compile error**
+  on the frontend, and the CI check stops a stale schema from ever landing (learned the hard way).
+- **Trade-off** — a codegen step in the workflow; you must run `gen-api` when DTOs change.
+
+### ADR-5 — Database-per-service + CQRS read projection
+
+- **Decision** — the notification service owns **its own database** (source of truth); the monolith keeps
+  an eventually-consistent **read projection** (`notification_read`) for the bell.
+- **Rejected** — a single database shared by the monolith and the notification service.
+- **Why** — real service autonomy: independent schema and deploy, with **no coupling at the data layer**.
+  The projection keeps the bell query fast and local instead of a synchronous cross-service call.
+- **Trade-off** — eventual consistency and duplicated data, plus a projection consumer to maintain.
+
+### ADR-6 — Pessimistic locking + idempotent checkout for correctness over throughput
+
+- **Decision** — decrement stock under a **pessimistic row lock** (`SELECT … FOR UPDATE`) and make
+  checkout **idempotent** via an idempotency key.
+- **Rejected** — optimistic locking (retry-on-conflict) or no lock, letting clients retry freely.
+- **Why** — overselling and double-charging are **real-money** failures; a pessimistic lock is the right
+  call when contention on a row is high and the cost of a wrong answer is severe, and the idempotency key
+  makes a page refresh or network retry safe instead of a second order.
+- **Trade-off** — lower throughput on a hot row, so the lock is held for the shortest span possible
+  (lock the bare row *first*, load relations *after* — TypeORM won't emit `FOR UPDATE` with a join).
+
+---
+
 ## 🛠️ Tech stack
 
 | Layer | Stack |
