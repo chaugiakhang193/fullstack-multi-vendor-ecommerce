@@ -5,9 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, Search } from 'lucide-react';
 
-// Giao diện 404 dùng chung cho cả root (URL không khớp route nào) lẫn nhóm (customer).
-// Tự chứa (card căn giữa) nên render đứng một mình dưới root layout vẫn đẹp.
-export default function NotFoundView() {
+// Giao diện 404 dùng chung cho root (URL không khớp route nào) lẫn nhóm (customer).
+// fullScreen=true → căn giữa TOÀN màn hình (root, không có header/footer bao quanh);
+// false → chiếm ~70vh (nằm giữa header/footer của nhóm customer).
+export default function NotFoundView({
+  fullScreen = false,
+}: {
+  fullScreen?: boolean;
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
@@ -23,8 +28,12 @@ export default function NotFoundView() {
   return (
     <>
       <title>Không tìm thấy trang — Giang Kha</title>
-      <div className="min-h-[75vh] flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in">
-        <div className="max-w-lg w-full text-center space-y-8 p-10 md:p-12 rounded-3xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
+      <div
+        className={`${
+          fullScreen ? 'min-h-screen' : 'min-h-[70vh]'
+        } flex items-center justify-center p-4 selection:bg-violet-500 selection:text-white animate-fade-in`}
+      >
+        <div className="max-w-2xl w-full text-center space-y-8 p-8 sm:p-12 rounded-3xl border bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl relative overflow-hidden">
           {/* Subtle gradient background decoration */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-violet-500 to-indigo-500" />
 
@@ -33,17 +42,17 @@ export default function NotFoundView() {
           <div className="absolute -bottom-24 -right-20 w-72 h-72 rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl pointer-events-none" />
 
           {/* Large illustrated 404 */}
-          <div className="space-y-4 relative z-10">
-            <h1 className="text-9xl md:text-[10rem] font-black tracking-tighter bg-gradient-to-b from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent select-none animate-pulse">
+          <div className="space-y-3 relative z-10">
+            <h1 className="text-8xl md:text-9xl font-black tracking-tighter bg-gradient-to-b from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent select-none">
               404
             </h1>
-            <h2 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-foreground md:whitespace-nowrap">
               Không tìm thấy trang yêu cầu
             </h2>
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
               Trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ, hoặc đường
-              dẫn URL đã thay đổi. Vui lòng kiểm tra lại địa chỉ hoặc tìm kiếm
-              sản phẩm khác dưới đây.
+              dẫn URL đã thay đổi. Vui lòng kiểm tra lại địa chỉ hoặc tìm sản
+              phẩm khác dưới đây.
             </p>
           </div>
 

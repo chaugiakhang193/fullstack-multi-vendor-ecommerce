@@ -41,8 +41,10 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og-image.png',
+        secureUrl: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
+        type: 'image/png',
         alt: 'Giang Kha — Sàn thương mại điện tử Multi-Vendor',
       },
     ],
