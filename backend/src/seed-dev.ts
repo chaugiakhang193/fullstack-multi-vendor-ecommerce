@@ -13,6 +13,7 @@ import {
   OrderStatus,
 } from '@/common/enums';
 import { hashDataHelper } from '@/common/helpers/utils';
+import { assertLocalDbOrExplicitOverride } from '@/common/helpers/assert-local-db';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
@@ -74,6 +75,10 @@ function parseVariantAttributes(name: string): Record<string, string> {
 }
 
 async function seed() {
+  // Chốt an toàn: chặn seed nhầm lên DB remote/prod (sự cố 19/07). Chạy TRƯỚC khi
+  // bootstrap kết nối DB. Seed remote có chủ đích: ALLOW_REMOTE_SEED=YES_I_AM_SURE.
+  assertLocalDbOrExplicitOverride('seed-dev');
+
   console.log(
     '====== BẮT ĐẦU GIEO HẠT DỮ LIỆU PHÁT TRIỂN (DEV SEEDER - 80 PRODUCTS) ======',
   );
@@ -271,7 +276,7 @@ async function seed() {
     console.log('-> Tạo mới Shop 1...');
     const devShop = shopRepository.create({
       seller: devSeller,
-      name: 'Vũ Trụ Thời Trang & Công Nghệ - Dev Store',
+      name: 'Vũ Trụ Thời Trang & Công Nghệ',
       description:
         'Cửa hàng mô phỏng phục vụ quá trình phát triển Fullstack Web. Cung cấp thời trang cao cấp và đồ công nghệ sành điệu.',
       logo_url:
@@ -291,7 +296,7 @@ async function seed() {
     console.log('-> Tạo mới Shop 2...');
     const devShop2 = shopRepository.create({
       seller: devSeller2,
-      name: 'Thế Giới Phụ Kiện & Điện Máy - Dev Store 2',
+      name: 'Thế Giới Phụ Kiện & Điện Máy',
       description:
         'Cửa hàng thứ hai phục vụ kiểm thử giỏ hàng liên shop (multi-shop cart) và các tính năng nâng cao.',
       logo_url:
@@ -394,7 +399,6 @@ async function seed() {
     const jeanImages = [
       'https://images.unsplash.com/photo-1542272604-787c3835535d?w=800',
       'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800',
-      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800',
       'https://images.unsplash.com/photo-1475178626620-a4d074967452?w=800',
     ];
 
@@ -509,7 +513,6 @@ async function seed() {
       'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800',
       'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800',
       'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800',
-      'https://images.unsplash.com/photo-1565849906660-4469279f555e?w=800',
     ];
 
     for (let i = 1; i <= 10; i++) {
@@ -554,7 +557,6 @@ async function seed() {
 
     // --- E. ĐIỆN TỬ - LAPTOP (10 sản phẩm) ---
     const laptopImages = [
-      'https://images.unsplash.com/photo-1496181130204-755241524eab?w=800',
       'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800',
       'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=800',
       'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800',
@@ -593,43 +595,117 @@ async function seed() {
       });
     }
 
-    // --- F. ĐIỆN TỬ - PHỤ KIỆN CÔNG NGHỆ (15 sản phẩm) ---
-    const accImages = [
-      'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800',
-      'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=800',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
-      'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=800',
-      'https://images.unsplash.com/photo-1610461888750-10bfc601b874?w=800',
+    // --- F. ĐIỆN TỬ - PHỤ KIỆN CÔNG NGHỆ ---
+    // Mỗi ảnh đã được xem tận mắt để khớp ĐÚNG tên sản phẩm (name ↔ image 1:1,
+    // KHÔNG cycle chéo như trước). Ảnh regular của images.unsplash.com (né Unsplash+
+    // để tránh watermark/bản quyền).
+    const accKeyboard =
+      'https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=800&auto=format&fit=crop&q=60';
+    const accPowerbank =
+      'https://images.unsplash.com/photo-1564286027156-9ad736dfbbbb?w=800&auto=format&fit=crop&q=60';
+    const accHeadphone =
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800';
+    const accAirpods =
+      'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=800';
+    const accEarpods =
+      'https://images.unsplash.com/photo-1667450922216-85ede917a73e?w=800&auto=format&fit=crop&q=60';
+    const accInear =
+      'https://images.unsplash.com/photo-1735801660469-3db1838cc64c?w=800&auto=format&fit=crop&q=60';
+
+    const accItems: Array<{
+      name: string;
+      price: number;
+      image: string;
+      colorVariants?: boolean;
+    }> = [
+      {
+        name: 'Bàn Phím Cơ Bluetooth Gõ Êm',
+        price: 890000,
+        image: accKeyboard,
+        colorVariants: true,
+      },
+      { name: 'Bàn Phím Cơ RGB Gaming', price: 1190000, image: accKeyboard },
+      {
+        name: 'Bàn Phím Cơ Không Dây Mini 75%',
+        price: 690000,
+        image: accKeyboard,
+      },
+      {
+        name: 'Sạc Dự Phòng 20.000mAh Sạc Nhanh PD',
+        price: 590000,
+        image: accPowerbank,
+        colorVariants: true,
+      },
+      {
+        name: 'Sạc Dự Phòng 10.000mAh Nhỏ Gọn',
+        price: 390000,
+        image: accPowerbank,
+      },
+      {
+        name: 'Sạc Dự Phòng Kèm Cáp 2 Đầu',
+        price: 490000,
+        image: accPowerbank,
+      },
+      {
+        name: 'Tai Nghe Chụp Tai Chống Ồn ANC',
+        price: 1490000,
+        image: accHeadphone,
+        colorVariants: true,
+      },
+      {
+        name: 'Tai Nghe Chụp Tai Bluetooth Over-ear',
+        price: 990000,
+        image: accHeadphone,
+      },
+      {
+        name: 'Tai Nghe True Wireless Bluetooth 5.3',
+        price: 1290000,
+        image: accAirpods,
+        colorVariants: true,
+      },
+      {
+        name: 'Tai Nghe True Wireless Sạc Không Dây',
+        price: 1590000,
+        image: accAirpods,
+      },
+      {
+        name: 'Tai Nghe Nhét Tai EarPods USB-C',
+        price: 290000,
+        image: accEarpods,
+      },
+      {
+        name: 'Tai Nghe In-Ear Thể Thao Chống Nước',
+        price: 350000,
+        image: accInear,
+      },
     ];
 
-    for (let i = 1; i <= 15; i++) {
-      const hasVar = i % 3 === 0;
-      const basePrice = 200000 + i * 35000;
+    for (const acc of accItems) {
       productTemplates.push({
-        name: `Phụ Kiện ${i === 1 ? 'Tai Nghe True Wireless Bluetooth' : i === 2 ? 'Sạc Dự Phòng Siêu Nhanh 20000mAh' : `Smart Gadget ${i}`}`,
-        description: `Thiết bị phụ kiện chất lượng cao giúp tối ưu hóa cuộc sống công nghệ của bạn. Chất liệu bền bỉ, tính năng thông minh vượt trội, tương thích tốt với hầu hết các thiết bị di động trên thị trường.`,
-        price: basePrice,
+        name: acc.name,
+        description: `${acc.name} — hàng chính hãng, bảo hành 12 tháng. Thiết kế bền bỉ, tương thích đa thiết bị, phù hợp cho học tập và làm việc hằng ngày.`,
+        price: acc.price,
         weight: 150,
         category: accessoryCategory,
-        thumbnail: accImages[i % accImages.length],
-        gallery: [accImages[(i + 1) % accImages.length]],
-        hasVariants: hasVar,
-        shop: devShop2, // Assign these to Shop 2!
-        variants: hasVar
+        thumbnail: acc.image,
+        gallery: [acc.image],
+        hasVariants: !!acc.colorVariants,
+        shop: devShop2, // Phụ kiện thuộc Shop 2
+        variants: acc.colorVariants
           ? [
               {
-                name: 'Màu Đen cá tính',
+                name: 'Màu Đen',
                 skuSuffix: 'BLK',
                 priceDiff: 0,
                 stock: 50,
-                images: [accImages[i % accImages.length]],
+                images: [acc.image],
               },
               {
-                name: 'Màu Trắng thanh lịch',
+                name: 'Màu Trắng',
                 skuSuffix: 'WHT',
                 priceDiff: 0,
                 stock: 45,
-                images: [accImages[(i + 1) % accImages.length]],
+                images: [acc.image],
               },
             ]
           : undefined,
@@ -639,12 +715,13 @@ async function seed() {
     // --- G. SẢN PHẨM PHỤ VỤ KIỂM THỬ GIỎ HÀNG (Cart Test Products) ---
     // 1. Sản phẩm không variant, số lượng tồn kho rất ít (ví dụ: 2) để test Qty > stock
     productTemplates.push({
-      name: 'Sản Phẩm Test Ít Kho (Stock = 2)',
-      description: 'Sản phẩm phục vụ test thêm giỏ hàng vượt số lượng tồn kho.',
-      price: 99000,
+      name: 'Sạc Dự Phòng 5.000mAh Bỏ Túi',
+      description:
+        'Sạc dự phòng mini 5.000mAh nhỏ gọn bỏ túi, sạc nhanh, vỏ nhôm bền. Hàng giới hạn nên số lượng tồn kho có hạn.',
+      price: 259000,
       weight: 100,
       category: accessoryCategory,
-      thumbnail: accImages[0],
+      thumbnail: accPowerbank,
       gallery: [],
       hasVariants: false,
       stockQuantity: 2,
@@ -653,12 +730,13 @@ async function seed() {
 
     // 2. Sản phẩm bị ẩn (is_hidden = true)
     productTemplates.push({
-      name: 'Sản Phẩm Test Bị Ẩn (Hidden)',
-      description: 'Sản phẩm đã bị ẩn bởi người bán.',
+      name: 'Tai Nghe Nhét Tai Có Dây (Ngừng Kinh Doanh)',
+      description:
+        'Tai nghe nhét tai có dây, jack 3.5mm, âm thanh cân bằng. Sản phẩm hiện đang tạm ẩn khỏi gian hàng.',
       price: 150000,
       weight: 100,
       category: accessoryCategory,
-      thumbnail: accImages[1],
+      thumbnail: accEarpods,
       gallery: [],
       hasVariants: false,
       isHidden: true,

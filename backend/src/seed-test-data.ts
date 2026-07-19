@@ -6,8 +6,10 @@ import { User } from '@/modules/users/entities/user.entity';
 import { Address } from '@/modules/users/entities/address.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { CouponType, DiscountType } from '@/common/enums';
+import { assertLocalDbOrExplicitOverride } from '@/common/helpers/assert-local-db';
 
 async function seedTestData() {
+  assertLocalDbOrExplicitOverride('seed-test-data');
   console.log('====== BẮT ĐẦU SEED DỮ LIỆU KIỂM THỬ E2E ======');
   const app = await NestFactory.createApplicationContext(AppModule);
   const dataSource = app.get(DataSource);
@@ -31,7 +33,7 @@ async function seedTestData() {
     // 1. Cập nhật tọa độ Shop 1 & Shop 2
     console.log('-> Cập nhật tọa độ cho Shop 1...');
     const shop1 = await shopRepository.findOne({
-      where: { name: 'Vũ Trụ Thời Trang & Công Nghệ - Dev Store' },
+      where: { name: 'Vũ Trụ Thời Trang & Công Nghệ' },
     });
     if (shop1) {
       shop1.lat = '21.018151';
@@ -45,7 +47,7 @@ async function seedTestData() {
 
     console.log('-> Cập nhật tọa độ cho Shop 2...');
     const shop2 = await shopRepository.findOne({
-      where: { name: 'Thế Giới Phụ Kiện & Điện Máy - Dev Store 2' },
+      where: { name: 'Thế Giới Phụ Kiện & Điện Máy' },
     });
     if (shop2) {
       shop2.lat = '20.998495';

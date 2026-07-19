@@ -8,6 +8,7 @@ import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 import { UserRole, AccountStatus, OrderStatus } from '@/common/enums';
+import { assertLocalDbOrExplicitOverride } from '@/common/helpers/assert-local-db';
 
 // Nhận diện + dọn dẹp reviewer seed qua email domain riêng.
 const SEED_EMAIL_DOMAIN = '@seed.giangkha.local';
@@ -52,6 +53,7 @@ function pick<T>(arr: T[]): T {
 }
 
 async function seedReviews() {
+  assertLocalDbOrExplicitOverride('seed-reviews');
   console.log('====== SEED REVIEWS — BẮT ĐẦU ======');
   const app = await NestFactory.createApplicationContext(AppModule);
   const dataSource = app.get(DataSource);
