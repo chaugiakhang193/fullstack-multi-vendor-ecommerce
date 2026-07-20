@@ -54,7 +54,9 @@ describe('Shop Bank Info (e2e)', () => {
 
   async function wipe(): Promise<void> {
     await dataSource.getRepository(Shop).delete({ id: Not(IsNull()) });
-    await dataSource.getRepository(Category).delete({ slug: 'e2e-sbi-category' });
+    await dataSource
+      .getRepository(Category)
+      .delete({ slug: 'e2e-sbi-category' });
     for (const email of createdEmails) {
       await dataSource.getRepository(User).delete({ email });
     }
@@ -69,7 +71,9 @@ describe('Shop Bank Info (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     dataSource = moduleFixture.get<DataSource>(DataSource);
@@ -162,11 +166,10 @@ describe('Shop Bank Info (e2e)', () => {
 
       // Query database kiểm tra cột bank_account_info
       const shopRepo = dataSource.getRepository(Shop);
-      const dbShop = await shopRepo.findOne({
+      const dbShop = await shopRepo.findOneOrFail({
         where: { id: res.body.data.id },
       });
 
-      expect(dbShop).toBeDefined();
       expect(dbShop.bank_account_info).toEqual({
         bank_name: 'Techcombank',
         account_number: '190345678910',
@@ -200,7 +203,9 @@ describe('Shop Bank Info (e2e)', () => {
         .attach('gallery', galleryBuf, 'g1.png');
 
       expect(res.status).toBe(400);
-      expect(JSON.stringify(res.body)).toContain('Số tài khoản không được để trống');
+      expect(JSON.stringify(res.body)).toContain(
+        'Số tài khoản không được để trống',
+      );
     });
 
     it('A3: Setup gửi JSON string hỏng -> Validation báo lỗi 400', async () => {
@@ -233,7 +238,7 @@ describe('Shop Bank Info (e2e)', () => {
     beforeAll(async () => {
       // Setup shopA qua DB trực tiếp và đặt trạng thái ACTIVE
       const shopRepo = dataSource.getRepository(Shop);
-      const existingShop = await shopRepo.findOne({
+      const existingShop = await shopRepo.findOneOrFail({
         where: { seller: { id: sellerA.id } },
       });
       existingShop.status = AccountStatus.ACTIVE;
@@ -302,7 +307,7 @@ describe('Shop Bank Info (e2e)', () => {
 
       // Verify in DB
       const shopRepo = dataSource.getRepository(Shop);
-      const dbShop = await shopRepo.findOne({
+      const dbShop = await shopRepo.findOneOrFail({
         where: { seller: { id: sellerA.id } },
       });
 

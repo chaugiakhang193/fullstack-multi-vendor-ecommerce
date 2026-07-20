@@ -16,7 +16,12 @@ import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { Payout } from '@/modules/payouts/entities/payout.entity';
-import { UserRole, AccountStatus, OrderStatus, PayoutStatus } from '@/common/enums';
+import {
+  UserRole,
+  AccountStatus,
+  OrderStatus,
+  PayoutStatus,
+} from '@/common/enums';
 
 jest.setTimeout(60000);
 
@@ -76,7 +81,9 @@ describe('Payouts E2E', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     dataSource = moduleFixture.get<DataSource>(DataSource);
@@ -116,14 +123,18 @@ describe('Payouts E2E', () => {
     sellerA = await mkUser('e2epoSellerA', createdEmails[0], UserRole.SELLER);
     sellerB = await mkUser('e2epoSellerB', createdEmails[1], UserRole.SELLER);
     adminUser = await mkUser('e2epoAdmin', createdEmails[2], UserRole.ADMIN);
-    customerUser = await mkUser('e2epoCustomer', createdEmails[3], UserRole.CUSTOMER);
+    customerUser = await mkUser(
+      'e2epoCustomer',
+      createdEmails[3],
+      UserRole.CUSTOMER,
+    );
 
     sellerAToken = await signToken(sellerA);
     sellerBToken = await signToken(sellerB);
     adminToken = await signToken(adminUser);
 
     const shopRepo = dataSource.getRepository(Shop);
-    
+
     // shopA đã setup tài khoản ngân hàng
     shopA = await shopRepo.save(
       shopRepo.create({
@@ -218,7 +229,9 @@ describe('Payouts E2E', () => {
         .send(payload);
 
       expect(res.status).toBe(400);
-      expect(JSON.stringify(res.body)).toContain('Vui lòng cập nhật thông tin tài khoản ngân hàng');
+      expect(JSON.stringify(res.body)).toContain(
+        'Vui lòng cập nhật thông tin tài khoản ngân hàng',
+      );
     });
 
     let createdPayoutId: string;
@@ -249,7 +262,7 @@ describe('Payouts E2E', () => {
     it('B3: Immutability of snapshot -> đổi bank của shop, snapshot của payout cũ không đổi', async () => {
       // Đổi thông tin ngân hàng của shopA
       const shopRepo = dataSource.getRepository(Shop);
-      const shop = await shopRepo.findOne({
+      const shop = await shopRepo.findOneOrFail({
         where: { id: shopA.id },
       });
       shop.bank_account_info = {
@@ -261,7 +274,7 @@ describe('Payouts E2E', () => {
 
       // Query database kiểm tra payout cũ
       const payoutRepo = dataSource.getRepository(Payout);
-      const dbPayout = await payoutRepo.findOne({
+      const dbPayout = await payoutRepo.findOneOrFail({
         where: { id: createdPayoutId },
       });
 
@@ -324,7 +337,9 @@ describe('Payouts E2E', () => {
         .send(payload);
 
       expect(res.status).toBe(400);
-      expect(JSON.stringify(res.body)).toContain('đang có một yêu cầu rút tiền đang được xử lý');
+      expect(JSON.stringify(res.body)).toContain(
+        'đang có một yêu cầu rút tiền đang được xử lý',
+      );
     });
   });
 
@@ -364,13 +379,13 @@ describe('Payouts E2E', () => {
 
       // Verify DB audit
       const payoutRepo = dataSource.getRepository(Payout);
-      const dbPayout = await payoutRepo.findOne({
+      const dbPayout = await payoutRepo.findOneOrFail({
         where: { id: secondPayoutId },
         relations: ['resolved_by'],
       });
 
-      expect(dbPayout.resolved_by).toBeDefined();
-      expect(dbPayout.resolved_by.id).toBe(adminUser.id); // Check resolved_by trỏ đúng admin
+      expect(dbPayout.resolved_by).not.toBeNull();
+      expect(dbPayout.resolved_by?.id).toBe(adminUser.id); // Check resolved_by trỏ đúng admin
       expect(dbPayout.resolved_at).not.toBeNull();
     });
 
@@ -404,11 +419,11 @@ describe('Payouts E2E', () => {
       expect(res.body.data.status).toBe(PayoutStatus.REJECTED);
       expect(res.body.data.reject_reason).toBe(rejectReasonStr);
 
-      const dbPayout = await payoutRepo.findOne({
+      const dbPayout = await payoutRepo.findOneOrFail({
         where: { id: payout.id },
         relations: ['resolved_by'],
       });
-      expect(dbPayout.resolved_by.id).toBe(adminUser.id);
+      expect(dbPayout.resolved_by?.id).toBe(adminUser.id);
     });
 
     it('B9: Lệnh đã xử lý không thể xử lý lại -> 400', async () => {
@@ -449,7 +464,9 @@ describe('Payouts E2E', () => {
       expect(res.status).toBe(200);
       // Kết quả chỉ được chứa payout của shopA
       const dataItems = res.body.data.items || [];
-      const hasOtherShopPayout = dataItems.some((item: any) => item.shop?.id === shopB.id);
+      const hasOtherShopPayout = dataItems.some(
+        (item: any) => item.shop?.id === shopB.id,
+      );
       expect(hasOtherShopPayout).toBe(false);
     });
 

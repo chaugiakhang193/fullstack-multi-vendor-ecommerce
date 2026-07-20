@@ -38,14 +38,41 @@ describe('Product Management (e2e)', () => {
           url: `https://res.cloudinary.com/mock-cloud/image/upload/v12345/${folder}/mock-file.jpg`,
         });
       }),
+    uploadMultipleFiles: jest
+      .fn()
+      .mockImplementation(
+        (
+          files: Express.Multer.File[] | undefined,
+          folder: string,
+          ownerId?: string,
+          type?: string,
+          shopId?: string,
+          uploadedAssetsTracker?: { id: string; public_id: string }[],
+        ) => {
+          const assets = (files ?? []).map(() => ({
+            id: crypto.randomUUID(),
+            public_id: `mock-public-id-${crypto.randomUUID()}`,
+            url: `https://res.cloudinary.com/mock-cloud/image/upload/v12345/${folder}/mock-file.jpg`,
+          }));
+          // Bản thật đẩy asset vào tracker để service rollback được khi lỗi giữa chừng.
+          uploadedAssetsTracker?.push(
+            ...assets.map((a) => ({ id: a.id, public_id: a.public_id })),
+          );
+          return Promise.resolve(assets);
+        },
+      ),
     findAssetByUrl: jest.fn().mockImplementation(() => {
       return Promise.resolve({
         id: crypto.randomUUID(),
         public_id: 'mock-public-id',
       });
     }),
+    findAssetById: jest.fn().mockImplementation((assetId: string) => {
+      return Promise.resolve({ id: assetId, public_id: 'mock-public-id' });
+    }),
     deleteFile: jest.fn().mockResolvedValue(true),
     deleteAsset: jest.fn().mockResolvedValue(true),
+    updateAssetShopId: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeAll(async () => {
@@ -213,13 +240,13 @@ describe('Product Management (e2e)', () => {
       .expect(200);
 
     expect(response.body.message).toBe('Lấy danh sách sản phẩm thành công');
-    expect(response.body.data).toBeDefined();
-    expect(Array.isArray(response.body.data)).toBe(true);
-    expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+    // Endpoint trả PaginatedResponseDto: { items, meta }
+    const items = response.body.data.items;
+    expect(Array.isArray(items)).toBe(true);
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    expect(response.body.data.meta.totalItems).toBeGreaterThanOrEqual(1);
 
-    const foundProduct = response.body.data.find(
-      (p) => p.id === createdProductId,
-    );
+    const foundProduct = items.find((p) => p.id === createdProductId);
     expect(foundProduct).toBeDefined();
     expect(foundProduct.name).toBe('E2E Super Shirt');
   });

@@ -9,5 +9,10 @@
   "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/../src/$1"
   },
-  "transformIgnorePatterns": ["/node_modules/(?!(uuid)/)"]
+  "transformIgnorePatterns": ["/node_modules/(?!(uuid)/)"],
+  "globalSetup": "<rootDir>/global-setup.e2e.ts",
+  "globalTeardown": "<rootDir>/global-teardown.e2e.ts",
+  "setupFiles": ["<rootDir>/setup-guard.e2e.ts"],
+  "maxWorkers": 1,
+  "testTimeout": 180000
 }

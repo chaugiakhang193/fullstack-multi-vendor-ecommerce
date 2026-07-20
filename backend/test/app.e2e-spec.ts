@@ -7,7 +7,7 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -16,14 +16,21 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    await app.close();
   });
 
-  afterEach(async () => {
-    await app.close();
+  it('GET /health → 200 và DB còn sống (route @Public)', async () => {
+    const res = await request(app.getHttpServer()).get('/health');
+    const body = res.body as { data: { status: string; db: string } };
+
+    expect(res.status).toBe(200);
+    expect(body.data).toEqual({ status: 'ok', db: 'up' });
+  });
+
+  it('GET / không token → 401 (AccessTokenGuard đăng ký global)', async () => {
+    const res = await request(app.getHttpServer()).get('/');
+
+    expect(res.status).toBe(401);
   });
 });
