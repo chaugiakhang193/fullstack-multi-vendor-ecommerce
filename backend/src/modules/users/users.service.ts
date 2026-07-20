@@ -7,7 +7,6 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { UpdateProfileDto } from '@/modules/users/dto/update-profile.dto';
 import { RegisterDto } from '@/auth/dto/register.dto';
 import { User } from '@/modules/users/entities/user.entity';
@@ -232,6 +231,9 @@ export class UsersService {
 
       return this.getProfile(userId);
     } catch (error) {
+      // Log nguyên nhân gốc trước khi đổi sang lỗi 500 chung — nếu không, sự cố
+      // Cloudinary/DB sẽ biến mất không dấu vết.
+      this.logger.error('Cập nhật ảnh đại diện thất bại', error);
       await this.rollbackNewAvatarAsset(newAvatarAsset, userId);
       throw new InternalServerErrorException(
         'Có lỗi xảy ra khi cập nhật ảnh đại diện',
