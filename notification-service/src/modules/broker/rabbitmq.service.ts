@@ -21,6 +21,10 @@ import { PoisonPayloadError } from "@/consumer/poison-payload.error";
 import { NotificationEmitterService } from "@/modules/broker/notification-emitter.service";
 import { WsEmit } from "@/contracts/ws-events.generated";
 
+// Backoff giữa các lần thử kết nối lại — lần thứ n dùng phần tử thứ n, quá dài
+// thì giữ mốc cuối (30s).
+const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
+
 // Topology — consumer declare queue + binding (publisher declare exchange).
 const EVENTS_EXCHANGE = "ecommerce.events";
 const NOTIFICATIONS_QUEUE = "notifications.q";
@@ -67,6 +71,12 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   // Exchange đã assert trên confirm channel hiện tại (idempotent 1 lần/đời channel).
   private assertedExchanges = new Set<string>();
 
+  // Trạng thái reconnect.
+  private url: string | null = null;
+  private isShuttingDown = false;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectAttempts = 0;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -84,29 +94,72 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       );
       return;
     }
+    this.url = url;
+    await this.connect();
+  }
+
+  // Kết nối + gắn handler vòng đời + dựng lại consumer. Thất bại → hẹn thử lại
+  // (KHÔNG ném ra ngoài để service vẫn boot khi broker chưa sẵn sàng).
+  private async connect(): Promise<void> {
+    if (!this.url || this.isShuttingDown) {
+      return;
+    }
 
     try {
-      this.connection = await amqplib.connect(url);
-      this.connection.on("error", (err: Error) => {
+      const connection = await amqplib.connect(this.url);
+      connection.on("error", (err: Error) => {
         this.logger.error(`[RabbitMqService] Connection lỗi: ${err.message}`);
-        this.connection = null;
       });
-      this.connection.on("close", () => {
+      // 'close' luôn bắn (kể cả sau 'error') → chỉ hẹn reconnect ở đây.
+      connection.on("close", () => {
+        // Handler của connection CŨ tới trễ trong khi đã nối lại được → bỏ qua.
+        // So theo chính object của closure này, không theo `this`: nếu không,
+        // 'close' đến muộn sẽ xoá nhầm connection mới đang sống.
+        if (this.connection !== connection) {
+          return;
+        }
         this.logger.warn("[RabbitMqService] Connection đóng.");
         this.connection = null;
         this.consumerChannel = null;
         this.confirmChannel = null;
         this.assertedExchanges.clear();
+        this.scheduleReconnect();
       });
+
+      this.connection = connection;
+      this.reconnectAttempts = 0;
       this.logger.log("[RabbitMqService] Kết nối RabbitMQ thành công.");
 
+      // Consumer sống theo connection → connection mới phải dựng lại, không thì
+      // NS im lặng ngừng xử lý event tới khi restart.
       await this.setupConsumer();
     } catch (error) {
       this.logger.error(
         `[RabbitMqService] Kết nối RabbitMQ thất bại: ${(error as Error).message}`,
       );
       this.connection = null;
+      this.scheduleReconnect();
     }
+  }
+
+  // Hẹn 1 lần thử lại. Guard `reconnectTimer` để close + connect-fail không tạo
+  // 2 vòng song song.
+  private scheduleReconnect(): void {
+    if (this.isShuttingDown || this.reconnectTimer || !this.url) {
+      return;
+    }
+    const delay =
+      RECONNECT_DELAYS_MS[
+        Math.min(this.reconnectAttempts, RECONNECT_DELAYS_MS.length - 1)
+      ];
+    this.reconnectAttempts++;
+    this.logger.warn(
+      `[RabbitMqService] Thử kết nối lại sau ${delay}ms (lần ${this.reconnectAttempts}).`,
+    );
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      void this.connect();
+    }, delay);
   }
 
   // Declare notifications.q (arg-free, durable) + binding trên ecommerce.events
@@ -384,6 +437,11 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.isShuttingDown = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.consumerChannel) {
       await this.consumerChannel.close().catch(() => undefined);
     }
