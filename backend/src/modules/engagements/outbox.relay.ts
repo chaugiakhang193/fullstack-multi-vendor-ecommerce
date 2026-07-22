@@ -131,9 +131,10 @@ export class OutboxRelay {
     }
   }
 
-  // Publish 1 event → chờ confirm → mark published_at. Trả true nếu đã publish
-  // (kể cả khi mark lỗi — event đã lên broker). Publish thất bại → giữ NULL để
-  // vòng poll sau thử lại (at-least-once).
+  // Publish 1 event → chờ confirm → mark published_at. Trả true CHỈ khi message
+  // thật sự vào được queue (dùng để quyết định có poke NS hay không). Lỗi tạm
+  // thời → giữ NULL, poll sau thử lại. Unroutable → vẫn mark để rời hàng đợi
+  // nhưng trả false (không có ai để đánh thức).
   private async publishOne(event: OutboxEvent): Promise<boolean> {
     const envelope: OutboxEnvelope = {
       eventId: event.id,
@@ -142,13 +143,26 @@ export class OutboxRelay {
       payload: event.payload,
     };
 
-    const confirmed = await this.rabbitMq.publishWithConfirm(
+    const result = await this.rabbitMq.publishWithConfirm(
       RELAY_EXCHANGE,
       event.event_type,
       envelope,
     );
-    if (!confirmed) {
+
+    // Lỗi TẠM THỜI → giữ published_at NULL, vòng poll sau thử lại (at-least-once).
+    if (result === 'failed') {
       return false;
+    }
+
+    // Lỗi VĨNH VIỄN (routing key không khớp binding nào): thử lại vô nghĩa, mà để
+    // row nằm lại thì 10 row như vậy chiếm trọn mọi batch (claimBatch LIMIT 10
+    // ORDER BY created_at ASC) → chặn đứng cả pipeline. Cho nó RỜI hàng đợi, đổi
+    // lại bằng log error thật to — mất thì có mất, nhưng KHÔNG im lặng và KHÔNG
+    // kéo theo mọi event khác. Cần vá thật = thêm binding ở NS (BINDING_PATTERNS).
+    if (result === 'unroutable') {
+      this.logger.error(
+        `[OutboxRelay] Event ${event.id} (${event.event_type}) KHÔNG ĐỊNH TUYẾN ĐƯỢC — bỏ qua để không chặn hàng đợi. Kiểm tra BINDING_PATTERNS phía notification-service.`,
+      );
     }
 
     try {
@@ -164,9 +178,11 @@ export class OutboxRelay {
         .where('id = :id', { id: event.id })
         .andWhere('published_at IS NULL')
         .execute();
-      this.logger.log(
-        `[OutboxRelay] Event ${event.id} (${event.event_type}) → published`,
-      );
+      if (result === 'ok') {
+        this.logger.log(
+          `[OutboxRelay] Event ${event.id} (${event.event_type}) → published`,
+        );
+      }
     } catch (err) {
       // Đã publish nhưng mark lỗi (crash/DB) → poll sau republish, NS dedupe theo
       // eventId (Phase 4). Vẫn tính đã publish để poke NS.
@@ -174,6 +190,6 @@ export class OutboxRelay {
         `[OutboxRelay] Event ${event.id} publish OK nhưng mark lỗi: ${(err as Error).message}`,
       );
     }
-    return true;
+    return result === 'ok';
   }
 }

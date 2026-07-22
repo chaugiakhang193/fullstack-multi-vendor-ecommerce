@@ -72,9 +72,10 @@ export class NotificationOutboxRelay {
     }
   }
 
-  // Publish 1 event → chờ confirm → mark published_at. Publish fail → giữ NULL để
-  // poll sau thử lại (at-least-once). Mark lỗi sau publish OK → poll sau republish,
-  // monolith dedupe theo eventId (part_03).
+  // Publish 1 event → chờ confirm → mark published_at. Lỗi tạm thời → giữ NULL để
+  // poll sau thử lại (at-least-once). Unroutable → vẫn mark để rời hàng đợi, đổi
+  // lại bằng log error to. Mark lỗi sau publish OK → poll sau republish, monolith
+  // dedupe theo eventId (part_03).
   private async publishOne(event: NotificationOutbox): Promise<boolean> {
     const envelope: OutboxEnvelope = {
       eventId: event.id,
@@ -83,13 +84,25 @@ export class NotificationOutboxRelay {
       payload: event.payload,
     };
 
-    const confirmed = await this.rabbitMq.publishWithConfirm(
+    const result = await this.rabbitMq.publishWithConfirm(
       NOTIFICATIONS_EXCHANGE,
       event.event_type,
       envelope,
     );
-    if (!confirmed) {
+
+    // Lỗi TẠM THỜI → giữ published_at NULL, vòng poll sau thử lại.
+    if (result === "failed") {
       return false;
+    }
+
+    // Lỗi VĨNH VIỄN: thử lại vô nghĩa, mà giữ row lại thì đủ RELAY_BATCH_SIZE row
+    // như vậy là chiếm trọn mọi batch → chặn đứng chiều NS→monolith. Cho rời hàng
+    // đợi + log to. Vá thật = thêm pattern binding ở monolith (projection consumer
+    // bind chuỗi CHÍNH XÁC 'notification.created', không phải wildcard).
+    if (result === "unroutable") {
+      this.logger.error(
+        `[NotificationOutboxRelay] Event ${event.id} (${event.event_type}) KHÔNG ĐỊNH TUYẾN ĐƯỢC — bỏ qua để không chặn hàng đợi. Kiểm tra binding phía monolith.`,
+      );
     }
 
     try {
@@ -103,14 +116,16 @@ export class NotificationOutboxRelay {
         .where("id = :id", { id: event.id })
         .andWhere("published_at IS NULL")
         .execute();
-      this.logger.log(
-        `[NotificationOutboxRelay] Event ${event.id} (${event.event_type}) → published`,
-      );
+      if (result === "ok") {
+        this.logger.log(
+          `[NotificationOutboxRelay] Event ${event.id} (${event.event_type}) → published`,
+        );
+      }
     } catch (err) {
       this.logger.warn(
         `[NotificationOutboxRelay] Event ${event.id} publish OK nhưng mark lỗi: ${(err as Error).message}`,
       );
     }
-    return true;
+    return result === "ok";
   }
 }

@@ -11,6 +11,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 // TypeORM
 import { DataSource, Repository } from "typeorm";
 
+// Node
+import { randomUUID } from "crypto";
+
 // RabbitMQ client
 import * as amqplib from "amqplib";
 
@@ -24,6 +27,17 @@ import { WsEmit } from "@/contracts/ws-events.generated";
 // Backoff giữa các lần thử kết nối lại — lần thứ n dùng phần tử thứ n, quá dài
 // thì giữ mốc cuối (30s).
 const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
+
+// Kết quả publish — PHẢI tách 3 trạng thái, không gộp về boolean:
+//   ok         → broker confirm và đã route vào ít nhất 1 queue.
+//   failed     → lỗi TẠM THỜI (nack, mất kết nối) → thử lại có ích.
+//   unroutable → lỗi VĨNH VIỄN: routing key không khớp binding nào (basic.return).
+//                Thử lại vô nghĩa; giữ row lại sẽ chặn hàng đợi (relay LIMIT 20
+//                ORDER BY created_at ASC) → cả chiều NS→monolith ngừng chảy.
+// Chiều này MONG MANH HƠN chiều kia: monolith bind bằng chuỗi CHÍNH XÁC
+// 'notification.created' chứ không phải wildcard, nên thêm event_type mới ở NS
+// là rơi ngay.
+export type PublishResult = "ok" | "failed" | "unroutable";
 
 // Topology — consumer declare queue + binding (publisher declare exchange).
 const EVENTS_EXCHANGE = "ecommerce.events";
@@ -70,6 +84,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private confirmChannel: amqplib.ConfirmChannel | null = null;
   // Exchange đã assert trên confirm channel hiện tại (idempotent 1 lần/đời channel).
   private assertedExchanges = new Set<string>();
+  // messageId của các publish vừa bị broker trả về (basic.return, routing key
+  // không khớp binding nào) — confirm callback tra Set này để phát hiện "ack giả"
+  // (broker confirm dù message đã bị vứt).
+  private returnedMessageIds = new Set<string>();
 
   // Trạng thái reconnect.
   private url: string | null = null;
@@ -367,16 +385,37 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const channel = await this.connection.createConfirmChannel();
+      // basic.return: broker gửi TRƯỚC basic.ack khi mandatory=true và routing key
+      // không khớp binding nào — publish vẫn được confirm nhưng message đã bị vứt.
+      channel.on("return", (msg: amqplib.Message) => {
+        const messageId = msg.properties.messageId;
+        if (messageId) {
+          this.returnedMessageIds.add(messageId);
+        }
+        let eventId = "unknown";
+        try {
+          eventId =
+            (JSON.parse(msg.content.toString()) as { eventId?: string })
+              .eventId ?? "unknown";
+        } catch {
+          // body không parse được — giữ 'unknown'
+        }
+        this.logger.error(
+          `[RabbitMqService] Message KHÔNG ĐỊNH TUYẾN ĐƯỢC (mất) — eventId=${eventId} rk=${msg.fields.routingKey} exchange=${msg.fields.exchange}.`,
+        );
+      });
       channel.on("error", (err: Error) => {
         this.logger.error(
           `[RabbitMqService] Confirm channel lỗi: ${err.message}`,
         );
         this.confirmChannel = null;
         this.assertedExchanges.clear();
+        this.returnedMessageIds.clear();
       });
       channel.on("close", () => {
         this.confirmChannel = null;
         this.assertedExchanges.clear();
+        this.returnedMessageIds.clear();
       });
       this.confirmChannel = channel;
       return channel;
@@ -390,17 +429,18 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Publish 1 message lên topic exchange và CHỜ publisher confirm (at-least-once).
-  // Trả true khi broker ACK; false nếu chưa connect / nack / bất kỳ lỗi nào.
-  // Non-fatal toàn bộ (bài học 258). Publisher tự declare exchange idempotent.
+  // Trả 'ok' | 'failed' | 'unroutable' — xem chú thích PublishResult, KHÔNG gộp
+  // 'unroutable' vào 'failed'. Non-fatal toàn bộ (bài học 258). Publisher tự
+  // declare exchange idempotent.
   async publishWithConfirm(
     exchange: string,
     routingKey: string,
     message: unknown,
-  ): Promise<boolean> {
+  ): Promise<PublishResult> {
     try {
       const channel = await this.getConfirmChannel();
       if (!channel) {
-        return false;
+        return "failed";
       }
 
       if (!this.assertedExchanges.has(exchange)) {
@@ -409,22 +449,33 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       }
 
       const body = Buffer.from(JSON.stringify(message));
-      return await new Promise<boolean>((resolve) => {
+      const messageId = randomUUID();
+      return await new Promise<PublishResult>((resolve) => {
         channel.publish(
           exchange,
           routingKey,
           body,
-          { persistent: true, contentType: "application/json" },
+          {
+            persistent: true,
+            contentType: "application/json",
+            mandatory: true,
+            messageId,
+          },
           (err) => {
             if (err) {
               const reason = err instanceof Error ? err.message : String(err);
               this.logger.error(
                 `[RabbitMqService] Publish nack (rk=${routingKey}): ${reason}`,
               );
-              resolve(false);
-            } else {
-              resolve(true);
+              resolve("failed");
+              return;
             }
+            // RabbitMQ gửi basic.return TRƯỚC basic.ack — nhường 1 tick để
+            // handler 'return' kịp bỏ messageId vào Set trước khi ta kiểm tra.
+            setImmediate(() => {
+              const wasReturned = this.returnedMessageIds.delete(messageId);
+              resolve(wasReturned ? "unroutable" : "ok");
+            });
           },
         );
       });
@@ -432,7 +483,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `[RabbitMqService] publishWithConfirm lỗi (rk=${routingKey}): ${(error as Error).message}`,
       );
-      return false;
+      return "failed";
     }
   }
 

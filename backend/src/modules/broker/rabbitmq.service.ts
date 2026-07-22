@@ -7,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// Node
+import { randomUUID } from 'crypto';
+
 // RabbitMQ client
 import * as amqplib from 'amqplib';
 
@@ -14,6 +17,16 @@ import * as amqplib from 'amqplib';
 // thì giữ ở mốc cuối (30s). Đủ nhanh để tự lành sau blip, đủ chậm để không
 // quay CPU/log khi broker chết lâu.
 const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
+
+// Kết quả publish — PHẢI tách 3 trạng thái, không gộp về boolean:
+//   ok         → broker confirm và đã route vào ít nhất 1 queue.
+//   failed     → lỗi TẠM THỜI (nack, mất kết nối, channel chết) → thử lại có ích.
+//   unroutable → lỗi VĨNH VIỄN: routing key không khớp binding nào (basic.return).
+//                Thử lại vô nghĩa — chỉ hết khi có người sửa binding/routing key.
+// Gộp `unroutable` vào `failed` sẽ khiến relay giữ row ở `published_at IS NULL`
+// mãi mãi; đủ 10 row như vậy là chiếm trọn mọi batch (claimBatch LIMIT 10 ORDER BY
+// created_at ASC) → head-of-line blocking, TOÀN BỘ notification ngừng chảy.
+export type PublishResult = 'ok' | 'failed' | 'unroutable';
 
 // Đăng ký consumer đã yêu cầu — giữ lại để ĐĂNG KÝ LẠI sau khi reconnect
 // (connection chết kéo theo mọi channel; nếu không nhớ thì consumer chết vĩnh viễn).
@@ -46,6 +59,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private confirmChannel: amqplib.ConfirmChannel | null = null;
   // Exchange đã assert trên channel hiện tại — assert idempotent 1 lần/đời channel.
   private assertedExchanges = new Set<string>();
+  // messageId của các publish vừa bị broker trả về (basic.return, routing key
+  // không khớp binding nào) — confirm callback tra Set này để phát hiện publish
+  // "ack giả" (broker confirm dù message đã bị vứt).
+  private returnedMessageIds = new Set<string>();
 
   // Trạng thái reconnect.
   private url: string | null = null;
@@ -181,16 +198,38 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const channel = await this.connection.createConfirmChannel();
+      // basic.return: broker gửi TRƯỚC basic.ack khi mandatory=true và routing
+      // key không khớp binding nào — publish vẫn được confirm (ack) nhưng
+      // message đã bị vứt. Log lỗi nghiêm trọng (sai cấu hình routing/binding).
+      channel.on('return', (msg: amqplib.Message) => {
+        const messageId = msg.properties.messageId as string | undefined;
+        if (messageId) {
+          this.returnedMessageIds.add(messageId);
+        }
+        let eventId = 'unknown';
+        try {
+          eventId =
+            (JSON.parse(msg.content.toString()) as { eventId?: string })
+              .eventId ?? 'unknown';
+        } catch {
+          // body không parse được — giữ 'unknown'
+        }
+        this.logger.error(
+          `[RabbitMqService] Message KHÔNG ĐỊNH TUYẾN ĐƯỢC (mất) — eventId=${eventId} rk=${msg.fields.routingKey} exchange=${msg.fields.exchange}.`,
+        );
+      });
       channel.on('error', (err: Error) => {
         this.logger.error(
           `[RabbitMqService] Confirm channel lỗi: ${err.message}`,
         );
         this.confirmChannel = null;
         this.assertedExchanges.clear();
+        this.returnedMessageIds.clear();
       });
       channel.on('close', () => {
         this.confirmChannel = null;
         this.assertedExchanges.clear();
+        this.returnedMessageIds.clear();
       });
       this.confirmChannel = channel;
       return channel;
@@ -204,17 +243,18 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Publish 1 message lên topic exchange và CHỜ publisher confirm (at-least-once).
-  // Trả true khi broker ACK; false nếu chưa connect / nack / bất kỳ lỗi nào.
-  // Non-fatal toàn bộ: mọi thứ có thể ném đồng bộ đều nằm trong try (bài học #258).
+  // Trả 'ok' | 'failed' | 'unroutable' — xem chú thích PublishResult, KHÔNG gộp
+  // 'unroutable' vào 'failed'. Non-fatal toàn bộ: mọi thứ có thể ném đồng bộ đều
+  // nằm trong try (bài học #258).
   async publishWithConfirm(
     exchange: string,
     routingKey: string,
     message: unknown,
-  ): Promise<boolean> {
+  ): Promise<PublishResult> {
     try {
       const channel = await this.getConfirmChannel();
       if (!channel) {
-        return false;
+        return 'failed';
       }
 
       // Publisher tự declare exchange (idempotent) — consumer declare queue+binding.
@@ -224,22 +264,34 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       }
 
       const body = Buffer.from(JSON.stringify(message));
-      return await new Promise<boolean>((resolve) => {
+      const messageId = randomUUID();
+      return await new Promise<PublishResult>((resolve) => {
         channel.publish(
           exchange,
           routingKey,
           body,
-          { persistent: true, contentType: 'application/json' },
+          {
+            persistent: true,
+            contentType: 'application/json',
+            mandatory: true,
+            messageId,
+          },
           (err) => {
             if (err) {
               const reason = err instanceof Error ? err.message : String(err);
               this.logger.error(
                 `[RabbitMqService] Publish nack (rk=${routingKey}): ${reason}`,
               );
-              resolve(false);
-            } else {
-              resolve(true);
+              resolve('failed');
+              return;
             }
+            // RabbitMQ gửi basic.return TRƯỚC basic.ack — nhường 1 tick để
+            // handler 'return' (nếu có) kịp bỏ messageId vào Set trước khi
+            // ta kiểm tra.
+            setImmediate(() => {
+              const wasReturned = this.returnedMessageIds.delete(messageId);
+              resolve(wasReturned ? 'unroutable' : 'ok');
+            });
           },
         );
       });
@@ -247,7 +299,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `[RabbitMqService] publishWithConfirm lỗi (rk=${routingKey}): ${(error as Error).message}`,
       );
-      return false;
+      return 'failed';
     }
   }
 
