@@ -124,10 +124,15 @@ export class AuthService {
 
     try {
       //dựa trên token user cấp rồi tìm trong database xem có tồn tại token này không
+      // Lọc kèm type: bảng verification_token dùng chung nhiều loại token — không lọc
+      // thì token RESET_PASSWORD lọt qua được cửa verify-email (token type confusion).
       const verificationToken = await queryRunner.manager.findOne(
         VerificationToken,
         {
-          where: { token: verification_token_from_user },
+          where: {
+            token: verification_token_from_user,
+            type: VerificationTokenType.VERIFY_EMAIL,
+          },
           relations: ['user'],
         },
       );
@@ -374,8 +379,13 @@ export class AuthService {
       return;
     }
 
-    // Xóa các token reset cũ của user này (nếu có) để tránh rác DB
-    await this.verificationTokenRepository.delete({ user: { id: user.id } });
+    // Xóa các token reset cũ của user này (nếu có) để tránh rác DB.
+    // Lọc kèm type: không lọc thì xoá nhầm cả token VERIFY_EMAIL đang chờ của user
+    // (user pending verification bấm quên mật khẩu → mất oan token kích hoạt).
+    await this.verificationTokenRepository.delete({
+      user: { id: user.id },
+      type: VerificationTokenType.RESET_PASSWORD,
+    });
 
     // Tạo token xác thực tài khoản và gửi email cho người dùng
     const resetToken = uuidv4();
@@ -403,10 +413,12 @@ export class AuthService {
 
     try {
       // Tìm token và kèm theo thông tin user
+      // Lọc kèm type: không lọc thì token VERIFY_EMAIL dùng được để reset mật khẩu
+      // (token type confusion — cùng bảng, khác mục đích).
       const verificationToken = await queryRunner.manager.findOne(
         VerificationToken,
         {
-          where: { token: token },
+          where: { token: token, type: VerificationTokenType.RESET_PASSWORD },
           relations: ['user'],
         },
       );
@@ -557,8 +569,9 @@ export class AuthService {
         const result = await this.sessionRepository.delete(sessionId);
 
         if (result.affected === 0) {
+          // Log sessionId, KHÔNG log raw refresh token (token còn hạn nằm trong log = rò rỉ).
           this.logger.warn(
-            `Session ${refreshToken} không tồn tại hoặc đã bị xóa.`,
+            `Session ${sessionId} không tồn tại hoặc đã bị xóa.`,
           );
         }
       }

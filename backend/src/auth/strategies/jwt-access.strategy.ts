@@ -40,6 +40,21 @@ export class AccessTokenStrategy extends PassportStrategy(
         'Tài khoản không còn quyền truy cập. Vui lòng đăng nhập lại.',
       );
     }
+
+    // password_changed_at là MỐC CẮT: mọi access token sinh TRƯỚC thời điểm đổi/reset
+    // mật khẩu đều bị thu hồi ngay (không chờ hết TTL) — bịt cửa sổ token bị đánh cắp
+    // vẫn sống sau khi user đã đổi mật khẩu. iat tính bằng GIÂY nên floor mốc về giây
+    // trước khi so: token cấp CÙNG GIÂY với lần đổi được coi là hợp lệ (token mới do
+    // refresh/login cấp lại ngay sau đó), tránh tự 401 oan trong cùng giây.
+    if (
+      payload.iat &&
+      user.password_changed_at &&
+      payload.iat < Math.floor(user.password_changed_at.getTime() / 1000)
+    ) {
+      throw new UnauthorizedException(
+        'Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.',
+      );
+    }
     return {
       sub: user.id,
       username: user.username,
