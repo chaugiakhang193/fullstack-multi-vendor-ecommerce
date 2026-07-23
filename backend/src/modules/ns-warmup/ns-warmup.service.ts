@@ -24,9 +24,12 @@ export class NsWarmupService {
   // chừa buffer 5', và < 15' để poke sau kịp bắn lại trong 1 phễu dài.
   private static readonly THROTTLE_MS = 10 * 60 * 1000;
 
-  // Render cold-start có thể tới ~50s — PHẢI giữ kết nối đủ lâu để Render dựng xong
-  // NS. Abort sớm khiến Render huỷ spin-up giữa chừng → NS không thức. Timeout 60s.
-  private static readonly COLD_START_TIMEOUT_MS = 60 * 1000;
+  // Render cold-start có thể tới ~50s và ĐÔI KHI VƯỢT 60s — PHẢI giữ kết nối đủ
+  // lâu để Render dựng xong NS. Abort sớm khiến Render huỷ spin-up giữa chừng →
+  // NS không thức (đã dính thật: đơn đầu tiên sau khi boot monolith, poke bắn 1
+  // lần không retry, abort 60s cắt ngang spin-up chậm → phải đánh thức tay).
+  // 120s đủ phủ cold-start chậm; chỉ bật khi NS thật sự không dậy nổi.
+  private static readonly COLD_START_TIMEOUT_MS = 120 * 1000;
 
   constructor(private readonly configService: ConfigService) {}
 

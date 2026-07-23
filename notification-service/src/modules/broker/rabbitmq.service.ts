@@ -124,7 +124,9 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const connection = await amqplib.connect(this.url);
+      // timeout 10s: không có nó, TCP bị nuốt im lặng (blackhole) làm promise
+      // treo tới khi OS bỏ cuộc — suốt lúc đó không có lần thử mới nào.
+      const connection = await amqplib.connect(this.url, { timeout: 10000 });
       connection.on("error", (err: Error) => {
         this.logger.error(`[RabbitMqService] Connection lỗi: ${err.message}`);
       });
@@ -166,10 +168,13 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     if (this.isShuttingDown || this.reconnectTimer || !this.url) {
       return;
     }
-    const delay =
+    const base =
       RECONNECT_DELAYS_MS[
         Math.min(this.reconnectAttempts, RECONNECT_DELAYS_MS.length - 1)
       ];
+    // Jitter ±20% (thundering herd): nhiều client cùng rớt sẽ không cùng đập
+    // cửa broker một nhịp. Log giá trị THẬT sau jitter, không log mốc gốc.
+    const delay = Math.round(base * (0.8 + Math.random() * 0.4));
     this.reconnectAttempts++;
     this.logger.warn(
       `[RabbitMqService] Thử kết nối lại sau ${delay}ms (lần ${this.reconnectAttempts}).`,
