@@ -27,7 +27,7 @@ export const hashDataHelper = async (plainData: string) => {
 export const compareHashedDataHelper = async (
   plainData: string,
   hashedData: string,
-) => {
+): Promise<boolean> => {
   try {
     const rawData = plainData;
     const hash = hashedData;
@@ -36,6 +36,11 @@ export const compareHashedDataHelper = async (
   } catch (error) {
     const errMessage = error;
     logger.error(errMessage);
+    // Hash hỏng/không đọc được ⇒ coi như KHÔNG khớp. Trước đây nhánh này không
+    // return nên hàm trả undefined — mọi nơi gọi đều chỉ kiểm falsy nên hành vi
+    // không đổi, nhưng kiểu trả về giờ dứt khoát boolean để logic bảo mật không
+    // phải tự đoán.
+    return false;
   }
 };
 

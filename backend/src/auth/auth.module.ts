@@ -3,6 +3,7 @@ import { AuthService } from '@/auth/auth.service';
 import { AuthController } from '@/auth/auth.controller';
 import { UsersModule } from '@/modules/users/users.module';
 import { MailModule } from '@/modules/mail/mail.module';
+import { SessionRotationService } from '@/auth/session-rotation.service';
 
 //JWT
 import { JwtService } from '@nestjs/jwt';
@@ -38,6 +39,7 @@ import { GoogleStrategy } from '@/auth/strategies/google.strategy';
   controllers: [AuthController],
   providers: [
     AuthService,
+    SessionRotationService,
     LocalStrategy,
     AccessTokenStrategy,
     RefreshTokenStrategy,

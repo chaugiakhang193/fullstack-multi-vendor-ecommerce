@@ -45,7 +45,9 @@ import {
   UserWithoutPassword,
   SessionUser,
   RefreshTokenPayload,
+  RefreshVerdict,
 } from '@/auth/auth.types';
+import { SessionRotationService } from '@/auth/session-rotation.service';
 
 // [Tech Debt D] Sinh 1 hash bcrypt giả lúc load module bằng CÙNG hàm hash với mật khẩu
 // thật → tự khớp cost (đổi saltRounds cũng không lệch timing), không còn chuỗi magic.
@@ -67,6 +69,7 @@ export class AuthService {
     private configService: ConfigService,
     @Inject(ACCESS_TOKEN_SERVICE) private accessTokenService: JwtService,
     @Inject(REFRESH_TOKEN_SERVICE) private refreshTokenService: JwtService,
+    private sessionRotationService: SessionRotationService,
   ) {}
 
   //[POST] /auth/register
@@ -478,85 +481,126 @@ export class AuthService {
   }
 
   // [POST] auth/refresh
+  //
+  // Rotation + reuse detection. 3 điểm thiết kế quan trọng:
+  //  (1) Toàn bộ "đọc → so sánh → ghi" nằm trong 1 transaction có khoá pessimistic
+  //      trên đúng row session ⇒ 2 request song song bị tuần tự hoá, không ghi đè nhau.
+  //  (2) Token đời trước còn trong grace 10s được chấp nhận ⇒ F5 nhiều tab không bị
+  //      đá ra oan (race lành tính), thay vì bị coi là bị đánh cắp.
+  //  (3) Việc XOÁ session khi phát hiện reuse làm SAU khi transaction commit — vì
+  //      throw bên trong transaction sẽ rollback và undo luôn lệnh xoá.
   async handleRefreshToken(
     userPayload: RefreshTokenPayload,
     originalRefreshToken: string,
   ) {
-    // Tìm Session trực tiếp dựa vào payload, sub là user id
-    const session = await this.sessionRepository.findOne({
-      where: { id: userPayload.sessionId, user: { id: userPayload.sub } },
-      relations: ['user'],
-    });
-
-    // Session không tồn tại → 403 (Bình thường - có thể đã logout hoặc hết hạn)
-    if (!session) {
-      throw new ForbiddenException(
-        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
-      );
-    }
-
-    // Kiểm tra session đã hết hạn chưa
-    if (session.expires_at && new Date() > session.expires_at) {
-      // Xóa session hết hạn khỏi DB để dọn dẹp
-      await this.sessionRepository.remove(session);
-      throw new ForbiddenException(
-        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
-      );
-    }
-
-    // Check Token xem có hợp lệ không
-    const isTokenMatch = await compareHashedDataHelper(
-      originalRefreshToken,
-      session.refresh_token,
-    );
-
-    // Token không khớp → 401 (Nguy hiểm - có thể bị đánh cắp)
-    if (!isTokenMatch) {
-      throw new UnauthorizedException(
-        'Refresh Token không hợp lệ. Phiên đăng nhập có thể đã bị xâm phạm!',
-      );
-    }
-
-    // Tìm kiếm thông tin mới nhất về người dùng thông qua session.user.id
-    // để đảm bảo user chưa bị xóa hoặc cập nhật role/status
-    const user = await this.usersService.findById(session.user.id);
-
-    // User không tồn tại → 401
-    if (!user) {
-      throw new UnauthorizedException(
-        'Tài khoản người dùng không còn tồn tại!',
-      );
-    }
-
-    const newPayload = {
-      username: user.username,
-      id: user.id,
-      role: user.role,
-      status: user.status,
-    };
-
-    const { accessToken, refreshToken } = await this.createTokens(
-      newPayload,
-      session.id,
-    );
-
     const refreshTokenExpiration = this.configService.get(
       'REFRESH_TOKEN_EXPIRATION',
     );
     const cookie_max_age = ms(refreshTokenExpiration);
-    const expiresAt = new Date(Date.now() + cookie_max_age); //tạo thời gian hết hạn refreshtoken mới
 
-    session.refresh_token = await hashDataHelper(refreshToken);
-    session.expires_at = expiresAt;
+    // Transaction KHÔNG throw — chỉ trả phán quyết ra ngoài để xử lý sau khi commit.
+    const outcome = await this.dataSource.transaction(async (manager) => {
+      const verdict = await this.sessionRotationService.verifyAndLock(
+        userPayload.sessionId,
+        userPayload.sub,
+        originalRefreshToken,
+        manager,
+      );
 
-    await this.sessionRepository.save(session);
-    const { password, ...userWithoutPassword } = user;
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      cookie_max_age: cookie_max_age,
-      userWithoutPassword: userWithoutPassword,
-    };
+      if (verdict.status !== RefreshVerdict.OK) {
+        const failureStatus = verdict.status;
+        return { failure: failureStatus } as const;
+      }
+
+      // Đọc lại user để chắc chắn chưa bị xoá / đổi role / bị ban.
+      const user = await this.usersService.findById(userPayload.sub);
+      if (!user) {
+        return { failure: RefreshVerdict.USER_GONE } as const;
+      }
+
+      const newPayload = {
+        username: user.username,
+        id: user.id,
+        role: user.role,
+        status: user.status,
+      };
+
+      const { accessToken, refreshToken } = await this.createTokens(
+        newPayload,
+        verdict.session.id,
+      );
+
+      const expiresAt = new Date(Date.now() + cookie_max_age);
+      const newRefreshTokenHash = await hashDataHelper(refreshToken);
+
+      await this.sessionRotationService.commitRotation(
+        verdict.session,
+        newRefreshTokenHash,
+        expiresAt,
+        manager,
+      );
+
+      const { password, ...userWithoutPassword } = user;
+      return {
+        failure: null,
+        data: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          cookie_max_age: cookie_max_age,
+          userWithoutPassword: userWithoutPassword,
+        },
+      } as const;
+    });
+
+    // --- Xử lý phán quyết SAU khi transaction đã commit (khoá đã nhả) ---
+
+    // Tách discriminant ra biến để nhánh `default` còn tham chiếu được nó khi mọi
+    // case đã xử lý hết (lúc đó `outcome` đã bị thu hẹp xuống `never`).
+    const failure = outcome.failure;
+    if (failure) {
+      switch (failure) {
+        case RefreshVerdict.REUSE_DETECTED:
+          // Token không thuộc đời nào còn hiệu lực ⇒ nghi bị đánh cắp ⇒ revoke đúng session này.
+          await this.sessionRotationService.revokeSession(
+            userPayload.sessionId,
+            'reuse detected',
+          );
+          throw new UnauthorizedException(
+            'Refresh Token không hợp lệ. Phiên đăng nhập có thể đã bị xâm phạm!',
+          );
+
+        case RefreshVerdict.EXPIRED:
+          // Session hết hạn tự nhiên — dọn dẹp, không phải sự cố bảo mật.
+          await this.sessionRotationService.revokeSession(
+            userPayload.sessionId,
+            'session expired',
+          );
+          throw new ForbiddenException(
+            'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+          );
+
+        case RefreshVerdict.NOT_FOUND:
+          throw new ForbiddenException(
+            'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+          );
+
+        case RefreshVerdict.USER_GONE:
+          throw new UnauthorizedException(
+            'Tài khoản người dùng không còn tồn tại!',
+          );
+
+        default: {
+          // Thêm verdict mới mà quên xử lý ở đây ⇒ TypeScript ĐỎ ngay tại dòng này
+          // (không gán được vào `never`), thay vì lọt xuống runtime rồi trả 401 sai ngữ cảnh.
+          const unhandled: never = failure;
+          throw new InternalServerErrorException(
+            `Trạng thái refresh chưa được xử lý: ${String(unhandled)}`,
+          );
+        }
+      }
+    }
+
+    return outcome.data;
   }
 
   // [POST] auth/logout
