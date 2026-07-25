@@ -76,6 +76,15 @@ export class Product {
   @Column({ type: 'int', default: 0 })
   stock_quantity: number;
 
+  // Cột GENERATED trong Postgres (= stock_quantity đang bằng 0). CHỈ ĐỌC — `insert/update: false`
+  // để TypeORM không cố ghi vào cột do DB tự tính. Tồn tại để danh sách công khai ORDER BY được
+  // trên một cột đã map: TypeORM phân trang bằng subquery distinct và tra metadata cột cho từng
+  // mục ORDER BY, nên biểu thức thô (`stock_quantity = 0`) làm nó ném lỗi 'databaseName'.
+  // KHÔNG đặt `select: false`: subquery distinct sẽ không đưa cột vào SELECT list trong khi
+  // ORDER BY vẫn trỏ tới nó ⇒ 'column distinctAlias.product_is_out_of_stock does not exist'.
+  @Column({ type: 'boolean', insert: false, update: false })
+  is_out_of_stock: boolean;
+
   @Column({ default: false })
   has_variants: boolean;
 

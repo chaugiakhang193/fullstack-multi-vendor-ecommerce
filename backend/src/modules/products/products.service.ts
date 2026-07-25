@@ -723,7 +723,15 @@ export class ProductsService {
     const isSortAllowed = sort && allowedSortFields.includes(sort);
     const sortField = isSortAllowed ? sort : 'created_at';
     const sortPath = `product.${sortField}`;
-    queryBuilder.orderBy(sortPath, order);
+
+    // Hàng hết luôn xuống CUỐI, bất kể người dùng chọn sắp xếp gì. Không ẩn hẳn vì
+    // ẩn sẽ mất SEO của trang sản phẩm đã được index, và khách đang tìm đúng món đó
+    // sẽ tưởng shop không bán (Shopee cũng đánh dấu + hạ ưu tiên chứ không ẩn).
+    // Postgres xếp false < true nên `is_out_of_stock = false` (còn hàng) lên trước.
+    // Dùng cột generated đã map, KHÔNG dùng biểu thức thô: TypeORM phân trang bằng subquery
+    // distinct và tra metadata cột cho từng mục ORDER BY, gặp biểu thức thô sẽ ném lỗi.
+    queryBuilder.orderBy('product.is_out_of_stock', 'ASC');
+    queryBuilder.addOrderBy(sortPath, order);
 
     // Phân trang ID tốc độ cao (Zero-latency Count)
     const result = await paginate<Product>(queryBuilder, query);
