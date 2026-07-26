@@ -48,8 +48,16 @@ module.exports = async function globalSetup(): Promise<void> {
   process.env.DB_NAME = container.getDatabase();
   // Cờ để guard (setup-guard.e2e.ts) xác nhận đang chạy trên DB ephemeral.
   process.env.E2E_DB_CONTAINER = '1';
-  // Không để e2e nối Redis thật; RedisIoAdapter/RedisConnectionService tự bỏ qua khi thiếu.
+  // Không để e2e nối hạ tầng THẬT. Cả 2 service đều coi "thiếu URL" là hợp lệ và tự
+  // bỏ qua (RedisIoAdapter/RedisConnectionService, RabbitMqService.onModuleInit warn
+  // rồi return) nên e2e chạy bình thường mà không chạm gì bên ngoài.
+  //
+  // RABBITMQ_URL phải xoá cùng REDIS_URL: `.env` trỏ CloudAMQP PROD, nên bỏ sót nó
+  // nghĩa là mỗi lần chạy e2e lại mở connection thật vào broker prod. Hiện relay im
+  // vì NOTIFICATION_RELAY_ENABLED tắt, nhưng ai đó bật cờ lên để debug là e2e bơm
+  // event rác vào prod → NS prod tiêu thụ và ghi vào DB thật.
   delete process.env.REDIS_URL;
+  delete process.env.RABBITMQ_URL;
 
   (globalThis as Record<string, unknown>).__E2E_PG_CONTAINER__ = container;
 
