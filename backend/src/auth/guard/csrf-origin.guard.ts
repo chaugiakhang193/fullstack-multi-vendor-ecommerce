@@ -34,6 +34,10 @@ import { Request } from 'express';
 export class CsrfOriginGuard implements CanActivate {
   private readonly logger = new Logger(CsrfOriginGuard.name);
 
+  // Thiếu config là trạng thái ĐỨNG YÊN, không phải sự kiện lặp lại → chỉ hét một lần
+  // cho cả vòng đời tiến trình (xem warnMissingConfigOnce).
+  private hasWarnedMissingConfig = false;
+
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -46,11 +50,12 @@ export class CsrfOriginGuard implements CanActivate {
     }
 
     const allowedOrigin = this.getAllowedOrigin();
-    // Chưa khai FRONTEND_URL thì không có gì để so — không tự dựng rào chặn nhầm cả app.
+    // Chưa khai FRONTEND_URL thì không có gì để so — vẫn cho qua để không tự khoá cả app.
+    // Nhưng phải HÉT TO: cùng biến này còn là whitelist CORS ở main.ts, mà `cors` thiếu
+    // origin thì rơi về '*'. Nên thiếu FRONTEND_URL = mất CẢ HAI lớp cùng lúc, trong khi app
+    // vẫn boot và phục vụ bình thường — không có gì đỏ nếu chính chỗ này không tự log ra.
     if (!allowedOrigin) {
-      this.logger.warn(
-        '[CsrfOriginGuard] FRONTEND_URL chưa khai — bỏ qua kiểm tra Origin.',
-      );
+      this.warnMissingConfigOnce();
       return true;
     }
 
@@ -64,6 +69,27 @@ export class CsrfOriginGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  /**
+   * Hét MỘT lần rồi thôi. Nâng lên `error` vì đây không phải chuyện đáng chú ý mà là
+   * HAI lớp bảo vệ đang tắt; in mỗi request thì ngập log Render (giữ rất ngắn ở free
+   * tier) trong khi mọi dòng y hệt nhau — dòng đầu đã nói đủ.
+   *
+   * Đây CHỈ là log, KHÔNG chặn gì: request vẫn đi qua, CSRF vẫn tắt. Và `logger.error`
+   * KHÔNG tới Sentry (instrument.ts không bật tích hợp logging; SentryGlobalFilter chỉ
+   * bắt exception ném từ handler) ⇒ không có ai được báo động, chỉ ai mở log Render mới
+   * thấy. Muốn chặn thật thì phải fail-fast lúc boot ở main.ts.
+   */
+  private warnMissingConfigOnce(): void {
+    if (this.hasWarnedMissingConfig) {
+      return;
+    }
+    this.hasWarnedMissingConfig = true;
+    this.logger.error(
+      '[CsrfOriginGuard] FRONTEND_URL CHƯA KHAI — chống CSRF đang TẮT trên /auth/refresh, ' +
+        'và CORS whitelist ở main.ts cũng mất tác dụng theo. Khai biến này ngay.',
+    );
   }
 
   /**
