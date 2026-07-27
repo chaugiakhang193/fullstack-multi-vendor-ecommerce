@@ -65,6 +65,7 @@ import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 import { LocalAuthGuard } from '@/auth/guard/local-auth.guard';
 import { RefreshTokenGuard } from '@/auth/guard/jwt-refresh-auth.guard';
+import { CsrfOriginGuard } from '@/auth/guard/csrf-origin.guard';
 import { GoogleOAuthGuard } from '@/auth/guard/google-oauth.guard';
 
 // Enums
@@ -346,7 +347,9 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(RefreshTokenGuard)
+  // CsrfOriginGuard đứng TRƯỚC: đây là endpoint duy nhất xác thực bằng cookie nên cũng là
+  // bề mặt CSRF duy nhất của API. Chặn ngay ở tầng header, trước khi đụng token/DB.
+  @UseGuards(CsrfOriginGuard, RefreshTokenGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cấp lại Access Token mới bằng Refresh Token' })
