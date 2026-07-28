@@ -1,3 +1,4 @@
+import './tracing';
 import './instrument';
 
 import { NestFactory } from '@nestjs/core';
