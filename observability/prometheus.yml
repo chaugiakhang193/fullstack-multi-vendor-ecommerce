@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 5s # 5s cho dễ nhìn lúc chạy k6; production thường 15-30s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'monolith-backend'
+    metrics_path: '/api/v1/metrics'
+    static_configs:
+      # App chạy trên HOST (npm run start:dev), Prometheus chạy trong container
+      # → phải gọi ngược ra host bằng host.docker.internal (Docker Desktop Windows/Mac).
+      - targets: ['host.docker.internal:8080']
+        labels:
+          service: 'monolith'
+
+  - job_name: 'notification-service'
+    metrics_path: '/metrics'
+    static_configs:
+      # NS chạy cổng 3001 ở local (notification-service/.env → PORT=3001), KHÔNG phải 8081.
+      - targets: ['host.docker.internal:3001']
+        labels:
+          service: 'notification'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,42 @@
+# Stack quan sát chạy LOCAL — không deploy. Dùng để đo baseline và xem trace.
+# Chạy:  docker compose -f docker-compose.observability.yml up -d
+# Tắt:   docker compose -f docker-compose.observability.yml down
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: obs-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686' # UI
+      - '4318:4318' # OTLP/HTTP  ← app đẩy trace vào đây
+      - '4317:4317' # OTLP/gRPC
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: obs-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: obs-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    ports:
+      # 3000 = Next.js FE, 3001 = notification-service local (xem NS .env PORT=3001)
+      # → Grafana phải né sang 3002, nếu không bật NS lên là đụng cổng.
+      - '3002:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  grafana-data:
