@@ -19,6 +19,14 @@ import { RabbitMqService } from '@/modules/broker/rabbitmq.service';
 // NS warm-up (đánh thức Render scale-to-zero)
 import { NsWarmupService } from '@/modules/ns-warmup/ns-warmup.service';
 
+// OpenTelemetry — khôi phục trace context từ trace_parent đã lưu ở @BeforeInsert.
+import {
+  context as otelContext,
+  propagation,
+  trace,
+  SpanKind,
+} from '@opentelemetry/api';
+
 // Topic exchange chung backend↔NS (publisher declare, xem RabbitMqService.publishWithConfirm).
 const RELAY_EXCHANGE = 'ecommerce.events';
 
@@ -143,12 +151,58 @@ export class OutboxRelay {
       payload: event.payload,
     };
 
-    const result = await this.rabbitMq.publishWithConfirm(
-      RELAY_EXCHANGE,
-      event.event_type,
-      envelope,
-    );
+    // Khôi phục ngữ cảnh trace của REQUEST đã sinh ra event này (đã lưu ở cột
+    // trace_parent lúc insert). Nhờ vậy span publish dưới đây là span CON của
+    // request gốc, dù chạy cách đó vài giây ở vòng @Interval khác.
+    // trace_parent NULL (row cũ / lúc đó tắt tracing) → parentCtx = context rỗng
+    // → span vẫn tạo được, chỉ là trace mới đứng riêng. Không lỗi.
+    const parentCtx = event.trace_parent
+      ? propagation.extract(otelContext.active(), {
+          traceparent: event.trace_parent,
+        })
+      : otelContext.active();
 
+    const tracer = trace.getTracer('outbox-relay');
+
+    return await otelContext.with(parentCtx, async () => {
+      const span = tracer.startSpan(`outbox publish ${event.event_type}`, {
+        kind: SpanKind.PRODUCER,
+        attributes: {
+          'messaging.system': 'rabbitmq',
+          'messaging.destination': RELAY_EXCHANGE,
+          'messaging.rabbitmq.routing_key': event.event_type,
+          'outbox.event_id': event.id,
+          // Trễ từ lúc ghi DB tới lúc publish — chính là "outbox lag" của event này.
+          'outbox.lag_ms': Date.now() - new Date(event.created_at).getTime(),
+        },
+      });
+
+      try {
+        // Nhét traceparent của span PUBLISH vào header message để NS nối tiếp được.
+        const headers: Record<string, string> = {};
+        propagation.inject(trace.setSpan(otelContext.active(), span), headers);
+
+        const result = await this.rabbitMq.publishWithConfirm(
+          RELAY_EXCHANGE,
+          event.event_type,
+          envelope,
+          headers,
+        );
+
+        span.setAttribute('outbox.publish_result', result);
+        return await this.finishPublish(event, result);
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  // Phần xử lý kết quả publish — tách ra khỏi publishOne để phần trace ở trên
+  // đọc được. LOGIC KHÔNG ĐỔI so với trước.
+  private async finishPublish(
+    event: OutboxEvent,
+    result: 'ok' | 'failed' | 'unroutable',
+  ): Promise<boolean> {
     // Lỗi TẠM THỜI → giữ published_at NULL, vòng poll sau thử lại (at-least-once).
     if (result === 'failed') {
       return false;

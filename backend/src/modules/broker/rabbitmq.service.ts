@@ -255,6 +255,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     exchange: string,
     routingKey: string,
     message: unknown,
+    headers?: Record<string, string>,
   ): Promise<PublishResult> {
     try {
       const channel = await this.getConfirmChannel();
@@ -280,6 +281,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
             contentType: 'application/json',
             mandatory: true,
             messageId,
+            headers,
           },
           (err) => {
             if (err) {

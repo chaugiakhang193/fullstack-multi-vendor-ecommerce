@@ -17,6 +17,14 @@ import { randomUUID } from "crypto";
 // RabbitMQ client
 import * as amqplib from "amqplib";
 
+// OpenTelemetry — nối trace với span publish bên monolith qua message headers.
+import {
+  context as otelContext,
+  propagation,
+  trace,
+  SpanKind,
+} from "@opentelemetry/api";
+
 // Internal
 import { ProcessedEvent } from "@/entities/processed-event.entity";
 import { NotificationConsumerService } from "@/consumer/notification-consumer.service";
@@ -244,7 +252,36 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // Nối trace với bên publish: lấy traceparent từ header message. Header
+  // rỗng (message cũ trong queue / publisher chưa bật tracing) → context rỗng
+  // → span đứng riêng, KHÔNG lỗi.
   private async handleMessage(
+    channel: amqplib.Channel,
+    msg: amqplib.ConsumeMessage,
+  ): Promise<void> {
+    const headers = (msg.properties.headers ?? {}) as Record<string, string>;
+    const parentCtx = propagation.extract(otelContext.active(), headers);
+    const tracer = trace.getTracer("notification-consumer");
+
+    await otelContext.with(parentCtx, async () => {
+      const span = tracer.startSpan(`consume ${msg.fields.routingKey}`, {
+        kind: SpanKind.CONSUMER,
+        attributes: {
+          "messaging.system": "rabbitmq",
+          "messaging.rabbitmq.routing_key": msg.fields.routingKey,
+        },
+      });
+      try {
+        await this.processMessage(channel, msg);
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  // Thân xử lý message gốc — LOGIC KHÔNG ĐỔI so với trước, chỉ đổi tên để
+  // handleMessage ở trên bọc thêm span consumer.
+  private async processMessage(
     channel: amqplib.Channel,
     msg: amqplib.ConsumeMessage,
   ): Promise<void> {
