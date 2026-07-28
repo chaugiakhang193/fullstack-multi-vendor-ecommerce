@@ -26,6 +26,19 @@ if (enabled) {
       getNodeAutoInstrumentations({
         // fs sinh hàng nghìn span rác, che hết span thật.
         '@opentelemetry/instrumentation-fs': { enabled: false },
+        // Mỗi request Express sinh ~25 span 'middleware - patched' (cors,
+        // jsonParser, ...) che mất waterfall thật (outbox/RabbitMQ/NS).
+        // ignoreLayersType KHÔNG lọc hết vì Express 5 định tuyến qua package
+        // `router` riêng — span 'middleware -/'request handler -' thực ra
+        // đến từ @opentelemetry/instrumentation-router, KHÔNG phải
+        // instrumentation-express. Phải tắt cả hai; span HTTP gốc vẫn có
+        // (từ instrumentation-http), chỉ mất span con của riêng Express.
+        '@opentelemetry/instrumentation-express': {
+          enabled: false,
+        },
+        '@opentelemetry/instrumentation-router': {
+          enabled: false,
+        },
       }),
     ],
   });
