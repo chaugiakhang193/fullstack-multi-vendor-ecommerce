@@ -1,0 +1,13 @@
+# Datasource nạp tự động lúc Grafana khởi động — không phải bấm tay trên UI.
+# URL dùng tên service `prometheus` (DNS nội bộ của docker compose), KHÔNG dùng
+# localhost: với Grafana thì localhost là chính container Grafana.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true

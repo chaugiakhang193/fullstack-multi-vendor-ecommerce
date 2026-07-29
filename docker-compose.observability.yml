@@ -18,6 +18,11 @@ services:
     container_name: obs-prometheus
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # TSDB của Prometheus. PHẢI đặt tên: image có sẵn `VOLUME /prometheus` nên
+      # nếu không khai, Docker tạo volume ẨN DANH (tên là hash ngẫu nhiên) —
+      # `down` xoá container là mất mối nối, `up` lại sinh volume rỗng mới và
+      # toàn bộ số liệu lịch sử bay sạch.
+      - prometheus-data:/prometheus
     ports:
       - '9090:9090'
     restart: unless-stopped
@@ -36,7 +41,13 @@ services:
       - '3002:3000'
     volumes:
       - grafana-data:/var/lib/grafana
+      # Datasource + dashboard nạp từ repo (provisioning) chứ không bấm tay trên
+      # UI: dashboard sống trong git, dựng lại máy khác là có ngay, và
+      # `docker compose down -v` không làm mất.
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
     restart: unless-stopped
 
 volumes:
   grafana-data:
+  prometheus-data:
