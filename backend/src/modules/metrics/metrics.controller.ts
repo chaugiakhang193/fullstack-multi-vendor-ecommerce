@@ -1,9 +1,16 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
+import { ApiExcludeController } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Public } from '@/decorator/customize';
 import { MetricsService } from './metrics.service';
 
+// Giấu khỏi Swagger: endpoint này dành cho Prometheus, KHÔNG phải cho frontend.
+// Nếu để lộ, `npm run gen-api` sinh thêm type cho /metrics vào api-schema.d.ts —
+// vừa là rác trong hợp đồng API của FE (FE không bao giờ gọi), vừa vô nghĩa vì
+// response là text/plain định dạng Prometheus chứ không phải JSON.
+// Bỏ decorator này ra là CI drift-check đỏ ngay.
+@ApiExcludeController()
 @Controller('metrics')
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
