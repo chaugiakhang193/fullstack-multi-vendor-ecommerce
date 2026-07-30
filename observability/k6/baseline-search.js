@@ -15,16 +15,18 @@ import exec from 'k6/execution';
 //   số của MỘT BÀI TEST KHÁC => so trước/sau sai.
 //   Muốn đổi tải: sửa `options` bên dưới, hoặc dùng biến môi trường (k6 run -e VUS=200 ...).
 //
-// KIỂM TRƯỚC KHI TIN SỐ: liếc dòng `scenarios:` ở đầu output, phải thấy ĐỦ 3 scenario.
-//   Nếu thấy "1 iterations for each of 1 VUs" hoặc chỉ một `default` => k6 không đọc được
-//   `options` (gõ sai tên export, hoặc bị cờ CLI đè). Vứt số, chạy lại.
+// Kiểm tính hợp lệ của lần chạy: dòng `scenarios:` ở đầu output phải liệt kê ĐỦ 3 scenario.
+//   Nếu thấy "1 iterations for each of 1 VUs" hoặc chỉ một `default` thì k6 đã không đọc được
+//   `options` (sai tên export, hoặc bị cờ CLI đè) — kết quả không dùng để so sánh được.
 //
-// Backend đang bật throttle 100 req/60s mỗi IP => 100 VU cùng 1 IP sẽ ăn ~97% HTTP 429.
-//   Trước khi đo phải bypass (THROTTLE_LIMIT trong backend/.env) rồi restart BE.
-//   Chi tiết + số baseline: observability/BASELINE.md
+// Backend chạy throttle mặc định 100 req/60s mỗi IP, nên 100 VU từ cùng một IP sẽ nhận
+//   khoảng 97% HTTP 429 và phép đo thành đo rate-limiter. Nâng THROTTLE_LIMIT trong
+//   backend/.env rồi khởi động lại backend trước khi đo, và trả lại giá trị cũ sau khi xong.
+//   Xác nhận bằng header X-RateLimit-Limit trong response, và bằng http_req_failed = 0% trong
+//   kết quả k6. Số baseline đo được nằm ở mục Observability trong README.
 const BASE = __ENV.BASE_URL || 'http://localhost:8080/api/v1';
 
-// Trend gộp + Trend tách theo mức tải (để bảng BASELINE.md có 3 dòng 10/50/100 VU).
+// Trend gộp + Trend tách theo mức tải, để báo cáo có một dòng riêng cho 10/50/100 VU.
 const searchDuration = new Trend('search_duration', true);
 const durByLoad = {
   load_10: new Trend('dur_10vu', true),

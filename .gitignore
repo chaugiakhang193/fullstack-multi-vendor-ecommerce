@@ -4,9 +4,17 @@ node_modules/
 # Backups
 .backup/
 
-# Markdown files
+# Markdown files — mặc định KHÔNG commit, vì phần lớn .md ở repo này là tài liệu nội
+# bộ (task plan, nhật ký tiến độ, sổ tay đo đạc) chỉ có nghĩa với người đang làm.
+# Ngoại lệ là các tài liệu viết CHO người đọc repo — phải liệt kê từng file một, đừng
+# nới thành thư mục, kẻo file nháp lọt vào repo.
+#
+# observability/BASELINE.md CỐ TÌNH không nằm ở đây: nó là sổ tay thí nghiệm, có ghi
+# chú tự dặn và trạng thái quyết định chưa chốt. Bản viết cho người đọc là
+# docs/observability.md — sổ tay và tài liệu là hai thứ khác nhau, đừng gộp.
 *.md
 !/README.md
+!/docs/observability.md
 
 # Local env (docker-compose DB overrides) — chứa secret, không commit
 /.env

@@ -27,7 +27,10 @@ microservice** (transactional outbox, message broker, CQRS read model, cross-pro
   WebSocket events to clients connected to the monolith.
 - **Zero-downtime migration** — the notification path was carved out of the monolith using the
   **strangler-fig pattern** with a feature-flag cutover, verified in production.
-- **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **11 domain event types**,
+- **End-to-end distributed tracing** — a single **OpenTelemetry** trace follows one request through the
+  monolith, the **outbox table**, **RabbitMQ**, and into the notification service, so **both services
+  appear under one trace id**, plus Prometheus/Grafana **RED dashboards** and a k6 load baseline.
+- **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **14 domain event types**,
   **2 services / 2 databases**.
 - **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
   logging (pino), Sentry, CodeQL, Dependabot.
@@ -176,6 +179,57 @@ sequenceDiagram
 
 ---
 
+## 🔭 Observability
+
+The hard part of splitting a monolith is that a request stops being one thing you can follow. A
+notification now crosses a database table, a broker, and a process boundary — so *"what happened to
+**this** order's notification?"* becomes unanswerable from logs alone.
+
+**One trace answers it.** A single request lands **both services under one trace id** — from the HTTP
+handler, through the outbox row and RabbitMQ, to the notification service's `INSERT` and its WebSocket
+publish (16–20 spans depending on the flow):
+
+![Distributed trace waterfall in Jaeger](docs/screenshots/trace-waterfall.png)
+
+| Mechanism | Where |
+|---|---|
+| **Auto-instrumentation** | `backend/src/tracing.ts` · `notification-service/src/tracing.ts` — HTTP, TypeORM/`pg`, `amqplib`; Express/router layer spans disabled to keep waterfalls readable |
+| **Trace context across the async gap** | `outbox_event.trace_parent` — the W3C `traceparent` is captured by an `@BeforeInsert` hook and restored by the relay before publishing (see ADR-7) |
+| **Context over the broker** | injected into RabbitMQ message headers; the consumer extracts it and opens a `SpanKind.CONSUMER` span, so both services land in the same trace |
+| **RED metrics** | `metrics.interceptor.ts` → `/api/v1/metrics` — request rate, error rate, duration histogram, plus an **outbox-lag gauge** (age of the oldest unpublished event) |
+| **Dashboard as code** | `observability/grafana/**` provisioned at container start — the dashboard lives in git and survives `docker compose down -v` |
+| **Load baseline** | [`observability/k6/baseline-search.js`](observability/k6/baseline-search.js) — three sequential stages at 10 / 50 / 100 VUs, measured before the search work began |
+
+**RED dashboard** — request rate, error rate and p95 latency per route, plus outbox lag:
+
+![Grafana RED dashboard](docs/screenshots/grafana-red.png)
+
+### Baseline before optimising
+
+Product search currently runs `ILIKE '%q%'` in the monolith. Before replacing it, the current behaviour
+was measured rather than assumed:
+
+- **Latency** — p95 of **30 / 73 / 84 ms** at 10 / 50 / 100 virtual users, **0 errors** over 9,369 requests.
+- **Query plan** — `EXPLAIN (ANALYZE, BUFFERS)` reports `Seq Scan on product` with
+  `Rows Removed by Filter: 82`: a leading wildcard makes every B-tree index unusable, so the whole table
+  is read and then filtered.
+- **Functional gap** — searching `dien thoai` without diacritics returns **0** results; `điện thoại`
+  returns **11**. Vietnamese users routinely type without diacritics, so those searches find nothing.
+
+> **What these numbers do and do not prove.** The catalogue is 82 products — 104 kB, which sits entirely
+> in `shared_buffers` (`Buffers: shared hit=8`, no disk reads). At that size the sequential scan costs
+> ~1.3 ms, so the latency above is framework and queueing overhead, **not** scan cost. The load-bearing
+> evidence is structural, not the milliseconds: a sequential scan is **O(n)**, so its cost grows linearly
+> with the catalogue while an index does not. The functional gap, by contrast, is already real today.
+
+> **Why the observability stack is local-only.** Jaeger, Prometheus and Grafana run from
+> `docker-compose.observability.yml` on a developer machine, not in production. The hosting budget for
+> this project is the free tier, which is spent on the things a visitor actually touches (API, databases,
+> broker). Tracing is also **opt-in** behind `OTEL_ENABLED`, so the production write path pays nothing
+> for instrumentation it isn't exporting.
+
+---
+
 ## 🧭 Architecture Decision Records
 
 Short records of the *expensive* decisions — **why this over the obvious alternative**, and the
@@ -242,6 +296,22 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
 - **Trade-off** — lower throughput on a hot row, so the lock is held for the shortest span possible
   (lock the bare row *first*, load relations *after* — TypeORM won't emit `FOR UPDATE` with a join).
 
+### ADR-7 — Trace context persisted in the outbox row, not just in memory
+
+- **Decision** — instrument both services with **OpenTelemetry** (vendor-neutral), and carry the W3C
+  `traceparent` across the async boundary by **storing it in an `outbox_event.trace_parent` column**,
+  restoring it in the relay, and injecting it into the RabbitMQ message headers.
+- **Rejected** — (a) a vendor agent (Datadog/New Relic) bought with lock-in; (b) letting the trace end at
+  the outbox write, leaving the consumer to start a fresh, unrelated trace.
+- **Why** — the relay publishes on a **separate `@Interval` tick**, so by then the originating request's
+  in-memory context is long gone. Without persisting it, you get two disconnected traces and can never
+  answer *"what happened to this order's notification"* — the exact question that going distributed made
+  hard. The outbox row is **already the thing that crosses the gap**, so it is the only carrier that
+  survives it; a DB column is the cheapest possible one.
+- **Trade-off** — a 64-char column on a hot write path, and a hard rule that instrumentation must never
+  break business logic: the `@BeforeInsert` hook **swallows every error** and leaves `trace_parent` null
+  rather than failing an order. Tracing is opt-in via `OTEL_ENABLED`, so this is a no-op when disabled.
+
 ---
 
 ## 🛠️ Tech stack
@@ -252,6 +322,7 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
 | **Notification Service** | NestJS 11 · RabbitMQ (amqplib) · Redis · PostgreSQL (database-per-service) |
 | **Frontend** | Next.js · React · TanStack Query · Zustand · Tailwind / shadcn-style UI |
 | **Messaging & realtime** | RabbitMQ (topic exchange, DLX/retry/DLQ) · Redis (socket.io adapter/emitter) |
+| **Observability** | OpenTelemetry (traces, W3C context propagation) · Jaeger · Prometheus (`prom-client`) · Grafana (dashboard as code) · k6 (load baseline) |
 | **DevOps** | Docker (multi-stage) · Docker Compose · GitHub Actions → GHCR → Render · pino · Sentry · CodeQL · Dependabot |
 | **Infra (prod)** | Render · Supabase (2 databases) · CloudAMQP · Upstash Redis · Vercel |
 
@@ -286,6 +357,27 @@ Once up:
 
 Run the frontend separately: `cd frontend && npm run dev` (set
 `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`).
+
+### Optional: the observability stack
+
+Traces and metrics come up as a **separate** compose file, so the app stack stays lean by default:
+
+```bash
+docker compose -f docker-compose.observability.yml up -d
+```
+
+Then set `OTEL_ENABLED=true` in `backend/.env` **and** `notification-service/.env` and restart both —
+instrumentation is opt-in, so nothing is exported until you ask for it.
+
+| Component | URL / port |
+|-----------|-----------|
+| Jaeger UI (traces) | http://localhost:16686 |
+| Prometheus | http://localhost:9090 |
+| Grafana (RED dashboard, auto-provisioned) | http://localhost:3002 |
+| Backend metrics endpoint | http://localhost:8080/api/v1/metrics |
+
+> Grafana is on **3002**, not its usual 3000/3001 — those are taken by the Next.js frontend and the
+> notification service respectively.
 
 Both `backend` and `notification` **self-migrate** on startup (`migration:run:prod` before
 `node dist/main`), so an empty database is provisioned automatically.
