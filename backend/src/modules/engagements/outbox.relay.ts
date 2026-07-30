@@ -34,7 +34,7 @@ const RELAY_EXCHANGE = 'ecommerce.events';
 const RELAY_POLL_INTERVAL_MS = 8000;
 const RELAY_BATCH_SIZE = 10;
 
-// Chỉ relay đúng các event_type mà pipeline notification (NS) biết xử lý.
+// Relay mọi event_type đã có consumer (NS hoặc search-service).
 const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.ORDER_CREATED,
   OUTBOX_EVENT_TYPES.ORDER_CANCELLED,
@@ -47,6 +47,9 @@ const HANDLED_EVENT_TYPES: string[] = [
   OUTBOX_EVENT_TYPES.RETURN_REQUESTED,
   OUTBOX_EVENT_TYPES.RETURN_STATUS_CHANGED,
   OUTBOX_EVENT_TYPES.PRODUCT_MODERATED,
+  OUTBOX_EVENT_TYPES.PRODUCT_CREATED,
+  OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
+  OUTBOX_EVENT_TYPES.PRODUCT_DELETED,
 ];
 
 // Envelope đẩy lên broker — NS dùng `eventId` làm khoá idempotency.

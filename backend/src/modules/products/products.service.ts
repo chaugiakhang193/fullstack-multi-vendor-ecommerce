@@ -67,6 +67,8 @@ import { IUser } from '@/interface/user.interface';
 import {
   OUTBOX_EVENT_TYPES,
   ProductModeratedOutboxPayload,
+  ProductSearchSnapshotPayload,
+  ProductDeletedOutboxPayload,
 } from '@/common/constants/outbox.constants';
 
 @Injectable()
@@ -393,6 +395,12 @@ export class ProductsService {
         );
       }
 
+      await this.emitProductSnapshot(
+        queryRunner.manager,
+        savedProduct,
+        OUTBOX_EVENT_TYPES.PRODUCT_CREATED,
+      );
+
       await queryRunner.commitTransaction();
       return savedProduct;
     } catch (error) {
@@ -488,7 +496,7 @@ export class ProductsService {
     try {
       const findConditions = {
         where: { id: productId },
-        relations: ['shop'],
+        relations: ['shop', 'category'],
       };
       const manager = queryRunner.manager;
       const product = await manager.findOne(Product, findConditions);
@@ -527,6 +535,12 @@ export class ProductsService {
         reason,
       );
 
+      await this.emitProductSnapshot(
+        manager,
+        savedProduct,
+        OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
+      );
+
       await queryRunner.commitTransaction();
       return savedProduct;
     } catch (error) {
@@ -553,7 +567,7 @@ export class ProductsService {
     try {
       const findConditions = {
         where: { id: productId },
-        relations: ['shop'],
+        relations: ['shop', 'category'],
       };
       const manager = queryRunner.manager;
       const product = await manager.findOne(Product, findConditions);
@@ -585,6 +599,12 @@ export class ProductsService {
         savedProduct,
         restoredAction,
         noReason,
+      );
+
+      await this.emitProductSnapshot(
+        manager,
+        savedProduct,
+        OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
       );
 
       await queryRunner.commitTransaction();
@@ -635,6 +655,61 @@ export class ProductsService {
     };
     const eventData = {
       event_type: OUTBOX_EVENT_TYPES.PRODUCT_MODERATED,
+      payload,
+      status: OutboxEventStatus.PENDING,
+    };
+    const outboxEvent = manager.create(OutboxEvent, eventData);
+    await manager.save(OutboxEvent, outboxEvent);
+  }
+
+  // Ghi outbox product.created / product.updated cho search-service (Go, tuần 3+).
+  // Gọi TRƯỚC commitTransaction và dùng CHÍNH manager của transaction đang mở —
+  // transactional outbox: product và event cùng sống hoặc cùng chết. Ghi ngoài
+  // transaction là mở đường cho index lệch DB khi commit fail.
+  private async emitProductSnapshot(
+    manager: EntityManager,
+    product: Product,
+    eventType:
+      | typeof OUTBOX_EVENT_TYPES.PRODUCT_CREATED
+      | typeof OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
+  ): Promise<void> {
+    const payload: ProductSearchSnapshotPayload = {
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description ?? null,
+      // Chuẩn hoá 2 chữ số thập phân: cột numeric(12,2) trả string khi load từ DB
+      // ('150000.00') nhưng lúc tạo mới giá đến từ DTO là number (150000). Không
+      // chuẩn hoá thì created và updated của cùng sản phẩm khác định dạng.
+      price: Number(product.price).toFixed(2),
+      shopId: product.shop?.id ?? '',
+      categoryId: product.category?.id ?? null,
+      thumbnailUrl: product.thumbnail_url ?? null,
+      status: product.status,
+      isHidden: product.is_hidden,
+      // Guard undefined có chủ ý: @UpdateDateColumn được TypeORM gán sau save() nên
+      // bình thường luôn có. Nhưng hàm này nằm TRONG transaction tạo/sửa sản phẩm —
+      // ném lỗi ở đây là rollback cả sản phẩm. Thà lệch dưới một giây (dùng thời điểm
+      // emit) còn hơn làm hỏng nghiệp vụ chính vì một field phục vụ quan sát.
+      updatedAt: (product.updated_at ?? new Date()).toISOString(),
+    };
+    const eventData = {
+      event_type: eventType,
+      payload,
+      status: OutboxEventStatus.PENDING,
+    };
+    const outboxEvent = manager.create(OutboxEvent, eventData);
+    await manager.save(OutboxEvent, outboxEvent);
+  }
+
+  // Ghi outbox product.deleted. Chỉ mang id vì consumer chỉ cần xoá document.
+  private async emitProductDeleted(
+    manager: EntityManager,
+    productId: string,
+  ): Promise<void> {
+    const payload: ProductDeletedOutboxPayload = { productId };
+    const eventData = {
+      event_type: OUTBOX_EVENT_TYPES.PRODUCT_DELETED,
       payload,
       status: OutboxEventStatus.PENDING,
     };
@@ -1021,6 +1096,7 @@ export class ProductsService {
     // Tìm sản phẩm và kiểm tra quyền sở hữu
     const product = await this.findProductEntityOrFail(realId, [
       'shop',
+      'category',
       'variants',
     ]);
 
@@ -1560,6 +1636,12 @@ export class ProductsService {
         );
       }
 
+      await this.emitProductSnapshot(
+        queryRunner.manager,
+        savedProduct,
+        OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
+      );
+
       await queryRunner.commitTransaction();
 
       // Dọn dẹp ảnh cũ trên Cloudinary sau khi thành công
@@ -1677,6 +1759,8 @@ export class ProductsService {
         stock_quantity: 0, // Đưa tồn kho về 0 (tuỳ chọn)
       };
       await queryRunner.manager.update(Product, realId, updateProductPayload);
+
+      await this.emitProductDeleted(queryRunner.manager, realId);
 
       await queryRunner.commitTransaction();
 

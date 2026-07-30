@@ -1,7 +1,7 @@
 // AUTO-GENERATED bởi notification-service/scripts/gen-contracts.mjs — DO NOT EDIT.
 // Nguồn: backend/src/common/constants/outbox.constants.ts. Chạy lại: npm run gen-contracts.
 
-import { PayoutStatus, ReturnStatus, ProductModerationAction } from './enums.generated';
+import { PayoutStatus, ReturnStatus, ProductModerationAction, ProductStatus } from './enums.generated';
 // Event types cho Transactional Outbox pattern
 // Dùng chung giữa Orders module (writer) và Engagements Outbox Worker (reader)
 export const OUTBOX_EVENT_TYPES = {
@@ -16,6 +16,9 @@ export const OUTBOX_EVENT_TYPES = {
   RETURN_REQUESTED: 'return.requested',
   RETURN_STATUS_CHANGED: 'return.status_changed',
   PRODUCT_MODERATED: 'product.moderated',
+  PRODUCT_CREATED: 'product.created',
+  PRODUCT_UPDATED: 'product.updated',
+  PRODUCT_DELETED: 'product.deleted',
 } as const;
 
 // Payload của event 'order.created' — ghi bởi Orders (writer), đọc bởi Outbox Worker (reader).
@@ -131,4 +134,50 @@ export interface ProductModeratedOutboxPayload {
   sellerName: string | null; // tên hiển thị trong email (= seller.username)
   action: ProductModerationAction;
   reason: string | null;
+}
+
+// Ảnh chụp sản phẩm cho search index (search-service Go).
+// created và updated dùng CHUNG một hình dạng vì consumer re-index toàn bộ document
+// mỗi lần nhận, không patch từng field — nhận trùng cho ra cùng kết quả (idempotent).
+//
+// price là string đã chuẩn hoá 2 chữ số thập phân. Vì sao phải chuẩn hoá: cột là
+// numeric(12,2) nên TypeORM trả STRING khi load từ DB ('150000.00') nhưng lúc tạo mới
+// thì giá đến từ DTO là NUMBER (150000). Không chuẩn hoá thì cùng một sản phẩm, event
+// created và updated mang hai định dạng khác nhau — consumer nào so sánh chuỗi để phát
+// hiện thay đổi sẽ báo đổi giá trong khi giá không đổi.
+//
+// KHÔNG mang stock_quantity, và đây là chủ ý: stock đổi mỗi lần có đơn hàng, mà luồng
+// order KHÔNG ghi outbox product.*. Mang stock vào đây thì index sẽ sai hệ thống ngay
+// sau đơn đầu tiên — tệ hơn là không có. Search index KHÔNG được dùng để lọc còn/hết
+// hàng; việc đó phải hỏi lại DB nguồn.
+export interface ProductSearchSnapshotPayload {
+  productId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: string;
+  shopId: string;
+  categoryId: string | null;
+  thumbnailUrl: string | null;
+  status: ProductStatus;
+  isHidden: boolean;
+  // Mốc thời gian của chính bản ghi nguồn (ISO 8601), KHÔNG phải lúc publish.
+  // RabbitMQ không bảo đảm thứ tự, và relay có retry, nên một product.updated cũ hoàn
+  // toàn có thể tới SAU bản mới. Consumer phải so mốc này với mốc đang có trong index
+  // và BỎ QUA event cũ hơn, nếu không sẽ ghi đè bản mới bằng dữ liệu cũ.
+  updatedAt: string;
+}
+
+// created và updated hiện là CÙNG một hình dạng. Nếu về sau ai tách hai type này ra
+// khác nhau thì PHẢI sửa cả `emitProductSnapshot` trong products.service.ts — hàm đó
+// nhận eventType là union của cả hai nhưng chỉ gán MỘT payload type, nên khi hai hình
+// dạng khác nhau nó vẫn compile mà ghi sai payload cho một nhánh.
+export type ProductCreatedOutboxPayload = ProductSearchSnapshotPayload;
+export type ProductUpdatedOutboxPayload = ProductSearchSnapshotPayload;
+
+// product.deleted — chỉ cần id để consumer xoá document khỏi index.
+// Lưu ý: `remove()` của monolith là XOÁ MỀM (status = DELETED), nhưng với search index
+// thì xoá mềm hay cứng đều phải rời khỏi index, nên vẫn dùng event deleted.
+export interface ProductDeletedOutboxPayload {
+  productId: string;
 }

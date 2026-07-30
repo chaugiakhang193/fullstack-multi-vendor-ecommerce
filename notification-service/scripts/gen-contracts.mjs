@@ -60,6 +60,7 @@ const ALLOWLIST = [
   "PayoutStatus",
   "ReturnStatus",
   "ProductModerationAction",
+  "ProductStatus",
 ];
 
 /**
@@ -148,10 +149,7 @@ function copyWithRewrittenEnumImport(sourcePath, sourceBanner) {
     /import\s*{([^}]+)}\s*from\s*['"]@\/common\/enums['"];?/;
   const match = raw.match(enumImportRegex);
   const importedNames = match
-    ? match[1]
-        .replace(/\s+/g, " ")
-        .replace(/,\s*$/, "")
-        .trim()
+    ? match[1].replace(/\s+/g, " ").replace(/,\s*$/, "").trim()
     : "";
 
   // Xoá nguyên câu import gốc khỏi body; chèn lại import trỏ './enums.generated'.

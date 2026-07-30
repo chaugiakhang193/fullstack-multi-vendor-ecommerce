@@ -43,3 +43,9 @@ export enum ProductModerationAction {
   TAKEN_DOWN = "taken_down",
   RESTORED = "restored",
 }
+
+export enum ProductStatus {
+  ACTIVE = "active",
+  DELETED = "deleted",
+  SUSPENDED = "suspended",
+}

@@ -53,13 +53,24 @@ const NOTIFICATIONS_QUEUE = "notifications.q";
 // Nhận mọi event notification-relevant. notifications.q GIỮ arg-free (Phase 3
 // quyết định P3-4) — retry/DLQ app-driven qua DLX riêng, KHÔNG dùng
 // x-dead-letter-exchange trên chính queue này (né 406 nếu đổi args về sau).
+//
+// Chỉ bind 'product.moderated', KHÔNG dùng wildcard 'product.*':
+// product.created/updated/deleted dành cho search-service (Go). NS không có handler
+// cho chúng nên dispatch() rơi vào `default: throw PoisonPayloadError` và mỗi lần
+// seller sửa sản phẩm là một message rác vào DLQ — DLQ ngập rác thì mất tác dụng
+// báo động. Nguyên tắc: chỉ bind đúng những gì mình xử lý được.
+//
+// THỨ TỰ DEPLOY khi đổi mảng này: bindQueue là additive và idempotent, nên xoá pattern
+// khỏi đây KHÔNG unbind binding đã có trên broker. Phải deploy service này TRƯỚC (nó tự
+// bind pattern mới, tồn tại song song pattern cũ) rồi mới unbind pattern cũ bằng tay.
+// Làm ngược lại sẽ có một cửa sổ thời gian mà event không khớp binding nào và bị MẤT.
 const BINDING_PATTERNS = [
   "order.*",
   "review.*",
   "payout.*",
   "return.*",
   "shop.*",
-  "product.*",
+  "product.moderated",
 ];
 
 // Retry/DLQ app-driven (P4-5). DLX là direct exchange riêng — consumer TỰ
