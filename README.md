@@ -181,6 +181,9 @@ sequenceDiagram
 
 ## 🔭 Observability
 
+> 📖 **Deep dive:** [`docs/observability.md`](docs/observability.md) — the two pipelines, how trace
+> context is carried across the outbox and the broker, and the known limitations.
+
 The hard part of splitting a monolith is that a request stops being one thing you can follow. A
 notification now crosses a database table, a broker, and a process boundary — so *"what happened to
 **this** order's notification?"* becomes unanswerable from logs alone.
