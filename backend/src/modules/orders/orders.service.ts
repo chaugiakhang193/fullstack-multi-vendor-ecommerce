@@ -17,7 +17,7 @@ import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';
 import { Idempotency } from '@/modules/orders/entities/idempotency.entity';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { Address } from '@/modules/users/entities/address.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { CartItem } from '@/modules/carts/entities/cart-item.entity';

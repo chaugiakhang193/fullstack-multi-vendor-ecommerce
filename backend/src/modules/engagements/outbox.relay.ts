@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 
 // Entities
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 // Constants
 import { OUTBOX_EVENT_TYPES } from '@/common/constants/outbox.constants';

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Registry, collectDefaultMetrics, Histogram, Gauge } from 'prom-client';
 
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 @Injectable()
 export class MetricsService implements OnModuleInit {

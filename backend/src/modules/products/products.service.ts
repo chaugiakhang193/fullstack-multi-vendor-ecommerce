@@ -42,7 +42,7 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 import { Category } from '@/modules/products/entities/category.entity';
 import { MediaAsset } from '@/modules/cloudinary/entities/media-asset.entity';
 import { User } from '@/modules/users/entities/user.entity';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 // Services
 import { CloudinaryService } from '@/modules/cloudinary/cloudinary.service';

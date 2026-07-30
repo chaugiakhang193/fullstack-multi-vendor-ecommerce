@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { MetricsService } from './metrics.service';
 import { MetricsController } from './metrics.controller';
 import { MetricsInterceptor } from './metrics.interceptor';

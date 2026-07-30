@@ -12,7 +12,7 @@ import { SellerOrdersController } from '@/modules/orders/seller-orders.controlle
 import { IdempotencyCleanupCron } from '@/modules/orders/idempotency-cleanup.cron';
 
 // Entities
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { SubOrder } from '@/modules/orders/entities/sub-order.entity';
 import { OrderItem } from '@/modules/orders/entities/order-item.entity';

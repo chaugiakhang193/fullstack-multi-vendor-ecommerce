@@ -12,7 +12,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
 // Outbox support
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 // DTOs
 import { CreateShopDto } from '@/modules/shops/dto/create-shop.dto';

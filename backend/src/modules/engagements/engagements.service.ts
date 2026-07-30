@@ -10,7 +10,7 @@ import { DataSource, Repository } from 'typeorm';
 
 // Entities
 import { Review } from '@/modules/engagements/entities/review.entity';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 // DTOs
 import { CreateReviewDto } from '@/modules/engagements/dto/create-review.dto';

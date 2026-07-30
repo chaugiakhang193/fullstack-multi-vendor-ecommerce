@@ -17,7 +17,7 @@ import { NotificationProjectionConsumer } from '@/modules/engagements/notificati
 // Entities
 import { Shop } from '@/modules/shops/entities/shop.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 import { ProcessedEvent } from '@/modules/engagements/entities/processed-event.entity';
 

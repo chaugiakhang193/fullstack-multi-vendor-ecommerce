@@ -10,7 +10,7 @@ import { DataSource, EntityManager, Repository, In } from 'typeorm';
 // Entities
 import { ReturnRequest } from '@/modules/returns/entities/return-request.entity';
 import { ReturnItem } from '@/modules/returns/entities/return-item.entity';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
 // Truy cập dữ liệu đơn hàng qua service của Orders, kho qua ProductStockService —
 // không inject repo chéo module.

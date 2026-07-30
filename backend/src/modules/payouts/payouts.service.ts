@@ -12,7 +12,7 @@ import { User } from '@/modules/users/entities/user.entity';
 import { OrdersService } from '@/modules/orders/orders.service';
 import { ShopsService } from '@/modules/shops/shops.service';
 import { UsersService } from '@/modules/users/users.service';
-import { OutboxEvent } from '@/modules/orders/entities/outbox-event.entity';
+import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { OutboxEventStatus, PayoutStatus } from '@/common/enums';
 import {
   OUTBOX_EVENT_TYPES,
