@@ -37,6 +37,15 @@ if (enabled) {
         "@opentelemetry/instrumentation-express": {
           enabled: false,
         },
+        // Tắt express MỘT MÌNH là KHÔNG đủ — đây đúng bài học đã gặp ở backend.
+        // NestJS platform-express dùng Express 5, định tuyến qua package `router`
+        // riêng, nên span 'middleware - jsonParser' / 'middleware - <anonymous>'
+        // đến từ instrumentation-router chứ không phải instrumentation-express.
+        // Phải tắt CẢ HAI mới hết. Xác nhận bằng danh sách operation trong Jaeger:
+        // trước khi tắt vẫn còn 'middleware - *' dù express đã disabled.
+        "@opentelemetry/instrumentation-router": {
+          enabled: false,
+        },
       }),
     ],
   });
