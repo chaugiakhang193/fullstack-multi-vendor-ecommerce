@@ -8,6 +8,7 @@ import { HealthController } from "@/modules/broker/health.controller";
 import { ProcessedEvent } from "@/entities/processed-event.entity";
 import { NotificationOutbox } from "@/entities/notification-outbox.entity";
 import { ConsumerModule } from "@/consumer/consumer.module";
+import { MetricsModule } from "@/modules/metrics/metrics.module";
 
 // Global vì Phase 4+ (consumer handlers) sẽ inject 2 service này từ nhiều
 // module khác nhau.
@@ -16,6 +17,7 @@ import { ConsumerModule } from "@/consumer/consumer.module";
   imports: [
     TypeOrmModule.forFeature([ProcessedEvent, NotificationOutbox]),
     ConsumerModule,
+    MetricsModule,
   ],
   controllers: [HealthController],
   providers: [

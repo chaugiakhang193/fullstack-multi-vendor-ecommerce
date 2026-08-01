@@ -31,6 +31,7 @@ import { NotificationConsumerService } from "@/consumer/notification-consumer.se
 import { PoisonPayloadError } from "@/consumer/poison-payload.error";
 import { NotificationEmitterService } from "@/modules/broker/notification-emitter.service";
 import { WsEmit } from "@/contracts/ws-events.generated";
+import { MetricsService } from "@/modules/metrics/metrics.service";
 
 // Backoff giữa các lần thử kết nối lại — lần thứ n dùng phần tử thứ n, quá dài
 // thì giữ mốc cuối (30s).
@@ -121,6 +122,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     private readonly notificationEmitter: NotificationEmitterService,
     @InjectRepository(ProcessedEvent)
     private readonly processedEventRepo: Repository<ProcessedEvent>,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -133,6 +135,30 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
     this.url = url;
     await this.connect();
+
+    // Poll độ sâu DLQ mỗi 10s. Dùng channel TẠM (create → checkQueue → close):
+    // checkQueue trên queue lỗi sẽ ĐÓNG channel, nên tuyệt đối không dùng
+    // consumerChannel (sẽ giết consumer). Channel tạm chỉ hy sinh chính nó.
+    setInterval(() => {
+      void this.refreshDlqDepth();
+    }, 10_000);
+  }
+
+  private async refreshDlqDepth(): Promise<void> {
+    if (!this.connection) {
+      return;
+    }
+    try {
+      const channel = await this.connection.createChannel();
+      try {
+        const { messageCount } = await channel.checkQueue(DLQ_QUEUE);
+        this.metricsService.dlqDepth.set(messageCount);
+      } finally {
+        await channel.close().catch(() => undefined);
+      }
+    } catch {
+      // Broker chưa sẵn sàng / queue chưa declare — bỏ qua nhịp này.
+    }
   }
 
   // Kết nối + gắn handler vòng đời + dựng lại consumer. Thất bại → hẹn thử lại
@@ -309,6 +335,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `[RabbitMqService] Envelope không hợp lệ rk=${routingKey}: ${(err as Error).message}`,
       );
+      this.metricsService.eventsProcessed.inc({
+        event_type: "unknown",
+        result: "poison",
+      });
       channel.publish(RETRY_EXCHANGE, "dlq", msg.content, {
         persistent: true,
         headers: msg.properties.headers,
@@ -318,6 +348,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
 
     const { eventId, eventType, payload } = envelope;
+    // Bấm giờ từ đây; chỉ observe khi THÀNH CÔNG (nhánh dedup/lỗi không gọi stop).
+    const stopTimer = this.metricsService.processingDuration.startTimer({
+      event_type: eventType,
+    });
 
     try {
       // Dedupe check NẰM TRONG try: nếu DB chớp lỗi lúc đọc processed_events,
@@ -330,6 +364,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `[RabbitMqService] Event ${eventId} đã xử lý trước đó — skip (dedupe).`,
         );
+        this.metricsService.eventsProcessed.inc({
+          event_type: eventType,
+          result: "duplicate",
+        });
         channel.ack(msg);
         return;
       }
@@ -358,9 +396,20 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      stopTimer();
+      this.metricsService.eventsProcessed.inc({
+        event_type: eventType,
+        result: "success",
+      });
       channel.ack(msg);
     } catch (error) {
-      await this.handleProcessingError(channel, msg, eventId, error as Error);
+      await this.handleProcessingError(
+        channel,
+        msg,
+        eventId,
+        eventType,
+        error as Error,
+      );
     }
   }
 
@@ -368,6 +417,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     channel: amqplib.Channel,
     msg: amqplib.ConsumeMessage,
     eventId: string,
+    eventType: string,
     error: Error,
   ): Promise<void> {
     // Unique violation trên processed_events (Postgres 23505) = race dedupe:
@@ -378,6 +428,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `[RabbitMqService] Event ${eventId} dedupe race — coi như đã xử lý.`,
       );
+      this.metricsService.eventsProcessed.inc({
+        event_type: eventType,
+        result: "duplicate",
+      });
       channel.ack(msg);
       return;
     }
@@ -386,6 +440,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `[RabbitMqService] Event ${eventId} → poison, route dlq: ${error.message}`,
       );
+      this.metricsService.eventsProcessed.inc({
+        event_type: eventType,
+        result: "poison",
+      });
       channel.publish(RETRY_EXCHANGE, "dlq", msg.content, {
         persistent: true,
         headers: msg.properties.headers,
@@ -400,6 +458,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `[RabbitMqService] Event ${eventId} → vượt ${MAX_RETRY} lần retry, route dlq: ${error.message}`,
       );
+      this.metricsService.eventsProcessed.inc({
+        event_type: eventType,
+        result: "exhausted",
+      });
       channel.publish(RETRY_EXCHANGE, "dlq", msg.content, {
         persistent: true,
         headers: msg.properties.headers,
@@ -408,6 +470,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `[RabbitMqService] Event ${eventId} → lỗi tạm thời (lần ${retryCount + 1}/${MAX_RETRY}), route retry: ${error.message}`,
       );
+      this.metricsService.eventsProcessed.inc({
+        event_type: eventType,
+        result: "retry",
+      });
       channel.publish(RETRY_EXCHANGE, "retry", msg.content, {
         persistent: true,
         headers: msg.properties.headers,

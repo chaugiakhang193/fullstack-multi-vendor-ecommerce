@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { BrokerModule } from "@/modules/broker/broker.module";
+import { MetricsModule } from "@/modules/metrics/metrics.module";
 import { Notification } from "@/contracts/notification.entity.generated";
 import { ProcessedEvent } from "@/entities/processed-event.entity";
 import { NotificationOutbox } from "@/entities/notification-outbox.entity";
@@ -36,6 +37,7 @@ import { NotificationOutbox } from "@/entities/notification-outbox.entity";
       }),
     }),
     BrokerModule,
+    MetricsModule,
   ],
 })
 export class AppModule {}

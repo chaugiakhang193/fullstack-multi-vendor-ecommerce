@@ -12,21 +12,17 @@ scrape_configs:
         labels:
           service: 'monolith'
 
-  # notification-service CHƯA phơi endpoint metrics nào — bật job này lên là
-  # target đỏ vĩnh viễn với 404, và sau này thêm alert `up == 0` là báo động giả
-  # mãi mãi. Giữ lại phần khai để không phải nhớ lại cổng và nhãn khi làm thật.
+  # notification-service: metric CONSUMER (không phải HTTP RED) — số event xử lý
+  # theo result, thời gian xử mỗi event, độ sâu DLQ, outbox lag. Xem
+  # notification-service/src/modules/metrics.
   #
-  # Khi implement: NS là CONSUMER, nên RED kiểu HTTP gần như vô nghĩa ở đó. Thứ
-  # đáng đo là số event đã xử lý, độ sâu DLQ, số lần retry, thời gian xử lý mỗi
-  # event. Copy y khuôn của monolith sang là đo sai chỗ.
-  #
-  # - job_name: 'notification-service'
-  #   metrics_path: '/metrics'
-  #   static_configs:
-  #     # NS chạy cổng 3001 ở local (notification-service/.env → PORT=3001), KHÔNG phải 8081.
-  #     - targets: ['host.docker.internal:3001']
-  #       labels:
-  #         service: 'notification'
+  - job_name: 'notification-service'
+    metrics_path: '/metrics'
+    static_configs:
+      # NS chạy cổng 3001 ở local (notification-service/.env → PORT=3001), KHÔNG phải 8081.
+      - targets: ['host.docker.internal:3001']
+        labels:
+          service: 'notification'
 
   - job_name: 'prometheus'
     static_configs:
