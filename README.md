@@ -68,6 +68,8 @@ Notifications (new order, status change, review, payout, return…) are handled 
 microservice**, carved out of the monolith with the **strangler-fig** pattern. An event's journey
 guarantees notifications are **never lost or duplicated**, even when a service or the broker is flaky.
 
+> 📖 **Deep dive:** [`notification-service/README.md`](notification-service/README.md) — service role, event-flow architecture, tech stack, env vars, run steps, and HTTP endpoints.
+
 ### Mechanisms (mapped to code)
 
 | Mechanism | Where |
