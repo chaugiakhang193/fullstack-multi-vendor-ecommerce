@@ -62,7 +62,8 @@ import { AccessTokenGuard } from './auth/guard/jwt-access-auth.guard';
 import { RolesGuard } from './auth/guard/roles.guard';
 
 //rate limit
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ClientIpThrottlerGuard } from './common/guard/client-ip-throttler.guard';
 
 //Mailer
 import { MailerModule } from '@nestjs-modules/mailer';
@@ -193,7 +194,9 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      // Thay ThrottlerGuard gốc để đếm theo IP client thay vì IP proxy của Render.
+      // Chi tiết ở client-ip-throttler.guard.ts.
+      useClass: ClientIpThrottlerGuard,
     },
   ],
 })

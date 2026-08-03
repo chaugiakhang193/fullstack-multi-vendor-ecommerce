@@ -89,7 +89,10 @@ async function bootstrap() {
   });
 
   if (process.env.NODE_ENV === 'production') {
-    // Đứng sau proxy HTTPS của Render → tin X-Forwarded-* để cookie `secure` hoạt động.
+    // Tin 1 chặng proxy gần nhất khi đọc X-Forwarded-*. Ảnh hưởng duy nhất còn lại là giá
+    // trị `req.ip`; cookie `secure`/`sameSite` do NODE_ENV quyết định (cookie.helper.ts),
+    // không phụ thuộc thiết lập này. Rate limit không dùng `req.ip` nữa mà đọc
+    // `cf-connecting-ip`, xem common/guard/client-ip-throttler.guard.ts.
     const trustProxyKey = 'trust proxy';
     const trustProxyValue = 1;
     app.set(trustProxyKey, trustProxyValue);
