@@ -51,11 +51,12 @@ export class ClientIpThrottlerGuard extends ThrottlerGuard {
       return null;
     }
 
-    const raw: unknown = (headers as Record<string, unknown>)[
-      ClientIpThrottlerGuard.CLIENT_IP_HEADER
-    ];
-    // Express gom header trùng tên thành mảng. Cloudflare chỉ gửi một giá trị; nếu có
-    // nhiều thì phần tử đầu là của chặng ngoài cùng.
+    const { CLIENT_IP_HEADER } = ClientIpThrottlerGuard;
+    const raw: unknown = (headers as Record<string, unknown>)[CLIENT_IP_HEADER];
+
+    // Kiểu của req.headers là `string | string[]` vì set-cookie là header DUY NHẤT Node giữ
+    // ở dạng mảng; header trùng tên khác thì Node nối thành chuỗi ngăn bởi ", " hoặc bỏ bản
+    // sau. Nên nhánh mảng ở đây không chạy với cf-connecting-ip, chỉ để thoả kiểu.
     const value: unknown = Array.isArray(raw) ? raw[0] : raw;
     if (typeof value !== 'string') {
       return null;
@@ -79,14 +80,11 @@ export class ClientIpThrottlerGuard extends ThrottlerGuard {
    * mọi request. Chỉ áp dụng cho production vì local không đi qua Cloudflare.
    */
   private warnMissingHeaderOnce(): void {
-    if (this.hasWarnedMissingHeader) {
+    // Kiểm môi trường trước rồi mới bật cờ, để cờ luôn đúng nghĩa "đã cảnh báo".
+    if (process.env.NODE_ENV !== 'production' || this.hasWarnedMissingHeader) {
       return;
     }
     this.hasWarnedMissingHeader = true;
-
-    if (process.env.NODE_ENV !== 'production') {
-      return;
-    }
 
     this.logger.warn(
       `[ClientIpThrottlerGuard] Không tìm thấy header ${ClientIpThrottlerGuard.CLIENT_IP_HEADER} ở production, ` +
