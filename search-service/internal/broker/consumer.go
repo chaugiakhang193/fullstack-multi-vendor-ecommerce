@@ -3,10 +3,13 @@ package broker
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"math/rand"
 	"time"
 
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -34,15 +37,21 @@ var reconnectDelays = []time.Duration{
 	30 * time.Second,
 }
 
-// Consumer giu cau hinh can de (tai) ket noi RabbitMQ va tieu thu message.
+// requeueDelay la khoang cho truoc khi Nack(requeue) khi ghi index loi, tranh hot-loop
+// khi DB chet keo dai (message bi redeliver lien tuc). Chua co DLQ.
+const requeueDelay = 2 * time.Second
+
+// Consumer giu cau hinh can de (tai) ket noi RabbitMQ va tieu thu message, cong voi
+// Store de ghi document vao index (DB#3).
 type Consumer struct {
 	url    string
+	store  *index.Store
 	logger *slog.Logger
 }
 
 // NewConsumer khoi tao consumer chua ket noi. Goi Run de bat dau vong doi.
-func NewConsumer(url string, logger *slog.Logger) *Consumer {
-	return &Consumer{url: url, logger: logger}
+func NewConsumer(url string, store *index.Store, logger *slog.Logger) *Consumer {
+	return &Consumer{url: url, store: store, logger: logger}
 }
 
 // Run chay vong doi consumer toi khi ctx bi huy (graceful shutdown). Moi lan
@@ -138,7 +147,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context) (bool, error) {
 				// Kenh deliveries dong — coi nhu mat ket noi.
 				return true, amqp.ErrClosed
 			}
-			c.handleMessage(msg)
+			c.handleMessage(ctx, msg)
 		}
 	}
 }
@@ -162,51 +171,129 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 	return nil
 }
 
-// handleMessage decode envelope + payload theo eventType roi log. GIAI DOAN T5:
-// chi log + ack de chung minh duong ong thong; ghi vao index (DB#3 Neon) la T7.
-// Ack SAU khi xu ly xong vi autoAck=false. Message hong thi ack de roi queue
-// (chua co DLQ) va log to.
-func (c *Consumer) handleMessage(msg amqp.Delivery) {
+// handleMessage decode envelope + payload roi ghi vao index (DB#3 Neon), dedup qua
+// processed_events trong Store. Quyet dinh ack/nack:
+//   - payload hong (decode/parse loi): Ack de bo (khong requeue vo ich) — chua co DLQ.
+//   - ghi thanh cong hoac event trung: Ack.
+//   - loi DB tam thoi: Nack(requeue) de redeliver, khong mat message.
+func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 	var env Envelope
-	if err := json.Unmarshal(msg.Body, &env); err != nil {
+	msgBody := msg.Body
+	if err := json.Unmarshal(msgBody, &env); err != nil {
 		c.logger.Error("decode envelope loi, bo message", "err", err)
 		_ = msg.Ack(false)
 		return
 	}
 
-	switch env.EventType {
+	timeout := 10 * time.Second
+	msgCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	var err error
+	eventType := env.EventType
+	eventID := env.EventID
+	payload := env.Payload
+
+	switch eventType {
 	case "product.created", "product.updated":
 		var p ProductSnapshot
-		if err := json.Unmarshal(env.Payload, &p); err != nil {
-			c.logger.Error("decode ProductSnapshot loi", "eventId", env.EventID, "err", err)
+		if decodeErr := json.Unmarshal(payload, &p); decodeErr != nil {
+			c.logger.Error("decode ProductSnapshot loi, bo message", "eventId", eventID, "err", decodeErr)
 			_ = msg.Ack(false)
 			return
 		}
-		c.logger.Info("nhan product snapshot",
-			"eventType", env.EventType,
-			"eventId", env.EventID,
-			"productId", p.ProductID,
-			"name", p.Name,
-			"price", p.Price,
-			"status", p.Status,
-			"isHidden", p.IsHidden,
-			"updatedAt", p.UpdatedAt,
-		)
+		doc, convErr := toProductDoc(p)
+		if convErr != nil {
+			// updatedAt khong parse duoc = payload hong → ack-drop, requeue cung khong sua duoc.
+			c.logger.Error("payload product hong, bo message", "eventId", eventID, "err", convErr)
+			_ = msg.Ack(false)
+			return
+		}
+		err = c.store.UpsertProduct(msgCtx, eventID, doc)
 	case "product.deleted":
 		var d ProductDeleted
-		if err := json.Unmarshal(env.Payload, &d); err != nil {
-			c.logger.Error("decode ProductDeleted loi", "eventId", env.EventID, "err", err)
+		if decodeErr := json.Unmarshal(payload, &d); decodeErr != nil {
+			c.logger.Error("decode ProductDeleted loi, bo message", "eventId", eventID, "err", decodeErr)
 			_ = msg.Ack(false)
 			return
 		}
-		c.logger.Info("nhan product deleted", "eventId", env.EventID, "productId", d.ProductID)
+		productID := d.ProductID
+		err = c.store.DeleteProduct(msgCtx, eventID, productID)
 	default:
-		// Khong nen xay ra vi chi bind 3 key, nhung phong thu: ack de khong ket.
-		c.logger.Warn("eventType la, bo qua", "eventType", env.EventType, "eventId", env.EventID)
+		// Khong nen xay ra vi chi bind 3 key; phong thu: ack de khong ket.
+		c.logger.Warn("eventType la, bo qua", "eventType", eventType, "eventId", eventID)
+		_ = msg.Ack(false)
+		return
 	}
 
-	if err := msg.Ack(false); err != nil {
-		c.logger.Error("ack loi", "eventId", env.EventID, "err", err)
+	c.ackOrRetry(msg, env, err)
+}
+
+// toProductDoc chuyen ProductSnapshot (broker) sang index.ProductDoc, parse updatedAt tu
+// ISO 8601 sang time.Time. time.RFC3339 cua Go chap nhan ca giay le (vd ...56.789Z) nen
+// khop dinh dang JS toISOString(). Loi parse = payload hong.
+func toProductDoc(p ProductSnapshot) (index.ProductDoc, error) {
+	updatedAtStr := p.UpdatedAt
+	layout := time.RFC3339
+	updatedAt, err := time.Parse(layout, updatedAtStr)
+	if err != nil {
+		return index.ProductDoc{}, fmt.Errorf("parse updatedAt %q loi: %w", updatedAtStr, err)
+	}
+
+	productID := p.ProductID
+	name := p.Name
+	slug := p.Slug
+	description := p.Description
+	price := p.Price
+	shopID := p.ShopID
+	categoryID := p.CategoryID
+	thumbnailURL := p.ThumbnailURL
+	status := p.Status
+	isHidden := p.IsHidden
+
+	return index.ProductDoc{
+		ProductID:    productID,
+		Name:         name,
+		Slug:         slug,
+		Description:  description,
+		Price:        price,
+		ShopID:       shopID,
+		CategoryID:   categoryID,
+		ThumbnailURL: thumbnailURL,
+		Status:       status,
+		IsHidden:     isHidden,
+		UpdatedAt:    updatedAt,
+	}, nil
+}
+
+// ackOrRetry quyet dinh ack/nack theo ket qua ghi index:
+//   - nil: ghi thanh cong → ack.
+//   - ErrDuplicateEvent: event da xu ly (processed_events trung) → ack, skip.
+//   - loi khac (DB tam thoi): cho requeueDelay roi Nack(requeue=true) de redeliver, khong
+//     mat message. Delay tranh hot-loop khi DB chet keo dai.
+func (c *Consumer) ackOrRetry(msg amqp.Delivery, env Envelope, err error) {
+	eventID := env.EventID
+	eventType := env.EventType
+	switch {
+	case err == nil:
+		multiple := false
+		if ackErr := msg.Ack(multiple); ackErr != nil {
+			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
+		}
+	case errors.Is(err, index.ErrDuplicateEvent):
+		c.logger.Info("event da xu ly truoc do, skip", "eventId", eventID, "eventType", eventType)
+		multiple := false
+		if ackErr := msg.Ack(multiple); ackErr != nil {
+			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
+		}
+	default:
+		c.logger.Warn("ghi index loi, se redeliver", "eventId", eventID, "eventType", eventType, "err", err)
+		time.Sleep(requeueDelay)
+		multiple := false
+		requeue := true
+		if nackErr := msg.Nack(multiple, requeue); nackErr != nil {
+			c.logger.Error("nack loi", "eventId", eventID, "err", nackErr)
+		}
 	}
 }
 

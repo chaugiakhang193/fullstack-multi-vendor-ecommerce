@@ -15,44 +15,75 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/broker"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/httpapi"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
 )
 
 func main() {
 	cfg, err := config.Load()
-	logger := newLogger(cfg.LogLevel)
+	logLevel := cfg.LogLevel
+	logger := newLogger(logLevel)
 	if err != nil {
 		logger.Error("nap config loi", "err", err)
 		os.Exit(1)
 	}
 
+	httpPort := cfg.HTTPPort
+	rabbitmqURL := cfg.RabbitMQURL
+	maskedURL := maskURL(rabbitmqURL)
 	logger.Info("search-service khoi dong",
-		"httpPort", cfg.HTTPPort,
-		"rabbitmq", maskURL(cfg.RabbitMQURL),
+		"httpPort", httpPort,
+		"rabbitmq", maskedURL,
 	)
 
 	// ctx bi huy khi nhan SIGINT (Ctrl+C) hoac SIGTERM (docker stop / Render).
 	// Day la tin hieu graceful shutdown cho ca HTTP server lan consumer.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	bgCtx := context.Background()
+	sigInt := syscall.SIGINT
+	sigTerm := syscall.SIGTERM
+	ctx, stop := signal.NotifyContext(bgCtx, sigInt, sigTerm)
 	defer stop()
+
+	// Chay migration truoc khi mo pool/consumer de Neon san bang, fail-fast neu loi.
+	databaseURL := cfg.DatabaseURL
+	if err := index.RunMigrations(databaseURL); err != nil {
+		logger.Error("chay migration loi", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("migration xong")
+
+	// startupCtx rieng co timeout, khong dung ctx vong doi, de pool khong bi rang buoc
+	// theo vong doi tin hieu shutdown.
+	startupBgCtx := context.Background()
+	startupTimeout := 15 * time.Second
+	startupCtx, startupCancel := context.WithTimeout(startupBgCtx, startupTimeout)
+	store, err := index.NewStore(startupCtx, databaseURL)
+	startupCancel()
+	if err != nil {
+		logger.Error("mo store loi", "err", err)
+		os.Exit(1)
+	}
+	// Close SAU khi consumer dung (wg.Wait o cuoi main dam bao). defer LIFO chay truoc return.
+	defer store.Close()
 
 	var wg sync.WaitGroup
 
-	// --- Consumer RabbitMQ (T5) ---
-	consumer := broker.NewConsumer(cfg.RabbitMQURL, logger)
+	consumer := broker.NewConsumer(rabbitmqURL, store, logger)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		consumer.Run(ctx) // tu thoat khi ctx.Done()
 	}()
 
-	// --- HTTP server (T4) ---
-	srv := httpapi.NewServer(":"+cfg.HTTPPort, logger)
+	addr := ":" + httpPort
+	srv := httpapi.NewServer(addr, logger)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		<-ctx.Done() // cho tin hieu shutdown
 		// Cho toi da 10s xu not request dang chay roi dong.
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownBgCtx := context.Background()
+		shutdownTimeout := 10 * time.Second
+		shutdownCtx, cancel := context.WithTimeout(shutdownBgCtx, shutdownTimeout)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			logger.Error("HTTP server shutdown loi", "err", err)
@@ -83,7 +114,8 @@ func newLogger(level string) *slog.Logger {
 	default:
 		lvl = slog.LevelInfo
 	}
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl})
+	handlerOptions := &slog.HandlerOptions{Level: lvl}
+	handler := slog.NewJSONHandler(os.Stdout, handlerOptions)
 	return slog.New(handler)
 }
 
@@ -91,9 +123,11 @@ func newLogger(level string) *slog.Logger {
 func maskURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil {
-		return "amqp://<unparseable>"
+		unparseable := "amqp://<unparseable>"
+		return unparseable
 	}
 	// Redacted() la ham chuan cua net/url: thay password bang "xxxxx" khi in,
 	// khong bi ma hoa URL nhu "****" (tranh loi in ra %2A%2A%2A%2A).
-	return u.Redacted()
+	redactedURL := u.Redacted()
+	return redactedURL
 }

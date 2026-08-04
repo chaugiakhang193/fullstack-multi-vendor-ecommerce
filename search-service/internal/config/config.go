@@ -6,14 +6,16 @@ import (
 )
 
 // Config gom toan bo tham so runtime doc tu bien moi truong. Khong dung thu
-// vien ngoai (viper/envconfig) de giu nghe va tuong minh, dung tinh than
-// "hieu tan goc" cua service nay.
+// vien ngoai (viper/envconfig) de giu nghe va tuong minh.
 type Config struct {
 	// HTTPPort cong HTTP server lang nghe (health, sau nay la /search).
 	HTTPPort string
 
 	// RabbitMQURL chuoi ket noi broker, vd amqp://guest:guest@localhost:5672
 	RabbitMQURL string
+
+	// DatabaseURL chuoi ket noi Neon DB#3 (postgres). Bat buoc co sslmode=require.
+	DatabaseURL string
 
 	// LogLevel: debug | info | warn | error
 	LogLevel string
@@ -25,11 +27,15 @@ func Load() (Config, error) {
 	cfg := Config{
 		HTTPPort:    getEnv("SEARCH_HTTP_PORT", "8090"),
 		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
+		DatabaseURL: getEnv("DATABASE_URL", ""),
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
 	}
 
 	if cfg.RabbitMQURL == "" {
 		return Config{}, fmt.Errorf("RABBITMQ_URL bat buoc nhung dang rong")
+	}
+	if cfg.DatabaseURL == "" {
+		return Config{}, fmt.Errorf("DATABASE_URL bat buoc nhung dang rong")
 	}
 
 	return cfg, nil
