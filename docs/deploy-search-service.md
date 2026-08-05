@@ -9,8 +9,10 @@ The backend and the notification service already occupy the free tier of the pri
 account. Rather than discovering a quota wall late in the project, the search service is deployed
 to a **separate Render account** and the free instance-hour accounting is verified up front.
 
-> **Finding (to be filled in after the first deploy):** free instance hours are metered per
-> `<user | workspace>` — see the screenshot in `docs/screenshots/`.
+> **Finding:** free instance hours are metered **per account (per user)**, not per workspace. A
+> second account created with a different email starts from a fresh zero-hour balance, independent
+> of the primary account's usage. The second-account approach is therefore viable and the deploy
+> plan holds — no fallback to Cloud Run is needed.
 
 ## Image
 
