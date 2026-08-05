@@ -1,0 +1,12 @@
+# Khong dua vao build context: khong can cho `go build`, va .env chua secret that.
+.env
+.env.*
+!.env.example
+
+# File nay chi phuc vu nguoi doc, khong anh huong binary.
+*.md
+
+# Artefact build local (neu co) — tranh COPY nham vao image.
+/search-service
+/bin
+/out

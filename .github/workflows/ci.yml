@@ -133,6 +133,30 @@ jobs:
         run: npm run build
         working-directory: notification-service
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: search-service/go.mod
+          cache-dependency-path: search-service/go.sum
+
+      - name: Vet Search Service
+        run: go vet ./...
+        working-directory: search-service
+
+      - name: Build Search Service
+        run: go build ./...
+        working-directory: search-service
+
+      # TEST_DATABASE_URL tro toi service container postgres o tren. Khong dat bien
+      # nay thi store_integration_test tu skip — dat vao de migration + SQL upsert
+      # duoc kiem THAT trong CI. Test tu chan URL khong phai localhost/127.0.0.1
+      # (no TRUNCATE bang) nen khong the lo tay tro vao Neon that.
+      - name: Test Search Service
+        run: go test ./...
+        working-directory: search-service
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+
       - name: Build Frontend
         run: npm run build
         working-directory: frontend
@@ -229,3 +253,35 @@ jobs:
             exit 0
           fi
           curl -fsS -X POST "$RENDER_DEPLOY_HOOK_NOTIFICATION"
+
+      - name: Extract search service image metadata
+        id: meta-search
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-search
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Build and push search service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./search-service
+          push: true
+          tags: ${{ steps.meta-search.outputs.tags }}
+          labels: ${{ steps.meta-search.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Service search nam o Render acc#2 (ne quota free cua acc#1) nen hook la mot
+      # secret rieng. Guard rong ngay trong shell, khong dung `if: env.*` — env cap
+      # step khong chac doc duoc trong `if` cua chinh no, step co the bi skip oan.
+      - name: Trigger Render deploy (search service)
+        env:
+          RENDER_DEPLOY_HOOK_SEARCH: ${{ secrets.RENDER_DEPLOY_HOOK_SEARCH }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_SEARCH" ]; then
+            echo "RENDER_DEPLOY_HOOK_SEARCH chưa set — bỏ qua trigger deploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_SEARCH"
