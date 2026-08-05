@@ -3,16 +3,19 @@
 The search service is a Go consumer + HTTP server. It is packaged as a container image, published
 to GHCR by CI, and deployed on Render as a free web service.
 
-## Why a second Render account
+## Deployment isolation per service
 
-The backend and the notification service already occupy the free tier of the primary Render
-account. Rather than discovering a quota wall late in the project, the search service is deployed
-to a **separate Render account** and the free instance-hour accounting is verified up front.
+Each service in this system is deployed independently, so the search service gets its own hosting
+target rather than being co-located with the monolith and the notification service. Keeping the
+newest service on a separate deployment boundary means its resource envelope, restarts and rollouts
+never contend with the two services already running in production, and it doubles as an early check
+that the packaging pipeline (GHCR image → managed host → health check) works end to end on a clean
+environment before it matters.
 
-> **Finding:** free instance hours are metered **per account (per user)**, not per workspace. A
-> second account created with a different email starts from a fresh zero-hour balance, independent
-> of the primary account's usage. The second-account approach is therefore viable and the deploy
-> plan holds — no fallback to Cloud Run is needed.
+> **Capacity note:** on Render's free tier, instance hours are metered per account, so a dedicated
+> account for this service starts from its own fresh allowance and its usage stays independent of
+> the other two services. The isolation is therefore free of resource trade-offs; if a future host
+> meters differently, the same image deploys unchanged to any container platform (e.g. Cloud Run).
 
 ## Image
 
@@ -28,9 +31,10 @@ arrangement the backend and notification images already use.
 ## Creating the service (Render dashboard)
 
 The repository's `render.yaml` Blueprint is intentionally **not** used for this service. A Blueprint
-instance is created from the whole file, so applying it on the second account would also recreate
+instance is created from the whole file, so applying it on a separate account would also recreate
 the backend and the notification service there, and adding a search block to it would make the
-primary account spin the search service up as well — defeating the purpose of the split.
+primary account spin the search service up as well — collapsing the very isolation this setup is
+meant to keep.
 
 1. New → Web Service → **Deploy an existing image**.
 2. Image URL: the GHCR tag above. Region: Singapore (same as the other services).
