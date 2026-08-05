@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, Search } from 'lucide-react';
-import { hasInAppHistory } from '@/lib/navigation-history';
+import { canGoBackInApp } from '@/lib/navigation-history';
 
 // Giao diện 404 dùng chung cho root (URL không khớp route nào) lẫn nhóm (customer).
 // fullScreen=true → căn giữa TOÀN màn hình (root, không có header/footer bao quanh);
@@ -27,10 +27,9 @@ export default function NotFoundView({
   };
 
   const handleBack = () => {
-    // Chỉ back() khi đã có điều hướng nội bộ kể từ lần load hiện tại, nghĩa là trang
-    // liền trước thuộc ứng dụng. Vào thẳng 404 từ nguồn ngoài hoặc gõ URL sẽ chưa có
-    // điều hướng nào, nên về trang chủ để tránh router.back() rời khỏi ứng dụng.
-    if (hasInAppHistory()) {
+    // Chỉ back() khi trang liền trước thuộc ứng dụng; ngược lại về trang chủ để không
+    // rời sang origin ngoài khi vào 404 từ một trang khác hoặc gõ thẳng URL.
+    if (canGoBackInApp()) {
       router.back();
     } else {
       router.push('/');
