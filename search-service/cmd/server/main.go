@@ -29,10 +29,12 @@ func main() {
 
 	httpPort := cfg.HTTPPort
 	rabbitmqURL := cfg.RabbitMQURL
+	queueName := cfg.QueueName
 	maskedURL := maskURL(rabbitmqURL)
 	logger.Info("search-service khoi dong",
 		"httpPort", httpPort,
 		"rabbitmq", maskedURL,
+		"queue", queueName,
 	)
 
 	// ctx bi huy khi nhan SIGINT (Ctrl+C) hoac SIGTERM (docker stop / Render).
@@ -67,7 +69,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	consumer := broker.NewConsumer(rabbitmqURL, store, logger)
+	consumer := broker.NewConsumer(rabbitmqURL, queueName, store, logger)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

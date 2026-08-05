@@ -15,7 +15,6 @@ import (
 
 const (
 	eventsExchange = "ecommerce.events"
-	searchQueue    = "search_index.q"
 	prefetchCount  = 10
 )
 
@@ -45,13 +44,16 @@ const requeueDelay = 2 * time.Second
 // Store de ghi document vao index (DB#3).
 type Consumer struct {
 	url    string
+	queue  string
 	store  *index.Store
 	logger *slog.Logger
 }
 
-// NewConsumer khoi tao consumer chua ket noi. Goi Run de bat dau vong doi.
-func NewConsumer(url string, store *index.Store, logger *slog.Logger) *Consumer {
-	return &Consumer{url: url, store: store, logger: logger}
+// NewConsumer khoi tao consumer chua ket noi. Goi Run de bat dau vong doi. queue
+// den tu config: moi moi truong (local / Render) dat ten rieng de khong chia nhau
+// message tren cung mot broker.
+func NewConsumer(url string, queue string, store *index.Store, logger *slog.Logger) *Consumer {
+	return &Consumer{url: url, queue: queue, store: store, logger: logger}
 }
 
 // Run chay vong doi consumer toi khi ctx bi huy (graceful shutdown). Moi lan
@@ -115,7 +117,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context) (bool, error) {
 	}
 
 	msgs, err := ch.Consume(
-		searchQueue,
+		c.queue,
 		"",    // consumer tag tu sinh
 		false, // autoAck=false: ack thu cong sau khi xu ly xong
 		false, // exclusive
@@ -127,7 +129,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	c.logger.Info("consumer online", "queue", searchQueue, "keys", bindingKeys)
+	c.logger.Info("consumer online", "queue", c.queue, "keys", bindingKeys)
 
 	// Kenh bao ket noi dong (mang rot, broker restart). Nhan duoc value nghia la
 	// phai thoat vong de Run backoff thu lai.
@@ -160,11 +162,11 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 		return err
 	}
 	// Queue durable, arg-free — bat bien, khop convention notifications.q.
-	if _, err := ch.QueueDeclare(searchQueue, true, false, false, false, nil); err != nil {
+	if _, err := ch.QueueDeclare(c.queue, true, false, false, false, nil); err != nil {
 		return err
 	}
 	for _, key := range bindingKeys {
-		if err := ch.QueueBind(searchQueue, key, eventsExchange, false, nil); err != nil {
+		if err := ch.QueueBind(c.queue, key, eventsExchange, false, nil); err != nil {
 			return err
 		}
 	}
