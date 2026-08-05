@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, Search } from 'lucide-react';
+import { hasInAppHistory } from '@/lib/navigation-history';
 
 // Giao diện 404 dùng chung cho root (URL không khớp route nào) lẫn nhóm (customer).
 // fullScreen=true → căn giữa TOÀN màn hình (root, không có header/footer bao quanh);
@@ -26,10 +27,10 @@ export default function NotFoundView({
   };
 
   const handleBack = () => {
-    // Có trang trước trong cùng phiên duyệt (đi từ trang khác trong app) → quay lại.
-    // Vào thẳng 404 (bấm link sai từ Zalo / gõ URL → history chỉ 1 entry) → về trang chủ,
-    // tránh router.back() làm văng người dùng RA KHỎI web (về Zalo/tab ngoài).
-    if (window.history.length > 1) {
+    // Chỉ back() khi đã có điều hướng nội bộ kể từ lần load hiện tại, nghĩa là trang
+    // liền trước thuộc ứng dụng. Vào thẳng 404 từ nguồn ngoài hoặc gõ URL sẽ chưa có
+    // điều hướng nào, nên về trang chủ để tránh router.back() rời khỏi ứng dụng.
+    if (hasInAppHistory()) {
       router.back();
     } else {
       router.push('/');

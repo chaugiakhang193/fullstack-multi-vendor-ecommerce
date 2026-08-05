@@ -18,6 +18,7 @@ import {
 } from '@/constants/routes';
 import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { UserRole } from '@/constants/enum';
+import { markInAppNavigation } from '@/lib/navigation-history';
 
 export default function AppProvider({
   children,
@@ -32,6 +33,21 @@ export default function AppProvider({
   // Cập nhật pathname hiện tại vào ref để tránh re-subscribe BroadcastChannel mỗi khi chuyển route
   useEffect(() => {
     pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // Ghi nhận điều hướng nội bộ để trang 404 quyết định back() hay về trang chủ.
+  // So sánh với giá trị trước đó (không dùng cờ boolean) để bỏ qua lần render đầu
+  // và không đếm nhầm khi Strict Mode chạy effect hai lần lúc dev.
+  const prevPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevPathRef.current === null) {
+      prevPathRef.current = pathname;
+      return;
+    }
+    if (prevPathRef.current !== pathname) {
+      prevPathRef.current = pathname;
+      markInAppNavigation();
+    }
   }, [pathname]);
 
   // Dùng useRef để ngăn chặn React 18 Strict Mode gọi API 2 lần lúc dev
