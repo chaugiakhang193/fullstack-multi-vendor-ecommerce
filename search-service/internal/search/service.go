@@ -14,7 +14,9 @@ import (
 // Gioi han phan trang: chan limit qua lon (bao ve DB) va chuan hoa dau vao.
 const (
 	defaultLimit = 20
-	maxLimit     = 100
+	// maxLimit 300: monolith two-stage lay top-K candidate mot lan roi tu phan trang lai,
+	// nen page size noi bo lon hon cap public cu (100). 300 uuid trong IN(...) van nhe.
+	maxLimit = 300
 )
 
 // ErrEmptyQuery bao thieu tu khoa. Handler map sang 400.
