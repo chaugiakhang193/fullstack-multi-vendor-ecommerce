@@ -57,6 +57,12 @@ func (s *Store) Close() {
 	s.pool.Close()
 }
 
+// Pool tra ve pgxpool dang dung, de tang doc (search) xai chung mot pool thay vi
+// mo pool thu 2 — Neon free gioi han so connection.
+func (s *Store) Pool() *pgxpool.Pool {
+	return s.pool
+}
+
 // markProcessed chen event_id vao processed_events trong tx. Tra ErrDuplicateEvent khi
 // trung (Postgres 23505) — nghia la 1 delivery khac da xu ly event nay. Chen dedup NAM
 // TRONG cung transaction voi upsert/delete de "da ghi index" va "da danh dau processed"

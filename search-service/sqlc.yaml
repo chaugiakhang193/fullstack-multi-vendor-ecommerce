@@ -1,0 +1,18 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/search/query.sql"
+    schema: "internal/search/schema.sql"
+    gen:
+      go:
+        package: "searchdb"
+        out: "internal/search/searchdb"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        overrides:
+          # ID toan he dung string (khop store.go): product_id ket qua ra string,
+          # uuid[] param ra []string. (numeric khong override: param gia la narg
+          # nullable nen sqlc giu pgtype.Numeric — so sanh decimal chinh xac san.)
+          - db_type: "uuid"
+            go_type: "string"
