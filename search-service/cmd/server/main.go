@@ -16,6 +16,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/httpapi"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/search"
 )
 
 func main() {
@@ -76,8 +77,9 @@ func main() {
 		consumer.Run(ctx) // tu thoat khi ctx.Done()
 	}()
 
+	searcher := search.NewService(store.Pool())
 	addr := ":" + httpPort
-	srv := httpapi.NewServer(addr, logger)
+	srv := httpapi.NewServer(addr, logger, searcher)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
