@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductsService } from '@/modules/products/products.service';
 import { ProductStockService } from '@/modules/products/product-stock.service';
 import { CategoriesService } from '@/modules/products/categories.service';
+import { SearchClient } from '@/modules/products/search.client';
 
 // Controllers
 import { ProductsController } from '@/modules/products/products.controller';
@@ -33,7 +34,12 @@ import { ShopsModule } from '@/modules/shops/shops.module';
     CategoriesController,
     AdminProductsController,
   ],
-  providers: [ProductsService, ProductStockService, CategoriesService],
+  providers: [
+    ProductsService,
+    ProductStockService,
+    CategoriesService,
+    SearchClient,
+  ],
   exports: [ProductsService, ProductStockService, CategoriesService],
 })
 export class ProductsModule {}

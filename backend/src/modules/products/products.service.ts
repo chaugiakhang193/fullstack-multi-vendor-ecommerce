@@ -70,6 +70,8 @@ import {
   ProductSearchSnapshotPayload,
   ProductDeletedOutboxPayload,
 } from '@/common/constants/outbox.constants';
+import { PAGINATION_LIMITS } from '@/common/constants/pagination.constant';
+import { SearchClient } from '@/modules/products/search.client';
 
 @Injectable()
 export class ProductsService {
@@ -81,6 +83,7 @@ export class ProductsService {
     @Inject(forwardRef(() => ShopsService))
     private readonly shopsService: ShopsService,
     private readonly dataSource: DataSource,
+    private readonly searchClient: SearchClient,
   ) {}
 
   // ==========================================
@@ -721,7 +724,162 @@ export class ProductsService {
   // II. READ SERVICES
   // ==========================================
 
+  // Dispatcher: dùng search-service (two-stage) khi flag ON + có từ khoá q; còn lại giữ path DB cũ.
+  // search-service lỗi/timeout → tự rơi về findAllViaDatabase (fallback ILIKE).
   async findAll(
+    query: GetProductsQueryDto,
+  ): Promise<PaginatedResponseDto<Product>> {
+    const hasKeyword = !!query.q && query.q.trim().length > 0;
+    if (this.searchClient.isEnabled() && hasKeyword) {
+      const viaSearch = await this.findAllViaSearchService(query);
+      // null = search-service không dùng được → fallback đường DB cũ.
+      if (viaSearch) {
+        return viaSearch;
+      }
+    }
+    return this.findAllViaDatabase(query);
+  }
+
+  /**
+   * Two-stage retrieval:
+   *   Stage 1 — index trả top-K product ID đã xếp hạng relevance.
+   *   Stage 2 — DB#1 là source-of-truth: lọc volatile (shop.status/rating) + sort + phân trang.
+   *   Stage 3 — hydrate đầy đủ cho đúng 1 trang.
+   * Trả null nếu search-service lỗi/timeout → caller fallback ILIKE.
+   */
+  private async findAllViaSearchService(
+    query: GetProductsQueryDto,
+  ): Promise<PaginatedResponseDto<Product> | null> {
+    let { min_price, max_price } = query;
+    [min_price, max_price] = normalizePriceRange(min_price, max_price);
+
+    // Bung subtree category ở monolith (index chỉ khớp id chính xác) rồi truyền CSV.
+    let categoryIds: string[] | undefined;
+    if (query.category_id) {
+      categoryIds = await this.resolveCategoryIds(query.category_id);
+    }
+
+    // Stage 1: lấy candidate đã xếp hạng.
+    const candidates = await this.searchClient.fetchCandidates({
+      q: (query.q as string).trim(),
+      minPrice: min_price,
+      maxPrice: max_price,
+      categoryIds,
+    });
+    if (candidates === null) {
+      return null; // lỗi → báo caller fallback
+    }
+    if (candidates.length === 0) {
+      return this.emptyPage(query); // rỗng hợp lệ → KHÔNG fallback
+    }
+
+    // Map id → vị trí rank để giữ thứ tự relevance khi sort mặc định.
+    const candidateIds = candidates.map((c) => c.productId);
+    const rankPosition = new Map<string, number>();
+    candidateIds.forEach((id, idx) => rankPosition.set(id, idx));
+
+    // Stage 2a: lọc AUTHORITATIVE trên DB#1. Chỉ lấy cột phục vụ lọc/sort — chưa hydrate.
+    const filterQb = this.productsRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.shop', 'shop')
+      .select([
+        'product.id',
+        'product.price',
+        'product.name',
+        'product.created_at',
+        'product.avg_rating',
+        'product.is_featured',
+        'product.is_out_of_stock',
+      ])
+      .where('product.id IN (:...candidateIds)', { candidateIds })
+      .andWhere('product.status = :productStatus', {
+        productStatus: ProductStatus.ACTIVE,
+      })
+      .andWhere('product.is_hidden = :isHidden', { isHidden: false })
+      .andWhere('shop.status = :shopStatus', {
+        shopStatus: AccountStatus.ACTIVE,
+      });
+
+    if (query.rating) {
+      filterQb.andWhere('product.avg_rating >= :rating', {
+        rating: query.rating,
+      });
+    }
+
+    // Stage 2b: xếp thứ tự. Hàng hết luôn xuống cuối (khớp findAll cũ).
+    const allowedSortFields = [
+      'price',
+      'created_at',
+      'name',
+      'avg_rating',
+      'is_featured',
+    ];
+    const useCustomSort =
+      !!query.sort && allowedSortFields.includes(query.sort);
+
+    let ordered: Product[];
+    if (useCustomSort) {
+      // Sort tuỳ chọn trong SQL: Postgres biết kiểu cột (decimal/date) nên so sánh đúng;
+      // làm ở JS thì price/avg_rating là string → sort chuỗi sai.
+      filterQb.orderBy('product.is_out_of_stock', 'ASC');
+      filterQb.addOrderBy(
+        `product.${query.sort as string}`,
+        query.order === 'ASC' ? 'ASC' : 'DESC',
+      );
+      ordered = await filterQb.getMany();
+    } else {
+      // Sort mặc định = giữ thứ tự rank relevance từ index. Làm ở JS bằng rankPosition
+      // (số nguyên, không dính lỗi kiểu). KHÔNG dùng skip/take → không kích hoạt
+      // subquery-distinct của TypeORM (cái kẹt với biểu thức thô trong ORDER BY).
+      const rows = await filterQb.getMany();
+      ordered = rows.sort((a, b) => {
+        if (a.is_out_of_stock !== b.is_out_of_stock) {
+          return a.is_out_of_stock ? 1 : -1;
+        }
+        const ra = rankPosition.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+        const rb = rankPosition.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+        return ra - rb;
+      });
+    }
+
+    // Stage 2c: phân trang THẬT ở monolith → total chính xác trong cửa sổ candidate.
+    const page = query.page || PAGINATION_LIMITS.DEFAULT_PAGE;
+    const limit = query.limit || PAGINATION_LIMITS.DEFAULT_LIMIT;
+    const totalItems = ordered.length;
+    const start = (page - 1) * limit;
+    const pageItems = ordered.slice(start, start + limit);
+
+    const result: PaginatedResponseDto<Product> = {
+      items: pageItems,
+      meta: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
+    };
+
+    // Stage 3: hydrate đầy đủ (shop/category/variants) cho đúng 1 trang (~20) — tái dùng hàm cũ,
+    // nó cũng xếp lại items theo đúng thứ tự id đã phân trang.
+    await this.hydrateProductPage(result, ['shop', 'category', 'variants'], {
+      shop: { id: true, name: true, logo_url: true },
+    });
+
+    return result;
+  }
+
+  // Trang rỗng đúng envelope (kết quả search rỗng hợp lệ, không phải lỗi).
+  private emptyPage(query: GetProductsQueryDto): PaginatedResponseDto<Product> {
+    const page = query.page || PAGINATION_LIMITS.DEFAULT_PAGE;
+    const limit = query.limit || PAGINATION_LIMITS.DEFAULT_LIMIT;
+    return {
+      items: [],
+      meta: { page, limit, totalItems: 0, totalPages: 0 },
+    };
+  }
+
+  // Đường DB gốc (ILIKE) — dùng khi flag OFF, không có q, hoặc search-service lỗi (fallback).
+  private async findAllViaDatabase(
     query: GetProductsQueryDto,
   ): Promise<PaginatedResponseDto<Product>> {
     let { min_price, max_price, q, category_id, sort, order = 'DESC' } = query;
