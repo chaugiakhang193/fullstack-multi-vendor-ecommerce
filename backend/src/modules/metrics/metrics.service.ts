@@ -1,7 +1,13 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Registry, collectDefaultMetrics, Histogram, Gauge } from 'prom-client';
+import {
+  Registry,
+  collectDefaultMetrics,
+  Histogram,
+  Gauge,
+  Counter,
+} from 'prom-client';
 
 import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 
@@ -24,12 +30,34 @@ export class MetricsService implements OnModuleInit {
     help: 'Tuổi (giây) của outbox event cũ nhất chưa được publish',
   });
 
+  // Tổng lượt tìm kiếm đi qua search-service, phân theo kết quả cuối cùng. Mẫu số để tính
+  // tỉ lệ fallback: served (index trả có hàng) + empty (index trả rỗng hợp lệ) + fallback
+  // (index không dùng được, đã rơi ILIKE). PromQL:
+  //   rate(search_requests_total{outcome="fallback"}[5m]) / rate(search_requests_total[5m])
+  readonly searchRequests = new Counter({
+    name: 'search_requests_total',
+    help: 'Số lượt tìm kiếm qua search-service theo kết quả (served|empty|fallback)',
+    labelNames: ['outcome'],
+  });
+
+  // Chỉ đếm các lượt PHẢI rơi về ILIKE, kèm lý do để chẩn đoán: timeout (cold-start/chậm),
+  // http_5xx (edge-proxy khi service ngủ/deploy), http_4xx (sai request), bad_shape (JSON
+  // thiếu items), network (connection refused / đứt mạng). Tách khỏi outcome=fallback để
+  // soi được vì sao rơi mà không phải bung nhãn chéo.
+  readonly searchFallback = new Counter({
+    name: 'search_fallback_total',
+    help: 'Số lượt search rơi về ILIKE theo lý do (timeout|http_5xx|http_4xx|bad_shape|network)',
+    labelNames: ['reason'],
+  });
+
   constructor(
     @InjectRepository(OutboxEvent)
     private readonly outboxRepo: Repository<OutboxEvent>,
   ) {
     this.registry.registerMetric(this.httpDuration);
     this.registry.registerMetric(this.outboxLag);
+    this.registry.registerMetric(this.searchRequests);
+    this.registry.registerMetric(this.searchFallback);
     // CPU, RAM, event loop lag, GC của chính Node.
     collectDefaultMetrics({ register: this.registry });
   }

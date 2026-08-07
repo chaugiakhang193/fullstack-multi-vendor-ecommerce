@@ -21,12 +21,14 @@ import { ProductVariant } from '@/modules/products/entities/product-variant.enti
 // Modules
 import { CloudinaryModule } from '@/modules/cloudinary/cloudinary.module';
 import { ShopsModule } from '@/modules/shops/shops.module';
+import { MetricsModule } from '@/modules/metrics/metrics.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, Category, ProductVariant]),
     CloudinaryModule,
     forwardRef(() => ShopsModule),
+    MetricsModule,
   ],
   controllers: [
     ProductsController,
