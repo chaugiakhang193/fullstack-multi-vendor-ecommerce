@@ -72,6 +72,7 @@ import {
 } from '@/common/constants/outbox.constants';
 import { PAGINATION_LIMITS } from '@/common/constants/pagination.constant';
 import { SearchClient } from '@/modules/products/search.client';
+import { SearchWarmupService } from '@/modules/products/search-warmup.service';
 
 @Injectable()
 export class ProductsService {
@@ -84,6 +85,7 @@ export class ProductsService {
     private readonly shopsService: ShopsService,
     private readonly dataSource: DataSource,
     private readonly searchClient: SearchClient,
+    private readonly searchWarmup: SearchWarmupService,
   ) {}
 
   // ==========================================
@@ -725,16 +727,21 @@ export class ProductsService {
   // ==========================================
 
   // Dispatcher: dùng search-service (two-stage) khi flag ON + có từ khoá q; còn lại giữ path DB cũ.
-  // search-service lỗi/timeout → tự rơi về findAllViaDatabase (fallback ILIKE).
+  // Khi browse (không q) mà flag ON → poke proactive để đánh thức search-service trước lúc khách gõ.
   async findAll(
     query: GetProductsQueryDto,
   ): Promise<PaginatedResponseDto<Product>> {
     const hasKeyword = !!query.q && query.q.trim().length > 0;
-    if (this.searchClient.isEnabled() && hasKeyword) {
-      const viaSearch = await this.findAllViaSearchService(query);
-      // null = search-service không dùng được → fallback đường DB cũ.
-      if (viaSearch) {
-        return viaSearch;
+    if (this.searchClient.isEnabled()) {
+      if (hasKeyword) {
+        const viaSearch = await this.findAllViaSearchService(query);
+        // null = search-service không dùng được → fallback đường DB cũ.
+        if (viaSearch) {
+          return viaSearch;
+        }
+      } else {
+        // Browse toàn sàn → đánh thức trước (throttle 10' lo phần gọi quá dày).
+        this.searchWarmup.warm();
       }
     }
     return this.findAllViaDatabase(query);
@@ -767,7 +774,9 @@ export class ProductsService {
       categoryIds,
     });
     if (candidates === null) {
-      return null; // lỗi → báo caller fallback
+      // Reactive: search-service lỗi/ngủ → đánh thức cho cú search sau ấm. Rồi báo caller fallback.
+      this.searchWarmup.warm();
+      return null;
     }
     if (candidates.length === 0) {
       return this.emptyPage(query); // rỗng hợp lệ → KHÔNG fallback

@@ -6,6 +6,7 @@ import { ProductsService } from '@/modules/products/products.service';
 import { ProductStockService } from '@/modules/products/product-stock.service';
 import { CategoriesService } from '@/modules/products/categories.service';
 import { SearchClient } from '@/modules/products/search.client';
+import { SearchWarmupService } from '@/modules/products/search-warmup.service';
 
 // Controllers
 import { ProductsController } from '@/modules/products/products.controller';
@@ -41,6 +42,7 @@ import { MetricsModule } from '@/modules/metrics/metrics.module';
     ProductStockService,
     CategoriesService,
     SearchClient,
+    SearchWarmupService,
   ],
   exports: [ProductsService, ProductStockService, CategoriesService],
 })
