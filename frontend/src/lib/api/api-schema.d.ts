@@ -544,6 +544,23 @@ export interface paths {
         patch: operations["CategoriesController_update"];
         trace?: never;
     };
+    "/api/v1/admin/products/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin nạp lại toàn bộ sản phẩm vào search index (backfill) */
+        post: operations["AdminProductsController_reindexSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/products": {
         parameters: {
             query?: never;
@@ -4984,6 +5001,37 @@ export interface operations {
             };
             /** @description Không tìm thấy danh mục để cập nhật */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminProductsController_reindexSearch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chưa đăng nhập. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Yêu cầu quyền ADMIN. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
