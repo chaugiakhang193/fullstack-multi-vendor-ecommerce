@@ -71,7 +71,10 @@ import {
   ProductDeletedOutboxPayload,
 } from '@/common/constants/outbox.constants';
 import { PAGINATION_LIMITS } from '@/common/constants/pagination.constant';
-import { SearchClient } from '@/modules/products/search.client';
+import {
+  SearchClient,
+  SearchCandidate,
+} from '@/modules/products/search.client';
 import { SearchWarmupService } from '@/modules/products/search-warmup.service';
 
 @Injectable()
@@ -782,12 +785,8 @@ export class ProductsService {
       return this.emptyPage(query); // rỗng hợp lệ → KHÔNG fallback
     }
 
-    // Map id → vị trí rank để giữ thứ tự relevance khi sort mặc định.
+    // Stage 2a: lọc AUTHORITATIVE toàn sàn trên DB#1. Chỉ lấy cột phục vụ lọc/sort.
     const candidateIds = candidates.map((c) => c.productId);
-    const rankPosition = new Map<string, number>();
-    candidateIds.forEach((id, idx) => rankPosition.set(id, idx));
-
-    // Stage 2a: lọc AUTHORITATIVE trên DB#1. Chỉ lấy cột phục vụ lọc/sort — chưa hydrate.
     const filterQb = this.productsRepository
       .createQueryBuilder('product')
       .innerJoin('product.shop', 'shop')
@@ -814,6 +813,25 @@ export class ProductsService {
         rating: query.rating,
       });
     }
+
+    // Stage 2b/2c/3: đuôi chung.
+    return this.rankSortPaginateHydrate(filterQb, candidates, query);
+  }
+
+  /**
+   * Đuôi chung của two-stage cho cả tìm toàn sàn lẫn tìm trong 1 shop: nhận filterQb đã lọc
+   * AUTHORITATIVE (stage 2a) + candidate đã xếp hạng, rồi xếp thứ tự (2b) + phân trang thật (2c)
+   * + hydrate đầy đủ 1 trang (stage 3). Tách để 2 lối vào khỏi lặp; phần dựng filterQb (khác nhau
+   * giữa toàn-sàn và scope-shop) mỗi hàm tự lo.
+   */
+  private async rankSortPaginateHydrate(
+    filterQb: SelectQueryBuilder<Product>,
+    candidates: SearchCandidate[],
+    query: GetProductsQueryDto,
+  ): Promise<PaginatedResponseDto<Product>> {
+    // Map id → vị trí rank để giữ thứ tự relevance khi sort mặc định.
+    const rankPosition = new Map<string, number>();
+    candidates.forEach((c, idx) => rankPosition.set(c.productId, idx));
 
     // Stage 2b: xếp thứ tự. Hàng hết luôn xuống cuối (khớp findAll cũ).
     const allowedSortFields = [
@@ -868,13 +886,79 @@ export class ProductsService {
       },
     };
 
-    // Stage 3: hydrate đầy đủ (shop/category/variants) cho đúng 1 trang (~20) — tái dùng hàm cũ,
+    // Stage 3: hydrate đầy đủ (shop/category/variants) cho đúng 1 trang — tái dùng hàm cũ,
     // nó cũng xếp lại items theo đúng thứ tự id đã phân trang.
     await this.hydrateProductPage(result, ['shop', 'category', 'variants'], {
       shop: { id: true, name: true, logo_url: true },
     });
 
     return result;
+  }
+
+  /**
+   * Two-stage cho catalog 1 shop (`/products/shop/:id?q=`). Như findAllViaSearchService nhưng
+   * scope theo shopId: truyền vào index (stage 1) VÀ lọc lại `shop.id` ở stage 2a (authoritative,
+   * phòng thủ). Trả null nếu search-service lỗi/timeout → caller fallback ILIKE.
+   */
+  private async findShopCatalogViaSearchService(
+    shopId: string,
+    query: GetProductsQueryDto,
+  ): Promise<PaginatedResponseDto<Product> | null> {
+    let { min_price, max_price } = query;
+    [min_price, max_price] = normalizePriceRange(min_price, max_price);
+
+    let categoryIds: string[] | undefined;
+    if (query.category_id) {
+      categoryIds = await this.resolveCategoryIds(query.category_id);
+    }
+
+    // Stage 1: candidate đã xếp hạng, scope theo shop ngay ở index.
+    const candidates = await this.searchClient.fetchCandidates({
+      q: (query.q as string).trim(),
+      minPrice: min_price,
+      maxPrice: max_price,
+      shopId,
+      categoryIds,
+    });
+    if (candidates === null) {
+      this.searchWarmup.warm();
+      return null;
+    }
+    if (candidates.length === 0) {
+      return this.emptyPage(query);
+    }
+
+    // Stage 2a: lọc AUTHORITATIVE + ràng buộc shop.id (phòng thủ, index đã scope nhưng DB#1 là nguồn).
+    const candidateIds = candidates.map((c) => c.productId);
+    const filterQb = this.productsRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.shop', 'shop')
+      .select([
+        'product.id',
+        'product.price',
+        'product.name',
+        'product.created_at',
+        'product.avg_rating',
+        'product.is_featured',
+        'product.is_out_of_stock',
+      ])
+      .where('product.id IN (:...candidateIds)', { candidateIds })
+      .andWhere('shop.id = :shopId', { shopId })
+      .andWhere('product.status = :productStatus', {
+        productStatus: ProductStatus.ACTIVE,
+      })
+      .andWhere('product.is_hidden = :isHidden', { isHidden: false })
+      .andWhere('shop.status = :shopStatus', {
+        shopStatus: AccountStatus.ACTIVE,
+      });
+
+    if (query.rating) {
+      filterQb.andWhere('product.avg_rating >= :rating', {
+        rating: query.rating,
+      });
+    }
+
+    return this.rankSortPaginateHydrate(filterQb, candidates, query);
   }
 
   // Trang rỗng đúng envelope (kết quả search rỗng hợp lệ, không phải lỗi).
@@ -986,6 +1070,8 @@ export class ProductsService {
     return result;
   }
 
+  // Dispatcher catalog 1 shop: check shop trước; flag ON + có q → two-stage scope shop, null → ILIKE.
+  // Browse trong shop (không q) + flag ON → poke proactive.
   async getPublicCatalogByShop(
     shopId: string,
     query: GetProductsQueryDto,
@@ -994,6 +1080,29 @@ export class ProductsService {
     const isPublicShop = true;
     const shop = await this.shopsService.findOneByShopId(shopId, isPublicShop);
 
+    const hasKeyword = !!query.q && query.q.trim().length > 0;
+    if (this.searchClient.isEnabled()) {
+      if (hasKeyword) {
+        const viaSearch = await this.findShopCatalogViaSearchService(
+          shop.id,
+          query,
+        );
+        if (viaSearch) {
+          return viaSearch;
+        }
+      } else {
+        this.searchWarmup.warm();
+      }
+    }
+    return this.getShopCatalogViaDatabase(shop.id, query);
+  }
+
+  // Đường DB gốc (ILIKE) cho catalog 1 shop — fallback khi flag OFF / không q / search-service lỗi.
+  // Nhận shop.id đã resolve ở dispatcher (thân cũ chỉ dùng shop.id nên khỏi truyền cả entity Shop).
+  private async getShopCatalogViaDatabase(
+    shopId: string,
+    query: GetProductsQueryDto,
+  ): Promise<PaginatedResponseDto<Product>> {
     let { min_price, max_price, q, category_id, sort, order = 'DESC' } = query;
 
     // 1. Chốt chặn bảo mật tự động đảo ngược khoảng giá (Graceful Fallback)
@@ -1009,7 +1118,7 @@ export class ProductsService {
       .innerJoin(shopJoinProperty, shopAlias);
 
     // Lọc theo Shop và các điều kiện hiển thị Public đối với Customer
-    queryBuilder.where('product.shop.id = :shopId', { shopId: shop.id });
+    queryBuilder.where('product.shop.id = :shopId', { shopId });
     queryBuilder.andWhere('product.status = :productStatus', {
       productStatus: ProductStatus.ACTIVE,
     });
