@@ -227,6 +227,15 @@ was measured rather than assumed:
 > evidence is structural, not the milliseconds: a sequential scan is **O(n)**, so its cost grows linearly
 > with the catalogue while an index does not. The functional gap, by contrast, is already real today.
 
+**The replacement is now built and measured.** A dedicated Go service keeps a Postgres full-text index
+(`tsvector` + GIN + `unaccent`); the monolith retrieves ranked IDs from it, then hydrates and paginates
+from its own database, with a 300 ms timeout that falls back to the old `ILIKE` query behind a
+`SEARCH_SERVICE_ENABLED` flag (still off in production, pending rollout). Re-running the same k6 scenario
+on a 50k-product catalogue, the O(n) prediction holds: the old scan's p95 at 100 VU climbs to **6.07 s**
+while the indexed path stays at **186 ms**, and `dien thoai` now returns results instead of nothing.
+Details: [`docs/search-architecture.md`](docs/search-architecture.md) (design) ·
+[`docs/search-explain.md`](docs/search-explain.md) (query plans + load numbers).
+
 > **Why the observability stack is local-only.** Jaeger, Prometheus and Grafana run from
 > `docker-compose.observability.yml` on a developer machine, not in production. The hosting budget for
 > this project is the free tier, which is spent on the things a visitor actually touches (API, databases,

@@ -61,11 +61,47 @@ B** (54.5 ms vs 6.7 ms) and, notably, even slower than the old `ILIKE` — becau
 `tsvector` match per row costs more than a substring match. This isolates the index's contribution: the
 win is the GIN index, not the full-text operator on its own.
 
+## Under load: end-to-end p95 with k6
+
+The plans above are single queries. The same k6 scenario — 7 Vietnamese keywords (accented and
+unaccented) at 10 / 50 / 100 concurrent VUs — was then run against `GET /products?q=…` end-to-end on one
+machine at **50,000 products**, once on the old in-monolith `ILIKE` path and once with the feature flag
+on so the request goes monolith → search-service → hydrate.
+
+| Load | old `ILIKE` p95 | two-stage p95 | speedup |
+|---|---|---|---|
+| 10 VU  | 407 ms | **60 ms**  | ~6.8× |
+| 50 VU  | 1.55 s | **99 ms**  | ~15.7× |
+| 100 VU | 6.07 s | **186 ms** | ~32.6× |
+
+Zero HTTP errors on both runs. Under saturation the `ILIKE` path also completed far less work — 3,748 vs
+8,932 requests — because its slow queries hold each connection longer.
+
+The gap grows with the catalog, which is the point: a `Seq Scan` is O(rows), a GIN lookup is not.
+
+| Rows | `ILIKE` p95 @100 VU |
+|---|---|
+| 82     | 84 ms    |
+| 20,000 | 373 ms   |
+| 50,000 | 6,070 ms |
+
+The old path's p95 climbs 84 → 373 → 6,070 ms as the table grows; the two-stage path measured **186 ms**
+at 50k and stays roughly flat, because GIN retrieval is sub-linear and hydration is capped at one page of
+results.
+
+**Honest caveats.** This is one machine — the backend, the Go service, both databases and k6 all share
+one CPU, whereas in production the service and its index live on separate hosts. The load keywords are
+broad (~2,500 matches each; a more selective real query favors full-text even more). The p99/max tail at
+100 VU is noisy over a single run: the p50/p95 figures are stable, the extreme tail is not a one-run
+claim. Numbers were taken with a temporary 50k synthetic seed, removed afterwards. Reproduce with
+`k6 run observability/k6/baseline-search.js` (flag off vs on) after seeding the catalog.
+
 ## Takeaway
 
 The old search did a full-table `Seq Scan` **and** returned the wrong answer (0 of 25, because of
-accents). The new path is correct (accent-insensitive) and, on this data, an order of magnitude faster
-because the GIN index answers the query with a bitmap index scan instead of reading every row.
+accents). The new path is correct (accent-insensitive), an order of magnitude faster per query on this
+data because the GIN index answers with a bitmap index scan instead of reading every row, and — because
+that scan cost is O(rows) — it pulls further ahead as the catalog grows.
 
 ## Reproduce
 
