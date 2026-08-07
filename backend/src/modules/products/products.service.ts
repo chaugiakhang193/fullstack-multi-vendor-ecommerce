@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -15,6 +16,7 @@ import {
   In,
   Brackets,
   SelectQueryBuilder,
+  Not,
 } from 'typeorm';
 import {
   generateSlug,
@@ -79,6 +81,11 @@ import { SearchWarmupService } from '@/modules/products/search-warmup.service';
 
 @Injectable()
 export class ProductsService {
+  // Guard chống chạy chồng reindex trong cùng process (admin bấm 2 lần liên tiếp).
+  // Mỗi lần reindex nạp N OutboxEvent với event_id mới, consumer KHÔNG dedup giữa 2
+  // lần chạy nên chạy chồng = phí công gấp đôi. Singleton nên field instance là đủ.
+  private reindexInProgress = false;
+
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
@@ -723,6 +730,61 @@ export class ProductsService {
     };
     const outboxEvent = manager.create(OutboxEvent, eventData);
     await manager.save(OutboxEvent, outboxEvent);
+  }
+
+  // Backfill toàn bộ search index: re-emit product.updated cho MỌI product chưa xoá.
+  //
+  // Vì sao re-emit qua outbox thay vì để search-service tự đọc DB#1: giữ nguyên
+  // database-per-service và tái dùng consumer idempotent (dedup processed_events +
+  // guard updated_at). Mỗi OutboxEvent mới có id (uuid) riêng → relay map thành eventId
+  // mới → consumer KHÔNG skip. Product chưa có trong index đi nhánh INSERT nên guard
+  // updated_at không cản. Việc index diễn ra BẤT ĐỒNG BỘ qua relay+consumer; hàm này
+  // chỉ nạp event vào outbox rồi trả về số đã nạp (queued), không chờ index xong.
+  async reindexSearchIndex(): Promise<{ queued: number }> {
+    if (this.reindexInProgress) {
+      throw new ConflictException('Reindex đang chạy, thử lại sau.');
+    }
+    this.reindexInProgress = true;
+    try {
+      const pageSize = 200;
+      let skip = 0;
+      let queued = 0;
+
+      for (;;) {
+        // PHẢI load kèm shop + category: emitProductSnapshot đọc product.shop?.id và
+        // product.category?.id — thiếu relations thì payload mất shopId/categoryId.
+        const products = await this.productsRepository.find({
+          where: { status: Not(ProductStatus.DELETED) },
+          relations: ['shop', 'category'],
+          order: { id: 'ASC' },
+          skip,
+          take: pageSize,
+        });
+        if (products.length === 0) {
+          break;
+        }
+
+        // Mỗi trang là 1 transaction: các OutboxEvent của trang cùng sống hoặc cùng
+        // chết. Không gộp tất cả vào 1 transaction để tránh giữ tx quá lâu khi số
+        // product lớn dần.
+        await this.dataSource.transaction(async (manager) => {
+          for (const product of products) {
+            await this.emitProductSnapshot(
+              manager,
+              product,
+              OUTBOX_EVENT_TYPES.PRODUCT_UPDATED,
+            );
+          }
+        });
+
+        queued += products.length;
+        skip += pageSize;
+      }
+
+      return { queued };
+    } finally {
+      this.reindexInProgress = false;
+    }
   }
 
   // ==========================================

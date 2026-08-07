@@ -1,11 +1,14 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Query,
   Body,
   ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -38,6 +41,16 @@ import type { IUser } from '@/interface/user.interface';
 @Controller('admin/products')
 export class AdminProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  @Post('reindex')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'Admin nạp lại toàn bộ sản phẩm vào search index (backfill)',
+  })
+  @ResponseMessage('Đã nạp sản phẩm vào hàng đợi reindex')
+  reindexSearch() {
+    return this.productsService.reindexSearchIndex();
+  }
 
   @Get()
   @ApiOperation({
