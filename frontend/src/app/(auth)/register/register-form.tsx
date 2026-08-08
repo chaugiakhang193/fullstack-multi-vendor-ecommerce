@@ -33,7 +33,10 @@ import authApiRequest from '@/apiRequests/auth/auth';
 import { getErrorMessage } from '@/lib/http';
 //Store
 import { useAuthStore } from '@/store/useAuthStore';
-import { TurnstileWidget } from '@/components/shared/turnstile-widget';
+import {
+  TurnstileWidget,
+  CAPTCHA_ENABLED,
+} from '@/components/shared/turnstile-widget';
 
 export function RegisterForm({
   className,
@@ -72,14 +75,17 @@ export function RegisterForm({
   });
 
   async function onSubmit(data: RegisterBodyType) {
-    if (!captchaToken) {
+    if (CAPTCHA_ENABLED && !captchaToken) {
       toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
       return;
     }
     try {
       setIsLoading(true);
       const { confirmPassword, ...dataToSend } = data;
-      const res = await authApiRequest.register(dataToSend, captchaToken);
+      const res = await authApiRequest.register(
+        dataToSend,
+        captchaToken ?? undefined,
+      );
       toast.success('Tuyệt vời!', {
         description: res.message || 'Bạn đã tạo tài khoản thành công.',
       });
@@ -225,7 +231,7 @@ export function RegisterForm({
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || !captchaToken}
+                  disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
                 >
                   {isLoading ? (
                     <>

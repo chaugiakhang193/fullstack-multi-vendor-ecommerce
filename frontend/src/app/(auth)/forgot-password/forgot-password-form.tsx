@@ -30,7 +30,10 @@ import {
   ForgotPasswordBody,
   ForgotPasswordBodyType,
 } from '@/schemaValidations/auth/auth.schema';
-import { TurnstileWidget } from '@/components/shared/turnstile-widget';
+import {
+  TurnstileWidget,
+  CAPTCHA_ENABLED,
+} from '@/components/shared/turnstile-widget';
 
 export function ForgotPasswordForm({
   className,
@@ -58,13 +61,16 @@ export function ForgotPasswordForm({
   });
 
   async function onSubmit(data: ForgotPasswordBodyType) {
-    if (!captchaToken) {
+    if (CAPTCHA_ENABLED && !captchaToken) {
       toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
       return;
     }
     try {
       setIsLoading(true);
-      const res = await authApiRequest.forgotPassword(data, captchaToken);
+      const res = await authApiRequest.forgotPassword(
+        data,
+        captchaToken ?? undefined,
+      );
       toast.success('Thành công', {
         description:
           res.message ||
@@ -133,7 +139,11 @@ export function ForgotPasswordForm({
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || cooldown > 0 || !captchaToken}
+                  disabled={
+                    isLoading ||
+                    cooldown > 0 ||
+                    (CAPTCHA_ENABLED && !captchaToken)
+                  }
                 >
                   {isLoading ? (
                     <>

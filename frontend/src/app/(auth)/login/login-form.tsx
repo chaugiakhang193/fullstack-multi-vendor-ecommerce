@@ -35,7 +35,10 @@ import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { LoginBody, LoginBodyType } from '@/schemaValidations/auth/auth.schema';
-import { TurnstileWidget } from '@/components/shared/turnstile-widget';
+import {
+  TurnstileWidget,
+  CAPTCHA_ENABLED,
+} from '@/components/shared/turnstile-widget';
 
 export function LoginForm({
   className,
@@ -98,14 +101,17 @@ export function LoginForm({
   });
 
   async function onSubmit(data: LoginBodyType) {
-    if (!captchaToken) {
+    if (CAPTCHA_ENABLED && !captchaToken) {
       toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
       return;
     }
     try {
       const dataToSend = data;
       setIsLoading(true);
-      const res = await authApiRequest.login(dataToSend, captchaToken);
+      const res = await authApiRequest.login(
+        dataToSend,
+        captchaToken ?? undefined,
+      );
       const UserInfo = res.data.user;
       const access_token = res.data.access_token;
       setAuth(UserInfo, access_token);
@@ -216,7 +222,7 @@ export function LoginForm({
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || !captchaToken}
+                  disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
                 >
                   {isLoading ? (
                     <>

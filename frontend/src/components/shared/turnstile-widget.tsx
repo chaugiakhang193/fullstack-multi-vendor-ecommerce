@@ -15,6 +15,10 @@ declare global {
 const SITEKEY = process.env.NEXT_PUBLIC_TURNSTILE_SITEKEY;
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 
+// Bật khi CÓ sitekey. Chưa cấu hình (vd Vercel chưa set env) → form KHÔNG bắt buộc captcha,
+// khớp fail-open bên BE; nếu không sẽ khoá nút submit vĩnh viễn vì token không bao giờ có.
+export const CAPTCHA_ENABLED = !!SITEKEY;
+
 // Widget Turnstile: nạp script một lần, render explicit để lấy token qua callback.
 // onVerify/onExpire nên là hàm ổn định (setState setter hoặc useCallback) tránh render lại.
 export function TurnstileWidget({

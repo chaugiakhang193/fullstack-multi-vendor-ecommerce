@@ -35,7 +35,10 @@ import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { tabId } from '@/lib/utils';
 //Store
 import { useAuthStore } from '@/store/useAuthStore';
-import { TurnstileWidget } from '@/components/shared/turnstile-widget';
+import {
+  TurnstileWidget,
+  CAPTCHA_ENABLED,
+} from '@/components/shared/turnstile-widget';
 
 export function RegisterSellerForm({
   className,
@@ -105,14 +108,17 @@ export function RegisterSellerForm({
   });
 
   async function onSubmit(data: RegisterBodyType) {
-    if (!captchaToken) {
+    if (CAPTCHA_ENABLED && !captchaToken) {
       toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
       return;
     }
     try {
       setIsLoading(true);
       const { confirmPassword, ...dataToSend } = data;
-      const res = await authApiRequest.registerSeller(dataToSend, captchaToken);
+      const res = await authApiRequest.registerSeller(
+        dataToSend,
+        captchaToken ?? undefined,
+      );
       toast.success('Tuyệt vời!', {
         description:
           res.message || 'Bạn đã gửi yêu cầu đăng ký người bán thành công.',
@@ -307,7 +313,7 @@ export function RegisterSellerForm({
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || !captchaToken}
+                  disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
                 >
                   {isLoading ? (
                     <>
