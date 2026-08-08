@@ -29,6 +29,7 @@ import {
 
 import { AuthService } from '@/auth/auth.service';
 import { ConfigService } from '@nestjs/config';
+import { TurnstileGuard } from '@/auth/guard/turnstile.guard';
 
 //DTO
 import { RegisterDto } from '@/auth/dto/register.dto';
@@ -85,6 +86,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 180000 } })
   @ResponseMessage('Đăng ký tài khoản thành công')
   @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
@@ -102,6 +104,7 @@ export class AuthController {
 
   @Public()
   @Post('seller/register')
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 180000 } })
   @ResponseMessage('Đăng ký tài khoản người bán thành công')
   @ApiOperation({ summary: 'Đăng ký tài khoản người bán mới' })
@@ -118,6 +121,7 @@ export class AuthController {
 
   @Public()
   @Post('resend-verification')
+  @UseGuards(TurnstileGuard)
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 2, ttl: 60000 } })
   @ResponseMessage(
@@ -169,7 +173,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(TurnstileGuard, LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -298,6 +302,7 @@ export class AuthController {
 
   @Public()
   @Post('forgot-password')
+  @UseGuards(TurnstileGuard)
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 2, ttl: 60000 } })
   @ResponseMessage(
