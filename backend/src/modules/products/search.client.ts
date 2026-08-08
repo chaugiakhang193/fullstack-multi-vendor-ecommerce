@@ -32,9 +32,11 @@ export class SearchClient {
   // Khớp maxLimit=300 bên search-service.
   private static readonly CANDIDATE_LIMIT = 300;
 
-  // Timeout ngắn: search-service ngủ (Render scale-to-zero) hoặc chậm quá ngưỡng thì bỏ,
-  // fallback ILIKE. 300ms đủ cho service đã ấm trả lời; cold-start sẽ vượt → fallback đúng ý đồ.
-  private static readonly TIMEOUT_MS = 300;
+  // Timeout cho mỗi lần gọi search-service. Khi service đã ấm, /search phản hồi khoảng
+  // 170–300ms, nên ngưỡng 300ms trước đây dễ hết giờ ngay cả lúc service hoạt động bình thường.
+  // Nâng lên 700ms để dung sai độ trễ khi ấm; vẫn nhỏ hơn nhiều so với cold-start (~13s) nên khi
+  // service ngủ sẽ vượt ngưỡng và fallback về ILIKE đúng như thiết kế.
+  private static readonly TIMEOUT_MS = 700;
 
   constructor(
     private readonly configService: ConfigService,
