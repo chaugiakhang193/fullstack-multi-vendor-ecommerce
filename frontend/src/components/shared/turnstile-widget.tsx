@@ -76,5 +76,5 @@ export function TurnstileWidget({
   if (!SITEKEY) {
     return null;
   }
-  return <div ref={containerRef} className="my-2" />;
+  return <div ref={containerRef} className="my-2 flex justify-center" />;
 }
