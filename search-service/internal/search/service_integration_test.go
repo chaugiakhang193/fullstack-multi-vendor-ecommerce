@@ -182,3 +182,37 @@ func TestSearchQRong(t *testing.T) {
 		t.Fatal("q rong phai bao loi ErrEmptyQuery")
 	}
 }
+
+// TestSearchTrigramMotPhanVaTypo: FTS chi khop nguyen lexeme nen go do "die" hay sai chinh ta
+// "dienn" se rong -> nhanh trigram vot. "dien" nguyen ven van qua FTS; rac khong khop gi ca hai.
+func TestSearchTrigramMotPhanVaTypo(t *testing.T) {
+	svc, store, ctx := setup(t)
+	shopID := "44444444-4444-4444-4444-444444444444"
+	seedProduct(t, ctx, store, "44444444-4444-4444-4444-444444444441", "Điện thoại Athena", "", "5000000", shopID, nil)
+
+	cases := []struct {
+		name    string
+		query   string
+		wantMin int
+		wantMax int // -1 = khong gioi han tren
+	}{
+		{"mot phan dau tu", "die", 1, -1},   // FTS rong -> trigram vot
+		{"sai chinh ta", "dienn", 1, -1},    // typo -> trigram van bat
+		{"tu nguyen ven qua FTS", "dien", 1, -1},
+		{"rac khong khop", "zzzzz", 0, 0},   // ca FTS lan trigram deu 0
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := svc.Search(ctx, search.Request{Query: tc.query, Page: 1, Limit: 20})
+			if err != nil {
+				t.Fatalf("q=%q search loi: %v", tc.query, err)
+			}
+			if len(res.Items) < tc.wantMin {
+				t.Fatalf("q=%q: muon >=%d ket qua, nhan %d", tc.query, tc.wantMin, len(res.Items))
+			}
+			if tc.wantMax >= 0 && len(res.Items) > tc.wantMax {
+				t.Fatalf("q=%q: muon <=%d ket qua, nhan %d", tc.query, tc.wantMax, len(res.Items))
+			}
+		})
+	}
+}

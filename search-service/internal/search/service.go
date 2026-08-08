@@ -48,14 +48,16 @@ type Result struct {
 	Limit int    `json:"limit"`
 }
 
-// Service boc sqlc Queries tren pool dung chung voi store ghi.
+// Service boc sqlc Queries tren pool dung chung voi store ghi. Giu them pool de mo
+// transaction rieng cho nhanh trigram (can SET LOCAL nguong word_similarity).
 type Service struct {
-	q *searchdb.Queries
+	q    *searchdb.Queries
+	pool *pgxpool.Pool
 }
 
 // NewService nhan pool (tu index.Store.Pool()) — dung chung, khong mo pool moi.
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{q: searchdb.New(pool)}
+	return &Service{q: searchdb.New(pool), pool: pool}
 }
 
 // toNumeric doi *string sang pgtype.Numeric cho param nullable cua sqlc. Chu y: override
@@ -116,6 +118,13 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 		return Result{}, fmt.Errorf("dem ket qua search loi: %w", err)
 	}
 
+	// FTS khong khop lexeme nao -> thu trigram fuzzy/partial (recall backstop). Chi chay khi
+	// can nen khong dung ranking FTS cho truong hop khop tu nguyen ven; bo luon query search
+	// FTS ben duoi vi chac chan cung rong.
+	if total == 0 {
+		return s.searchTrgm(ctx, req, page, limit, offset)
+	}
+
 	rows, err := s.q.SearchProducts(ctx, searchdb.SearchProductsParams{
 		Query:       req.Query,
 		MinPrice:    toNumeric(req.MinPrice),
@@ -134,5 +143,59 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 		items = append(items, Item{ProductID: r.ProductID, Rank: r.Rank})
 	}
 
+	return Result{Items: items, Total: total, Page: page, Limit: limit}, nil
+}
+
+// searchTrgm chay nhanh trigram trong 1 transaction de SET LOCAL nguong word_similarity
+// (0.6 mac dinh qua chat, "die" truot). Transaction chi de doi GUC pham vi cuc bo — cac query
+// van la doc-only. Params y het FTS (cung bo loc gia/shop/category).
+func (s *Service) searchTrgm(
+	ctx context.Context,
+	req Request,
+	page, limit, offset int,
+) (Result, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Result{}, fmt.Errorf("mo tx trigram loi: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, "SET LOCAL pg_trgm.word_similarity_threshold = 0.3"); err != nil {
+		return Result{}, fmt.Errorf("set nguong trigram loi: %w", err)
+	}
+	qtx := s.q.WithTx(tx)
+
+	total, err := qtx.CountSearchProductsTrgm(ctx, searchdb.CountSearchProductsTrgmParams{
+		Query:       req.Query,
+		MinPrice:    toNumeric(req.MinPrice),
+		MaxPrice:    toNumeric(req.MaxPrice),
+		ShopID:      toUUID(req.ShopID),
+		CategoryIds: req.CategoryIDs,
+	})
+	if err != nil {
+		return Result{}, fmt.Errorf("dem ket qua trigram loi: %w", err)
+	}
+
+	rows, err := qtx.SearchProductsTrgm(ctx, searchdb.SearchProductsTrgmParams{
+		Query:       req.Query,
+		MinPrice:    toNumeric(req.MinPrice),
+		MaxPrice:    toNumeric(req.MaxPrice),
+		ShopID:      toUUID(req.ShopID),
+		CategoryIds: req.CategoryIDs,
+		PageLimit:   int32(limit),
+		PageOffset:  int32(offset),
+	})
+	if err != nil {
+		return Result{}, fmt.Errorf("query trigram loi: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return Result{}, fmt.Errorf("commit tx trigram loi: %w", err)
+	}
+
+	items := make([]Item, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, Item{ProductID: r.ProductID, Rank: r.Rank})
+	}
 	return Result{Items: items, Total: total, Page: page, Limit: limit}, nil
 }
