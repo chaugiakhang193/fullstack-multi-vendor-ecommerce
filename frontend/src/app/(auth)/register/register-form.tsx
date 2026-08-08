@@ -33,6 +33,7 @@ import authApiRequest from '@/apiRequests/auth/auth';
 import { getErrorMessage } from '@/lib/http';
 //Store
 import { useAuthStore } from '@/store/useAuthStore';
+import { TurnstileWidget } from '@/components/shared/turnstile-widget';
 
 export function RegisterForm({
   className,
@@ -40,6 +41,7 @@ export function RegisterForm({
 }: React.ComponentProps<'div'>) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -70,15 +72,20 @@ export function RegisterForm({
   });
 
   async function onSubmit(data: RegisterBodyType) {
+    if (!captchaToken) {
+      toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
+      return;
+    }
     try {
       setIsLoading(true);
       const { confirmPassword, ...dataToSend } = data;
-      const res = await authApiRequest.register(dataToSend);
+      const res = await authApiRequest.register(dataToSend, captchaToken);
       toast.success('Tuyệt vời!', {
         description: res.message || 'Bạn đã tạo tài khoản thành công.',
       });
       router.push('/verify-email');
     } catch (error) {
+      setCaptchaToken(null);
       const errMsg = getErrorMessage(error);
       const failTitle = 'Đăng ký thất bại';
       toast.error(failTitle, {
@@ -210,11 +217,15 @@ export function RegisterForm({
               />
 
               {/* Phần mô tả mật khẩu và Nút Submit */}
+              <TurnstileWidget
+                onVerify={setCaptchaToken}
+                onExpire={() => setCaptchaToken(null)}
+              />
               <div className="pt-4">
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading}
+                  disabled={isLoading || !captchaToken}
                 >
                   {isLoading ? (
                     <>

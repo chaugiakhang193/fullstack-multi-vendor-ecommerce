@@ -30,6 +30,7 @@ import {
   ForgotPasswordBody,
   ForgotPasswordBodyType,
 } from '@/schemaValidations/auth/auth.schema';
+import { TurnstileWidget } from '@/components/shared/turnstile-widget';
 
 export function ForgotPasswordForm({
   className,
@@ -38,6 +39,7 @@ export function ForgotPasswordForm({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [cooldown, setCooldown] = useState<number>(0);
   const [hasSent, setHasSent] = useState<boolean>(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -56,9 +58,13 @@ export function ForgotPasswordForm({
   });
 
   async function onSubmit(data: ForgotPasswordBodyType) {
+    if (!captchaToken) {
+      toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
+      return;
+    }
     try {
       setIsLoading(true);
-      const res = await authApiRequest.forgotPassword(data);
+      const res = await authApiRequest.forgotPassword(data, captchaToken);
       toast.success('Thành công', {
         description:
           res.message ||
@@ -67,6 +73,7 @@ export function ForgotPasswordForm({
       setHasSent(true);
       setCooldown(60);
     } catch (error) {
+      setCaptchaToken(null);
       const errMsg = getErrorMessage(error);
       const failTitle = 'Thất bại';
       toast.error(failTitle, {
@@ -118,11 +125,15 @@ export function ForgotPasswordForm({
                   </Field>
                 )}
               />
+              <TurnstileWidget
+                onVerify={setCaptchaToken}
+                onExpire={() => setCaptchaToken(null)}
+              />
               <div className="flex flex-col gap-3 pt-4">
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || cooldown > 0}
+                  disabled={isLoading || cooldown > 0 || !captchaToken}
                 >
                   {isLoading ? (
                     <>

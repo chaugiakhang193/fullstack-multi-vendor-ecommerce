@@ -35,6 +35,7 @@ import { BROADCAST_CHANNELS, BROADCAST_EVENTS } from '@/constants/broadcast';
 import { tabId } from '@/lib/utils';
 //Store
 import { useAuthStore } from '@/store/useAuthStore';
+import { TurnstileWidget } from '@/components/shared/turnstile-widget';
 
 export function RegisterSellerForm({
   className,
@@ -43,6 +44,7 @@ export function RegisterSellerForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -103,16 +105,21 @@ export function RegisterSellerForm({
   });
 
   async function onSubmit(data: RegisterBodyType) {
+    if (!captchaToken) {
+      toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
+      return;
+    }
     try {
       setIsLoading(true);
       const { confirmPassword, ...dataToSend } = data;
-      const res = await authApiRequest.registerSeller(dataToSend);
+      const res = await authApiRequest.registerSeller(dataToSend, captchaToken);
       toast.success('Tuyệt vời!', {
         description:
           res.message || 'Bạn đã gửi yêu cầu đăng ký người bán thành công.',
       });
       router.push('/verify-email');
     } catch (error) {
+      setCaptchaToken(null);
       const errMsg = getErrorMessage(error);
       const failTitle = 'Đăng ký thất bại';
       toast.error(failTitle, {
@@ -292,11 +299,15 @@ export function RegisterSellerForm({
                 )}
               />
 
+              <TurnstileWidget
+                onVerify={setCaptchaToken}
+                onExpire={() => setCaptchaToken(null)}
+              />
               <div className="pt-4">
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading}
+                  disabled={isLoading || !captchaToken}
                 >
                   {isLoading ? (
                     <>
