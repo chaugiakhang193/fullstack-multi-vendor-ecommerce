@@ -140,29 +140,58 @@ export default function CustomerLayout({
     setActiveIndex(-1);
   };
 
-  // Helper tô đậm từ khóa tìm kiếm trùng khớp
+  // Bỏ dấu tiếng Việt để so khớp không phân biệt dấu, đồng nhất với unaccent của search-service.
+  // NFD tách nguyên âm có dấu thành ký tự nền cộng dấu tổ hợp; riêng "đ" không bị NFD tách nên
+  // ánh xạ thủ công đ->d, Đ->D cho khớp luật unaccent của Postgres.
+  const stripDiacritics = (input: string) => {
+    return input
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  };
+
+  // Tô đậm phần trùng khớp: so khớp trên chuỗi đã bỏ dấu rồi cắt lát chuỗi gốc theo cùng chỉ số.
+  // Bỏ dấu giữ nguyên số ký tự nên chỉ số căn thẳng giữa hai chuỗi. Cách này cũng an toàn khi
+  // query chứa ký tự đặc biệt, vốn làm new RegExp(query) ném lỗi hoặc khớp sai.
   const highlightText = (text: string, query: string) => {
-    if (!query) return <span>{text}</span>;
-    const regexPattern = new RegExp(`(${query})`, 'gi');
-    const parts = text.split(regexPattern);
-    return (
-      <span>
-        {parts.map((part, index) => {
-          const keyVal = `highlight-part-${index}`;
-          const isMatch = part.toLowerCase() === query.toLowerCase();
-          return isMatch ? (
-            <span
-              key={keyVal}
-              className="font-extrabold text-violet-600 dark:text-violet-400"
-            >
-              {part}
-            </span>
-          ) : (
-            <span key={keyVal}>{part}</span>
-          );
-        })}
-      </span>
-    );
+    const needle = stripDiacritics(query).trim().toLowerCase();
+    if (!needle) return <span>{text}</span>;
+
+    const haystack = stripDiacritics(text).toLowerCase();
+    const segments: React.ReactNode[] = [];
+    let cursor = 0;
+    let keyCounter = 0;
+    let matchIdx = haystack.indexOf(needle);
+
+    while (matchIdx !== -1) {
+      if (matchIdx > cursor) {
+        segments.push(
+          <span key={`hl-${keyCounter++}`}>
+            {text.slice(cursor, matchIdx)}
+          </span>,
+        );
+      }
+      const matchEnd = matchIdx + needle.length;
+      segments.push(
+        <span
+          key={`hl-${keyCounter++}`}
+          className="font-extrabold text-violet-600 dark:text-violet-400"
+        >
+          {text.slice(matchIdx, matchEnd)}
+        </span>,
+      );
+      cursor = matchEnd;
+      matchIdx = haystack.indexOf(needle, cursor);
+    }
+
+    if (cursor < text.length) {
+      segments.push(
+        <span key={`hl-${keyCounter++}`}>{text.slice(cursor)}</span>,
+      );
+    }
+
+    return <span>{segments}</span>;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
