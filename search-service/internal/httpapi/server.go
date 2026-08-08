@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -58,7 +59,15 @@ func searchHandler(logger *slog.Logger, searcher *search.Service) http.HandlerFu
 				writeJSON(w, logger, http.StatusBadRequest, map[string]string{"error": "thieu tham so q"})
 				return
 			}
-			logger.Error("search loi", "err", err)
+			// Client (monolith) cat ket noi khi vuot timeout AbortController -> r.Context() bi huy
+			// -> query dang chay tra context.Canceled. Chuyen lanh tinh, khong phai loi service,
+			// nen tach ra log INFO de khong lam nhieu error-rate. Response 500 ben duoi di vao hu
+			// khong vi client da ngat, giu nguyen cho gon.
+			if errors.Is(err, context.Canceled) {
+				logger.Info("client huy request search", "q", q)
+			} else {
+				logger.Error("search loi", "err", err)
+			}
 			writeJSON(w, logger, http.StatusInternalServerError, map[string]string{"error": "loi noi bo"})
 			return
 		}
