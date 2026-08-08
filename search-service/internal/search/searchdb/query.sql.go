@@ -44,6 +44,39 @@ func (q *Queries) CountSearchProducts(ctx context.Context, arg CountSearchProduc
 	return total, err
 }
 
+const countSearchProductsTrgm = `-- name: CountSearchProductsTrgm :one
+SELECT count(*) AS total
+FROM product_index
+WHERE unaccent($1::text) <% name_unaccent
+  AND status = 'active'
+  AND is_hidden = false
+  AND ($2::numeric IS NULL OR price >= $2::numeric)
+  AND ($3::numeric IS NULL OR price <= $3::numeric)
+  AND ($4::uuid IS NULL OR shop_id = $4::uuid)
+  AND ($5::uuid[] IS NULL OR category_id = ANY($5::uuid[]))
+`
+
+type CountSearchProductsTrgmParams struct {
+	Query       string         `json:"query"`
+	MinPrice    pgtype.Numeric `json:"min_price"`
+	MaxPrice    pgtype.Numeric `json:"max_price"`
+	ShopID      pgtype.UUID    `json:"shop_id"`
+	CategoryIds []string       `json:"category_ids"`
+}
+
+func (q *Queries) CountSearchProductsTrgm(ctx context.Context, arg CountSearchProductsTrgmParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countSearchProductsTrgm,
+		arg.Query,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.ShopID,
+		arg.CategoryIds,
+	)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const searchProducts = `-- name: SearchProducts :many
 
 SELECT
@@ -97,6 +130,69 @@ func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) 
 	var items []SearchProductsRow
 	for rows.Next() {
 		var i SearchProductsRow
+		if err := rows.Scan(&i.ProductID, &i.Rank); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchProductsTrgm = `-- name: SearchProductsTrgm :many
+
+SELECT
+    product_id,
+    word_similarity(unaccent($1::text), name_unaccent)::real AS rank
+FROM product_index
+WHERE unaccent($1::text) <% name_unaccent
+  AND status = 'active'
+  AND is_hidden = false
+  AND ($2::numeric IS NULL OR price >= $2::numeric)
+  AND ($3::numeric IS NULL OR price <= $3::numeric)
+  AND ($4::uuid IS NULL OR shop_id = $4::uuid)
+  AND ($5::uuid[] IS NULL OR category_id = ANY($5::uuid[]))
+ORDER BY rank DESC, product_id
+LIMIT $7::int OFFSET $6::int
+`
+
+type SearchProductsTrgmParams struct {
+	Query       string         `json:"query"`
+	MinPrice    pgtype.Numeric `json:"min_price"`
+	MaxPrice    pgtype.Numeric `json:"max_price"`
+	ShopID      pgtype.UUID    `json:"shop_id"`
+	CategoryIds []string       `json:"category_ids"`
+	PageOffset  int32          `json:"page_offset"`
+	PageLimit   int32          `json:"page_limit"`
+}
+
+type SearchProductsTrgmRow struct {
+	ProductID string  `json:"product_id"`
+	Rank      float32 `json:"rank"`
+}
+
+// Search fuzzy/partial bang trigram — CHI chay khi FTS rong (recall backstop). Toan tu <%:
+// q co "tu" khop mo trong name_unaccent, nguong theo pg_trgm.word_similarity_threshold
+// (service SET LOCAL = 0.3). rank = word_similarity de xep gan dung nhat len truoc.
+func (q *Queries) SearchProductsTrgm(ctx context.Context, arg SearchProductsTrgmParams) ([]SearchProductsTrgmRow, error) {
+	rows, err := q.db.Query(ctx, searchProductsTrgm,
+		arg.Query,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.ShopID,
+		arg.CategoryIds,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchProductsTrgmRow
+	for rows.Next() {
+		var i SearchProductsTrgmRow
 		if err := rows.Scan(&i.ProductID, &i.Rank); err != nil {
 			return nil, err
 		}

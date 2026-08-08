@@ -22,4 +22,5 @@ type ProductIndex struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	IndexedAt    pgtype.Timestamptz `json:"indexed_at"`
 	SearchVector interface{}        `json:"search_vector"`
+	NameUnaccent *string            `json:"name_unaccent"`
 }

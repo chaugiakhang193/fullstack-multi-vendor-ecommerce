@@ -28,3 +28,33 @@ WHERE search_vector @@ websearch_to_tsquery('simple', unaccent(@query::text))
   AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric)
   AND (sqlc.narg('shop_id')::uuid IS NULL OR shop_id = sqlc.narg('shop_id')::uuid)
   AND (sqlc.narg('category_ids')::uuid[] IS NULL OR category_id = ANY(sqlc.narg('category_ids')::uuid[]));
+
+-- Search fuzzy/partial bang trigram — CHI chay khi FTS rong (recall backstop). Toan tu <%:
+-- q co "tu" khop mo trong name_unaccent, nguong theo pg_trgm.word_similarity_threshold
+-- (service SET LOCAL = 0.3). rank = word_similarity de xep gan dung nhat len truoc.
+
+-- name: SearchProductsTrgm :many
+SELECT
+    product_id,
+    word_similarity(unaccent(@query::text), name_unaccent)::real AS rank
+FROM product_index
+WHERE unaccent(@query::text) <% name_unaccent
+  AND status = 'active'
+  AND is_hidden = false
+  AND (sqlc.narg('min_price')::numeric IS NULL OR price >= sqlc.narg('min_price')::numeric)
+  AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric)
+  AND (sqlc.narg('shop_id')::uuid IS NULL OR shop_id = sqlc.narg('shop_id')::uuid)
+  AND (sqlc.narg('category_ids')::uuid[] IS NULL OR category_id = ANY(sqlc.narg('category_ids')::uuid[]))
+ORDER BY rank DESC, product_id
+LIMIT @page_limit::int OFFSET @page_offset::int;
+
+-- name: CountSearchProductsTrgm :one
+SELECT count(*) AS total
+FROM product_index
+WHERE unaccent(@query::text) <% name_unaccent
+  AND status = 'active'
+  AND is_hidden = false
+  AND (sqlc.narg('min_price')::numeric IS NULL OR price >= sqlc.narg('min_price')::numeric)
+  AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric)
+  AND (sqlc.narg('shop_id')::uuid IS NULL OR shop_id = sqlc.narg('shop_id')::uuid)
+  AND (sqlc.narg('category_ids')::uuid[] IS NULL OR category_id = ANY(sqlc.narg('category_ids')::uuid[]));

@@ -21,5 +21,6 @@ CREATE TABLE product_index (
     is_hidden     boolean NOT NULL,
     updated_at    timestamptz NOT NULL,
     indexed_at    timestamptz NOT NULL DEFAULT now(),
-    search_vector tsvector
+    search_vector tsvector,
+    name_unaccent text
 );
