@@ -14,13 +14,32 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
 const (
 	eventsExchange = "ecommerce.events"
+	retryExchange  = "ecommerce.retry"
+	retryTTL       = 10000 // 10s
 	prefetchCount  = 10
+	maxRetries     = 3
 )
+
+// indexStore la interface hep cho phan store ma consumer thuc su can. Tach interface
+// de test tiem duoc fake tra loi DB co chu dich (test retry/DLQ) ma khong can DB that.
+// *index.Store thoa interface nay.
+type indexStore interface {
+	UpsertProduct(ctx context.Context, eventID string, doc index.ProductDoc) error
+	DeleteProduct(ctx context.Context, eventID string, productID string, deletedAt time.Time) error
+}
+
+// publisher la interface hep cho thao tac publish len broker. Tach interface de test
+// tiem duoc fake (ghi lai message da publish, hoac gia lap loi publish) ma khong can
+// RabbitMQ that. *amqp.Channel thoa interface nay qua PublishWithContext.
+type publisher interface {
+	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+}
 
 // bindingKeys la routing key search-service quan tam. KHONG bind wildcard
 // product.* vi product.moderated la payload khac danh cho notification-service.
@@ -40,31 +59,34 @@ var reconnectDelays = []time.Duration{
 	30 * time.Second,
 }
 
-// requeueDelay la khoang cho truoc khi Nack(requeue) khi ghi index loi, tranh hot-loop
-// khi DB chet keo dai (message bi redeliver lien tuc). Chua co DLQ.
-const requeueDelay = 2 * time.Second
-
 // Consumer giu cau hinh can de (tai) ket noi RabbitMQ va tieu thu message, cong voi
 // Store de ghi document vao index (DB#3).
 type Consumer struct {
-	url     string
-	queue   string
-	store   *index.Store
-	logger  *slog.Logger
-	metrics *telemetry.Metrics
+	url             string
+	queue           string
+	retryQueue      string
+	dlqQueue        string
+	retryRoutingKey string
+	dlqRoutingKey   string
+	store           indexStore
+	logger          *slog.Logger
+	metrics         *telemetry.Metrics
 }
 
 // NewConsumer khoi tao consumer chua ket noi. Goi Run de bat dau vong doi. queue
 // den tu config: moi moi truong (local / Render) dat ten rieng de khong chia nhau
 // message tren cung mot broker.
 func NewConsumer(url string, queue string, store *index.Store, logger *slog.Logger) *Consumer {
-	globalMetrics := telemetry.GetMetrics()
 	return &Consumer{
-		url:     url,
-		queue:   queue,
-		store:   store,
-		logger:  logger,
-		metrics: globalMetrics,
+		url:             url,
+		queue:           queue,
+		retryQueue:      queue + ".retry",
+		dlqQueue:        queue + ".dlq",
+		retryRoutingKey: "retry." + queue,
+		dlqRoutingKey:   "dlq." + queue,
+		store:           store,
+		logger:          logger,
+		metrics:         telemetry.GetMetrics(),
 	}
 }
 
@@ -161,7 +183,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context) (bool, error) {
 				// Kenh deliveries dong — coi nhu mat ket noi.
 				return true, amqp.ErrClosed
 			}
-			c.handleMessage(ctx, msg)
+			c.handleMessage(ctx, ch, msg)
 		}
 	}
 }
@@ -182,40 +204,70 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 			return err
 		}
 	}
+
+	// Declare DLQ & Retry Topology dong theo c.queue
+	if err := ch.ExchangeDeclare(retryExchange, "direct", true, false, false, false, nil); err != nil {
+		return err
+	}
+	retryArgs := amqp.Table{
+		"x-message-ttl":             int32(retryTTL),
+		"x-dead-letter-exchange":    "",
+		"x-dead-letter-routing-key": c.queue,
+	}
+	if _, err := ch.QueueDeclare(c.retryQueue, true, false, false, false, retryArgs); err != nil {
+		return err
+	}
+	if err := ch.QueueBind(c.retryQueue, c.retryRoutingKey, retryExchange, false, nil); err != nil {
+		return err
+	}
+
+	if _, err := ch.QueueDeclare(c.dlqQueue, true, false, false, false, nil); err != nil {
+		return err
+	}
+	if err := ch.QueueBind(c.dlqQueue, c.dlqRoutingKey, retryExchange, false, nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // handleMessage decode envelope + payload roi ghi vao index (DB#3 Neon), dedup qua
-// processed_events trong Store. Quyet dinh ack/nack:
-//   - payload hong (decode/parse loi): Ack de bo (khong requeue vo ich) — chua co DLQ.
+// processed_events trong Store. Quyet dinh ack/nack/retry/dlq:
+//   - payload hong (decode/parse loi, thieu occurredAt): sendToDLQ va Ack.
 //   - ghi thanh cong hoac event trung / tombstone blocked: Ack.
-//   - loi DB tam thoi: Nack(requeue) de redeliver, khong mat message.
-func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
-	msgHeaders := msg.Headers
-	msgCtx := telemetry.ExtractAMQPContext(ctx, msgHeaders)
-
-	tracerName := "search-consumer"
-	tracer := otel.Tracer(tracerName)
-	spanKind := trace.WithSpanKind(trace.SpanKindConsumer)
-	sysAttr := attribute.String("messaging.system", "rabbitmq")
-	destAttr := attribute.String("messaging.destination", eventsExchange)
-	routingKey := msg.RoutingKey
-	keyAttr := attribute.String("messaging.rabbitmq.routing_key", routingKey)
-	spanAttrs := trace.WithAttributes(sysAttr, destAttr, keyAttr)
-
-	spanName := "consume " + routingKey
-	msgCtx, span := tracer.Start(msgCtx, spanName, spanKind, spanAttrs)
+//   - loi DB tam thoi: sendToRetry tang x-retry-count (toi da maxRetries) roi DLQ, Ack.
+//   - publish retry/dlq loi: Nack(requeue=true) de khong mat message.
+func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.Delivery) {
+	// Extract W3C traceparent tu headers VA tao Consumer Span TRUOC
+	msgCtx := telemetry.ExtractAMQPContext(ctx, msg.Headers)
+	tracer := otel.Tracer("search-consumer")
+	msgCtx, span := tracer.Start(msgCtx, "consume "+msg.RoutingKey,
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(
+			attribute.String("messaging.system", "rabbitmq"),
+			attribute.String("messaging.destination", eventsExchange),
+			attribute.String("messaging.rabbitmq.routing_key", msg.RoutingKey),
+		),
+	)
 	defer span.End()
 
 	var env Envelope
-	msgBody := msg.Body
-	if err := json.Unmarshal(msgBody, &env); err != nil {
-		c.logger.Error("decode envelope loi, bo message", "err", err)
+	if err := json.Unmarshal(msg.Body, &env); err != nil {
+		c.logger.Error("decode envelope loi, gui DLQ", "err", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+			_ = msg.Nack(false, true)
+			return
+		}
+		c.metrics.EventsProcessedTotal.WithLabelValues("unknown", "poison").Inc()
 		_ = msg.Ack(false)
 		return
 	}
 
 	timeout := 10 * time.Second
+	// procCtx duoc tao TU msgCtx de truyen span context vao cac DB operations
 	procCtx, cancel := context.WithTimeout(msgCtx, timeout)
 	defer cancel()
 
@@ -228,35 +280,75 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 	case "product.created", "product.updated":
 		var p ProductSnapshot
 		if decodeErr := json.Unmarshal(payload, &p); decodeErr != nil {
-			c.logger.Error("decode ProductSnapshot loi, bo message", "eventId", eventID, "err", decodeErr)
+			c.logger.Error("decode ProductSnapshot loi, gui DLQ", "eventId", eventID, "err", decodeErr)
+			span.RecordError(decodeErr)
+			span.SetStatus(codes.Error, decodeErr.Error())
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
 			_ = msg.Ack(false)
 			return
 		}
 		doc, convErr := toProductDoc(p)
 		if convErr != nil {
-			// updatedAt khong parse duoc = payload hong → ack-drop, requeue cung khong sua duoc.
-			c.logger.Error("payload product hong, bo message", "eventId", eventID, "err", convErr)
+			c.logger.Error("payload product hong, gui DLQ", "eventId", eventID, "err", convErr)
+			span.RecordError(convErr)
+			span.SetStatus(codes.Error, convErr.Error())
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
 			_ = msg.Ack(false)
 			return
 		}
 		err = c.store.UpsertProduct(procCtx, eventID, doc)
-		
+
 	case "product.deleted":
 		var d ProductDeleted
 		if decodeErr := json.Unmarshal(payload, &d); decodeErr != nil {
-			c.logger.Error("decode ProductDeleted loi, bo message", "eventId", eventID, "err", decodeErr)
+			c.logger.Error("decode ProductDeleted loi, gui DLQ", "eventId", eventID, "err", decodeErr)
+			span.RecordError(decodeErr)
+			span.SetStatus(codes.Error, decodeErr.Error())
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
 			_ = msg.Ack(false)
 			return
 		}
 		productID := d.ProductID
 		if env.OccurredAt == "" {
-			c.logger.Error("payload delete thieu occurredAt, bo message", "eventId", eventID)
+			timeErr := errors.New("envelope thieu occurredAt timestamp")
+			c.logger.Error("payload delete thieu occurredAt, gui DLQ", "eventId", eventID)
+			span.RecordError(timeErr)
+			span.SetStatus(codes.Error, timeErr.Error())
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
 			_ = msg.Ack(false)
 			return
 		}
 		deletedAt, pErr := time.Parse(time.RFC3339, env.OccurredAt)
 		if pErr != nil {
-			c.logger.Error("parse occurredAt loi, bo message", "eventId", eventID, "err", pErr)
+			c.logger.Error("parse occurredAt loi, gui DLQ", "eventId", eventID, "err", pErr)
+			span.RecordError(pErr)
+			span.SetStatus(codes.Error, pErr.Error())
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
 			_ = msg.Ack(false)
 			return
 		}
@@ -270,7 +362,119 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 		return
 	}
 
-	c.ackOrRetry(msg, env, err)
+	c.processResult(ctx, span, pub, msg, env, err)
+}
+
+// processResult quyet dinh ack/nack/retry/dlq theo ket qua ghi index:
+//   - nil: ghi thanh cong -> ack.
+//   - ErrDuplicateEvent: event da xu ly (processed_events trung) -> ack, skip.
+//   - ErrTombstoneBlocked: event update bi chan boi tombstone -> ack, skip.
+//   - loi DB/network: retry maxRetries lan qua retry queue, roi sang DLQ.
+func (c *Consumer) processResult(ctx context.Context, span trace.Span, pub publisher, msg amqp.Delivery, env Envelope, err error) {
+	eventID := env.EventID
+	eventType := env.EventType
+
+	switch {
+	case err == nil:
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "success").Inc()
+		_ = msg.Ack(false)
+
+	case errors.Is(err, index.ErrDuplicateEvent):
+		c.logger.Info("event da xu ly truoc do, skip", "eventId", eventID, "eventType", eventType)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "duplicate").Inc()
+		_ = msg.Ack(false)
+
+	case errors.Is(err, index.ErrTombstoneBlocked):
+		c.logger.Info("event update bi chan boi tombstone, skip", "eventId", eventID, "eventType", eventType)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "tombstone_blocked").Inc()
+		_ = msg.Ack(false)
+
+	default:
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		retryCount := getRetryCount(msg.Headers)
+		if retryCount >= maxRetries {
+			c.logger.Error("het luot retry, chuyen sang DLQ", "eventId", eventID, "eventType", eventType, "err", err)
+			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "dlq").Inc()
+			_ = msg.Ack(false)
+		} else {
+			c.logger.Warn("ghi index loi, chuyen retry queue", "eventId", eventID, "retry", retryCount+1, "err", err)
+			if pubErr := c.sendToRetry(ctx, pub, msg, retryCount+1); pubErr != nil {
+				c.logger.Error("publish retry loi, nack requeue", "err", pubErr)
+				_ = msg.Nack(false, true)
+				return
+			}
+			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "retry").Inc()
+			_ = msg.Ack(false)
+		}
+	}
+}
+
+// sendToRetry publish message sang ecommerce.retry direct exchange voi routing key retry.{queue} va header x-retry-count.
+func (c *Consumer) sendToRetry(ctx context.Context, pub publisher, msg amqp.Delivery, nextRetry int) error {
+	// Clone header thay vi sua truc tiep tren delivery goc: neu publish loi va roi vao
+	// nhanh Nack(requeue), delivery goc phai giu nguyen traceparent + header ban dau.
+	headers := cloneHeaders(msg.Headers)
+	headers["x-retry-count"] = int32(nextRetry)
+
+	return pub.PublishWithContext(ctx,
+		retryExchange,
+		c.retryRoutingKey,
+		false,
+		false,
+		amqp.Publishing{
+			Headers:      headers,
+			ContentType:  msg.ContentType,
+			Body:         msg.Body,
+			DeliveryMode: amqp.Persistent,
+		},
+	)
+}
+
+// sendToDLQ publish message sang ecommerce.retry direct exchange voi routing key dlq.{queue}.
+func (c *Consumer) sendToDLQ(ctx context.Context, pub publisher, msg amqp.Delivery) error {
+	return pub.PublishWithContext(ctx,
+		retryExchange,
+		c.dlqRoutingKey,
+		false,
+		false,
+		amqp.Publishing{
+			Headers:      msg.Headers,
+			ContentType:  msg.ContentType,
+			Body:         msg.Body,
+			DeliveryMode: amqp.Persistent,
+		},
+	)
+}
+
+// cloneHeaders sao chep nong bang header de sua ban sao ma khong dung den delivery goc.
+// Giu nguyen traceparent va moi header khac; chi ban sao moi duoc them x-retry-count.
+func cloneHeaders(src amqp.Table) amqp.Table {
+	dst := make(amqp.Table, len(src)+1)
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+// getRetryCount lay gia tri header x-retry-count tu amqp.Table, tra ve 0 neu khong co.
+func getRetryCount(headers amqp.Table) int {
+	if headers == nil {
+		return 0
+	}
+	val, ok := headers["x-retry-count"]
+	if !ok {
+		return 0
+	}
+	if count, isInt := val.(int32); isInt {
+		return int(count)
+	}
+	return 0
 }
 
 // toProductDoc chuyen ProductSnapshot (broker) sang index.ProductDoc, parse updatedAt tu
@@ -284,72 +488,19 @@ func toProductDoc(p ProductSnapshot) (index.ProductDoc, error) {
 		return index.ProductDoc{}, fmt.Errorf("parse updatedAt %q loi: %w", updatedAtStr, err)
 	}
 
-	productID := p.ProductID
-	name := p.Name
-	slug := p.Slug
-	description := p.Description
-	price := p.Price
-	shopID := p.ShopID
-	categoryID := p.CategoryID
-	thumbnailURL := p.ThumbnailURL
-	status := p.Status
-	isHidden := p.IsHidden
-
 	return index.ProductDoc{
-		ProductID:    productID,
-		Name:         name,
-		Slug:         slug,
-		Description:  description,
-		Price:        price,
-		ShopID:       shopID,
-		CategoryID:   categoryID,
-		ThumbnailURL: thumbnailURL,
-		Status:       status,
-		IsHidden:     isHidden,
+		ProductID:    p.ProductID,
+		Name:         p.Name,
+		Slug:         p.Slug,
+		Description:  p.Description,
+		Price:        p.Price,
+		ShopID:       p.ShopID,
+		CategoryID:   p.CategoryID,
+		ThumbnailURL: p.ThumbnailURL,
+		Status:       p.Status,
+		IsHidden:     p.IsHidden,
 		UpdatedAt:    updatedAt,
 	}, nil
-}
-
-// ackOrRetry quyet dinh ack/nack theo ket qua ghi index:
-//   - nil: ghi thanh cong → ack.
-//   - ErrDuplicateEvent: event da xu ly (processed_events trung) → ack, skip.
-//   - ErrTombstoneBlocked: event update bi chan boi tombstone → ack, skip.
-//   - loi khac (DB tam thoi): cho requeueDelay roi Nack(requeue=true) de redeliver, khong
-//     mat message. Delay tranh hot-loop khi DB chet keo dai.
-func (c *Consumer) ackOrRetry(msg amqp.Delivery, env Envelope, err error) {
-	eventID := env.EventID
-	eventType := env.EventType
-	switch {
-	case err == nil:
-		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "success").Inc()
-		multiple := false
-		if ackErr := msg.Ack(multiple); ackErr != nil {
-			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
-		}
-	case errors.Is(err, index.ErrDuplicateEvent):
-		c.logger.Info("event da xu ly truoc do, skip", "eventId", eventID, "eventType", eventType)
-		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "duplicate").Inc()
-		multiple := false
-		if ackErr := msg.Ack(multiple); ackErr != nil {
-			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
-		}
-	case errors.Is(err, index.ErrTombstoneBlocked):
-		c.logger.Info("event update bi chan boi tombstone, skip", "eventId", eventID, "eventType", eventType)
-		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "tombstone_blocked").Inc()
-		multiple := false
-		if ackErr := msg.Ack(multiple); ackErr != nil {
-			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
-		}
-	default:
-		c.logger.Warn("ghi index loi, se redeliver", "eventId", eventID, "eventType", eventType, "err", err)
-		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "error").Inc()
-		time.Sleep(requeueDelay)
-		multiple := false
-		requeue := true
-		if nackErr := msg.Nack(multiple, requeue); nackErr != nil {
-			c.logger.Error("nack loi", "eventId", eventID, "err", nackErr)
-		}
-	}
 }
 
 // backoffWithJitter tra delay theo bac thang reconnectDelays voi jitter +-20%
