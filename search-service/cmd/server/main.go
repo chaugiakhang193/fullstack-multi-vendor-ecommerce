@@ -86,7 +86,9 @@ func main() {
 	// Close SAU khi consumer dung (wg.Wait o cuoi main dam bao). defer LIFO chay truoc return.
 	defer store.Close()
 
-	store.UpdateIndexCountMetric(ctx)
+	if err := store.UpdateIndexCountMetric(ctx); err != nil {
+		logger.Warn("dem index luc khoi dong loi", "err", err)
+	}
 
 	// Cap nhat gauge co index dinh ky duoi nen moi 15s. Khong dem dong bo trong
 	// upsert/delete vi count(*) tren Postgres phai quet MVCC, se nghen consumer khi
@@ -100,7 +102,10 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				store.UpdateIndexCountMetric(ctx)
+				// Loi luc dang tat khong dang bao: ctx bi huy cat ngang query dang chay.
+				if err := store.UpdateIndexCountMetric(ctx); err != nil && ctx.Err() == nil {
+					logger.Warn("cap nhat gauge index loi", "err", err)
+				}
 			}
 		}
 	}()

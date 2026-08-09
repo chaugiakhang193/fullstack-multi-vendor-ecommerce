@@ -66,13 +66,18 @@ func NewStore(ctx context.Context, databaseURL string) (*Store, error) {
 // UpdateIndexCountMetric dem so product active roi set vao gauge. Chi goi tu
 // background ticker 15s trong main.go + 1 lan luc khoi dong; KHONG goi trong
 // upsert/delete de tranh count(*) MVCC tren duong nong lam cham consumer.
-func (s *Store) UpdateIndexCountMetric(ctx context.Context) {
+//
+// Tra loi thay vi nuot: DB hong thi gauge dung im o gia tri cu mai mai, nhin tren
+// dashboard khong khac gi mot index dang khoe. Caller log de con biet duong. Store
+// khong tu log de khong phai om logger, giong moi ham khac o day.
+func (s *Store) UpdateIndexCountMetric(ctx context.Context) error {
 	const q = `SELECT count(*) FROM product_index WHERE status = 'active'`
 	var count int64
-	if err := s.pool.QueryRow(ctx, q).Scan(&count); err == nil {
-		gaugeVal := float64(count)
-		telemetry.GetMetrics().IndexProductsGauge.Set(gaugeVal)
+	if err := s.pool.QueryRow(ctx, q).Scan(&count); err != nil {
+		return fmt.Errorf("dem product active loi: %w", err)
 	}
+	telemetry.GetMetrics().IndexProductsGauge.Set(float64(count))
+	return nil
 }
 
 // Close dong pool khi service shutdown. Goi SAU khi consumer da dung (main dam bao
