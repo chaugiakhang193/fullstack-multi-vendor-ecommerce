@@ -228,6 +228,7 @@ func TestPublishFailureNoAck(t *testing.T) {
 	pub := &fakePublisher{failWith: errors.New("broker tu choi publish")}
 	c := newTestConsumer(&fakeStore{})
 
+	before := metricCount(t, "unknown", "nack_requeue")
 	msg := newDelivery(ack, "product.updated", nil, []byte("{ hong"))
 	c.handleMessage(context.Background(), pub, msg)
 
@@ -236,6 +237,9 @@ func TestPublishFailureNoAck(t *testing.T) {
 	}
 	if !ack.nacked || !ack.nackRequeue {
 		t.Errorf("publish loi phai Nack(requeue=true): acked=%v nacked=%v requeue=%v", ack.acked, ack.nacked, ack.nackRequeue)
+	}
+	if got := metricCount(t, "unknown", "nack_requeue"); got != before+1 {
+		t.Errorf("metric nack_requeue tang %v, muon 1: broker chet ma dashboard khong thay gi", got-before)
 	}
 }
 
@@ -269,6 +273,7 @@ func TestRetryPublishFailureNoAck(t *testing.T) {
 	pub := &fakePublisher{failWith: errors.New("broker tu choi publish")}
 	c := newTestConsumer(&fakeStore{upsertErr: errors.New("db tam thoi chet")})
 
+	before := metricCount(t, "product.updated", "nack_requeue")
 	msg := newDelivery(ack, "product.updated", nil, validUpsertBody(t))
 	c.handleMessage(context.Background(), pub, msg)
 
@@ -277,6 +282,9 @@ func TestRetryPublishFailureNoAck(t *testing.T) {
 	}
 	if !ack.nacked || !ack.nackRequeue {
 		t.Errorf("phai Nack(requeue=true): acked=%v nacked=%v requeue=%v", ack.acked, ack.nacked, ack.nackRequeue)
+	}
+	if got := metricCount(t, "product.updated", "nack_requeue"); got != before+1 {
+		t.Errorf("metric nack_requeue tang %v, muon 1", got-before)
 	}
 }
 
@@ -287,6 +295,7 @@ func TestDLQPublishFailureHetRetryNoAck(t *testing.T) {
 	pub := &fakePublisher{failWith: errors.New("broker tu choi publish")}
 	c := newTestConsumer(&fakeStore{upsertErr: errors.New("db tam thoi chet")})
 
+	before := metricCount(t, "product.updated", "nack_requeue")
 	headers := amqp.Table{"x-retry-count": int32(maxRetries)}
 	msg := newDelivery(ack, "product.updated", headers, validUpsertBody(t))
 	c.handleMessage(context.Background(), pub, msg)
@@ -296,6 +305,9 @@ func TestDLQPublishFailureHetRetryNoAck(t *testing.T) {
 	}
 	if !ack.nacked || !ack.nackRequeue {
 		t.Errorf("phai Nack(requeue=true): acked=%v nacked=%v requeue=%v", ack.acked, ack.nacked, ack.nackRequeue)
+	}
+	if got := metricCount(t, "product.updated", "nack_requeue"); got != before+1 {
+		t.Errorf("metric nack_requeue tang %v, muon 1", got-before)
 	}
 }
 

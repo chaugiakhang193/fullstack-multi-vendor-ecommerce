@@ -257,8 +257,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-			c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-			_ = msg.Nack(false, true)
+			c.nackRequeue(msg, "unknown", pubErr)
 			return
 		}
 		c.metrics.EventsProcessedTotal.WithLabelValues("unknown", "poison").Inc()
@@ -284,8 +283,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			span.RecordError(decodeErr)
 			span.SetStatus(codes.Error, decodeErr.Error())
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
@@ -298,8 +296,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			span.RecordError(convErr)
 			span.SetStatus(codes.Error, convErr.Error())
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
@@ -315,8 +312,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			span.RecordError(decodeErr)
 			span.SetStatus(codes.Error, decodeErr.Error())
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
@@ -330,8 +326,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			span.RecordError(timeErr)
 			span.SetStatus(codes.Error, timeErr.Error())
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
@@ -344,8 +339,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			span.RecordError(pErr)
 			span.SetStatus(codes.Error, pErr.Error())
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "poison").Inc()
@@ -400,8 +394,7 @@ func (c *Consumer) processResult(ctx context.Context, span trace.Span, pub publi
 		if retryCount >= maxRetries {
 			c.logger.Error("het luot retry, chuyen sang DLQ", "eventId", eventID, "eventType", eventType, "err", err)
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
-				c.logger.Error("publish DLQ loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "dlq").Inc()
@@ -409,8 +402,7 @@ func (c *Consumer) processResult(ctx context.Context, span trace.Span, pub publi
 		} else {
 			c.logger.Warn("ghi index loi, chuyen retry queue", "eventId", eventID, "retry", retryCount+1, "err", err)
 			if pubErr := c.sendToRetry(ctx, pub, msg, retryCount+1); pubErr != nil {
-				c.logger.Error("publish retry loi, nack requeue", "err", pubErr)
-				_ = msg.Nack(false, true)
+				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
 			c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "retry").Inc()
@@ -454,6 +446,16 @@ func (c *Consumer) sendToDLQ(ctx context.Context, pub publisher, msg amqp.Delive
 			DeliveryMode: amqp.Persistent,
 		},
 	)
+}
+
+// nackRequeue tra message ve queue khi publish sang retry/DLQ that bai, dong thoi ghi nhan
+// vao metric. Truoc day nhanh nay hoan toan im lang: broker chet thi message bien mat khoi
+// search_events_processed_total, dashboard khong con gi de bao dong. Gom vao mot ham de
+// moi nhanh publish deu ghi nhan giong nhau, them nhanh moi khong bo sot.
+func (c *Consumer) nackRequeue(msg amqp.Delivery, eventType string, pubErr error) {
+	c.logger.Error("publish that bai, nack requeue", "eventType", eventType, "err", pubErr)
+	c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "nack_requeue").Inc()
+	_ = msg.Nack(false, true)
 }
 
 // cloneHeaders sao chep nong bang header de sua ban sao ma khong dung den delivery goc.
