@@ -1,8 +1,9 @@
 # Fullstack Multi-Vendor E-Commerce
 
 A production-deployed multi-vendor marketplace (customer · seller · admin) built with **NestJS**,
-**Next.js**, and **PostgreSQL** — featuring an **event-driven notification system split into its own
-microservice** (transactional outbox, message broker, CQRS read model, cross-process WebSocket).
+**Next.js**, **Go**, and **PostgreSQL** — featuring an **event-driven notification system split into
+its own microservice** (transactional outbox, message broker, CQRS read model, cross-process
+WebSocket) and a **Go search service** that keeps a full-text index off the same event stream.
 
 **🔗 [Live Demo](https://fullstack-multi-vendor-ecommerce.vercel.app)** ·
 **[API Docs (Swagger)](https://fullstack-multi-vendor-ecommerce.onrender.com/api/docs)** ·
@@ -27,11 +28,14 @@ microservice** (transactional outbox, message broker, CQRS read model, cross-pro
   WebSocket events to clients connected to the monolith.
 - **Zero-downtime migration** — the notification path was carved out of the monolith using the
   **strangler-fig pattern** with a feature-flag cutover, verified in production.
+- **Polyglot search service** — a **Go** microservice owns a Postgres **full-text index** (`tsvector` +
+  GIN + `unaccent`, with a trigram fuzzy fallback), kept current by consuming the same event stream.
+  Two-stage retrieval cut search p95 at 100 VUs from **6.07 s to 186 ms** on a 50k catalogue.
 - **End-to-end distributed tracing** — a single **OpenTelemetry** trace follows one request through the
-  monolith, the **outbox table**, **RabbitMQ**, and into the notification service, so **both services
-  appear under one trace id**, plus Prometheus/Grafana **RED dashboards** and a k6 load baseline.
+  monolith, the **outbox table**, **RabbitMQ**, and into the consuming service — **across a language
+  boundary into Go** — plus Prometheus/Grafana **RED dashboards** and a k6 load baseline.
 - **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **14 domain event types**,
-  **2 services / 2 databases**.
+  **3 services / 3 databases**.
 - **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
   logging (pino), Sentry, CodeQL, Dependabot.
 
@@ -62,7 +66,52 @@ and realtime new-order alerts.
 
 ---
 
-## 🏛️ Architecture: distributed notification system
+## 🏛️ Architecture: three services, three databases
+
+Two capabilities have been carved out of the monolith, each owning its own database and each fed by
+the **same** RabbitMQ topic exchange. Neither reads the monolith's tables; the only couplings are the
+event stream and, for search, one HTTP call that returns ranked ids.
+
+```mermaid
+flowchart LR
+    CLIENT(["Browser · Next.js"])
+
+    subgraph Mono["Monolith · NestJS"]
+        API["REST API + outbox relay"]
+        DB1[("DB#1 · Supabase<br/>catalogue · orders")]
+    end
+
+    subgraph NSvc["Notification Service · NestJS"]
+        NSC["Consumer + WS emitter"]
+        DB2[("DB#2 · Supabase<br/>notifications")]
+    end
+
+    subgraph SSvc["Search Service · Go"]
+        SC["Consumer + GET /search"]
+        DB3[("DB#3 · Neon<br/>product_index")]
+    end
+
+    MQ{{"RabbitMQ<br/>ecommerce.events"}}
+    REDIS[("Redis<br/>WS pub/sub")]
+
+    CLIENT --> API
+    API --> DB1
+    API -->|"outbox relay · publisher confirms"| MQ
+    MQ -->|"order.* review.* payout.* return.*"| NSC
+    MQ -->|"product.*"| SC
+    NSC --> DB2
+    SC --> DB3
+    API -->|"GET /search<br/>ranked ids, then hydrate"| SC
+    NSC --> REDIS --> API
+```
+
+| Service | Language | Database | Fed by | Owns |
+|---|---|---|---|---|
+| Monolith | NestJS | DB#1 (Supabase) | HTTP | catalogue, orders, payouts, the read projection |
+| Notification | NestJS | DB#2 (Supabase) | `order.*` `review.*` `payout.*` `return.*` | notifications (source of truth) |
+| Search | **Go** | DB#3 (Neon) | `product.*` | the full-text index |
+
+### The notification path
 
 Notifications (new order, status change, review, payout, return…) are handled by a **dedicated
 microservice**, carved out of the monolith with the **strangler-fig** pattern. An event's journey
@@ -181,6 +230,83 @@ sequenceDiagram
 
 ---
 
+## ⚡ Search Engine
+
+> 📖 **Deep dives:** [`docs/search-architecture.md`](docs/search-architecture.md) (design) ·
+> [`docs/search-explain.md`](docs/search-explain.md) (query plans + load numbers)
+
+Typing `dien thoai` — Vietnamese without diacritics, which is how people actually type — returned
+**nothing**, while `điện thoại` returned 11 products. That is the bug that started this: not a slow
+search, a **wrong** one.
+
+![Search demo: typing without diacritics matches accented products](docs/search-money-shot.gif)
+
+### The baseline, measured rather than assumed
+
+Search ran `ILIKE '%q%'` inside the monolith. Before replacing it, the existing behaviour was measured:
+
+- **Latency** — p95 of **30 / 73 / 84 ms** at 10 / 50 / 100 virtual users, **0 errors** over 9,369 requests.
+- **Query plan** — `EXPLAIN (ANALYZE, BUFFERS)` reports `Seq Scan on product`: a leading wildcard makes
+  every B-tree index unusable, so the whole table is read and then filtered.
+- **Functional gap** — the accent problem above, which no amount of tuning fixes.
+
+> **What those numbers do and do not prove.** The catalogue was 82 products — 104 kB, sitting entirely
+> in `shared_buffers` (`Buffers: shared hit=8`, no disk reads). At that size the sequential scan costs
+> ~1.3 ms, so the latency above is framework and queueing overhead, **not** scan cost. The load-bearing
+> argument was structural, not the milliseconds: a `Seq Scan` is **O(rows)** and an index is not. The
+> functional gap, by contrast, was already real.
+
+### What replaced it
+
+A dedicated **Go** service owns a Postgres full-text index — `tsvector` + a **GIN** index, with
+`unaccent` applied on both sides so an accent-free query matches accented text. Because `unaccent` is
+only `STABLE`, Postgres refuses it in a generated column, so the vector is filled by a **trigger**
+instead.
+
+Same query, same data, 20k rows:
+
+| | `ILIKE '%dien thoai%'` | `tsvector @@ websearch_to_tsquery` |
+|---|---|---|
+| Plan | `Seq Scan`, 20,025 rows filtered | `Bitmap Index Scan` on GIN, `Heap Blocks: exact=1` |
+| Execution | **24.7 ms** | **6.7 ms** |
+| Rows returned | **0** — wrong answer | **25** — correct |
+
+And end-to-end under k6 on a **50,000**-product catalogue, monolith → search service → hydrate:
+
+| Load | old `ILIKE` p95 | two-stage p95 | speedup |
+|---|---|---|---|
+| 10 VU | 407 ms | **60 ms** | ~6.8× |
+| 50 VU | 1.55 s | **99 ms** | ~15.7× |
+| 100 VU | 6.07 s | **186 ms** | ~32.6× |
+
+The O(rows) prediction is visible directly: the old path's p95 at 100 VU climbs **84 ms → 373 ms →
+6,070 ms** as the table grows 82 → 20k → 50k, while the indexed path stays roughly flat.
+
+### Mechanisms (mapped to code)
+
+| Mechanism | Where |
+|---|---|
+| **Two-stage retrieval (Pattern B)** | the service returns **ranked ids only**; the monolith hydrates and paginates from DB#1, so the index never duplicates product data and can never serve a stale price |
+| **Full-text + fuzzy fallback** | `tsvector` GIN for whole-lexeme matches; when full-text returns 0, a `pg_trgm` word-similarity pass (`<%`, threshold `0.3` set per-transaction) catches typos and prefixes like `die` or `dienn` |
+| **Index as a CQRS read model** | the index is built only from `product.created` / `updated` / `deleted` events off `ecommerce.events` — no shared tables, no cross-service reads |
+| **Out-of-order safety** | brokers do not guarantee order, so an upsert applies only `WHERE updated_at < EXCLUDED.updated_at`, and a delete writes a **tombstone** row that blocks a stale update from resurrecting a deleted product |
+| **Idempotent consumer** | `processed_events` in the same transaction as the write — a redelivery hits a unique violation and is acked as a duplicate |
+| **Retry + DLQ** | failed writes go to a TTL retry queue (10 s, max 3) and then to a parking-lot DLQ; unparseable payloads skip retries and go straight to the DLQ |
+| **Graceful degradation** | the monolith calls the service behind a `SEARCH_SERVICE_ENABLED` flag with a **700 ms** timeout, falling back to the old `ILIKE` query — a cold or slow search service degrades results, never breaks the page |
+
+### Known limitations
+
+**Event ordering uses two different timestamp sources.** An upsert orders on the product's
+`updatedAt`; a delete orders on the envelope's `occurredAt`, because the delete payload carries only
+an id. They come from the same clock in practice, but it is two contracts where there should be one —
+to be unified in the `product.deleted` payload rather than papered over in the consumer.
+
+**Tombstones are never collected.** A tombstone row is kept per deleted product so a late update
+cannot revive it. Garbage-collecting them is only safe once the queues have a message TTL — without
+one, the oldest deliverable event has no upper bound, so no retention window can be proven safe.
+
+---
+
 ## 🔭 Observability
 
 > 📖 **Deep dive:** [`docs/observability.md`](docs/observability.md) — the two pipelines, how trace
@@ -190,9 +316,9 @@ The hard part of splitting a monolith is that a request stops being one thing yo
 notification now crosses a database table, a broker, and a process boundary — so *"what happened to
 **this** order's notification?"* becomes unanswerable from logs alone.
 
-**One trace answers it.** A single request lands **both services under one trace id** — from the HTTP
-handler, through the outbox row and RabbitMQ, to the notification service's `INSERT` and its WebSocket
-publish (16–20 spans depending on the flow):
+**One trace answers it.** A single request lands **the monolith and the service it feeds under one
+trace id** — from the HTTP handler, through the outbox row and RabbitMQ, to the notification service's
+`INSERT` and its WebSocket publish (16–20 spans depending on the flow):
 
 ![Distributed trace waterfall in Jaeger](docs/screenshots/trace-waterfall.png)
 
@@ -201,40 +327,15 @@ publish (16–20 spans depending on the flow):
 | **Auto-instrumentation** | `backend/src/tracing.ts` · `notification-service/src/tracing.ts` — HTTP, TypeORM/`pg`, `amqplib`; Express/router layer spans disabled to keep waterfalls readable |
 | **Trace context across the async gap** | `outbox_event.trace_parent` — the W3C `traceparent` is captured by an `@BeforeInsert` hook and restored by the relay before publishing (see ADR-7) |
 | **Context over the broker** | injected into RabbitMQ message headers; the consumer extracts it and opens a `SpanKind.CONSUMER` span, so both services land in the same trace |
+| **Across a language boundary** | `search-service/internal/telemetry` — the Go consumer extracts the same W3C header (case-insensitively, since `amqp.Table` is a plain map) and `otelpgx` continues the trace into its queries |
 | **RED metrics** | `metrics.interceptor.ts` → `/api/v1/metrics` — request rate, error rate, duration histogram, plus an **outbox-lag gauge** (age of the oldest unpublished event) |
+| **Consumer metrics** | `notification_events_processed_total` · `search_events_processed_total` — events counted by `event_type` and `result`, so "running" and "succeeding" are different questions |
 | **Dashboard as code** | `observability/grafana/**` provisioned at container start — the dashboard lives in git and survives `docker compose down -v` |
 | **Load baseline** | [`observability/k6/baseline-search.js`](observability/k6/baseline-search.js) — three sequential stages at 10 / 50 / 100 VUs, measured before the search work began |
 
 **RED dashboard** — request rate, error rate and p95 latency per route, plus outbox lag:
 
 ![Grafana RED dashboard](docs/screenshots/grafana-red.png)
-
-### Baseline before optimising
-
-Product search currently runs `ILIKE '%q%'` in the monolith. Before replacing it, the current behaviour
-was measured rather than assumed:
-
-- **Latency** — p95 of **30 / 73 / 84 ms** at 10 / 50 / 100 virtual users, **0 errors** over 9,369 requests.
-- **Query plan** — `EXPLAIN (ANALYZE, BUFFERS)` reports `Seq Scan on product` with
-  `Rows Removed by Filter: 82`: a leading wildcard makes every B-tree index unusable, so the whole table
-  is read and then filtered.
-- **Functional gap** — searching `dien thoai` without diacritics returns **0** results; `điện thoại`
-  returns **11**. Vietnamese users routinely type without diacritics, so those searches find nothing.
-
-> **What these numbers do and do not prove.** The catalogue is 82 products — 104 kB, which sits entirely
-> in `shared_buffers` (`Buffers: shared hit=8`, no disk reads). At that size the sequential scan costs
-> ~1.3 ms, so the latency above is framework and queueing overhead, **not** scan cost. The load-bearing
-> evidence is structural, not the milliseconds: a sequential scan is **O(n)**, so its cost grows linearly
-> with the catalogue while an index does not. The functional gap, by contrast, is already real today.
-
-**The replacement is now built and measured.** A dedicated Go service keeps a Postgres full-text index
-(`tsvector` + GIN + `unaccent`); the monolith retrieves ranked IDs from it, then hydrates and paginates
-from its own database, with a 300 ms timeout that falls back to the old `ILIKE` query behind a
-`SEARCH_SERVICE_ENABLED` flag (still off in production, pending rollout). Re-running the same k6 scenario
-on a 50k-product catalogue, the O(n) prediction holds: the old scan's p95 at 100 VU climbs to **6.07 s**
-while the indexed path stays at **186 ms**, and `dien thoai` now returns results instead of nothing.
-Details: [`docs/search-architecture.md`](docs/search-architecture.md) (design) ·
-[`docs/search-explain.md`](docs/search-explain.md) (query plans + load numbers).
 
 > **Why the observability stack is local-only.** Jaeger, Prometheus and Grafana run from
 > `docker-compose.observability.yml` on a developer machine, not in production. The hosting budget for
@@ -334,11 +435,12 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
 |---|---|
 | **Backend (monolith)** | NestJS 11 · TypeORM · PostgreSQL · Socket.IO · Passport (JWT access/refresh + Google OAuth2) |
 | **Notification Service** | NestJS 11 · RabbitMQ (amqplib) · Redis · PostgreSQL (database-per-service) |
+| **Search Service** | **Go 1.26** · pgx · sqlc · RabbitMQ (amqp091-go) · PostgreSQL full-text (`tsvector` + GIN + `unaccent` + `pg_trgm`) |
 | **Frontend** | Next.js · React · TanStack Query · Zustand · Tailwind / shadcn-style UI |
 | **Messaging & realtime** | RabbitMQ (topic exchange, DLX/retry/DLQ) · Redis (socket.io adapter/emitter) |
-| **Observability** | OpenTelemetry (traces, W3C context propagation) · Jaeger · Prometheus (`prom-client`) · Grafana (dashboard as code) · k6 (load baseline) |
+| **Observability** | OpenTelemetry (traces, W3C context propagation) · Jaeger · Prometheus (`prom-client` + `client_golang`) · Grafana (dashboard as code) · k6 (load baseline) |
 | **DevOps** | Docker (multi-stage) · Docker Compose · GitHub Actions → GHCR → Render · pino · Sentry · CodeQL · Dependabot |
-| **Infra (prod)** | Render · Supabase (2 databases) · CloudAMQP · Upstash Redis · Vercel |
+| **Infra (prod)** | Render · Supabase (DB#1, DB#2) + Neon (DB#3) · CloudAMQP · Upstash Redis · Vercel |
 
 ---
 
@@ -372,6 +474,12 @@ Once up:
 Run the frontend separately: `cd frontend && npm run dev` (set
 `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`).
 
+> The **search service is not part of this compose file** — it needs its own Postgres (DB#3) and is
+> run on its own: `cd search-service && go run ./cmd/server` with `DATABASE_URL` and `RABBITMQ_URL`
+> set. It listens on **8090**. The monolith only calls it when `SEARCH_SERVICE_ENABLED=true`, and
+> falls back to the in-monolith `ILIKE` query when it is off or unreachable, so the stack above works
+> without it. See [`docs/deploy-search-service.md`](docs/deploy-search-service.md).
+
 ### Optional: the observability stack
 
 Traces and metrics come up as a **separate** compose file, so the app stack stays lean by default:
@@ -380,8 +488,9 @@ Traces and metrics come up as a **separate** compose file, so the app stack stay
 docker compose -f docker-compose.observability.yml up -d
 ```
 
-Then set `OTEL_ENABLED=true` in `backend/.env` **and** `notification-service/.env` and restart both —
-instrumentation is opt-in, so nothing is exported until you ask for it.
+Then set `OTEL_ENABLED=true` in `backend/.env`, `notification-service/.env` **and**
+`search-service/.env`, then restart them — instrumentation is opt-in, so nothing is exported until
+you ask for it.
 
 | Component | URL / port |
 |-----------|-----------|
@@ -389,12 +498,15 @@ instrumentation is opt-in, so nothing is exported until you ask for it.
 | Prometheus | http://localhost:9090 |
 | Grafana (RED dashboard, auto-provisioned) | http://localhost:3002 |
 | Backend metrics endpoint | http://localhost:8080/api/v1/metrics |
+| Notification metrics endpoint | http://localhost:3001/metrics |
+| Search metrics endpoint | http://localhost:8090/metrics |
 
 > Grafana is on **3002**, not its usual 3000/3001 — those are taken by the Next.js frontend and the
 > notification service respectively.
 
-Both `backend` and `notification` **self-migrate** on startup (`migration:run:prod` before
-`node dist/main`), so an empty database is provisioned automatically.
+All three services **self-migrate** on startup — the two NestJS services run `migration:run:prod`
+before `node dist/main`, and the Go service runs its embedded migrations before it opens the pool —
+so an empty database is provisioned automatically.
 
 ---
 

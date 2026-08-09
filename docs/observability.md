@@ -12,6 +12,11 @@ Logs on either side can each say "I did my part" while the notification silently
 The whole point of the observability work is to make *"what happened to **this** order's
 notification?"* answerable again.
 
+A third service has since joined — a **Go** search service that maintains its own index off the same
+event stream — which turned out to be a useful test of whether the answer generalises. It does: the
+carrier is a W3C standard, not a framework feature, so the same trace crosses a language boundary
+without anything new being invented.
+
 ---
 
 ## 1. Two independent pipelines
@@ -23,8 +28,9 @@ about.
 ```mermaid
 flowchart LR
     subgraph App["Application processes"]
-        MONO["monolith-backend"]
-        NS["notification-service"]
+        MONO["monolith-backend<br/>NestJS"]
+        NS["notification-service<br/>NestJS"]
+        SEARCH["search-service<br/>Go"]
     end
 
     subgraph Traces["Traces pipeline (PUSH)"]
@@ -38,36 +44,45 @@ flowchart LR
 
     MONO -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
     NS -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
+    SEARCH -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
     PROM -->|"scrape /api/v1/metrics<br/>every 5s"| MONO
+    PROM -->|"scrape :3001/metrics"| NS
+    PROM -->|"scrape :8090/metrics"| SEARCH
     GRAF -->|"query (no storage)"| PROM
 ```
 
 **Traces are pushed.** Each service exports spans over **OTLP/HTTP** to Jaeger (`:4318`). The
 application decides when to emit; Jaeger only receives. Nothing polls the app for traces.
 
-**Metrics are pulled.** **Prometheus** reaches *into* the monolith and scrapes its
-`/api/v1/metrics` endpoint every 5 seconds. The app never pushes a metric anywhere — it just
-exposes the current values and waits to be asked.
+**Metrics are pulled.** **Prometheus** reaches *into* each service and scrapes its metrics endpoint
+every 5 seconds. No app ever pushes a metric anywhere — each just exposes the current values and
+waits to be asked.
 
 **Grafana stores nothing.** It is a query-and-render layer pointed at Prometheus. Every panel is a
 PromQL query executed live against Prometheus' TSDB. If Prometheus loses its data, Grafana has
 nothing to show — a distinction that matters for the retention limit below.
 
-### One asymmetry worth stating plainly
+### The asymmetry worth stating plainly
 
 | | Traces | Metrics |
 |---|---|---|
 | Direction | push (app → Jaeger) | pull (Prometheus → app) |
-| Covers the monolith | ✅ | ✅ |
-| Covers the notification service | ✅ | ❌ **no metrics endpoint yet** |
+| `monolith-backend` (NestJS) | ✅ | ✅ RED + outbox-lag gauge |
+| `notification-service` (NestJS) | ✅ | ✅ consumer metrics |
+| `search-service` (Go) | ✅ | ✅ RED **and** consumer metrics |
 
-**Both services are traced; only the monolith exposes metrics.** The notification service has no
-`/metrics` endpoint, so the Prometheus scrape job for it is **commented out** in
-[`observability/prometheus.yml`](../observability/prometheus.yml) — an enabled job would sit
-permanently red with a 404 and turn any future `up == 0` alert into a boy-who-cried-wolf. This is a
-deliberate gap, not an oversight: the notification service is a **consumer**, so HTTP-shaped RED
-metrics are close to meaningless there. What deserves measuring is events processed, DLQ depth,
-retry count, and per-event processing time — a different metric set that hasn't been built yet.
+All three services are traced and all three are scraped. The asymmetry is not *whether* a service is
+measured any more — it is **what is worth measuring**, and that follows from what the service is.
+
+The monolith is an HTTP server, so RED (rate / errors / duration) is the natural frame. The
+notification service is a pure **consumer**: it has no meaningful request traffic, so HTTP-shaped RED
+metrics there would be close to noise. What deserves measuring instead is events processed by
+outcome, DLQ depth, and per-event processing time.
+
+The search service is the only one that is **both** — it serves `GET /search` over HTTP *and*
+consumes `product.*` events to maintain its index — so it is the only service publishing both metric
+families side by side. That is why it gets its own subsection below rather than a row in the
+monolith's table.
 
 ---
 
@@ -101,7 +116,7 @@ gone**. There is nothing in memory left to be a parent.
 
 The carrier that survives this gap is the **outbox row itself**, because the row is *already* the
 thing that crosses from request-time to relay-time. So the W3C `traceparent` is written into a
-[`outbox_event.trace_parent`](../backend/src/modules/orders/entities/outbox-event.entity.ts)
+[`outbox_event.trace_parent`](../backend/src/common/entities/outbox-event.entity.ts)
 column by a `@BeforeInsert` hook, **while the code is still inside the request** and the context is
 still live:
 
@@ -146,6 +161,33 @@ const parentCtx = propagation.extract(otelContext.active(), headers);
 // ... startSpan(`consume ${routingKey}`, { kind: SpanKind.CONSUMER })
 ```
 
+### The same gap, crossed again in a different language
+
+The search service consumes `product.*` off the **same exchange** and crosses gap #2 the same way,
+which is the point of picking a vendor-neutral standard: the carrier is a W3C `traceparent` header, so
+the fact that the producer is TypeScript and this consumer is **Go** never comes up.
+
+```go
+msgCtx := telemetry.ExtractAMQPContext(ctx, msg.Headers)
+msgCtx, span := tracer.Start(msgCtx, "consume "+msg.RoutingKey,
+    trace.WithSpanKind(trace.SpanKindConsumer), ...)
+```
+
+Two details had to be got right on the Go side, and both were only visible once messages started
+failing rather than succeeding:
+
+**AMQP header lookup has to be case-insensitive.** `amqp.Table` is a plain map, so a header written
+as `TraceParent` by any producer would not be found by a propagator asking for `traceparent`, and the
+trace would silently split in two. The carrier lowercases on lookup rather than trusting the
+producer's casing.
+
+**A retried message no longer knows its own routing key.** Messages that fail are parked on a retry
+queue and dead-lettered back via the *default* exchange, which rewrites the routing key to the queue
+name. Naming the span from `msg.RoutingKey` therefore produced `consume search_index.q` for every
+retry — all of them collapsing into one indistinguishable bucket in Jaeger. The span is named from
+the **envelope's event type** instead, which is carried in the message body and so survives the round
+trip unchanged.
+
 ### The one rule that ties it together
 
 > **Each gap needs its own carrier, and the carrier is always the thing that already crosses that
@@ -153,9 +195,10 @@ const parentCtx = propagation.extract(otelContext.active(), headers);
 > reuse one for the other — a message header would be gone by the time the relay runs, and a
 > database column is invisible to a consumer in another process.
 
-The result is that one HTTP request lands **both services under a single trace id**, from the HTTP
-handler through the outbox `INSERT`, the publish, the broker, the consume, and the notification
-`INSERT` — **16–20 spans depending on the flow**.
+The result is that one HTTP request lands **the monolith and the consumer it feeds under a single
+trace id** — for a notification, from the HTTP handler through the outbox `INSERT`, the publish, the
+broker, the consume, and the notification `INSERT`, **16–20 spans depending on the flow**. A product
+write traces the same way into the search service's index update.
 
 ![Distributed trace waterfall in Jaeger](screenshots/trace-waterfall.png)
 
@@ -175,7 +218,9 @@ a fresh, standalone trace instead of attaching to a parent. Nothing breaks — t
 
 ---
 
-## 3. Metrics: RED + an outbox-lag gauge
+## 3. Metrics: RED where there are requests, outcome counters where there are events
+
+### The monolith — RED from one histogram, plus an outbox-lag gauge
 
 The monolith exposes Prometheus metrics from
 [`metrics.interceptor.ts`](../backend/src/modules/metrics/metrics.interceptor.ts) →
@@ -207,6 +252,56 @@ panels would look perfectly healthy (the HTTP writes still succeed).
 git and survives even `docker compose down -v`. Nothing is clicked together by hand in the Grafana
 UI — a hand-built dashboard would evaporate the first time the volume is wiped and would be
 invisible to anyone reading the repo.
+
+### The consumers — counting outcomes, not requests
+
+A consumer has no request rate to measure. What it has is a **stream of events, each of which ends in
+exactly one of a small set of outcomes**, so the useful counter is one keyed by that outcome. Both
+consumers use the same shape deliberately, so a single PromQL pattern reads either service:
+
+| Service | Metric | Labels |
+|---|---|---|
+| notification | `notification_events_processed_total` | `event_type`, `result` |
+| notification | `notification_event_processing_duration_seconds` | `event_type` |
+| notification | `notification_dlq_messages` · `notification_outbox_oldest_unpublished_age_seconds` | — (gauges) |
+| search | `search_events_processed_total` | `event_type`, `result` |
+| search | `search_index_products_total` | — (gauge) |
+
+The `result` label is where the design lives, because it is what turns "the consumer is running" into
+"the consumer is *succeeding*". For the search service the possible values are `success`,
+`duplicate` (dedup ledger caught a redelivery), `tombstone_blocked` (a stale update was refused
+because the product is deleted), `retry`, `dlq`, `poison` (unparseable payload), `skipped`, and
+`nack_requeue` (the message was handed back to the broker because publishing to retry/DLQ failed).
+
+That last one is worth its own sentence. Without it, a broker outage is **invisible**: the event is
+neither a success nor a retry nor a poison message, so it simply stops being counted and the graph
+quietly flattens. A counter that goes silent looks exactly like a system with no traffic.
+
+Two labels are deliberately *not* free-form. `event_type` on the search service falls back to the
+constant `"unknown"` when the envelope carries an event type the consumer does not handle, because
+that field arrives from the message body — using it directly would let a malformed publisher mint a
+new Prometheus time series per event and grow scrape memory without bound.
+
+### The search service — both metric shapes at once
+
+The search service is the only one serving HTTP *and* consuming events, so it publishes the consumer
+metrics above **and** a RED pair for `GET /search`:
+
+| Metric | Labels |
+|---|---|
+| `search_requests_total` | `status`, `outcome` |
+| `search_request_duration_seconds` | `endpoint` |
+
+`outcome` separates results that share an HTTP status but not a meaning — `served` vs `empty` are both
+`200`, and telling them apart is how you notice the index silently going stale. The `status` label
+also carries a **synthetic `499`**, borrowed from nginx's convention for *client closed request*: when
+the monolith's `AbortController` fires on its search timeout, the in-flight query returns
+`context.Canceled`. That is the client giving up, not the service failing, so folding it into `500`
+would inflate the error rate with something no operator can act on.
+
+> The `/metrics` and `/health` endpoints are deliberately **not** wrapped in `otelhttp`; only
+> `/search` is. Prometheus scrapes every 5 seconds, and health probes run continuously, so
+> instrumenting them would bury the real traffic under a steady stream of self-observation spans.
 
 ---
 
@@ -259,9 +354,10 @@ The observability stack is a **separate** compose file so the app stack stays le
 docker compose -f docker-compose.observability.yml up -d
 ```
 
-Then set `OTEL_ENABLED=true` in **both** `backend/.env` and `notification-service/.env` and restart
-both services. Instrumentation is opt-in behind that flag, so nothing is exported until you ask for
-it — the production write path pays nothing for tracing it isn't using.
+Then set `OTEL_ENABLED=true` in **all three** of `backend/.env`, `notification-service/.env` and
+`search-service/.env`, and restart the services. Instrumentation is opt-in behind that flag, so
+nothing is exported until you ask for it — the production write path pays nothing for tracing it
+isn't using.
 
 | Component | URL / port |
 |---|---|
@@ -269,6 +365,12 @@ it — the production write path pays nothing for tracing it isn't using.
 | Prometheus | http://localhost:9090 |
 | Grafana (RED dashboard, auto-provisioned) | http://localhost:3002 |
 | Monolith metrics endpoint | http://localhost:8080/api/v1/metrics |
+| Notification service metrics endpoint | http://localhost:3001/metrics |
+| Search service metrics endpoint | http://localhost:8090/metrics |
+
+> The Go service reads `PORT` first and falls back to `SEARCH_HTTP_PORT`, defaulting to **8090** —
+> `PORT` is the variable Render injects and port-scans, so listening anywhere else fails the health
+> check on deploy.
 
 > Grafana is on **3002**, not its usual 3000 — those are taken by the Next.js frontend (3000) and
 > the notification service (3001). Prometheus is 9090, Jaeger 16686.

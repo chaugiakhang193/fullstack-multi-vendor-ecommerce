@@ -24,6 +24,18 @@ scrape_configs:
         labels:
           service: 'notification'
 
+  # search-service: viết bằng Go (client_golang), nên là service duy nhất có CẢ HAI họ
+  # metric — RED cho endpoint HTTP /search, và metric consumer cho luồng RabbitMQ (event
+  # xử lý theo result, số document đang có trong index). Xem
+  # search-service/internal/telemetry/metrics.go.
+  - job_name: 'search-service'
+    metrics_path: '/metrics'
+    static_configs:
+      # Cổng 8090 ở local (search-service đọc PORT trước, rồi SEARCH_HTTP_PORT, default 8090).
+      - targets: ['host.docker.internal:8090']
+        labels:
+          service: 'search'
+
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
