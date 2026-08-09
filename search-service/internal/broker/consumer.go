@@ -10,7 +10,11 @@ import (
 	"time"
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/telemetry"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -43,17 +47,25 @@ const requeueDelay = 2 * time.Second
 // Consumer giu cau hinh can de (tai) ket noi RabbitMQ va tieu thu message, cong voi
 // Store de ghi document vao index (DB#3).
 type Consumer struct {
-	url    string
-	queue  string
-	store  *index.Store
-	logger *slog.Logger
+	url     string
+	queue   string
+	store   *index.Store
+	logger  *slog.Logger
+	metrics *telemetry.Metrics
 }
 
 // NewConsumer khoi tao consumer chua ket noi. Goi Run de bat dau vong doi. queue
 // den tu config: moi moi truong (local / Render) dat ten rieng de khong chia nhau
 // message tren cung mot broker.
 func NewConsumer(url string, queue string, store *index.Store, logger *slog.Logger) *Consumer {
-	return &Consumer{url: url, queue: queue, store: store, logger: logger}
+	globalMetrics := telemetry.GetMetrics()
+	return &Consumer{
+		url:     url,
+		queue:   queue,
+		store:   store,
+		logger:  logger,
+		metrics: globalMetrics,
+	}
 }
 
 // Run chay vong doi consumer toi khi ctx bi huy (graceful shutdown). Moi lan
@@ -179,6 +191,22 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 //   - ghi thanh cong hoac event trung: Ack.
 //   - loi DB tam thoi: Nack(requeue) de redeliver, khong mat message.
 func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
+	msgHeaders := msg.Headers
+	msgCtx := telemetry.ExtractAMQPContext(ctx, msgHeaders)
+
+	tracerName := "search-consumer"
+	tracer := otel.Tracer(tracerName)
+	spanKind := trace.WithSpanKind(trace.SpanKindConsumer)
+	sysAttr := attribute.String("messaging.system", "rabbitmq")
+	destAttr := attribute.String("messaging.destination", eventsExchange)
+	routingKey := msg.RoutingKey
+	keyAttr := attribute.String("messaging.rabbitmq.routing_key", routingKey)
+	spanAttrs := trace.WithAttributes(sysAttr, destAttr, keyAttr)
+
+	spanName := "consume " + routingKey
+	msgCtx, span := tracer.Start(msgCtx, spanName, spanKind, spanAttrs)
+	defer span.End()
+
 	var env Envelope
 	msgBody := msg.Body
 	if err := json.Unmarshal(msgBody, &env); err != nil {
@@ -188,7 +216,7 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 	}
 
 	timeout := 10 * time.Second
-	msgCtx, cancel := context.WithTimeout(ctx, timeout)
+	procCtx, cancel := context.WithTimeout(msgCtx, timeout)
 	defer cancel()
 
 	var err error
@@ -211,7 +239,7 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 			_ = msg.Ack(false)
 			return
 		}
-		err = c.store.UpsertProduct(msgCtx, eventID, doc)
+		err = c.store.UpsertProduct(procCtx, eventID, doc)
 	case "product.deleted":
 		var d ProductDeleted
 		if decodeErr := json.Unmarshal(payload, &d); decodeErr != nil {
@@ -220,10 +248,11 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 			return
 		}
 		productID := d.ProductID
-		err = c.store.DeleteProduct(msgCtx, eventID, productID)
+		err = c.store.DeleteProduct(procCtx, eventID, productID)
 	default:
 		// Khong nen xay ra vi chi bind 3 key; phong thu: ack de khong ket.
 		c.logger.Warn("eventType la, bo qua", "eventType", eventType, "eventId", eventID)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "skipped").Inc()
 		_ = msg.Ack(false)
 		return
 	}
@@ -278,18 +307,21 @@ func (c *Consumer) ackOrRetry(msg amqp.Delivery, env Envelope, err error) {
 	eventType := env.EventType
 	switch {
 	case err == nil:
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "success").Inc()
 		multiple := false
 		if ackErr := msg.Ack(multiple); ackErr != nil {
 			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
 		}
 	case errors.Is(err, index.ErrDuplicateEvent):
 		c.logger.Info("event da xu ly truoc do, skip", "eventId", eventID, "eventType", eventType)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "duplicate").Inc()
 		multiple := false
 		if ackErr := msg.Ack(multiple); ackErr != nil {
 			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
 		}
 	default:
 		c.logger.Warn("ghi index loi, se redeliver", "eventId", eventID, "eventType", eventType, "err", err)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "error").Inc()
 		time.Sleep(requeueDelay)
 		multiple := false
 		requeue := true

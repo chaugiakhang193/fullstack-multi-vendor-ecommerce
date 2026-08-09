@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/telemetry"
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,7 +42,14 @@ var ErrDuplicateEvent = errors.New("event da xu ly truoc do")
 // NewStore mo pool toi Neon roi Ping ngay de fail-fast neu URL/SSL sai (thay vi chet
 // luc ghi message dau tien). ctx la context khoi dong co timeout, khong phai ctx vong doi.
 func NewStore(ctx context.Context, databaseURL string) (*Store, error) {
-	pool, err := pgxpool.New(ctx, databaseURL)
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse database URL loi: %w", err)
+	}
+
+	config.ConnConfig.Tracer = otelpgx.NewTracer()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("mo pgx pool loi: %w", err)
 	}
@@ -49,6 +58,18 @@ func NewStore(ctx context.Context, databaseURL string) (*Store, error) {
 		return nil, fmt.Errorf("ping DB loi: %w", err)
 	}
 	return &Store{pool: pool}, nil
+}
+
+// UpdateIndexCountMetric dem so product active roi set vao gauge. Chi goi tu
+// background ticker 15s trong main.go + 1 lan luc khoi dong; KHONG goi trong
+// upsert/delete de tranh count(*) MVCC tren duong nong lam cham consumer.
+func (s *Store) UpdateIndexCountMetric(ctx context.Context) {
+	const q = `SELECT count(*) FROM product_index WHERE status = 'active'`
+	var count int64
+	if err := s.pool.QueryRow(ctx, q).Scan(&count); err == nil {
+		gaugeVal := float64(count)
+		telemetry.GetMetrics().IndexProductsGauge.Set(gaugeVal)
+	}
 }
 
 // Close dong pool khi service shutdown. Goi SAU khi consumer da dung (main dam bao

@@ -86,6 +86,25 @@ func main() {
 	// Close SAU khi consumer dung (wg.Wait o cuoi main dam bao). defer LIFO chay truoc return.
 	defer store.Close()
 
+	store.UpdateIndexCountMetric(ctx)
+
+	// Cap nhat gauge co index dinh ky duoi nen moi 15s. Khong dem dong bo trong
+	// upsert/delete vi count(*) tren Postgres phai quet MVCC, se nghen consumer khi
+	// index lon dan (hang tram nghin san pham).
+	go func() {
+		refreshInterval := 15 * time.Second
+		ticker := time.NewTicker(refreshInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				store.UpdateIndexCountMetric(ctx)
+			}
+		}
+	}()
+
 	var wg sync.WaitGroup
 
 	consumer := broker.NewConsumer(rabbitmqURL, queueName, store, logger)
