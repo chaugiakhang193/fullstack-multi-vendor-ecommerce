@@ -139,51 +139,58 @@ guarantees notifications are **never lost or duplicated**, even when a service o
 
 ### The notification flow in detail
 
+Solid arrows are the outbound path, dotted arrows are the two return paths back to the browser.
+
 ```mermaid
 flowchart LR
-    subgraph Monolith["Monolith backend (DB#1)"]
-        BIZ[Business tx<br/>order/review/payout...]
-        OBX[(outbox_event)]
-        RELAY[OutboxRelay<br/>polling publisher]
-        PROJ[Projection consumer]
-        NREAD[(notification_read<br/>read projection)]
-        WSSRV[Socket.IO server<br/>redis-adapter]
-        BIZ -->|same tx| OBX
-        RELAY -->|poll + confirm| OBX
+    subgraph Monolith["Monolith backend · DB#1"]
+        BIZ["Business tx<br/>order · review · payout"]
+        OBX[("outbox_event")]
+        RELAY["OutboxRelay<br/>polling publisher"]
+        PROJ["Projection consumer"]
+        NREAD[("notification_read<br/>read projection")]
+        WSSRV["Socket.IO server<br/>redis-adapter"]
+        BIZ -->|"same tx"| OBX
+        OBX -->|"poll + confirm"| RELAY
         PROJ --> NREAD
     end
 
     subgraph Broker["RabbitMQ"]
-        EX{{ecommerce.events<br/>topic exchange}}
-        Q[[notifications.q]]
-        NEX{{notifications.events}}
-        DLX{{notifications.dlx}}
-        RQ[[notifications.retry<br/>TTL 30s]]
-        DLQ[[notifications.dlq<br/>parking-lot]]
+        EX{{"ecommerce.events<br/>topic exchange"}}
+        Q[["notifications.q"]]
+        DLX{{"notifications.dlx"}}
+        RQ[["notifications.retry<br/>TTL 30s"]]
+        DLQ[["notifications.dlq<br/>parking-lot"]]
+        NEX{{"notifications.events"}}
         EX --> Q
-        Q -.retry.-> DLX --> RQ -.TTL expire.-> Q
-        DLX -.poison / max retry.-> DLQ
+        Q -.->|"retry"| DLX
+        DLX --> RQ
+        RQ -.->|"TTL expire"| Q
+        DLX -.->|"poison / max retry"| DLQ
     end
 
-    subgraph NS["Notification Service (DB#2)"]
-        CONS[Consumer<br/>idempotent]
-        NOTIF[(notification<br/>source of truth)]
-        NOBX[(notification_outbox)]
-        NRELAY[NotificationOutboxRelay]
-        EMIT[WS redis-emitter]
-        CONS -->|dedup + tx| NOTIF
+    subgraph NS["Notification Service · DB#2"]
+        CONS["Consumer<br/>idempotent"]
+        NOTIF[("notification<br/>source of truth")]
+        NOBX[("notification_outbox")]
+        NRELAY["NotificationOutboxRelay"]
+        EMIT["WS redis-emitter"]
+        CONS -->|"dedup + tx"| NOTIF
         CONS --> NOBX
-        NRELAY -->|poll + confirm| NOBX
+        CONS --> EMIT
+        NOBX -->|"poll + confirm"| NRELAY
     end
 
-    subgraph RedisLane["Redis (WS pub/sub cross-process)"]
-        REDIS[(Redis pub/sub)]
-    end
+    REDIS[("Redis pub/sub")]
+    CLIENT(["Browser client"])
 
-    RELAY -->|publish| EX
+    RELAY -->|"publish"| EX
     Q --> CONS
-    NRELAY -->|publish| NEX --> PROJ
-    EMIT -->|emit rooms| REDIS --> WSSRV -->|realtime| CLIENT([Browser client])
+    NRELAY -->|"publish"| NEX
+    NEX -.->|"notification.created"| PROJ
+    EMIT -.->|"emit rooms"| REDIS
+    REDIS -.-> WSSRV
+    WSSRV -.->|"realtime"| CLIENT
 ```
 
 **Live RabbitMQ broker** — the exchanges/queues, DLX/retry/DLQ topology, and message rates in production:
