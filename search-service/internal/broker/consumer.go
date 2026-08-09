@@ -237,6 +237,10 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 //   - ghi thanh cong hoac event trung / tombstone blocked: Ack.
 //   - loi DB tam thoi: sendToRetry tang x-retry-count (toi da maxRetries) roi DLQ, Ack.
 //   - publish retry/dlq loi: Nack(requeue=true) de khong mat message.
+//
+// Cac lan publish deu nhan msgCtx chu khong phai ctx vong doi: hai ctx cung vong doi huy nen
+// hanh vi khong doi, nhung msgCtx mang span cua consumer, de khi boc instrumentation cho
+// publish thi span publish noi dung vao span consume thay vi mo coi.
 func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.Delivery) {
 	// Extract W3C traceparent tu headers VA tao Consumer Span TRUOC
 	msgCtx := telemetry.ExtractAMQPContext(ctx, msg.Headers)
@@ -256,7 +260,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 		c.logger.Error("decode envelope loi, gui DLQ", "err", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+		if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 			c.nackRequeue(msg, "unknown", pubErr)
 			return
 		}
@@ -288,7 +292,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			c.logger.Error("decode ProductSnapshot loi, gui DLQ", "eventId", eventID, "err", decodeErr)
 			span.RecordError(decodeErr)
 			span.SetStatus(codes.Error, decodeErr.Error())
-			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
@@ -301,7 +305,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			c.logger.Error("payload product hong, gui DLQ", "eventId", eventID, "err", convErr)
 			span.RecordError(convErr)
 			span.SetStatus(codes.Error, convErr.Error())
-			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
@@ -317,7 +321,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			c.logger.Error("decode ProductDeleted loi, gui DLQ", "eventId", eventID, "err", decodeErr)
 			span.RecordError(decodeErr)
 			span.SetStatus(codes.Error, decodeErr.Error())
-			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
@@ -331,7 +335,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			c.logger.Error("payload delete thieu occurredAt, gui DLQ", "eventId", eventID)
 			span.RecordError(timeErr)
 			span.SetStatus(codes.Error, timeErr.Error())
-			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
@@ -344,7 +348,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 			c.logger.Error("parse occurredAt loi, gui DLQ", "eventId", eventID, "err", pErr)
 			span.RecordError(pErr)
 			span.SetStatus(codes.Error, pErr.Error())
-			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
+			if pubErr := c.sendToDLQ(msgCtx, pub, msg); pubErr != nil {
 				c.nackRequeue(msg, eventType, pubErr)
 				return
 			}
@@ -366,7 +370,7 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 		return
 	}
 
-	c.processResult(ctx, span, pub, msg, env, err)
+	c.processResult(msgCtx, span, pub, msg, env, err)
 }
 
 // processResult quyet dinh ack/nack/retry/dlq theo ket qua ghi index:
@@ -447,6 +451,9 @@ func (c *Consumer) sendToRetry(ctx context.Context, pub publisher, msg amqp.Deli
 }
 
 // sendToDLQ publish message sang ecommerce.retry direct exchange voi routing key dlq.{queue}.
+// Clone header giong sendToRetry du hien tai khong sua gi: de nguoi them header vao day sau
+// nay khong vo tinh sua trung delivery goc, vi neu publish loi thi delivery do se bi Nack
+// requeue va phai quay lai queue nguyen ven.
 func (c *Consumer) sendToDLQ(ctx context.Context, pub publisher, msg amqp.Delivery) error {
 	return pub.PublishWithContext(ctx,
 		retryExchange,
@@ -454,7 +461,7 @@ func (c *Consumer) sendToDLQ(ctx context.Context, pub publisher, msg amqp.Delive
 		false,
 		false,
 		amqp.Publishing{
-			Headers:      msg.Headers,
+			Headers:      cloneHeaders(msg.Headers),
 			ContentType:  msg.ContentType,
 			Body:         msg.Body,
 			DeliveryMode: amqp.Persistent,
