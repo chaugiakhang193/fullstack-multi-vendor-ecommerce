@@ -333,7 +333,7 @@ image is the durable evidence.
 (late July) expire around **mid-August**. The before/after search comparison planned for later
 therefore **cannot** be done by scrolling Grafana back in time — the raw samples will be gone.
 Baseline numbers have to live in documentation and screenshots (see the README's
-[baseline section](../README.md#baseline-before-optimising)), not in the TSDB. Raising retention was
+[Search Engine section](../README.md#-search-engine)), not in the TSDB. Raising retention was
 rejected on purpose: waiting weeks costs disk and is still fragile — a single `down -v` erases it.
 
 **No sampling, no OTel Collector — yet.** Tracing runs at **100%** (every request is traced) and

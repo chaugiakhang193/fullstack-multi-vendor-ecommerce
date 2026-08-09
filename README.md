@@ -69,41 +69,43 @@ and realtime new-order alerts.
 ## 🏛️ Architecture: three services, three databases
 
 Two capabilities have been carved out of the monolith, each owning its own database and each fed by
-the **same** RabbitMQ topic exchange. Neither reads the monolith's tables; the only couplings are the
-event stream and, for search, one HTTP call that returns ranked ids.
+the **same** RabbitMQ topic exchange. Neither reads the monolith's tables. Solid arrows below are
+asynchronous events; the one dashed arrow is the only synchronous call between services.
 
 ```mermaid
 flowchart LR
-    CLIENT(["Browser · Next.js"])
+    CLIENT(["Browser<br/>Next.js"])
 
     subgraph Mono["Monolith · NestJS"]
-        API["REST API + outbox relay"]
-        DB1[("DB#1 · Supabase<br/>catalogue · orders")]
-    end
-
-    subgraph NSvc["Notification Service · NestJS"]
-        NSC["Consumer + WS emitter"]
-        DB2[("DB#2 · Supabase<br/>notifications")]
-    end
-
-    subgraph SSvc["Search Service · Go"]
-        SC["Consumer + GET /search"]
-        DB3[("DB#3 · Neon<br/>product_index")]
+        API["REST API<br/>+ outbox relay"]
+        DB1[("DB#1 Supabase<br/>catalogue · orders")]
     end
 
     MQ{{"RabbitMQ<br/>ecommerce.events"}}
-    REDIS[("Redis<br/>WS pub/sub")]
+
+    subgraph NSvc["Notification Service · NestJS"]
+        NSC["Consumer<br/>+ WS emitter"]
+        DB2[("DB#2 Supabase<br/>notifications")]
+    end
+
+    subgraph SSvc["Search Service · Go"]
+        SC["Consumer<br/>+ GET /search"]
+        DB3[("DB#3 Neon<br/>product_index")]
+    end
 
     CLIENT --> API
-    API --> DB1
-    API -->|"outbox relay · publisher confirms"| MQ
-    MQ -->|"order.* review.* payout.* return.*"| NSC
+    API --- DB1
+    API -->|publish| MQ
+    MQ -->|"order.* review.*<br/>payout.* return.*"| NSC
     MQ -->|"product.*"| SC
-    NSC --> DB2
-    SC --> DB3
-    API -->|"GET /search<br/>ranked ids, then hydrate"| SC
-    NSC --> REDIS --> API
+    NSC --- DB2
+    SC --- DB3
+    API -.->|"ranked ids"| SC
 ```
+
+Redis carries the WebSocket push from the notification service back to the socket the monolith holds;
+it is left out above to keep the shape readable and drawn in full in the
+[notification flow diagram](#the-notification-flow-in-detail) below.
 
 | Service | Language | Database | Fed by | Owns |
 |---|---|---|---|---|
@@ -135,7 +137,7 @@ guarantees notifications are **never lost or duplicated**, even when a service o
 | **Scale-to-zero + event-driven wake** | NS sleeps when idle (free tier); the monolith relay "pokes" `/health` after publishing to wake it |
 | **Strangler cutover** | feature-flag `NOTIFICATION_MODE` (inprocess→distributed), zero-downtime — see [Migration](#-migration-monolith--microservice-strangler-fig) |
 
-### Architecture diagram
+### The notification flow in detail
 
 ```mermaid
 flowchart LR
