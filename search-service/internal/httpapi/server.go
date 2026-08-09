@@ -11,13 +11,21 @@ import (
 	"time"
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/search"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // NewServer dung *http.Server voi route da gan san. searcher lo /search.
 func NewServer(addr string, logger *slog.Logger, searcher *search.Service) *http.Server {
+	metrics := telemetry.GetMetrics()
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("GET /health", healthHandler(logger))
-	mux.HandleFunc("GET /search", searchHandler(logger, searcher))
+	mux.Handle("GET /metrics", telemetry.MetricsHandler())
+
+	// otelhttp.NewHandler chi boc route /search de khong sinh server span nhieu cho probe /health va /metrics
+	searchHandlerWithOTel := otelhttp.NewHandler(http.HandlerFunc(searchHandler(logger, searcher, metrics)), "search-http")
+	mux.Handle("GET /search", searchHandlerWithOTel)
 
 	return &http.Server{
 		Addr:              addr,
@@ -35,10 +43,13 @@ func healthHandler(logger *slog.Logger) http.HandlerFunc {
 }
 
 // searchHandler parse query param, goi search.Service, tra JSON Result. q rong -> 400.
-func searchHandler(logger *slog.Logger, searcher *search.Service) http.HandlerFunc {
+func searchHandler(logger *slog.Logger, searcher *search.Service, metrics *telemetry.Metrics) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		q := strings.TrimSpace(r.URL.Query().Get("q"))
 		if q == "" {
+			metrics.HTTPRequestsTotal.WithLabelValues("400", "bad_request").Inc()
+			metrics.HTTPRequestDuration.WithLabelValues("/search").Observe(time.Since(start).Seconds())
 			writeJSON(w, logger, http.StatusBadRequest, map[string]string{"error": "thieu tham so q"})
 			return
 		}
@@ -54,24 +65,35 @@ func searchHandler(logger *slog.Logger, searcher *search.Service) http.HandlerFu
 		}
 
 		result, err := searcher.Search(r.Context(), req)
+		duration := time.Since(start).Seconds()
+		metrics.HTTPRequestDuration.WithLabelValues("/search").Observe(duration)
+
 		if err != nil {
 			if errors.Is(err, search.ErrEmptyQuery) {
+				metrics.HTTPRequestsTotal.WithLabelValues("400", "bad_request").Inc()
 				writeJSON(w, logger, http.StatusBadRequest, map[string]string{"error": "thieu tham so q"})
 				return
 			}
 			// Client (monolith) cat ket noi khi vuot timeout AbortController -> r.Context() bi huy
 			// -> query dang chay tra context.Canceled. Chuyen lanh tinh, khong phai loi service,
 			// nen tach ra log INFO de khong lam nhieu error-rate. Response 500 ben duoi di vao hu
-			// khong vi client da ngat, giu nguyen cho gon.
+			// khong vi client da ngat, giu nguyen cho gon. Tach thanh 499 / client_canceled metric.
 			if errors.Is(err, context.Canceled) {
+				metrics.HTTPRequestsTotal.WithLabelValues("499", "client_canceled").Inc()
 				logger.Info("client huy request search", "q", q)
 			} else {
+				metrics.HTTPRequestsTotal.WithLabelValues("500", "error").Inc()
 				logger.Error("search loi", "err", err)
 			}
 			writeJSON(w, logger, http.StatusInternalServerError, map[string]string{"error": "loi noi bo"})
 			return
 		}
 
+		outcome := "served"
+		if result.Total == 0 {
+			outcome = "empty"
+		}
+		metrics.HTTPRequestsTotal.WithLabelValues("200", outcome).Inc()
 		writeJSON(w, logger, http.StatusOK, result)
 	}
 }

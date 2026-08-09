@@ -17,6 +17,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/httpapi"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/search"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/telemetry"
 )
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
 		"httpPort", httpPort,
 		"rabbitmq", maskedURL,
 		"queue", queueName,
+		"otelEnabled", cfg.OtelEnabled,
 	)
 
 	// ctx bi huy khi nhan SIGINT (Ctrl+C) hoac SIGTERM (docker stop / Render).
@@ -45,6 +47,22 @@ func main() {
 	sigTerm := syscall.SIGTERM
 	ctx, stop := signal.NotifyContext(bgCtx, sigInt, sigTerm)
 	defer stop()
+
+	// Khoi tao Telemetry (Metrics + OpenTelemetry TracerProvider)
+	telemetry.InitMetrics()
+	tp, err := telemetry.InitTracer(ctx, cfg.OtelEnabled, cfg.OtelServiceName, cfg.OtelExporterEndpoint)
+	if err != nil {
+		logger.Warn("khoi tao OpenTelemetry loi", "err", err)
+	} else if tp != nil {
+		logger.Info("OpenTelemetry SDK khoi tao thanh cong")
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := tp.Shutdown(shutdownCtx); err != nil {
+				logger.Error("Shutdown OpenTelemetry TracerProvider loi", "err", err)
+			}
+		}()
+	}
 
 	// Chay migration truoc khi mo pool/consumer de Neon san bang, fail-fast neu loi.
 	databaseURL := cfg.DatabaseURL

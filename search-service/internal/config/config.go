@@ -22,6 +22,15 @@ type Config struct {
 
 	// LogLevel: debug | info | warn | error
 	LogLevel string
+
+	// OtelEnabled bat/tat OpenTelemetry distributed tracing (mac dinh false).
+	OtelEnabled bool
+
+	// OtelServiceName ten service hien thi tren OTel tracing system.
+	OtelServiceName string
+
+	// OtelExporterEndpoint endpoint nhan OTLP HTTP traces (vd http://localhost:4318/v1/traces).
+	OtelExporterEndpoint string
 }
 
 // defaultQueueName giu nguyen ten queue cu de khong doi hanh vi mac dinh.
@@ -39,9 +48,12 @@ func Load() (Config, error) {
 		// Doi ten queue o local de KHONG giành message voi ban tren Render: hai
 		// queue khac ten cung bind vao topic exchange thi moi queue nhan mot BAN SAO,
 		// con chung ten thi RabbitMQ chia round-robin, moi ben an mot nua event.
-		QueueName:   getEnv("SEARCH_QUEUE_NAME", defaultQueueName),
-		DatabaseURL: getEnv("DATABASE_URL", ""),
-		LogLevel:    getEnv("LOG_LEVEL", "info"),
+		QueueName:            getEnv("SEARCH_QUEUE_NAME", defaultQueueName),
+		DatabaseURL:          getEnv("DATABASE_URL", ""),
+		LogLevel:             getEnv("LOG_LEVEL", "info"),
+		OtelEnabled:          os.Getenv("OTEL_ENABLED") == "true",
+		OtelServiceName:      getEnv("OTEL_SERVICE_NAME", "search-service"),
+		OtelExporterEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318/v1/traces"),
 	}
 
 	if cfg.RabbitMQURL == "" {
