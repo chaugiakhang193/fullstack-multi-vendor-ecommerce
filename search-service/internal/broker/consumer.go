@@ -356,8 +356,12 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 
 	default:
 		// Khong nen xay ra vi chi bind 3 key; phong thu: ack de khong ket.
+		// Label la "unknown" chu KHONG phai eventType: day la nhanh duy nhat eventType
+		// chua qua switch loc nen no la chuoi tuy y tu body JSON, gan thang vao label
+		// se lam Prometheus sinh time series moi cho moi gia tri la. Gia tri that da
+		// nam trong log ngay tren.
 		c.logger.Warn("eventType la, bo qua", "eventType", eventType, "eventId", eventID)
-		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "skipped").Inc()
+		c.metrics.EventsProcessedTotal.WithLabelValues("unknown", "skipped").Inc()
 		_ = msg.Ack(false)
 		return
 	}
