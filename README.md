@@ -139,7 +139,13 @@ guarantees notifications are **never lost or duplicated**, even when a service o
 
 ### The notification flow in detail
 
-Solid arrows are the outbound path, dotted arrows are the two return paths back to the browser.
+The path is a loop — monolith to broker to service and back again — so it is drawn as two halves.
+The sequence diagrams further down show the same two halves in time order; these show the topology,
+including the retry machinery that never appears in a happy-path sequence.
+
+**Outbound, and what happens when delivery fails.** The business transaction and the outbox row commit
+together, so an event cannot be lost by a crash between them. Everything after that is the broker's
+problem:
 
 ```mermaid
 flowchart LR
@@ -147,12 +153,8 @@ flowchart LR
         BIZ["Business tx<br/>order · review · payout"]
         OBX[("outbox_event")]
         RELAY["OutboxRelay<br/>polling publisher"]
-        PROJ["Projection consumer"]
-        NREAD[("notification_read<br/>read projection")]
-        WSSRV["Socket.IO server<br/>redis-adapter"]
         BIZ -->|"same tx"| OBX
         OBX -->|"poll + confirm"| RELAY
-        PROJ --> NREAD
     end
 
     subgraph Broker["RabbitMQ"]
@@ -161,7 +163,6 @@ flowchart LR
         DLX{{"notifications.dlx"}}
         RQ[["notifications.retry<br/>TTL 30s"]]
         DLQ[["notifications.dlq<br/>parking-lot"]]
-        NEX{{"notifications.events"}}
         EX --> Q
         Q -.->|"retry"| DLX
         DLX --> RQ
@@ -172,30 +173,53 @@ flowchart LR
     subgraph NS["Notification Service · DB#2"]
         CONS["Consumer<br/>idempotent"]
         NOTIF[("notification<br/>source of truth")]
-        NOBX[("notification_outbox")]
-        NRELAY["NotificationOutboxRelay"]
-        EMIT["WS redis-emitter"]
         CONS -->|"dedup + tx"| NOTIF
-        CONS --> NOBX
-        CONS --> EMIT
-        NOBX -->|"poll + confirm"| NRELAY
     end
-
-    REDIS[("Redis pub/sub")]
-    CLIENT(["Browser client"])
 
     RELAY -->|"publish"| EX
     Q --> CONS
-    NRELAY -->|"publish"| NEX
-    NEX -.->|"notification.created"| PROJ
-    EMIT -.->|"emit rooms"| REDIS
-    REDIS -.-> WSSRV
-    WSSRV -.->|"realtime"| CLIENT
 ```
 
 **Live RabbitMQ broker** — the exchanges/queues, DLX/retry/DLQ topology, and message rates in production:
 
 ![RabbitMQ management UI](docs/screenshots/rabbitmq.png)
+
+**The two return paths.** Once the notification is written, it has to reach two places: the browser,
+which wants it now, and the monolith's read projection, which wants it eventually. They travel by
+different carriers on purpose — Redis is best-effort so a WebSocket failure cannot block the ack,
+while the projection goes through a second outbox so it inherits the same delivery guarantee as the
+outbound leg:
+
+```mermaid
+flowchart LR
+    subgraph NS2["Notification Service · DB#2"]
+        CONS2["Consumer"]
+        NOBX[("notification_outbox")]
+        NRELAY["NotificationOutboxRelay"]
+        EMIT["WS redis-emitter"]
+        CONS2 -->|"same tx"| NOBX
+        CONS2 --> EMIT
+        NOBX -->|"poll + confirm"| NRELAY
+    end
+
+    NEX{{"notifications.events"}}
+    REDIS[("Redis pub/sub")]
+
+    subgraph Mono2["Monolith backend · DB#1"]
+        PROJ["Projection consumer"]
+        NREAD[("notification_read<br/>read projection")]
+        WSSRV["Socket.IO server<br/>redis-adapter"]
+        PROJ -->|"dedup + upsert"| NREAD
+    end
+
+    CLIENT(["Browser client"])
+
+    NRELAY -->|"publish"| NEX
+    NEX -->|"notification.created"| PROJ
+    EMIT -->|"emit rooms"| REDIS
+    REDIS --> WSSRV
+    WSSRV -->|"realtime"| CLIENT
+```
 
 ### Sequence 🅐 — realtime to the client (via Redis)
 
