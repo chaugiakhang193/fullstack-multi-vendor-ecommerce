@@ -27,9 +27,12 @@ func InitTracer(ctx context.Context, enabled bool, serviceName, endpoint string)
 		serviceName = "search-service"
 	}
 
+	// KHONG dat WithInsecure(): option duoc ap dung tuan tu, cai sau ghi de cai truoc,
+	// nen WithInsecure() dung sau WithEndpointURL() se ep plaintext ke ca khi endpoint
+	// la https. De WithEndpointURL tu suy scheme: http:// -> plaintext (local), https://
+	// -> TLS (backend that nhu Grafana Cloud / Tempo).
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithEndpointURL(endpoint),
-		otlptracehttp.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("tao OTLP trace exporter loi: %w", err)
