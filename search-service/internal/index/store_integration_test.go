@@ -128,6 +128,18 @@ func readName(t *testing.T, ctx context.Context, pool *pgxpool.Pool, productID s
 	return name
 }
 
+// readTombstoneDeletedAt doc moc deleted_at dang luu de kiem chung GREATEST giu dung moc lon nhat.
+func readTombstoneDeletedAt(t *testing.T, ctx context.Context, pool *pgxpool.Pool, productID string) time.Time {
+	t.Helper()
+
+	querySQL := `SELECT deleted_at FROM deleted_products_tombstone WHERE product_id = $1`
+	var deletedAt time.Time
+	if err := pool.QueryRow(ctx, querySQL, productID).Scan(&deletedAt); err != nil {
+		t.Fatalf("doc tombstone deleted_at loi: %v", err)
+	}
+	return deletedAt
+}
+
 // countRows dem so row trong bang de kiem chung insert/delete.
 func countRows(t *testing.T, ctx context.Context, pool *pgxpool.Pool, table string) int {
 	t.Helper()
@@ -407,7 +419,13 @@ func TestNewerUpdatedAfterTombstone(t *testing.T) {
 	}
 }
 
-// TestConcurrentUpdateDelete kiem tra chay dong thoi nhieu goroutine update va delete cung 1 product_id khong bi race condition hoac deadlock.
+// TestConcurrentUpdateDelete chay 10 goroutine update/delete xen ke tren cung 1 product_id.
+//
+// Thu tu chay ngau nhien nhung ket qua cuoi la TAT DINH: worker so le mang moc lon nhat la
+// worker 9 (delete tai baseTime+9m), trong khi moi upsert deu <= baseTime+8m. Sau khi worker
+// 9 chay, tombstone o moc 9m khong upsert nao vuot qua duoc nen khong ai xoa duoc tombstone
+// va khong ai hoi sinh duoc row. Vi vay luon ket thuc o: index rong, tombstone dung 1 row
+// tai moc 9m. Truoc day test chi t.Logf nen chi bat duoc panic, khong bat duoc ket qua sai.
 func TestConcurrentUpdateDelete(t *testing.T) {
 	store, pool, ctx := setupTestDB(t)
 
@@ -416,28 +434,47 @@ func TestConcurrentUpdateDelete(t *testing.T) {
 
 	var wg sync.WaitGroup
 	workers := 10
+	// Moi goroutine ghi vao mot o rieng nen khong can mutex.
+	errs := make([]error, workers)
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		workerID := i
 		go func() {
 			defer wg.Done()
-			eventID := fmt.Sprintf("f4444444-0000-0000-0000-%012d", workerID)
-			if workerID%2 == 0 {
-				doc := makeDoc(productID, fmt.Sprintf("name-%d", workerID), baseTime.Add(time.Duration(workerID)*time.Minute))
-				_ = store.UpsertProduct(ctx, eventID, doc)
+			eventID := fmt.Sprintf("f4444444-0000-0000-0000-%012d", i)
+			moc := baseTime.Add(time.Duration(i) * time.Minute)
+			if i%2 == 0 {
+				errs[i] = store.UpsertProduct(ctx, eventID, makeDoc(productID, fmt.Sprintf("name-%d", i), moc))
 			} else {
-				deletedAt := baseTime.Add(time.Duration(workerID) * time.Minute)
-				_ = store.DeleteProduct(ctx, eventID, productID, deletedAt)
+				errs[i] = store.DeleteProduct(ctx, eventID, productID, moc)
 			}
 		}()
 	}
 
 	wg.Wait()
 
-	totalIdx := countRows(t, ctx, pool, "product_index")
-	totalTomb := countRows(t, ctx, pool, "deleted_products_tombstone")
-	t.Logf("Concurrent test complete: product_index rows=%d, tombstone rows=%d", totalIdx, totalTomb)
+	// Chi nil hoac ErrTombstoneBlocked moi hop le. Moi loi khac (deadlock, serialization
+	// failure, mat ket noi) la that bai that su, truoc day bi nuot sach boi `_ =`.
+	for i, err := range errs {
+		if err != nil && !errors.Is(err, ErrTombstoneBlocked) {
+			t.Errorf("worker %d: loi khong mong doi: %v", i, err)
+		}
+	}
+
+	if total := countRows(t, ctx, pool, "product_index"); total != 0 {
+		t.Errorf("so row product_index = %d, muon 0 (delete moc lon nhat phai thang moi upsert)", total)
+	}
+	if total := countRows(t, ctx, pool, "deleted_products_tombstone"); total != 1 {
+		t.Errorf("so row tombstone = %d, muon 1", total)
+	}
+	if total := countRows(t, ctx, pool, "processed_events"); total != workers {
+		t.Errorf("so processed_events = %d, muon %d (moi event deu phai duoc danh dau da xu ly)", total, workers)
+	}
+
+	mocLonNhat := baseTime.Add(time.Duration(workers-1) * time.Minute)
+	if got := readTombstoneDeletedAt(t, ctx, pool, productID); !got.Equal(mocLonNhat) {
+		t.Errorf("tombstone deleted_at = %v, muon %v (GREATEST phai giu moc lon nhat)", got, mocLonNhat)
+	}
 }
 
 // TestGuardChanHostKhongPhaiLocal kiem tra chinh cai guard an toan: URL tro toi host la
