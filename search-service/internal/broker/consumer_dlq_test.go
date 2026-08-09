@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/index"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/search-service/internal/telemetry"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -95,6 +97,13 @@ func newDelivery(ack amqp.Acknowledger, routingKey string, headers amqp.Table, b
 		Body:         body,
 		ContentType:  "application/json",
 	}
+}
+
+// metricCount doc gia tri hien tai cua 1 child counter. Metrics la singleton toan cuc dung
+// chung ca package nen phai so delta truoc/sau, khong so tuyet doi.
+func metricCount(t *testing.T, eventType string, result string) float64 {
+	t.Helper()
+	return testutil.ToFloat64(telemetry.GetMetrics().EventsProcessedTotal.WithLabelValues(eventType, result))
 }
 
 // validUpsertBody tao envelope product.updated hop le (parse duoc), de loi duy nhat
@@ -249,5 +258,109 @@ func TestRetryPreservesTraceparent(t *testing.T) {
 	}
 	if _, exists := headers["x-retry-count"]; exists {
 		t.Errorf("header delivery goc bi mutate; phai clone truoc khi them x-retry-count")
+	}
+}
+
+// TestRetryPublishFailureNoAck: publish sang RETRY that bai phai Nack(requeue=true).
+// TestPublishFailureNoAck chi phu duoc nhanh publish DLQ cua poison message, nhanh retry
+// nam o processResult va truoc day chua test nao cham toi.
+func TestRetryPublishFailureNoAck(t *testing.T) {
+	ack := &fakeAck{}
+	pub := &fakePublisher{failWith: errors.New("broker tu choi publish")}
+	c := newTestConsumer(&fakeStore{upsertErr: errors.New("db tam thoi chet")})
+
+	msg := newDelivery(ack, "product.updated", nil, validUpsertBody(t))
+	c.handleMessage(context.Background(), pub, msg)
+
+	if ack.acked {
+		t.Errorf("publish retry loi thi KHONG duoc ACK (tranh mat message)")
+	}
+	if !ack.nacked || !ack.nackRequeue {
+		t.Errorf("phai Nack(requeue=true): acked=%v nacked=%v requeue=%v", ack.acked, ack.nacked, ack.nackRequeue)
+	}
+}
+
+// TestDLQPublishFailureHetRetryNoAck: het luot retry MA publish DLQ cung hong thi van phai
+// Nack(requeue=true). Neu ACK o day thi message bien mat han, khong con o queue lan DLQ.
+func TestDLQPublishFailureHetRetryNoAck(t *testing.T) {
+	ack := &fakeAck{}
+	pub := &fakePublisher{failWith: errors.New("broker tu choi publish")}
+	c := newTestConsumer(&fakeStore{upsertErr: errors.New("db tam thoi chet")})
+
+	headers := amqp.Table{"x-retry-count": int32(maxRetries)}
+	msg := newDelivery(ack, "product.updated", headers, validUpsertBody(t))
+	c.handleMessage(context.Background(), pub, msg)
+
+	if ack.acked {
+		t.Errorf("publish DLQ loi thi KHONG duoc ACK (tranh mat message)")
+	}
+	if !ack.nacked || !ack.nackRequeue {
+		t.Errorf("phai Nack(requeue=true): acked=%v nacked=%v requeue=%v", ack.acked, ack.nacked, ack.nackRequeue)
+	}
+}
+
+// TestSentinelErrorAckKhongPublish: ErrDuplicateEvent va ErrTombstoneBlocked la ket cuc cuoi
+// cung chu khong phai loi tam thoi, nen phai ACK va TUYET DOI khong day sang retry/DLQ.
+// Case tombstone boc loi bang %w de chot rang code dung errors.Is chu khong phai so sanh ==.
+func TestSentinelErrorAckKhongPublish(t *testing.T) {
+	cases := []struct {
+		name   string
+		err    error
+		result string
+	}{
+		{"duplicate", index.ErrDuplicateEvent, "duplicate"},
+		{"tombstone blocked", fmt.Errorf("upsert product_index loi: %w", index.ErrTombstoneBlocked), "tombstone_blocked"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ack := &fakeAck{}
+			pub := &fakePublisher{}
+			c := newTestConsumer(&fakeStore{upsertErr: tc.err})
+
+			before := metricCount(t, "product.updated", tc.result)
+			c.handleMessage(context.Background(), pub, newDelivery(ack, "product.updated", nil, validUpsertBody(t)))
+
+			if !ack.acked {
+				t.Errorf("phai ACK: day la ket cuc cuoi cung, redeliver lai cung the")
+			}
+			if ack.nacked {
+				t.Errorf("khong duoc NACK")
+			}
+			if len(pub.published) != 0 {
+				t.Errorf("khong duoc day sang retry/DLQ, da publish %+v", pub.published)
+			}
+			if got := metricCount(t, "product.updated", tc.result); got != before+1 {
+				t.Errorf("metric result=%q tang %v, muon 1", tc.result, got-before)
+			}
+		})
+	}
+}
+
+// TestUnknownEventTypeLabelBiChan: nhanh default la cho duy nhat eventType chua qua switch
+// loc, no den thang tu body JSON. Label phai la hang "unknown", khong duoc lay gia tri tu
+// body ra lam label vi Prometheus se sinh time series moi cho moi gia tri la.
+func TestUnknownEventTypeLabelBiChan(t *testing.T) {
+	ack := &fakeAck{}
+	pub := &fakePublisher{}
+	c := newTestConsumer(&fakeStore{})
+
+	const eventTypeLa = "product.exploded.f39a1c"
+	body := []byte(`{"eventId":"e9","eventType":"` + eventTypeLa + `","occurredAt":"2026-08-01T10:20:56.789Z","payload":{}}`)
+
+	before := metricCount(t, "unknown", "skipped")
+	c.handleMessage(context.Background(), pub, newDelivery(ack, "product.updated", nil, body))
+
+	if !ack.acked {
+		t.Errorf("eventType la phai duoc ACK de khong ket queue")
+	}
+	if len(pub.published) != 0 {
+		t.Errorf("eventType la khong phai poison, khong duoc publish: %+v", pub.published)
+	}
+	if got := metricCount(t, "unknown", "skipped"); got != before+1 {
+		t.Errorf("metric (unknown, skipped) tang %v, muon 1", got-before)
+	}
+	if got := metricCount(t, eventTypeLa, "skipped"); got != 0 {
+		t.Errorf("eventType tu body bi dung lam label metric (=%v): Prometheus phinh cardinality vo han", got)
 	}
 }
