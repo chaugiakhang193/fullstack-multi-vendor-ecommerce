@@ -3,9 +3,11 @@ package index
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -48,7 +50,7 @@ func requireLocalTestDB(t *testing.T) string {
 	if !isAllowed {
 		t.Fatalf(
 			"TU CHOI CHAY: %s tro toi host %q, khong nam trong danh sach cho phep %v. "+
-				"Test nay xoa du lieu nen chi duoc chay tren Postgres local dung riêng cho test.",
+				"Test nay xoa du lieu nen chi duoc chay tren Postgres local dung rieng cho test.",
 			testDatabaseURLEnv, hostname, allowedTestHosts,
 		)
 	}
@@ -56,7 +58,7 @@ func requireLocalTestDB(t *testing.T) string {
 	return databaseURL
 }
 
-// setupTestDB dung schema sach: chay migration roi don sach 2 bang truoc moi test.
+// setupTestDB dung schema sach: chay migration roi don sach 3 bang truoc moi test.
 // Tra ve store da san sang va pool phu de test tu doc lai du lieu kiem chung.
 func setupTestDB(t *testing.T) (*Store, *pgxpool.Pool, context.Context) {
 	t.Helper()
@@ -85,7 +87,7 @@ func setupTestDB(t *testing.T) (*Store, *pgxpool.Pool, context.Context) {
 	t.Cleanup(pool.Close)
 
 	// Don sach de moi test chay tren nen trang, khong phu thuoc thu tu test.
-	truncateSQL := `TRUNCATE product_index, processed_events`
+	truncateSQL := `TRUNCATE product_index, processed_events, deleted_products_tombstone`
 	if _, err := pool.Exec(ctx, truncateSQL); err != nil {
 		t.Fatalf("don bang loi: %v", err)
 	}
@@ -145,13 +147,13 @@ func TestMigrationTaoDayDuDoiTuong(t *testing.T) {
 	_, pool, ctx := setupTestDB(t)
 
 	tableSQL := `SELECT count(*) FROM pg_tables WHERE schemaname = 'public'
-		AND tablename IN ('product_index', 'processed_events')`
+		AND tablename IN ('product_index', 'processed_events', 'deleted_products_tombstone')`
 	var tableCount int
 	if err := pool.QueryRow(ctx, tableSQL).Scan(&tableCount); err != nil {
 		t.Fatalf("kiem tra bang loi: %v", err)
 	}
-	if tableCount != 2 {
-		t.Errorf("so bang = %d, muon 2 (product_index + processed_events)", tableCount)
+	if tableCount != 3 {
+		t.Errorf("so bang = %d, muon 3 (product_index + processed_events + deleted_products_tombstone)", tableCount)
 	}
 
 	extensionSQL := `SELECT count(*) FROM pg_extension WHERE extname IN ('unaccent', 'pg_trgm')`
@@ -205,7 +207,7 @@ func TestUpsertChenMoiRoiCapNhat(t *testing.T) {
 	}
 }
 
-// TestUpsertBoQuaEventCu la test QUAN TRONG NHAT cua T7: mot product.updated cu toi SAU
+// TestUpsertBoQuaEventCu la test QUAN TRONG NHAT: mot product.updated cu toi SAU
 // ban moi (RabbitMQ khong bao dam thu tu) KHONG duoc ghi de ban moi.
 func TestUpsertBoQuaEventCu(t *testing.T) {
 	store, pool, ctx := setupTestDB(t)
@@ -278,7 +280,8 @@ func TestDeleteXoaDocumentVaDedup(t *testing.T) {
 	}
 
 	eventDeleted := "dddddddd-0000-0000-0000-000000000002"
-	if err := store.DeleteProduct(ctx, eventDeleted, productID); err != nil {
+	deletedAt := baseTime.Add(30 * time.Minute)
+	if err := store.DeleteProduct(ctx, eventDeleted, productID, deletedAt); err != nil {
 		t.Fatalf("delete loi: %v", err)
 	}
 	if total := countRows(t, ctx, pool, "product_index"); total != 0 {
@@ -286,7 +289,7 @@ func TestDeleteXoaDocumentVaDedup(t *testing.T) {
 	}
 
 	// Gui lai cung event delete: phai bi dedup chan.
-	err := store.DeleteProduct(ctx, eventDeleted, productID)
+	err := store.DeleteProduct(ctx, eventDeleted, productID, deletedAt)
 	if !errors.Is(err, ErrDuplicateEvent) {
 		t.Errorf("loi = %v, muon ErrDuplicateEvent khi gui lai delete", err)
 	}
@@ -299,13 +302,142 @@ func TestDeleteProductKhongTonTaiKhongLoi(t *testing.T) {
 
 	productID := "99999999-9999-9999-9999-999999999999"
 	eventDeleted := "eeeeeeee-0000-0000-0000-000000000001"
-	if err := store.DeleteProduct(ctx, eventDeleted, productID); err != nil {
+	deletedAt := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	if err := store.DeleteProduct(ctx, eventDeleted, productID, deletedAt); err != nil {
 		t.Fatalf("delete product khong ton tai khong duoc bao loi: %v", err)
 	}
 
 	if total := countRows(t, ctx, pool, "processed_events"); total != 1 {
 		t.Errorf("so processed_events = %d, muon 1 (van danh dau da xu ly)", total)
 	}
+}
+
+// TestDeletedThenOldUpdated kiem tra khi event delete toi truoc, event update cu toi sau se bi tombstone guard chan.
+func TestDeletedThenOldUpdated(t *testing.T) {
+	store, pool, ctx := setupTestDB(t)
+
+	productID := "11111111-1111-1111-1111-111111111111"
+	baseTime := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+
+	doc := makeDoc(productID, "product-a", baseTime)
+	eventCreated := "f1111111-0000-0000-0000-000000000001"
+	if err := store.UpsertProduct(ctx, eventCreated, doc); err != nil {
+		t.Fatalf("upsert created loi: %v", err)
+	}
+
+	deletedAt := baseTime.Add(2 * time.Hour)
+	eventDeleted := "f1111111-0000-0000-0000-000000000002"
+	if err := store.DeleteProduct(ctx, eventDeleted, productID, deletedAt); err != nil {
+		t.Fatalf("delete loi: %v", err)
+	}
+
+	oldUpdatedAt := baseTime.Add(1 * time.Hour)
+	oldDoc := makeDoc(productID, "product-a-old-update", oldUpdatedAt)
+	eventOldUpdate := "f1111111-0000-0000-0000-000000000003"
+	err := store.UpsertProduct(ctx, eventOldUpdate, oldDoc)
+	if !errors.Is(err, ErrTombstoneBlocked) {
+		t.Errorf("loi = %v, muon ErrTombstoneBlocked vi event update cu den sau delete", err)
+	}
+
+	if total := countRows(t, ctx, pool, "product_index"); total != 0 {
+		t.Errorf("so row product_index = %d, muon 0 (tombstone phai chan khong cho hoi sinh)", total)
+	}
+}
+
+// TestNewerUpdatedThenOldDeleted kiem tra khi event update moi toi truoc, event delete cu toi sau se khong xoa nham row update moi.
+func TestNewerUpdatedThenOldDeleted(t *testing.T) {
+	store, pool, ctx := setupTestDB(t)
+
+	productID := "22222222-2222-2222-2222-222222222222"
+	baseTime := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+
+	newUpdatedAt := baseTime.Add(2 * time.Hour)
+	newDoc := makeDoc(productID, "product-b-new", newUpdatedAt)
+	eventUpdated := "f2222222-0000-0000-0000-000000000001"
+	if err := store.UpsertProduct(ctx, eventUpdated, newDoc); err != nil {
+		t.Fatalf("upsert product-b loi: %v", err)
+	}
+
+	oldDeletedAt := baseTime.Add(1 * time.Hour)
+	eventOldDeleted := "f2222222-0000-0000-0000-000000000002"
+	if err := store.DeleteProduct(ctx, eventOldDeleted, productID, oldDeletedAt); err != nil {
+		t.Fatalf("delete cu loi: %v", err)
+	}
+
+	if total := countRows(t, ctx, pool, "product_index"); total != 1 {
+		t.Errorf("so row product_index = %d, muon 1 (delete cu den sau khong duoc xoa row moi)", total)
+	}
+	if got := readName(t, ctx, pool, productID); got != "product-b-new" {
+		t.Errorf("name = %q, muon %q", got, "product-b-new")
+	}
+}
+
+// TestNewerUpdatedAfterTombstone kiem tra khi product duoc restore/re-created (event update moi hon deleted_at), tombstone bi xoa va row duoc re-created.
+func TestNewerUpdatedAfterTombstone(t *testing.T) {
+	store, pool, ctx := setupTestDB(t)
+
+	productID := "33333333-3333-3333-3333-333333333333"
+	baseTime := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+
+	deletedAt := baseTime.Add(1 * time.Hour)
+	eventDeleted := "f3333333-0000-0000-0000-000000000001"
+	if err := store.DeleteProduct(ctx, eventDeleted, productID, deletedAt); err != nil {
+		t.Fatalf("delete initial loi: %v", err)
+	}
+
+	if total := countRows(t, ctx, pool, "deleted_products_tombstone"); total != 1 {
+		t.Fatalf("so row tombstone = %d, muon 1", total)
+	}
+
+	newerUpdatedAt := baseTime.Add(2 * time.Hour)
+	newerDoc := makeDoc(productID, "product-c-restored", newerUpdatedAt)
+	eventRestored := "f3333333-0000-0000-0000-000000000002"
+	if err := store.UpsertProduct(ctx, eventRestored, newerDoc); err != nil {
+		t.Fatalf("upsert restored product loi: %v", err)
+	}
+
+	if total := countRows(t, ctx, pool, "deleted_products_tombstone"); total != 0 {
+		t.Errorf("so row tombstone sau restore = %d, muon 0", total)
+	}
+	if total := countRows(t, ctx, pool, "product_index"); total != 1 {
+		t.Errorf("so row product_index sau restore = %d, muon 1", total)
+	}
+	if got := readName(t, ctx, pool, productID); got != "product-c-restored" {
+		t.Errorf("name = %q, muon %q", got, "product-c-restored")
+	}
+}
+
+// TestConcurrentUpdateDelete kiem tra chay dong thoi nhieu goroutine update va delete cung 1 product_id khong bi race condition hoac deadlock.
+func TestConcurrentUpdateDelete(t *testing.T) {
+	store, pool, ctx := setupTestDB(t)
+
+	productID := "44444444-4444-4444-4444-444444444444"
+	baseTime := time.Date(2026, 8, 1, 10, 0, 0, 0, time.UTC)
+
+	var wg sync.WaitGroup
+	workers := 10
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		workerID := i
+		go func() {
+			defer wg.Done()
+			eventID := fmt.Sprintf("f4444444-0000-0000-0000-%012d", workerID)
+			if workerID%2 == 0 {
+				doc := makeDoc(productID, fmt.Sprintf("name-%d", workerID), baseTime.Add(time.Duration(workerID)*time.Minute))
+				_ = store.UpsertProduct(ctx, eventID, doc)
+			} else {
+				deletedAt := baseTime.Add(time.Duration(workerID) * time.Minute)
+				_ = store.DeleteProduct(ctx, eventID, productID, deletedAt)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	totalIdx := countRows(t, ctx, pool, "product_index")
+	totalTomb := countRows(t, ctx, pool, "deleted_products_tombstone")
+	t.Logf("Concurrent test complete: product_index rows=%d, tombstone rows=%d", totalIdx, totalTomb)
 }
 
 // TestGuardChanHostKhongPhaiLocal kiem tra chinh cai guard an toan: URL tro toi host la

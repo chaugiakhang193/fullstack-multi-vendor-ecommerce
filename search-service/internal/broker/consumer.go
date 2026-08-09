@@ -188,7 +188,7 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 // handleMessage decode envelope + payload roi ghi vao index (DB#3 Neon), dedup qua
 // processed_events trong Store. Quyet dinh ack/nack:
 //   - payload hong (decode/parse loi): Ack de bo (khong requeue vo ich) — chua co DLQ.
-//   - ghi thanh cong hoac event trung: Ack.
+//   - ghi thanh cong hoac event trung / tombstone blocked: Ack.
 //   - loi DB tam thoi: Nack(requeue) de redeliver, khong mat message.
 func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 	msgHeaders := msg.Headers
@@ -240,6 +240,7 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 			return
 		}
 		err = c.store.UpsertProduct(procCtx, eventID, doc)
+		
 	case "product.deleted":
 		var d ProductDeleted
 		if decodeErr := json.Unmarshal(payload, &d); decodeErr != nil {
@@ -248,7 +249,19 @@ func (c *Consumer) handleMessage(ctx context.Context, msg amqp.Delivery) {
 			return
 		}
 		productID := d.ProductID
-		err = c.store.DeleteProduct(procCtx, eventID, productID)
+		if env.OccurredAt == "" {
+			c.logger.Error("payload delete thieu occurredAt, bo message", "eventId", eventID)
+			_ = msg.Ack(false)
+			return
+		}
+		deletedAt, pErr := time.Parse(time.RFC3339, env.OccurredAt)
+		if pErr != nil {
+			c.logger.Error("parse occurredAt loi, bo message", "eventId", eventID, "err", pErr)
+			_ = msg.Ack(false)
+			return
+		}
+		err = c.store.DeleteProduct(procCtx, eventID, productID, deletedAt)
+
 	default:
 		// Khong nen xay ra vi chi bind 3 key; phong thu: ack de khong ket.
 		c.logger.Warn("eventType la, bo qua", "eventType", eventType, "eventId", eventID)
@@ -300,6 +313,7 @@ func toProductDoc(p ProductSnapshot) (index.ProductDoc, error) {
 // ackOrRetry quyet dinh ack/nack theo ket qua ghi index:
 //   - nil: ghi thanh cong → ack.
 //   - ErrDuplicateEvent: event da xu ly (processed_events trung) → ack, skip.
+//   - ErrTombstoneBlocked: event update bi chan boi tombstone → ack, skip.
 //   - loi khac (DB tam thoi): cho requeueDelay roi Nack(requeue=true) de redeliver, khong
 //     mat message. Delay tranh hot-loop khi DB chet keo dai.
 func (c *Consumer) ackOrRetry(msg amqp.Delivery, env Envelope, err error) {
@@ -315,6 +329,13 @@ func (c *Consumer) ackOrRetry(msg amqp.Delivery, env Envelope, err error) {
 	case errors.Is(err, index.ErrDuplicateEvent):
 		c.logger.Info("event da xu ly truoc do, skip", "eventId", eventID, "eventType", eventType)
 		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "duplicate").Inc()
+		multiple := false
+		if ackErr := msg.Ack(multiple); ackErr != nil {
+			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)
+		}
+	case errors.Is(err, index.ErrTombstoneBlocked):
+		c.logger.Info("event update bi chan boi tombstone, skip", "eventId", eventID, "eventType", eventType)
+		c.metrics.EventsProcessedTotal.WithLabelValues(eventType, "tombstone_blocked").Inc()
 		multiple := false
 		if ackErr := msg.Ack(multiple); ackErr != nil {
 			c.logger.Error("ack loi", "eventId", eventID, "err", ackErr)

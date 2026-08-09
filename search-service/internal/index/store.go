@@ -39,6 +39,9 @@ type Store struct {
 // loi nay de ack + skip, KHONG coi la loi transient (khong redeliver).
 var ErrDuplicateEvent = errors.New("event da xu ly truoc do")
 
+// ErrTombstoneBlocked bao event update bi chan vi product da bi xoa (tombstone guard).
+var ErrTombstoneBlocked = errors.New("product da bi xoa (tombstone guard)")
+
 // NewStore mo pool toi Neon roi Ping ngay de fail-fast neu URL/SSL sai (thay vi chet
 // luc ghi message dau tien). ctx la context khoi dong co timeout, khong phai ctx vong doi.
 func NewStore(ctx context.Context, databaseURL string) (*Store, error) {
@@ -101,13 +104,8 @@ func markProcessed(ctx context.Context, tx pgx.Tx, eventID string) error {
 }
 
 // UpsertProduct ghi/cap nhat 1 document trong 1 transaction: dedup (processed_events)
-// truoc, roi UPSERT co dieu kien ordering. Tra ErrDuplicateEvent neu event da xu ly.
-//
-// ON CONFLICT (product_id) DO UPDATE ... WHERE product_index.updated_at < EXCLUDED.updated_at:
-// BO QUA event cu hon. RabbitMQ khong bao dam thu tu va relay co retry, nen 1 product.updated
-// cu hoan toan co the toi SAU ban moi — dieu kien WHERE khi do false → khong ghi de, giu ban
-// moi. Nhanh INSERT (chua co row) khong bi WHERE chi phoi nen luon chen. search_vector khong
-// dung toi o day, de NULL cho trigger populate sau.
+// truoc, lay advisory lock theo product_id, kiem tra tombstone table roi UPSERT co dieu kien ordering.
+// Tra ErrDuplicateEvent neu event da xu ly, ErrTombstoneBlocked neu event cu hon lan delete truoc.
 func (s *Store) UpsertProduct(ctx context.Context, eventID string, doc ProductDoc) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -117,6 +115,30 @@ func (s *Store) UpsertProduct(ctx context.Context, eventID string, doc ProductDo
 
 	if err := markProcessed(ctx, tx, eventID); err != nil {
 		return err
+	}
+
+	// Advisory lock theo product_id de trinh race condition giua concurrent workers
+	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1))`
+	if _, lockErr := tx.Exec(ctx, lockQ, doc.ProductID); lockErr != nil {
+		return fmt.Errorf("lay advisory lock loi: %w", lockErr)
+	}
+
+	// Kiem tra tombstone table de chan update cu den sau delete
+	const tombstoneQ = `SELECT deleted_at FROM deleted_products_tombstone WHERE product_id = $1::uuid`
+	var deletedAt time.Time
+	err = tx.QueryRow(ctx, tombstoneQ, doc.ProductID).Scan(&deletedAt)
+	if err == nil {
+		if !doc.UpdatedAt.After(deletedAt) {
+			_ = tx.Commit(ctx)
+			return ErrTombstoneBlocked
+		}
+		// Neu update/create moi hon deleted_at (re-created / restored): xoa tombstone
+		const delTomb = `DELETE FROM deleted_products_tombstone WHERE product_id = $1::uuid`
+		if _, delErr := tx.Exec(ctx, delTomb, doc.ProductID); delErr != nil {
+			return fmt.Errorf("xoa tombstone loi: %w", delErr)
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("query tombstone loi: %w", err)
 	}
 
 	const q = `
@@ -164,12 +186,9 @@ WHERE product_index.updated_at < EXCLUDED.updated_at`
 	return nil
 }
 
-// DeleteProduct xoa document khoi index trong 1 transaction, co dedup. product.deleted
-// khong mang timestamp nen khong so ordering — xoa thang. Gioi han da biet: 1 product.updated
-// cu (emit truoc delete) toi sau delete se re-insert (hoi sinh row). Chap nhan vi thuc te
-// monolith khong sua product da xoa; chong hoi sinh de xu ly sau neu can. Xoa ban ghi khong
-// ton tai khong loi (DELETE 0 row) — van danh dau processed de khong xu ly lai.
-func (s *Store) DeleteProduct(ctx context.Context, eventID string, productID string) error {
+// DeleteProduct xoa document khoi index trong 1 transaction, co dedup. Ghi deleted_products_tombstone
+// de ngan event update cu den sau hoi sinh row. Chi xoa product_index NIF updated_at <= deletedAt.
+func (s *Store) DeleteProduct(ctx context.Context, eventID string, productID string, deletedAt time.Time) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("mo transaction loi: %w", err)
@@ -180,8 +199,26 @@ func (s *Store) DeleteProduct(ctx context.Context, eventID string, productID str
 		return err
 	}
 
-	const q = `DELETE FROM product_index WHERE product_id = $1`
-	if _, err := tx.Exec(ctx, q, productID); err != nil {
+	// Advisory lock theo product_id
+	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1))`
+	if _, lockErr := tx.Exec(ctx, lockQ, productID); lockErr != nil {
+		return fmt.Errorf("lay advisory lock loi: %w", lockErr)
+	}
+
+	// Upsert deleted_products_tombstone
+	const tombQ = `
+INSERT INTO deleted_products_tombstone (product_id, deleted_at)
+VALUES ($1::uuid, $2)
+ON CONFLICT (product_id) DO UPDATE SET
+    deleted_at = GREATEST(deleted_products_tombstone.deleted_at, EXCLUDED.deleted_at)`
+
+	if _, err := tx.Exec(ctx, tombQ, productID, deletedAt); err != nil {
+		return fmt.Errorf("ghi tombstone loi: %w", err)
+	}
+
+	// Xoa row product_index CHỈ NẾU updated_at <= deletedAt (ngan delete cu xoa nham row moi update)
+	const q = `DELETE FROM product_index WHERE product_id = $1::uuid AND updated_at <= $2`
+	if _, err := tx.Exec(ctx, q, productID, deletedAt); err != nil {
 		return fmt.Errorf("delete product_index loi: %w", err)
 	}
 
