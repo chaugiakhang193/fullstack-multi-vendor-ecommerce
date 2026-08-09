@@ -123,7 +123,7 @@ func (s *Store) UpsertProduct(ctx context.Context, eventID string, doc ProductDo
 	}
 
 	// Advisory lock theo product_id de trinh race condition giua concurrent workers
-	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1))`
+	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1::uuid::text))`
 	if _, lockErr := tx.Exec(ctx, lockQ, doc.ProductID); lockErr != nil {
 		return fmt.Errorf("lay advisory lock loi: %w", lockErr)
 	}
@@ -134,7 +134,12 @@ func (s *Store) UpsertProduct(ctx context.Context, eventID string, doc ProductDo
 	err = tx.QueryRow(ctx, tombstoneQ, doc.ProductID).Scan(&deletedAt)
 	if err == nil {
 		if !doc.UpdatedAt.After(deletedAt) {
-			_ = tx.Commit(ctx)
+			// Commit de giu dau processed_events: event nay da xu ly xong, ket cuc la "bo qua".
+			// Commit hong thi phai bao loi that de consumer retry: bao ErrTombstoneBlocked se
+			// khien consumer ack mot transaction chua chac da ghi duoc gi.
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				return fmt.Errorf("commit tombstone guard loi: %w", commitErr)
+			}
 			return ErrTombstoneBlocked
 		}
 		// Neu update/create moi hon deleted_at (re-created / restored): xoa tombstone
@@ -205,7 +210,7 @@ func (s *Store) DeleteProduct(ctx context.Context, eventID string, productID str
 	}
 
 	// Advisory lock theo product_id
-	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1))`
+	const lockQ = `SELECT pg_advisory_xact_lock(hashtext($1::uuid::text))`
 	if _, lockErr := tx.Exec(ctx, lockQ, productID); lockErr != nil {
 		return fmt.Errorf("lay advisory lock loi: %w", lockErr)
 	}

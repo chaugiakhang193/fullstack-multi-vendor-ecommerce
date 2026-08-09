@@ -275,6 +275,12 @@ func (c *Consumer) handleMessage(ctx context.Context, pub publisher, msg amqp.De
 	eventID := env.EventID
 	payload := env.Payload
 
+	// Dat lai ten span theo eventType: message quay ve tu retry queue di qua default exchange
+	// nen routing key bi thay bang ten queue, ten span thanh "consume search_index.q" va moi
+	// trace retry tron chung mot cho. eventType lay tu body nen khong doi giua cac lan retry.
+	span.SetName("consume " + eventType)
+	span.SetAttributes(attribute.String("messaging.event_type", eventType))
+
 	switch eventType {
 	case "product.created", "product.updated":
 		var p ProductSnapshot

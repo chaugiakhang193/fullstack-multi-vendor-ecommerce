@@ -90,10 +90,17 @@ func main() {
 		logger.Warn("dem index luc khoi dong loi", "err", err)
 	}
 
+	var wg sync.WaitGroup
+
 	// Cap nhat gauge co index dinh ky duoi nen moi 15s. Khong dem dong bo trong
 	// upsert/delete vi count(*) tren Postgres phai quet MVCC, se nghen consumer khi
 	// index lon dan (hang tram nghin san pham).
+	//
+	// Nam trong wg de store.Close() (defer o tren) khong chay khi goroutine nay con
+	// dang query: defer chi chay sau wg.Wait() o cuoi main.
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		refreshInterval := 15 * time.Second
 		ticker := time.NewTicker(refreshInterval)
 		defer ticker.Stop()
@@ -109,8 +116,6 @@ func main() {
 			}
 		}
 	}()
-
-	var wg sync.WaitGroup
 
 	consumer := broker.NewConsumer(rabbitmqURL, queueName, store, logger)
 	wg.Add(1)
