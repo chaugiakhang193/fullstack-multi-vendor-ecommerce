@@ -14,7 +14,7 @@ import (
 )
 
 // ProductDoc la du lieu 1 document ghi vao product_index, da chuan hoa tu
-// ProductSnapshot (broker) — updatedAt da parse sang time.Time. Tach struct rieng o
+// ProductSnapshot (broker) - updatedAt da parse sang time.Time. Tach struct rieng o
 // tang index de broker khong lo chi tiet cot DB.
 type ProductDoc struct {
 	ProductID    string
@@ -82,13 +82,13 @@ func (s *Store) Close() {
 }
 
 // Pool tra ve pgxpool dang dung, de tang doc (search) xai chung mot pool thay vi
-// mo pool thu 2 — Neon free gioi han so connection.
+// mo pool thu 2 - Neon free gioi han so connection.
 func (s *Store) Pool() *pgxpool.Pool {
 	return s.pool
 }
 
 // markProcessed chen event_id vao processed_events trong tx. Tra ErrDuplicateEvent khi
-// trung (Postgres 23505) — nghia la 1 delivery khac da xu ly event nay. Chen dedup NAM
+// trung (Postgres 23505) - nghia la 1 delivery khac da xu ly event nay. Chen dedup NAM
 // TRONG cung transaction voi upsert/delete de "da ghi index" va "da danh dau processed"
 // nguyen tu voi nhau: rollback thi ca hai cung mat, khong bao gio lech.
 func markProcessed(ctx context.Context, tx pgx.Tx, eventID string) error {
@@ -187,7 +187,7 @@ WHERE product_index.updated_at < EXCLUDED.updated_at`
 }
 
 // DeleteProduct xoa document khoi index trong 1 transaction, co dedup. Ghi deleted_products_tombstone
-// de ngan event update cu den sau hoi sinh row. Chi xoa product_index NIF updated_at <= deletedAt.
+// de ngan event update cu den sau hoi sinh row. Chi xoa product_index NEU updated_at <= deletedAt.
 func (s *Store) DeleteProduct(ctx context.Context, eventID string, productID string, deletedAt time.Time) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -216,7 +216,7 @@ ON CONFLICT (product_id) DO UPDATE SET
 		return fmt.Errorf("ghi tombstone loi: %w", err)
 	}
 
-	// Xoa row product_index CHỈ NẾU updated_at <= deletedAt (ngan delete cu xoa nham row moi update)
+	// Xoa row product_index CHI NEU updated_at <= deletedAt (ngan delete cu xoa nham row moi update)
 	const q = `DELETE FROM product_index WHERE product_id = $1::uuid AND updated_at <= $2`
 	if _, err := tx.Exec(ctx, q, productID, deletedAt); err != nil {
 		return fmt.Errorf("delete product_index loi: %w", err)

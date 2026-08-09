@@ -154,7 +154,7 @@ func countRows(t *testing.T, ctx context.Context, pool *pgxpool.Pool, table stri
 }
 
 // TestMigrationTaoDayDuDoiTuong kiem tra migration dung duoc bang, index va extension.
-// Build/vet khong bao gio bat duoc loi SQL — chi chay that moi biet.
+// Build/vet khong bao gio bat duoc loi SQL - chi chay that moi biet.
 func TestMigrationTaoDayDuDoiTuong(t *testing.T) {
 	_, pool, ctx := setupTestDB(t)
 
@@ -243,7 +243,7 @@ func TestUpsertBoQuaEventCu(t *testing.T) {
 
 	got := readName(t, ctx, pool, productID)
 	if got != "ban-moi" {
-		t.Errorf("name = %q, muon %q — event cu da ghi de ban moi, ordering guard hong", got, "ban-moi")
+		t.Errorf("name = %q, muon %q - event cu da ghi de ban moi, ordering guard hong", got, "ban-moi")
 	}
 }
 
@@ -270,7 +270,7 @@ func TestUpsertTrungEventIDBiChan(t *testing.T) {
 	}
 
 	if got := readName(t, ctx, pool, productID); got != "lan-1" {
-		t.Errorf("name = %q, muon %q — dedup khong chan duoc lan gui lai", got, "lan-1")
+		t.Errorf("name = %q, muon %q - dedup khong chan duoc lan gui lai", got, "lan-1")
 	}
 	if total := countRows(t, ctx, pool, "processed_events"); total != 1 {
 		t.Errorf("so processed_events = %d, muon 1", total)
@@ -495,7 +495,7 @@ func TestGuardChanHostKhongPhaiLocal(t *testing.T) {
 		}
 	}
 	if isAllowed {
-		t.Errorf("host %q bi coi la local — guard hong, test co the chay vao DB that", hostname)
+		t.Errorf("host %q bi coi la local - guard hong, test co the chay vao DB that", hostname)
 	}
 	if !strings.Contains(hostname, "neon.tech") {
 		t.Errorf("hostname parse ra %q, khong dung URL mau", hostname)

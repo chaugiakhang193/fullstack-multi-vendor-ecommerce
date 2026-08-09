@@ -18,7 +18,7 @@ type Envelope struct {
 
 // ProductSnapshot khop ProductSearchSnapshotPayload phia monolith
 // (backend/src/common/constants/outbox.constants.ts). Dung cho product.created
-// va product.updated — cung mot hinh dang, consumer re-index toan bo document.
+// va product.updated - cung mot hinh dang, consumer re-index toan bo document.
 //
 // Price giu nguyen string (numeric(12,2) da chuan hoa 2 chu so), khong parse
 // float o tang nay de tranh sai so; tang index se xu ly tiep.
@@ -37,7 +37,7 @@ type ProductSnapshot struct {
 	UpdatedAt    string  `json:"updatedAt"`
 }
 
-// ProductDeleted khop ProductDeletedOutboxPayload — chi can id de (sau nay) xoa
+// ProductDeleted khop ProductDeletedOutboxPayload - chi can id de (sau nay) xoa
 // document khoi index.
 type ProductDeleted struct {
 	ProductID string `json:"productId"`

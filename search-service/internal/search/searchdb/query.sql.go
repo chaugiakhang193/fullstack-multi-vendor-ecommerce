@@ -111,7 +111,7 @@ type SearchProductsRow struct {
 
 // Search product theo full-text: match websearch_to_tsquery + xep hang ts_rank_cd.
 // Tra product_id + rank (Pattern B: monolith hydrate data day du tu DB chinh).
-// status = 'active' (chu THUONG, ProductStatus.ACTIVE) — loai deleted/suspended.
+// status = 'active' (chu THUONG, ProductStatus.ACTIVE) - loai deleted/suspended.
 // Cac filter nullable dung sqlc.narg: NULL = bo qua dieu kien do.
 func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error) {
 	rows, err := q.db.Query(ctx, searchProducts,
@@ -173,7 +173,7 @@ type SearchProductsTrgmRow struct {
 	Rank      float32 `json:"rank"`
 }
 
-// Search fuzzy/partial bang trigram — CHI chay khi FTS rong (recall backstop). Toan tu <%:
+// Search fuzzy/partial bang trigram - CHI chay khi FTS rong (recall backstop). Toan tu <%:
 // q co "tu" khop mo trong name_unaccent, nguong theo pg_trgm.word_similarity_threshold
 // (service SET LOCAL = 0.3). rank = word_similarity de xep gan dung nhat len truoc.
 func (q *Queries) SearchProductsTrgm(ctx context.Context, arg SearchProductsTrgmParams) ([]SearchProductsTrgmRow, error) {

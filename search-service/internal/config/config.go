@@ -41,11 +41,11 @@ const defaultQueueName = "search_index.q"
 func Load() (Config, error) {
 	cfg := Config{
 		// PORT do Render (va Cloud Run) tiem vao, va ho port-scan theo dung bien
-		// nay — nghe cong khac la deploy fail health check. Doc PORT truoc,
+		// nay - nghe cong khac la deploy fail health check. Doc PORT truoc,
 		// SEARCH_HTTP_PORT giu lai cho local khong phai doi thoi quen.
 		HTTPPort:    firstNonEmpty(os.Getenv("PORT"), os.Getenv("SEARCH_HTTP_PORT"), "8090"),
 		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
-		// Doi ten queue o local de KHONG giành message voi ban tren Render: hai
+		// Doi ten queue o local de KHONG gianh message voi ban tren Render: hai
 		// queue khac ten cung bind vao topic exchange thi moi queue nhan mot BAN SAO,
 		// con chung ten thi RabbitMQ chia round-robin, moi ben an mot nua event.
 		QueueName:            getEnv("SEARCH_QUEUE_NAME", defaultQueueName),

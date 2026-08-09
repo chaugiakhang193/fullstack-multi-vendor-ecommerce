@@ -92,7 +92,7 @@ func TestToProductDocParseUpdatedAt(t *testing.T) {
 
 // TestToProductDocGiuNguyenTruongNullable kiem tra cac con tro nullable di qua nguyen ven.
 // Neu vo tinh deref hoac gan nham, description/categoryId/thumbnailUrl se thanh chuoi rong
-// thay vi NULL trong DB — khac nghia hoan toan khi W3 loc/hien thi.
+// thay vi NULL trong DB - khac nghia hoan toan khi W3 loc/hien thi.
 func TestToProductDocGiuNguyenTruongNullable(t *testing.T) {
 	description := "Mo ta san pham"
 	categoryID := "33333333-3333-3333-3333-333333333333"

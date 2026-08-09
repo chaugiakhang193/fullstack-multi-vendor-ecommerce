@@ -4,7 +4,7 @@ import "testing"
 
 // TestToPgxURL kiem tra viec doi scheme cho golang-migrate. Day la buoc de vo tinh
 // lam hong nhat: driver database/pgx/v5 dang ky scheme "pgx5", con Neon cap URL
-// "postgresql://" — quen doi thi migrate bao "unknown driver postgresql" luc boot.
+// "postgresql://" - quen doi thi migrate bao "unknown driver postgresql" luc boot.
 func TestToPgxURL(t *testing.T) {
 	testCases := []struct {
 		name string

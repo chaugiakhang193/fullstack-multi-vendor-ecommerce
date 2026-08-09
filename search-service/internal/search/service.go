@@ -55,7 +55,7 @@ type Service struct {
 	pool *pgxpool.Pool
 }
 
-// NewService nhan pool (tu index.Store.Pool()) — dung chung, khong mo pool moi.
+// NewService nhan pool (tu index.Store.Pool()) - dung chung, khong mo pool moi.
 func NewService(pool *pgxpool.Pool) *Service {
 	return &Service{q: searchdb.New(pool), pool: pool}
 }
@@ -147,7 +147,7 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 }
 
 // searchTrgm chay nhanh trigram trong 1 transaction de SET LOCAL nguong word_similarity
-// (0.6 mac dinh qua chat, "die" truot). Transaction chi de doi GUC pham vi cuc bo — cac query
+// (0.6 mac dinh qua chat, "die" truot). Transaction chi de doi GUC pham vi cuc bo - cac query
 // van la doc-only. Params y het FTS (cung bo loc gia/shop/category).
 func (s *Service) searchTrgm(
 	ctx context.Context,

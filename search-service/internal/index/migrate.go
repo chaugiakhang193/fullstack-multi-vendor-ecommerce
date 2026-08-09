@@ -34,7 +34,7 @@ func RunMigrations(databaseURL string) error {
 	if err != nil {
 		return fmt.Errorf("khoi tao migrate loi: %w", err)
 	}
-	// m.Close() tra ve 2 loi (source, database) — bo qua khi dong, khong che loi chinh.
+	// m.Close() tra ve 2 loi (source, database) - bo qua khi dong, khong che loi chinh.
 	defer func() { _, _ = m.Close() }()
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {

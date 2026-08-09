@@ -128,14 +128,14 @@ func setup(t *testing.T) (*search.Service, *index.Store, context.Context) {
 
 // TestSearchXepHangVaBoDau: khop ten (rank A) tren khop mo ta (rank B); go khong dau ra co dau.
 // CO Y dat id nguoc voi ranking: san pham khop-ten mang id LON hon (bbbb...), khop-mo-ta id NHO
-// hon (aaaa...). Tie-break `product_id` ASC se dua khop-mo-ta len truoc NEU ranking hong — nho
+// hon (aaaa...). Tie-break `product_id` ASC se dua khop-mo-ta len truoc NEU ranking hong - nho
 // vay test that su kiem RANKING, khong pass nho tie-break trung huong.
 func TestSearchXepHangVaBoDau(t *testing.T) {
 	svc, store, ctx := setup(t)
 
 	shopID := "33333333-3333-3333-3333-333333333333"
-	nameMatchID := "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" // "dien thoai" trong TEN → rank A (cao), id LON
-	descMatchID := "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" // "dien thoai" chi trong MO TA → rank B (thap), id NHO
+	nameMatchID := "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" // "dien thoai" trong TEN -> rank A (cao), id LON
+	descMatchID := "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" // "dien thoai" chi trong MO TA -> rank B (thap), id NHO
 	seedProduct(t, ctx, store, nameMatchID, "Điện thoại Samsung", "hang tot", "5000000", shopID, nil)
 	seedProduct(t, ctx, store, descMatchID, "Ốp lưng", "cho điện thoại", "50000", shopID, nil)
 
@@ -149,7 +149,7 @@ func TestSearchXepHangVaBoDau(t *testing.T) {
 	if len(res.Items) != 2 {
 		t.Fatalf("items = %d, muon 2", len(res.Items))
 	}
-	// Khop ten (rank A) phai dung TRUOC khop mo ta (rank B) — du id cua no LON hon (tie-break nguoc).
+	// Khop ten (rank A) phai dung TRUOC khop mo ta (rank B) - du id cua no LON hon (tie-break nguoc).
 	if res.Items[0].ProductID != nameMatchID {
 		t.Errorf("item[0] = %s, muon khop-ten (%s) xep tren nho rank cao hon", res.Items[0].ProductID, nameMatchID)
 	}
@@ -196,10 +196,10 @@ func TestSearchTrigramMotPhanVaTypo(t *testing.T) {
 		wantMin int
 		wantMax int // -1 = khong gioi han tren
 	}{
-		{"mot phan dau tu", "die", 1, -1},   // FTS rong -> trigram vot
-		{"sai chinh ta", "dienn", 1, -1},    // typo -> trigram van bat
+		{"mot phan dau tu", "die", 1, -1}, // FTS rong -> trigram vot
+		{"sai chinh ta", "dienn", 1, -1},  // typo -> trigram van bat
 		{"tu nguyen ven qua FTS", "dien", 1, -1},
-		{"rac khong khop", "zzzzz", 0, 0},   // ca FTS lan trigram deu 0
+		{"rac khong khop", "zzzzz", 0, 0}, // ca FTS lan trigram deu 0
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

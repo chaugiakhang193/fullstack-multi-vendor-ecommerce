@@ -91,7 +91,7 @@ func NewConsumer(url string, queue string, store *index.Store, logger *slog.Logg
 }
 
 // Run chay vong doi consumer toi khi ctx bi huy (graceful shutdown). Moi lan
-// mat ket noi, cho theo backoff + jitter roi thu lai — khong bao gio thoat vi
+// mat ket noi, cho theo backoff + jitter roi thu lai - khong bao gio thoat vi
 // loi tam thoi, chi thoat khi ctx.Done().
 func (c *Consumer) Run(ctx context.Context) {
 	attempt := 0
@@ -180,7 +180,7 @@ func (c *Consumer) connectAndConsume(ctx context.Context) (bool, error) {
 			return true, amqp.ErrClosed
 		case msg, ok := <-msgs:
 			if !ok {
-				// Kenh deliveries dong — coi nhu mat ket noi.
+				// Kenh deliveries dong - coi nhu mat ket noi.
 				return true, amqp.ErrClosed
 			}
 			c.handleMessage(ctx, ch, msg)
@@ -195,7 +195,7 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare(eventsExchange, "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
-	// Queue durable, arg-free — bat bien, khop convention notifications.q.
+	// Queue durable, arg-free - bat bien, khop convention notifications.q.
 	if _, err := ch.QueueDeclare(c.queue, true, false, false, false, nil); err != nil {
 		return err
 	}
