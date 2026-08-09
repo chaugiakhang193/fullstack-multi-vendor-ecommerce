@@ -349,6 +349,59 @@ func TestSentinelErrorAckKhongPublish(t *testing.T) {
 	}
 }
 
+// TestGetRetryCountKieuInteger: RabbitMQ tra bo dem ve duoi nhieu kieu integer tuy publisher
+// va tuy phien ban, nen tat ca deu phai doc duoc. Kieu khong doc duoc phai bao ok=false chu
+// KHONG duoc doan ve 0.
+func TestGetRetryCountKieuInteger(t *testing.T) {
+	cases := []struct {
+		name      string
+		headers   amqp.Table
+		wantCount int
+		wantOK    bool
+	}{
+		{"headers nil", nil, 0, true},
+		{"khong co header", amqp.Table{}, 0, true},
+		{"int32 (kieu ta publish)", amqp.Table{"x-retry-count": int32(2)}, 2, true},
+		{"int64", amqp.Table{"x-retry-count": int64(2)}, 2, true},
+		{"int", amqp.Table{"x-retry-count": 2}, 2, true},
+		{"int16", amqp.Table{"x-retry-count": int16(2)}, 2, true},
+		{"int8", amqp.Table{"x-retry-count": int8(2)}, 2, true},
+		{"string khong doc duoc", amqp.Table{"x-retry-count": "2"}, 0, false},
+		{"float khong doc duoc", amqp.Table{"x-retry-count": 2.0}, 0, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, ok := getRetryCount(tc.headers)
+			if count != tc.wantCount || ok != tc.wantOK {
+				t.Errorf("getRetryCount = (%d, %v), muon (%d, %v)", count, ok, tc.wantCount, tc.wantOK)
+			}
+		})
+	}
+}
+
+// TestRetryCountKieuLaDayThangDLQ: bo dem khong doc duoc thi phai vao DLQ ngay chu khong
+// duoc coi la 0. Coi la 0 nghia la message retry mai mai, ping-pong vo han voi retry queue.
+func TestRetryCountKieuLaDayThangDLQ(t *testing.T) {
+	ack := &fakeAck{}
+	pub := &fakePublisher{}
+	c := newTestConsumer(&fakeStore{upsertErr: errors.New("db tam thoi chet")})
+
+	headers := amqp.Table{"x-retry-count": "khong-phai-so"}
+	c.handleMessage(context.Background(), pub, newDelivery(ack, "product.updated", headers, validUpsertBody(t)))
+
+	if len(pub.published) != 1 {
+		t.Fatalf("muon 1 publish, co %d", len(pub.published))
+	}
+	if pub.published[0].key != c.dlqRoutingKey {
+		t.Errorf("routing key = %q, muon DLQ %q (bo dem hong khong duoc quay ve retry)",
+			pub.published[0].key, c.dlqRoutingKey)
+	}
+	if !ack.acked {
+		t.Errorf("phai ACK sau khi publish DLQ thanh cong")
+	}
+}
+
 // TestUnknownEventTypeLabelBiChan: nhanh default la cho duy nhat eventType chua qua switch
 // loc, no den thang tu body JSON. Label phai la hang "unknown", khong duoc lay gia tri tu
 // body ra lam label vi Prometheus se sinh time series moi cho moi gia tri la.

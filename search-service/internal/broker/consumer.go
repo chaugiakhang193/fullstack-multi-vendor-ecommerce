@@ -390,7 +390,15 @@ func (c *Consumer) processResult(ctx context.Context, span trace.Span, pub publi
 	default:
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		retryCount := getRetryCount(msg.Headers)
+		retryCount, parsed := getRetryCount(msg.Headers)
+		if !parsed {
+			// Khong doc duoc bo dem thi coi nhu da het luot va day thang sang DLQ. Doan ve 0
+			// se cho message quay vong mai giua queue chinh va retry queue; vao DLQ thi con
+			// nguoi con nhin thay va xu ly duoc.
+			c.logger.Warn("header x-retry-count kieu la, coi nhu het luot retry",
+				"eventId", eventID, "header", msg.Headers["x-retry-count"])
+			retryCount = maxRetries
+		}
 		if retryCount >= maxRetries {
 			c.logger.Error("het luot retry, chuyen sang DLQ", "eventId", eventID, "eventType", eventType, "err", err)
 			if pubErr := c.sendToDLQ(ctx, pub, msg); pubErr != nil {
@@ -469,18 +477,35 @@ func cloneHeaders(src amqp.Table) amqp.Table {
 }
 
 // getRetryCount lay gia tri header x-retry-count tu amqp.Table, tra ve 0 neu khong co.
-func getRetryCount(headers amqp.Table) int {
+//
+// Nhan nhieu kieu integer thay vi chi int32: ta publish int32 (amqp091-go ghi field type
+// 'I') va RabbitMQ giu nguyen kieu do khi dead-letter, nhung header co the den tu publisher
+// khac. Doan ve 0 khi gap kieu la la nguy hiem am tham: message se retry mai khong bao gio
+// den DLQ, ping-pong vo han giua queue chinh va retry queue. Tra them ok=false de caller
+// log duoc thay vi nuot.
+func getRetryCount(headers amqp.Table) (int, bool) {
 	if headers == nil {
-		return 0
+		return 0, true
 	}
-	val, ok := headers["x-retry-count"]
-	if !ok {
-		return 0
+	val, exists := headers["x-retry-count"]
+	if !exists {
+		return 0, true
 	}
-	if count, isInt := val.(int32); isInt {
-		return int(count)
+
+	switch count := val.(type) {
+	case int32:
+		return int(count), true
+	case int64:
+		return int(count), true
+	case int:
+		return count, true
+	case int16:
+		return int(count), true
+	case int8:
+		return int(count), true
+	default:
+		return 0, false
 	}
-	return 0
 }
 
 // toProductDoc chuyen ProductSnapshot (broker) sang index.ProductDoc, parse updatedAt tu
