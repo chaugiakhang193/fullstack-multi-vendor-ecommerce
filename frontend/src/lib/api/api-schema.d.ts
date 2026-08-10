@@ -1222,6 +1222,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/payments/backfill-cod-completed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin backfill payment COD đã DELIVERED trước khi có cơ chế tự động đánh dấu COMPLETED */
+        post: operations["AdminPaymentsController_backfillCodCompleted"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews": {
         parameters: {
             query?: never;
@@ -6538,6 +6555,23 @@ export interface operations {
         };
     };
     PaymentsController_vnpayReturn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPaymentsController_backfillCodCompleted: {
         parameters: {
             query?: never;
             header?: never;
