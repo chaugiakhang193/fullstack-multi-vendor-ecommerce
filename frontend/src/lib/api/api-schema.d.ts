@@ -1171,36 +1171,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/payments": {
+    "/api/v1/payments/vnpay/create-url": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["PaymentsController_findAll"];
+        get?: never;
         put?: never;
-        post: operations["PaymentsController_create"];
+        /** Tạo URL thanh toán VNPay cho một đơn hàng */
+        post: operations["PaymentsController_createVnpayUrl"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/payments/{id}": {
+    "/api/v1/payments/vnpay/ipn": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["PaymentsController_findOne"];
+        /** IPN VNPay (server→server) — nguồn chân lý cập nhật trạng thái */
+        get: operations["PaymentsController_vnpayIpn"];
         put?: never;
         post?: never;
-        delete: operations["PaymentsController_remove"];
+        delete?: never;
         options?: never;
         head?: never;
-        patch: operations["PaymentsController_update"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/vnpay/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return URL VNPay (browser) — chỉ hiển thị, không ghi DB */
+        get: operations["PaymentsController_vnpayReturn"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/reviews": {
@@ -2835,11 +2854,11 @@ export interface components {
              */
             address_id: string;
             /**
-             * @description Phương thức thanh toán (hiện chỉ hỗ trợ COD)
+             * @description Phương thức thanh toán: COD hoặc VNPAY
              * @example cod
              * @enum {string}
              */
-            payment_method: "cod";
+            payment_method: "cod" | "vnpay";
             /**
              * @description Mã giảm giá toàn sàn (loại GLOBAL). Để trống nếu không dùng.
              * @example WELCOME50K
@@ -2982,7 +3001,7 @@ export interface components {
              * @example cod
              * @enum {string}
              */
-            payment_method: "cod";
+            payment_method: "cod" | "vnpay";
             /** @description Snapshot địa chỉ giao hàng tại thời điểm đặt */
             shipping_address: components["schemas"]["ShippingAddressSnapshotDto"];
             /** @description Danh sách sub-order theo từng shop */
@@ -3089,8 +3108,13 @@ export interface components {
              */
             usage_limit?: number;
         };
-        CreatePaymentDto: Record<string, never>;
-        UpdatePaymentDto: Record<string, never>;
+        CreateVnpayUrlDto: {
+            /**
+             * @description ID đơn hàng (Master Order) cần tạo URL thanh toán VNPay
+             * @example d1b85fb4-3449-45cf-a407-d26b808a55b8
+             */
+            orderId: string;
+        };
         CreateReviewDto: {
             /** @description ID của order_item (lần mua) muốn đánh giá */
             order_item_id: string;
@@ -6475,24 +6499,7 @@ export interface operations {
             };
         };
     };
-    PaymentsController_findAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PaymentsController_create: {
+    PaymentsController_createVnpayUrl: {
         parameters: {
             query?: never;
             header?: never;
@@ -6501,7 +6508,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePaymentDto"];
+                "application/json": components["schemas"]["CreateVnpayUrlDto"];
             };
         };
         responses: {
@@ -6513,13 +6520,11 @@ export interface operations {
             };
         };
     };
-    PaymentsController_findOne: {
+    PaymentsController_vnpayIpn: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -6532,39 +6537,14 @@ export interface operations {
             };
         };
     };
-    PaymentsController_remove: {
+    PaymentsController_vnpayReturn: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PaymentsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePaymentDto"];
-            };
-        };
         responses: {
             200: {
                 headers: {

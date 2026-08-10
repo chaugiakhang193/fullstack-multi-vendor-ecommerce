@@ -28,6 +28,7 @@ export enum OrderStatus {
 
 export enum PaymentMethod {
   COD = "cod",
+  VNPAY = "vnpay",
 }
 
 export enum PaymentStatus {
