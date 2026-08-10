@@ -55,7 +55,7 @@ export class CreateOrderDto {
   address_id: string;
 
   @ApiProperty({
-    description: 'Phương thức thanh toán (hiện chỉ hỗ trợ COD)',
+    description: 'Phương thức thanh toán: COD hoặc VNPAY',
     enum: PaymentMethod,
     example: PaymentMethod.COD,
   })

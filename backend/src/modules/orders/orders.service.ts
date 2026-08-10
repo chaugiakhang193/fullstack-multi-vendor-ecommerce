@@ -60,6 +60,7 @@ import {
   OrderStatus,
   OutboxEventStatus,
   PaymentMethod,
+  PaymentStatus,
 } from '@/common/enums';
 
 // Constants
@@ -1402,17 +1403,31 @@ export class OrdersService {
     sellerId: string,
     query: SellerOrderQueryDto,
   ): Promise<PaginatedResponseDto<SubOrder>> {
+    const vnpayMethod = PaymentMethod.VNPAY;
+    const completedStatus = PaymentStatus.COMPLETED;
+    const paymentFilterCondition =
+      '(payment.id IS NULL OR payment.method != :vnpay OR payment.status = :completed)';
+    const paymentFilterParams = {
+      vnpay: vnpayMethod,
+      completed: completedStatus,
+    };
+
     const qb = this.dataSource
       .getRepository(SubOrder)
       .createQueryBuilder('subOrder')
       .innerJoinAndSelect('subOrder.shop', 'shop')
       .leftJoinAndSelect('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
       .leftJoinAndSelect('subOrder.items', 'item')
       .where('shop.seller_id = :sellerId', { sellerId })
+      // Ẩn đơn VNPAY chưa thanh toán xong (PENDING/FAILED) khỏi seller. Hiện đơn khi:
+      // không có payment, HOẶC không phải VNPAY (COD), HOẶC VNPAY đã COMPLETED.
+      .andWhere(paymentFilterCondition, paymentFilterParams)
       .orderBy('subOrder.created_at', 'DESC');
 
     if (query.status) {
-      qb.andWhere('subOrder.status = :status', { status: query.status });
+      const statusParam = { status: query.status };
+      qb.andWhere('subOrder.status = :status', statusParam);
     }
     return paginate(qb, query);
   }
@@ -1566,7 +1581,7 @@ export class OrdersService {
         where: { id: subOrderId },
         relations: {
           shop: { seller: true },
-          order: { customer: true, global_coupon: true },
+          order: { customer: true, global_coupon: true, payment: true },
           shop_coupon: true,
           items: { variant: true, product: true },
         },
@@ -1577,6 +1592,19 @@ export class OrdersService {
 
       if (subOrder.shop?.seller?.id !== sellerId) {
         throw new NotFoundException('Không tìm thấy đơn hàng con');
+      }
+
+      // Chặn seller thao tác đơn VNPAY chưa thanh toán xong. Đơn loại này đã bị ẩn
+      // khỏi list; guard này bịt đường "đoán sub-order id" để confirm đơn chưa có tiền.
+      // COD không ảnh hưởng (chỉ áp cho method VNPAY).
+      const payment = subOrder.order.payment;
+      const isVnpayUnpaid =
+        payment?.method === PaymentMethod.VNPAY &&
+        payment.status !== PaymentStatus.COMPLETED;
+      if (isVnpayUnpaid) {
+        throw new BadRequestException(
+          'Đơn hàng chưa được thanh toán, không thể cập nhật trạng thái',
+        );
       }
 
       // Idempotent no-op: PATCH bị client retry do timeout mạng → trả snapshot
