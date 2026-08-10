@@ -13,7 +13,7 @@ import { Payment } from '@/modules/payments/entities/payment.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 
 // Enums
-import { PaymentMethod, PaymentStatus } from '@/common/enums';
+import { PaymentMethod, PaymentStatus, OrderStatus } from '@/common/enums';
 
 // Services
 import { VnpayService } from '@/modules/payments/vnpay/vnpay.service';
@@ -251,5 +251,78 @@ export class PaymentsService {
       message: returnMessage,
       txnRef: returnTxnRef,
     };
+  }
+
+  // ==========================================
+  // COD — HOÀN TẤT KHI GIAO XONG
+  // ==========================================
+
+  /**
+   * Đánh dấu payment COD hoàn tất khi Order (Master) đạt DELIVERED — nghĩa là
+   * MỌI sub-order (mọi shop) đều đã giao. Payment là OneToOne với Order (không
+   * phải SubOrder) nên phải chờ TRỌN đơn giao xong mới khớp đúng payment.amount;
+   * đánh dấu sớm khi mới 1 shop giao sẽ báo sai "đã thu đủ tiền".
+   *
+   * Idempotent (chỉ set khi còn PENDING) và chỉ áp dụng COD — VNPAY do IPN sở
+   * hữu hoàn toàn trạng thái thanh toán, method này không đụng tới.
+   */
+  async markCodCompleted(params: {
+    orderId: string;
+    paidAt: Date;
+    manager: EntityManager;
+  }): Promise<void> {
+    const { orderId, paidAt, manager } = params;
+    const payment = await manager.findOne(Payment, {
+      where: { order: { id: orderId } },
+    });
+    if (!payment || payment.method !== PaymentMethod.COD) {
+      return;
+    }
+    if (payment.status !== PaymentStatus.PENDING) {
+      return;
+    }
+    payment.status = PaymentStatus.COMPLETED;
+    payment.paid_at = paidAt;
+    await manager.save(Payment, payment);
+  }
+
+  /**
+   * Backfill 1 lần: đơn COD đã DELIVERED TRƯỚC khi markCodCompleted() tồn tại
+   * kẹt payment.status=PENDING vĩnh viễn (DELIVERED là trạng thái cuối, không
+   * còn transition nào chạm lại chúng nữa). Chạy tay qua endpoint admin.
+   *
+   * paid_at lấy MAX(delivered_at) của các sub-order thuộc đơn — đơn nhiều shop
+   * có nhiều mốc giao khác nhau, lấy mốc SAU CÙNG làm mốc "toàn đơn đã giao".
+   * Đơn nào toàn bộ sub-order đều delivered_at=null (giao TRƯỚC khi có cột này)
+   * thì bỏ qua — thà để PENDING còn hơn bịa 1 mốc giờ không có căn cứ.
+   */
+  async backfillCodCompletedPayments(): Promise<{ updated: number }> {
+    const candidates = await this.paymentRepository.find({
+      where: {
+        method: PaymentMethod.COD,
+        status: PaymentStatus.PENDING,
+        order: { status: OrderStatus.DELIVERED },
+      },
+      relations: { order: { sub_orders: true } },
+    });
+
+    let updated = 0;
+    for (const payment of candidates) {
+      const deliveredDates = payment.order.sub_orders
+        .map((subOrder) => subOrder.delivered_at)
+        .filter((date): date is Date => date !== null);
+      if (deliveredDates.length === 0) {
+        continue;
+      }
+      const latestDeliveredMs = Math.max(
+        ...deliveredDates.map((date) => date.getTime()),
+      );
+      payment.status = PaymentStatus.COMPLETED;
+      payment.paid_at = new Date(latestDeliveredMs);
+      await this.paymentRepository.save(payment);
+      updated += 1;
+    }
+
+    return { updated };
   }
 }

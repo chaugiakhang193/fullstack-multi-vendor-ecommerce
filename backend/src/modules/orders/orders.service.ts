@@ -662,6 +662,17 @@ export class OrdersService {
       manager,
     });
 
+    // COD hoàn tất khi TOÀN đơn (mọi shop) đã DELIVERED — VNPAY bỏ qua vì IPN
+    // sở hữu hoàn toàn trạng thái thanh toán của method đó.
+    if (newStatus === OrderStatus.DELIVERED) {
+      const paidAt = new Date();
+      await this.paymentsService.markCodCompleted({
+        orderId: order.id,
+        paidAt,
+        manager,
+      });
+    }
+
     return { status: newStatus, total: newTotal };
   }
 
