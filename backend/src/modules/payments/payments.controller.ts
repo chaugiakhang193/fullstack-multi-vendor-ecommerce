@@ -31,11 +31,17 @@ export class PaymentsController {
     @Body() dto: CreateVnpayUrlDto,
     @Req() req: Request,
   ) {
-    // Lấy IP thật khi qua proxy (Render). Rơi về remoteAddress nếu không có header.
+    // Ưu tiên cf-connecting-ip: Cloudflare tự ghi đè bằng IP kết nối TCP thật,
+    // client không giả được — cùng "chân lý IP" ClientIpThrottlerGuard đang
+    // dùng cho rate-limit. x-forwarded-for là fallback (client tự đặt được,
+    // chấp nhận vì field này chỉ dùng để VNPay log/chấm rủi ro, không verify gì).
+    const cfConnectingIpHeader =
+      (req.headers['cf-connecting-ip'] as string) ?? '';
+    const cfConnectingIp = cfConnectingIpHeader.trim();
     const forwardedHeader = (req.headers['x-forwarded-for'] as string) ?? '';
-    const firstIp = forwardedHeader.split(',')[0].trim();
+    const firstForwardedIp = forwardedHeader.split(',')[0].trim();
     const socketIp = req.socket.remoteAddress || '';
-    const ipAddr = firstIp || socketIp;
+    const ipAddr = cfConnectingIp || firstForwardedIp || socketIp;
 
     const orderId = dto.orderId;
     const userId = user.sub;

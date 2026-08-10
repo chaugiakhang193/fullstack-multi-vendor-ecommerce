@@ -1398,19 +1398,33 @@ export class OrdersService {
   // SELLER ORDERS
   // ==========================================
 
+  /**
+   * Điều kiện SQL ẩn sub-order có payment VNPAY chưa COMPLETED — dùng chung ở
+   * `getSellerSubOrders` (list) và `getShopStats` (đếm status). Cả 2 nơi gọi
+   * phải tự join `order.payment AS payment` trước khi dùng — helper chỉ trả
+   * điều kiện, không tự join (2 nơi join từ alias gốc khác nhau).
+   */
+  private buildVnpayPaidFilter(): {
+    condition: string;
+    params: Record<string, PaymentMethod | PaymentStatus>;
+  } {
+    return {
+      condition:
+        '(payment.id IS NULL OR payment.method != :vnpay OR payment.status = :completed)',
+      params: {
+        vnpay: PaymentMethod.VNPAY,
+        completed: PaymentStatus.COMPLETED,
+      },
+    };
+  }
+
   /** Danh sách sub-order thuộc shop của seller (phân trang + lọc status). */
   async getSellerSubOrders(
     sellerId: string,
     query: SellerOrderQueryDto,
   ): Promise<PaginatedResponseDto<SubOrder>> {
-    const vnpayMethod = PaymentMethod.VNPAY;
-    const completedStatus = PaymentStatus.COMPLETED;
-    const paymentFilterCondition =
-      '(payment.id IS NULL OR payment.method != :vnpay OR payment.status = :completed)';
-    const paymentFilterParams = {
-      vnpay: vnpayMethod,
-      completed: completedStatus,
-    };
+    const { condition: paymentFilterCondition, params: paymentFilterParams } =
+      this.buildVnpayPaidFilter();
 
     const qb = this.dataSource
       .getRepository(SubOrder)
@@ -1481,12 +1495,20 @@ export class OrdersService {
       .getRawOne();
     const total_revenue = Number(revenueResult?.sum) || 0;
 
-    // 2. Thống kê số lượng đơn hàng theo từng trạng thái
+    // 2. Thống kê số lượng đơn hàng theo từng trạng thái. Loại sub-order VNPAY
+    // chưa trả khỏi đếm — chúng kẹt PENDING vĩnh viễn (gate updateSubOrderStatus
+    // chặn mọi transition khi chưa COMPLETED), không phải PENDING "đang chờ xử
+    // lý" thật, đếm vào sẽ khiến seller thấy số đơn chờ cao hơn thực tế trong list.
+    const { condition: paymentFilterCondition, params: paymentFilterParams } =
+      this.buildVnpayPaidFilter();
     const statusCountsRaw = await subOrderRepository
       .createQueryBuilder('subOrder')
+      .leftJoin('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
       .select('subOrder.status', 'status')
       .addSelect('COUNT(subOrder.id)', 'count')
       .where(queryShopIdStr, shopIdParam)
+      .andWhere(paymentFilterCondition, paymentFilterParams)
       .groupBy('subOrder.status')
       .getRawMany();
 

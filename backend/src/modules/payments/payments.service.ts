@@ -110,8 +110,18 @@ export class PaymentsService {
     if (payment.method !== PaymentMethod.VNPAY) {
       throw new BadRequestException('Đơn hàng này không thanh toán bằng VNPAY');
     }
-    if (payment.status !== PaymentStatus.PENDING) {
-      throw new BadRequestException('Đơn hàng đã được xử lý thanh toán');
+    // Tách theo từng status thay vì 1 message chung: FAILED đọc như "đã xử lý
+    // xong" trong khi thực ra là thất bại — sai nghĩa, dễ gây hiểu nhầm cho khách.
+    if (payment.status === PaymentStatus.COMPLETED) {
+      throw new BadRequestException('Đơn hàng đã được thanh toán thành công');
+    }
+    if (payment.status === PaymentStatus.REFUNDED) {
+      throw new BadRequestException('Đơn hàng đã được hoàn tiền');
+    }
+    if (payment.status === PaymentStatus.FAILED) {
+      throw new BadRequestException(
+        'Lần thanh toán trước đã thất bại. Vui lòng đặt lại đơn hàng.',
+      );
     }
 
     // Mã giao dịch phải duy nhất theo TmnCode/ngày. Ghép order_number + mốc ms.
