@@ -315,6 +315,17 @@ And end-to-end under k6 on a **50,000**-product catalogue, monolith → search s
 The O(rows) prediction is visible directly: the old path's p95 at 100 VU climbs **84 ms → 373 ms →
 6,070 ms** as the table grows 82 → 20k → 50k, while the indexed path stays roughly flat.
 
+### Why ranked ids, not a denormalised index
+
+Two shapes were on the table. **Pattern A** inlines `shop_name`, `avg_rating`, and stock into the
+index so a search is a single read; **Pattern B** keeps the index to text-match + rank + filter and
+returns **ranked ids** the monolith hydrates from DB#1. This service takes **B**: the index is fed
+only by `product.*` events, so denormalising review- or order-owned fields would either go stale —
+nothing emits `product.*` when a rating or stock level changes — or force the search service to
+consume streams it has no business owning. B also keeps the indexed path and the `ILIKE` fallback on
+the **same** response shape, and leaves **B → A** a forward migration (add a column, listen to more
+events) rather than a rewrite.
+
 ### Mechanisms (mapped to code)
 
 | Mechanism | Where |
