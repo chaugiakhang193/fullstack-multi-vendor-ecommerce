@@ -17,11 +17,12 @@ import {
   X,
 } from 'lucide-react';
 
+import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/http';
-import {
-  useCustomerOrderDetail,
-  useCancelSubOrder,
-} from '@/hooks/useCustomerOrders';
+import { useCancelSubOrder } from '@/hooks/useCustomerOrders';
+import { usePollOrderPayment, useCreateVnpayUrl } from '@/hooks/usePayments';
+import { setPendingPayment } from '@/lib/vnpay-pending';
+import { PaymentStatusBadge } from '@/components/orders/payment-status-badge';
 import { ReturnStatus } from '@/constants/enum';
 import { useMyReturns } from '@/hooks/useReturns';
 import { ReturnStatusBadge } from '@/components/returns/return-status';
@@ -51,7 +52,8 @@ export default function CustomerOrderDetailPage() {
   const [returnTarget, setReturnTarget] =
     useState<CustomerOrderSubOrderType | null>(null);
 
-  const detailQuery = useCustomerOrderDetail(id);
+  const detailQuery = usePollOrderPayment(id, true);
+  const createUrl = useCreateVnpayUrl();
 
   const cancelMutation = useCancelSubOrder({
     onSettled: () => setCancelTarget(null),
@@ -117,6 +119,21 @@ export default function CustomerOrderDetailPage() {
       ? 'Thanh toán khi nhận hàng (COD)'
       : order.payment_method;
 
+  const payment = order.payment;
+  const isVnpay = payment?.method === 'vnpay';
+  const payStatus = payment?.status;
+
+  const handlePayNow = () => {
+    const orderNumber = order.order_number ?? '';
+    createUrl.mutate(order.id, {
+      onSuccess: (res) => {
+        setPendingPayment({ orderId: order.id, orderNumber });
+        window.location.href = res.data.paymentUrl;
+      },
+      onError: (e) => toast.error(getErrorMessage(e)),
+    });
+  };
+
   const cancelTargetName = cancelTarget
     ? (cancelTarget.shop?.name ?? shortId(cancelTarget.id))
     : '';
@@ -160,7 +177,34 @@ export default function CustomerOrderDetailPage() {
             <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
             Thanh toán
           </h2>
-          <p className="text-sm text-foreground/80">{paymentLabel}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-foreground/80">{paymentLabel}</p>
+            {isVnpay && payStatus && <PaymentStatusBadge status={payStatus} />}
+          </div>
+
+          {isVnpay && payStatus === 'pending' && (
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={createUrl.isPending}
+              onClick={handlePayNow}
+            >
+              {createUrl.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang chuyển...
+                </>
+              ) : (
+                'Thanh toán ngay'
+              )}
+            </Button>
+          )}
+
+          {isVnpay && payStatus === 'failed' && (
+            <p className="text-xs text-rose-600 dark:text-rose-400">
+              Thanh toán thất bại. Hiện chưa hỗ trợ trả lại trên đơn này — bạn
+              có thể hủy đơn bên dưới để hoàn kho rồi đặt lại.
+            </p>
+          )}
           {order.global_coupon_code && (
             <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
               <span>Voucher hệ thống ({order.global_coupon_code})</span>

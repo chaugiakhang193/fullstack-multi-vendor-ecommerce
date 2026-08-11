@@ -3,6 +3,10 @@ import { paginated } from '../common.schema';
 import { ORDER_LIMITS } from '@/constants/limits.generated';
 import type { components } from '@/lib/api/api-schema';
 import type { ApiEnvelope } from '@/lib/http';
+import {
+  PaymentMethodEnum,
+  PaymentStatusEnum,
+} from '../payments/payments.schema';
 
 type ShopCouponDto = components['schemas']['ShopCouponDto'];
 type CreateOrderDto = components['schemas']['CreateOrderDto'];
@@ -58,7 +62,7 @@ export const ShopCouponBody = z.object({
 
 export const CheckoutBody = z.object({
   address_id: z.string().uuid('Địa chỉ không hợp lệ'),
-  payment_method: z.literal('cod'),
+  payment_method: PaymentMethodEnum,
   global_coupon_code: z.string().optional(),
   shop_coupons: z
     .array(ShopCouponBody)
@@ -153,7 +157,7 @@ export const CheckoutResponse = z.object({
   total_amount: z.coerce.number(),
   global_discount_amount: z.coerce.number().nullable().optional(),
   global_coupon_code: z.string().nullable().optional(),
-  payment_method: z.literal('cod'),
+  payment_method: PaymentMethodEnum,
   shipping_address: ShippingAddressSnapshot,
   sub_orders: z.array(CheckoutResponseSubOrder),
   created_at: z.string(),
@@ -235,6 +239,15 @@ export const CustomerOrder = z.object({
   global_coupon_code: z.string().nullable().optional(),
   status: OrderStatusEnum,
   payment_method: z.string().nullable().optional(),
+  // BE trả nguyên entity payment (getOrderDetail không .parse() nên các cột thừa
+  // vnp_*/raw vẫn qua được ở runtime; FE chỉ dùng status + method).
+  payment: z
+    .object({
+      method: PaymentMethodEnum.nullable().optional(),
+      status: PaymentStatusEnum,
+    })
+    .nullable()
+    .optional(),
   shipping_address: ShippingAddressSnapshot.nullable().optional(),
   sub_orders: z.array(CustomerOrderSubOrder).optional(),
   created_at: z.string(),

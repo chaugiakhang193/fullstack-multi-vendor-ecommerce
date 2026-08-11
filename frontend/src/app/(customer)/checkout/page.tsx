@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   ShoppingBag,
   Check,
+  CreditCard,
 } from 'lucide-react';
 
 // Components
@@ -68,6 +69,7 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
   const [modalOpen, setModalOpen] = useState(false);
   const [globalPickerOpen, setGlobalPickerOpen] = useState(false);
   const [activeShopPicker, setActiveShopPicker] = useState<{
@@ -239,7 +241,7 @@ export default function CheckoutPage() {
       const idempotencyKey = idempotencyKeyRef.current;
       return orderApiRequest.checkout(body, idempotencyKey);
     },
-    onSuccess: async (res) => {
+    onSuccess: async (res, variables) => {
       const data = res.data;
       // Backend đã rỗng server-cart khi checkout. FE chỉ cần dọn store guest (nếu còn)
       // + invalidate query cart để các nơi khác refetch về giỏ trống.
@@ -259,6 +261,14 @@ export default function CheckoutPage() {
         }
       }
 
+      // VNPAY: đơn đã tạo (kho đã trừ) → sang trang khởi tạo thanh toán.
+      if (variables.payment_method === 'vnpay') {
+        const payUrl = `/checkout/payment/${data.order_id}`;
+        router.push(payUrl);
+        return;
+      }
+
+      // COD: giữ nguyên luồng cũ.
       const successQuery = {
         orderNumber: data.order_number,
         orderId: data.order_id,
@@ -359,7 +369,7 @@ export default function CheckoutPage() {
     }
     const body: CheckoutBodyType = {
       address_id: selectedAddressId,
-      payment_method: 'cod',
+      payment_method: paymentMethod,
       global_coupon_code: globalCouponApplied || undefined,
       shop_coupons: shopCouponsArray.length > 0 ? shopCouponsArray : undefined,
     };
@@ -567,9 +577,45 @@ export default function CheckoutPage() {
                 <p className="text-xs font-bold text-muted-foreground uppercase mb-2">
                   Phương thức thanh toán
                 </p>
-                <div className="flex items-center gap-2 rounded-lg border border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 px-3 py-2.5 text-sm font-semibold text-foreground">
-                  <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  Thanh toán khi nhận hàng (COD)
+                <div className="space-y-2">
+                  <label
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold cursor-pointer transition',
+                      paymentMethod === 'cod'
+                        ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-foreground'
+                        : 'border-border text-muted-foreground hover:border-violet-300',
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
+                      className="accent-violet-600"
+                    />
+                    <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    Thanh toán khi nhận hàng (COD)
+                  </label>
+                  <label
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold cursor-pointer transition',
+                      paymentMethod === 'vnpay'
+                        ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-foreground'
+                        : 'border-border text-muted-foreground hover:border-violet-300',
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="vnpay"
+                      checked={paymentMethod === 'vnpay'}
+                      onChange={() => setPaymentMethod('vnpay')}
+                      className="accent-violet-600"
+                    />
+                    <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    Thanh toán online qua VNPay
+                  </label>
                 </div>
               </div>
 
