@@ -2,18 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import useHydrated from '@/hooks/useHydrated';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useVnpayReturn, usePollOrderPayment } from '@/hooks/usePayments';
+import {
+  useVnpayReturn,
+  usePollOrderPayment,
+  VNPAY_POLL_CAP_UPDATES,
+} from '@/hooks/usePayments';
+import { customerOrderKeys } from '@/constants/query-keys';
 import {
   readPendingPayment,
   clearPendingPayment,
   type PendingPayment,
 } from '@/lib/vnpay-pending';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // vnp_TxnRef = `${order_number}-${timestamp}` → tách order_number bằng lastIndexOf('-')
 // (timestamp thuần số không có '-'; order_number có '#' và nhiều '-' vẫn an toàn).
@@ -53,10 +60,23 @@ export default function VnpayReturnPage() {
       ? pending.orderId
       : null;
 
-  // 3) Poll trạng thái thanh toán (nguồn IPN) tới terminal, tối đa ~15s.
+  // 3) Poll trạng thái thanh toán (nguồn IPN) tới terminal, tối đa ~35s.
   const canPoll = !!orderId && isHydrated && isAuthenticated;
   const detailQuery = usePollOrderPayment(orderId ?? '', canPoll);
   const paymentStatus = detailQuery.data?.data?.payment?.status ?? null;
+
+  // dataUpdateCount không lộ qua kết quả useQuery công khai — đọc thẳng từ
+  // cache để biết khi nào usePollOrderPayment đã tự ngừng poll (hết cap) mà
+  // payment vẫn 'pending', tránh text nói "đang đợi" trong khi thực ra đã bỏ cuộc.
+  const queryClient = useQueryClient();
+  const updateCount = orderId
+    ? (queryClient.getQueryState(customerOrderKeys.detail(orderId))
+        ?.dataUpdateCount ?? 0)
+    : 0;
+  const pollExhausted =
+    canPoll &&
+    paymentStatus === 'pending' &&
+    updateCount >= VNPAY_POLL_CAP_UPDATES;
 
   // Dọn cầu nối khi đã có kết quả terminal.
   useEffect(() => {
@@ -108,13 +128,19 @@ export default function VnpayReturnPage() {
 
         {view === 'confirming' && (
           <>
-            <Loader2 className="h-12 w-12 text-amber-500 animate-spin" />
+            <Loader2
+              className={cn(
+                'h-12 w-12 text-amber-500',
+                !pollExhausted && 'animate-spin',
+              )}
+            />
             <h1 className="text-2xl font-extrabold text-foreground">
               Đang xác nhận thanh toán
             </h1>
             <p className="text-sm text-muted-foreground">
-              VNPay đã ghi nhận giao dịch. Hệ thống đang cập nhật trạng thái đơn
-              hàng, vui lòng đợi trong giây lát...
+              {pollExhausted
+                ? 'Giao dịch đang xử lý lâu hơn bình thường. Mở đơn hàng để kiểm tra trạng thái mới nhất, hoặc quay lại sau ít phút.'
+                : 'VNPay đã ghi nhận giao dịch. Hệ thống đang cập nhật trạng thái đơn hàng, vui lòng đợi trong giây lát...'}
             </p>
           </>
         )}

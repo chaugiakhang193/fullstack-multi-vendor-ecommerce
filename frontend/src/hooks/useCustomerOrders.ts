@@ -23,16 +23,6 @@ export const useCustomerOrdersList = (
   });
 };
 
-/** Chi tiết 1 master order customer. */
-export const useCustomerOrderDetail = (id: string) => {
-  return useQuery({
-    queryKey: customerOrderKeys.detail(id),
-    queryFn: () => orderApiRequest.getOrderDetail(id),
-    enabled: !!id,
-    staleTime: STALE_TIME.SHORT,
-  });
-};
-
 /** Hủy 1 sub-order. Refetch là nguồn sự thật (không đọc response body). */
 export const useCancelSubOrder = (callbacks?: { onSettled?: () => void }) => {
   const queryClient = useQueryClient();

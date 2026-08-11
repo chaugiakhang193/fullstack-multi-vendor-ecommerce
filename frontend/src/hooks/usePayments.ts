@@ -4,6 +4,11 @@ import paymentApiRequest from '@/apiRequests/payments/payments';
 import orderApiRequest from '@/apiRequests/orders/orders';
 import { customerOrderKeys, STALE_TIME } from '@/constants/query-keys';
 
+// Trần số lần cập nhật trước khi usePollOrderPayment tự ngừng poll (~35s ở
+// interval 2.5s). Export để trang Return so sánh dataUpdateCount hiện tại,
+// nhận biết lúc poll đã ngừng mà payment vẫn 'pending' → đổi text cho đúng.
+export const VNPAY_POLL_CAP_UPDATES = 15;
+
 /** Tạo URL VNPay cho 1 đơn. Caller tự xử lý onSuccess (cần orderNumber để lưu bridge). */
 export const useCreateVnpayUrl = () =>
   useMutation({
@@ -49,7 +54,7 @@ export const usePollOrderPayment = (
       const isVnpayPending =
         payment?.method === 'vnpay' && payment?.status === 'pending';
       if (!isVnpayPending) return false;
-      if (query.state.dataUpdateCount >= 15) return false;
+      if (query.state.dataUpdateCount >= VNPAY_POLL_CAP_UPDATES) return false;
       return 2500;
     },
   });
