@@ -23,7 +23,10 @@ export default function VnpayPaymentPage() {
   const isHydrated = useHydrated();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const detailQuery = usePollOrderPayment(orderId, isAuthenticated);
+  // allowPoll=false: đơn luôn PENDING lúc mới vào trang này (chưa ai trả tiền) —
+  // poll ở đây chỉ tốn ngân sách 15 lần dùng chung với trang Return, không đổi
+  // được gì tới khi khách thật sự bấm nút và rời sang VNPay.
+  const detailQuery = usePollOrderPayment(orderId, isAuthenticated, false);
   const createUrl = useCreateVnpayUrl();
 
   const order = detailQuery.data?.data;
