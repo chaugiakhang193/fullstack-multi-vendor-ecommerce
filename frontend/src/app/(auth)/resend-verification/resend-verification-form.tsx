@@ -24,7 +24,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   ResendVerificationBody,
@@ -33,6 +33,7 @@ import {
 import {
   TurnstileWidget,
   CAPTCHA_ENABLED,
+  type TurnstileWidgetHandle,
 } from '@/components/shared/turnstile-widget';
 
 export function ResendVerificationForm({
@@ -43,6 +44,10 @@ export function ResendVerificationForm({
   const [cooldown, setCooldown] = useState<number>(0);
   const [hasSent, setHasSent] = useState<boolean>(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Nút chỉ khoá TRƯỚC lần verify đầu tiên. Sau đó luôn mở — token được refresh
+  // ngầm cho mỗi lần submit nên không khoá lại theo token (khỏi nháy/kẹt disabled).
+  const [captchaVerifiedOnce, setCaptchaVerifiedOnce] = useState(false);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,6 +64,18 @@ export function ResendVerificationForm({
       email: '',
     },
   });
+
+  const handleCaptchaVerify = React.useCallback((token: string) => {
+    setCaptchaToken(token);
+    setCaptchaVerifiedOnce(true);
+  }, []);
+
+  // Token Turnstile hết hạn sau ~300s → hủy token cũ và lấy token mới ngầm; nút
+  // vẫn mở nhờ captchaVerifiedOnce.
+  const handleCaptchaExpire = React.useCallback(() => {
+    setCaptchaToken(null);
+    turnstileRef.current?.reset();
+  }, []);
 
   async function onSubmit(data: ResendVerificationBodyType) {
     if (CAPTCHA_ENABLED && !captchaToken) {
@@ -81,6 +98,9 @@ export function ResendVerificationForm({
       router.push('/verify-email');
     } catch (error) {
       setCaptchaToken(null);
+      // Token vừa bị BE tiêu thụ ở lần submit lỗi này (dùng một lần) → lấy token
+      // mới ngầm. captchaVerifiedOnce vẫn true nên nút KHÔNG khoá lại.
+      turnstileRef.current?.reset();
       const errMsg = getErrorMessage(error);
       const failTitle = 'Thất bại';
       toast.error(failTitle, {
@@ -133,8 +153,9 @@ export function ResendVerificationForm({
                 )}
               />
               <TurnstileWidget
-                onVerify={setCaptchaToken}
-                onExpire={() => setCaptchaToken(null)}
+                ref={turnstileRef}
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
               />
               <div className="flex flex-col gap-3 pt-4">
                 <Button
@@ -143,7 +164,7 @@ export function ResendVerificationForm({
                   disabled={
                     isLoading ||
                     cooldown > 0 ||
-                    (CAPTCHA_ENABLED && !captchaToken)
+                    (CAPTCHA_ENABLED && !captchaVerifiedOnce)
                   }
                 >
                   {isLoading ? (

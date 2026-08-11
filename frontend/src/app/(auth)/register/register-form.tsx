@@ -36,6 +36,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import {
   TurnstileWidget,
   CAPTCHA_ENABLED,
+  type TurnstileWidgetHandle,
 } from '@/components/shared/turnstile-widget';
 
 export function RegisterForm({
@@ -45,6 +46,10 @@ export function RegisterForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Nút chỉ khoá TRƯỚC lần verify đầu tiên. Sau đó luôn mở — token được refresh
+  // ngầm cho mỗi lần submit nên không khoá lại theo token (khỏi nháy/kẹt disabled).
+  const [captchaVerifiedOnce, setCaptchaVerifiedOnce] = useState(false);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   //Nếu đã login từ trước thì lấy thông tin ra và redirect người dùng
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -74,6 +79,18 @@ export function RegisterForm({
     },
   });
 
+  const handleCaptchaVerify = React.useCallback((token: string) => {
+    setCaptchaToken(token);
+    setCaptchaVerifiedOnce(true);
+  }, []);
+
+  // Token Turnstile hết hạn sau ~300s → hủy token cũ và lấy token mới ngầm; nút
+  // vẫn mở nhờ captchaVerifiedOnce.
+  const handleCaptchaExpire = React.useCallback(() => {
+    setCaptchaToken(null);
+    turnstileRef.current?.reset();
+  }, []);
+
   async function onSubmit(data: RegisterBodyType) {
     if (CAPTCHA_ENABLED && !captchaToken) {
       toast.error('Vui lòng hoàn tất xác thực CAPTCHA.');
@@ -92,6 +109,9 @@ export function RegisterForm({
       router.push('/verify-email');
     } catch (error) {
       setCaptchaToken(null);
+      // Token vừa bị BE tiêu thụ ở lần submit lỗi này (dùng một lần) → lấy token
+      // mới ngầm. captchaVerifiedOnce vẫn true nên nút KHÔNG khoá lại.
+      turnstileRef.current?.reset();
       const errMsg = getErrorMessage(error);
       const failTitle = 'Đăng ký thất bại';
       toast.error(failTitle, {
@@ -224,14 +244,17 @@ export function RegisterForm({
 
               {/* Phần mô tả mật khẩu và Nút Submit */}
               <TurnstileWidget
-                onVerify={setCaptchaToken}
-                onExpire={() => setCaptchaToken(null)}
+                ref={turnstileRef}
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
               />
               <div className="pt-4">
                 <Button
                   type="submit"
                   className="w-full h-12 text-base sm:text-lg font-semibold"
-                  disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
+                  disabled={
+                    isLoading || (CAPTCHA_ENABLED && !captchaVerifiedOnce)
+                  }
                 >
                   {isLoading ? (
                     <>
