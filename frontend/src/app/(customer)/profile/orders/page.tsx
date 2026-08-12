@@ -25,6 +25,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyOrders } from '@/components/shared/empty-state';
 import { OrderStatusBadge } from '@/components/orders/seller-order-status';
+import { PaymentStatusBadge } from '@/components/orders/payment-status-badge';
 import { formatVnd, formatDateTime, shortId } from '@/lib/format';
 
 const LIMIT = 10;
@@ -165,8 +166,8 @@ function OrderCard({ order }: { order: CustomerOrderType }) {
       href={`/profile/orders/${order.id}`}
       className="block rounded-xl border bg-card p-5 shadow-xs hover:shadow-md hover:border-violet-300 dark:hover:border-violet-800 transition group"
     >
-      {/* Top: mã đơn + trạng thái */}
-      <div className="flex items-center justify-between gap-3 border-b pb-3">
+      {/* Top: mã đơn + trạng thái đơn + trạng thái thanh toán */}
+      <div className="flex items-start justify-between gap-3 border-b pb-3">
         <div className="min-w-0">
           <p className="font-bold text-violet-600 dark:text-violet-400 truncate">
             {orderNumber}
@@ -175,7 +176,16 @@ function OrderCard({ order }: { order: CustomerOrderType }) {
             {formatDateTime(order.created_at)}
           </p>
         </div>
-        <OrderStatusBadge status={order.status} />
+        {/* Hai trục tách bạch: badge trên là vòng đời giao hàng, badge dưới là
+            vòng đời tiền. Đơn VNPAY chưa trả nằm ở "Chờ xác nhận" nhưng thật ra
+            đang chờ KHÁCH, không phải chờ shop — badge tiền nói rõ chỗ đó.
+            COD không hiện badge tiền: khách không có thao tác nào để làm. */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <OrderStatusBadge status={order.status} />
+          {order.payment?.method === 'vnpay' && (
+            <PaymentStatusBadge status={order.payment.status} />
+          )}
+        </div>
       </div>
 
       {/* Middle: ảnh sản phẩm + tên shop */}

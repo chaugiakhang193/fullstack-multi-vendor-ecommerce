@@ -325,16 +325,25 @@ export class OrdersService {
    * Danh sách đơn hàng Master của Customer (phân trang + lọc status Master).
    * KHÔNG load quan hệ `customer` để không lộ password hash. IDOR chặn bằng
    * điều kiện customer_id = userId. Join sub_orders + shop để FE hiển thị tóm tắt.
+   *
+   * Payment chỉ lấy 3 cột (id/method/status) bằng leftJoin + addSelect thay vì
+   * leftJoinAndSelect: FE chỉ cần biết "đơn VNPAY này trả tiền chưa", trong khi
+   * entity còn kéo theo cột `raw` chứa nguyên query VNPay — nhân với 10 đơn mỗi
+   * trang là payload phình vô ích. `payment.id` bắt buộc có mặt vì TypeORM cần
+   * khoá chính mới dựng được object quan hệ.
    */
   async getCustomerOrders(
     userId: string,
     query: CustomerOrderQueryDto,
   ): Promise<PaginatedResponseDto<Order>> {
+    const paymentColumns = ['payment.id', 'payment.method', 'payment.status'];
     const qb = this.ordersRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.sub_orders', 'subOrder')
       .leftJoinAndSelect('subOrder.shop', 'shop')
       .leftJoinAndSelect('subOrder.items', 'item')
+      .leftJoin('order.payment', 'payment')
+      .addSelect(paymentColumns)
       .where('order.customer_id = :userId', { userId })
       .orderBy('order.created_at', 'DESC');
 
