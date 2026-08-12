@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 
 // Services
 import { OrdersService } from '@/modules/orders/orders.service';
@@ -8,8 +9,13 @@ import { OrdersService } from '@/modules/orders/orders.service';
 import { OrdersController } from '@/modules/orders/orders.controller';
 import { SellerOrdersController } from '@/modules/orders/seller-orders.controller';
 
-// Crons
+// Crons & Processors
 import { IdempotencyCleanupCron } from '@/modules/orders/idempotency-cleanup.cron';
+import { VnpayExpiryProcessor } from '@/modules/orders/vnpay-expiry.processor';
+import { VnpayExpirySweep } from '@/modules/orders/vnpay-expiry.sweep';
+
+// Constants
+import { VNPAY_EXPIRY_QUEUE } from '@/modules/orders/vnpay-expiry.constants';
 
 // Entities
 import { OutboxEvent } from '@/common/entities/outbox-event.entity';
@@ -38,6 +44,7 @@ import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping
       OrderItem,
       Idempotency,
     ]),
+    BullModule.registerQueue({ name: VNPAY_EXPIRY_QUEUE }),
     ProductsModule,
     PromotionsModule,
     UsersModule,
@@ -49,6 +56,8 @@ import { HaversineShippingCalculator } from '@/modules/orders/haversine-shipping
   providers: [
     OrdersService,
     IdempotencyCleanupCron,
+    VnpayExpiryProcessor,
+    VnpayExpirySweep,
     {
       provide: 'IShippingCalculator',
       useClass: HaversineShippingCalculator,

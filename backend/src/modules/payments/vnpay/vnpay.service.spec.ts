@@ -27,6 +27,7 @@ describe('VnpayService', () => {
       amount: 150000,
       orderInfo: 'Thanh toan don hang ORD1',
       ipAddr: '127.0.0.1',
+      expireAt: new Date(Date.now() + 15 * 60 * 1000),
     };
     const url = service.buildPaymentUrl(buildParams);
     const parsedUrl = new URL(url);
@@ -43,6 +44,7 @@ describe('VnpayService', () => {
       amount: 150000,
       orderInfo: 'x',
       ipAddr: '127.0.0.1',
+      expireAt: new Date(Date.now() + 15 * 60 * 1000),
     };
     const url = service.buildPaymentUrl(buildParams);
     const parsedUrl = new URL(url);

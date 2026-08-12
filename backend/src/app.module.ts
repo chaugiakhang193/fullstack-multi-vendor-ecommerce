@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransformInterceptor } from '@/interceptor/transform.interceptor';
 import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
@@ -109,6 +110,23 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
       },
     ]),
     ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          url: configService.get<string>('REDIS_URL'),
+          // Upstash chỉ nhận TLS; family 0 để ioredis tự chọn IPv4/IPv6.
+          family: 0,
+          // BullMQ yêu cầu null: retry hữu hạn làm worker chết im khi Redis chớp.
+          maxRetriesPerRequest: null,
+        },
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: 50,
+        },
+      }),
+    }),
     UsersModule,
     AuthModule,
     ShopsModule,

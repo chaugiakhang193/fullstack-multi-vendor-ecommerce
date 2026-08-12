@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import type { Queue } from 'bullmq';
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
@@ -78,7 +79,18 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
     vnpayService = new VnpayService(configService);
     const paymentRepository = ds.getRepository(Payment);
 
-    paymentsService = new PaymentsService(paymentRepository, ds, vnpayService);
+    // Queue giả: int-test chỉ kiểm nghiệp vụ IPN/create-url, không kiểm việc đẩy
+    // job hết hạn. Dựng Redis thật trong test chỉ để nuốt một lệnh add() là thừa.
+    const fakeExpiryQueue = {
+      add: () => Promise.resolve(),
+    } as unknown as Queue;
+
+    paymentsService = new PaymentsService(
+      paymentRepository,
+      ds,
+      vnpayService,
+      fakeExpiryQueue,
+    );
   }, 60000);
 
   afterAll(async () => {

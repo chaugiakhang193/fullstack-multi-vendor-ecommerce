@@ -69,6 +69,11 @@ import {
   ORDER_NUMBER_MAX_RETRIES,
 } from '@/modules/orders/orders.constants';
 import {
+  VNPAY_SOFT_WINDOW_MS,
+  VNPAY_HARD_WINDOW_MS,
+} from '@/modules/orders/vnpay-expiry.constants';
+
+import {
   OUTBOX_EVENT_TYPES,
   OrderCreatedPayload,
   OrderCancelledPayload,
@@ -1951,5 +1956,137 @@ export class OrdersService {
 
     // round2 là helper module-scope có sẵn trong chính file orders.service.ts
     return round2(rawRevenue);
+  }
+
+  /**
+   * Hết hạn giữ hàng cho một đơn VNPAY chưa thanh toán: hủy mọi sub-order còn
+   * PENDING, hoàn kho + hoàn lượt coupon, rồi đánh dấu payment FAILED.
+   *
+   * Là điểm vào DUY NHẤT của việc "đụng kho do hết hạn" — cả BullMQ worker lẫn
+   * sweep @Interval đều gọi hàm này, không ai tự viết lại logic hoàn kho.
+   *
+   * Idempotent: gọi lại trên đơn đã hủy là no-op (không có sub-order PENDING nào
+   * → không restock lần hai). Bắt buộc vì job có thể chạy trùng: mỗi lần khách
+   * bấm thử lại lại đẩy thêm một job, và sweep cũng quét song song.
+   *
+   * Tự kiểm tra hạn bên trong thay vì tin job: job được hẹn theo mốc mềm lúc đẩy,
+   * nhưng khách có thể đã bấm thử lại sau đó làm mốc trượt đi.
+   */
+  async expireUnpaidVnpayOrder(orderId: string): Promise<{ expired: boolean }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const manager = queryRunner.manager;
+
+      const expiryInfo = await this.paymentsService.getVnpayExpiryInfo(
+        orderId,
+        manager,
+      );
+      if (!expiryInfo) {
+        await queryRunner.rollbackTransaction();
+        return { expired: false };
+      }
+
+      const order = await manager.findOne(Order, { where: { id: orderId } });
+      if (!order || order.status === OrderStatus.CANCELLED) {
+        await queryRunner.rollbackTransaction();
+        return { expired: false };
+      }
+
+      const isStillWithinWindow = this.isWithinPaymentWindow(
+        expiryInfo.orderAgeMs,
+        expiryInfo.latestAttemptAgeMs,
+      );
+      if (isStillWithinWindow) {
+        await queryRunner.rollbackTransaction();
+        return { expired: false };
+      }
+
+      // Chỉ PENDING: sub-order đã CANCELLED (khách tự hủy trước đó) mà restock lần
+      // nữa là hoàn kho 2 lần. Đơn VNPAY chưa trả không thể ở trạng thái nào khác
+      // (updateSubOrderStatus chặn seller thao tác khi payment chưa COMPLETED).
+      const pendingSubOrders = await manager.find(SubOrder, {
+        where: { order: { id: orderId }, status: OrderStatus.PENDING },
+        relations: {
+          order: { customer: true },
+          shop_coupon: true,
+          items: { variant: true, product: true },
+        },
+      });
+
+      for (const subOrder of pendingSubOrders) {
+        await this.restockAndRefundSubOrder(subOrder, manager);
+        subOrder.status = OrderStatus.CANCELLED;
+        await manager.save(SubOrder, subOrder);
+      }
+
+      await this.recomputeMasterAfterSubOrderChange(orderId, manager);
+      await this.paymentsService.markVnpayExpired(
+        expiryInfo.paymentId,
+        manager,
+      );
+
+      await queryRunner.commitTransaction();
+
+      const expiredMessage =
+        `[OrdersService.expireUnpaidVnpayOrder] Đơn ${order.order_number} hết hạn ` +
+        `giữ hàng — đã hủy ${pendingSubOrders.length} sub-order và hoàn kho`;
+      this.logger.log(expiredMessage);
+      return { expired: true };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+      this.logger.error('[OrdersService.expireUnpaidVnpayOrder] Error:', error);
+      throw error;
+    } finally {
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
+    }
+  }
+
+  /**
+   * Đơn còn trong cửa sổ được phép trả tiền không: phải thoả CẢ cửa sổ mềm (trượt
+   * theo lần thử mới nhất) LẪN trần cứng (tính từ lúc tạo đơn, không bao giờ nới).
+   *
+   * Nhận TUỔI tính bằng ms do Postgres tính sẵn, không nhận Date — xem
+   * PaymentsService.getVnpayExpiryInfo để biết vì sao không so mốc tuyệt đối.
+   *
+   * latestAttemptAgeMs null = khách chưa bấm "Thanh toán" lần nào → lấy tuổi đơn
+   * làm mốc mềm, nếu không đơn kiểu đó không bao giờ hết hạn.
+   */
+  private isWithinPaymentWindow(
+    orderAgeMs: number,
+    latestAttemptAgeMs: number | null,
+  ): boolean {
+    const softAgeMs = latestAttemptAgeMs ?? orderAgeMs;
+    const isWithinSoftWindow = softAgeMs < VNPAY_SOFT_WINDOW_MS;
+    const isWithinHardWindow = orderAgeMs < VNPAY_HARD_WINDOW_MS;
+    return isWithinSoftWindow && isWithinHardWindow;
+  }
+
+  /**
+   * Quét các đơn VNPAY quá TRẦN CỨNG mà chưa trả tiền rồi hủy từng đơn.
+   * Là đường phụ của VnpayExpiryProcessor — xem VnpayExpirySweep để biết vì sao cần.
+   */
+  async sweepExpiredVnpayOrders(
+    limit: number,
+  ): Promise<{ scanned: number; expired: number }> {
+    const orderIds = await this.paymentsService.findExpiredVnpayOrderIds(
+      VNPAY_HARD_WINDOW_MS,
+      limit,
+    );
+
+    let expired = 0;
+    for (const orderId of orderIds) {
+      const result = await this.expireUnpaidVnpayOrder(orderId);
+      if (result.expired) {
+        expired += 1;
+      }
+    }
+    return { scanned: orderIds.length, expired };
   }
 }

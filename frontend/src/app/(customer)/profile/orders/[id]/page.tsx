@@ -129,6 +129,14 @@ export default function CustomerOrderDetailPage() {
     ? 'Thử lại thanh toán'
     : 'Thanh toán ngay';
 
+  // Job hết hạn đã hủy đơn + hoàn kho → không còn gì để trả. BE cũng chặn
+  // (guard order CANCELLED ở #413) nên để nút lại chỉ tổ cho khách ăn toast lỗi.
+  const isOrderCancelled = order.status === 'cancelled';
+  const canRetryPayment =
+    isVnpay &&
+    !isOrderCancelled &&
+    (payStatus === 'pending' || payStatus === 'failed');
+
   const handlePayNow = () => {
     const orderNumber = order.order_number ?? '';
     createUrl.mutate(order.id, {
@@ -188,7 +196,7 @@ export default function CustomerOrderDetailPage() {
             {isVnpay && payStatus && <PaymentStatusBadge status={payStatus} />}
           </div>
 
-          {isVnpay && (payStatus === 'pending' || payStatus === 'failed') && (
+          {canRetryPayment && (
             <Button
               size="sm"
               className="w-full"
@@ -205,10 +213,17 @@ export default function CustomerOrderDetailPage() {
             </Button>
           )}
 
-          {isVnpay && payStatus === 'failed' && (
+          {isVnpay && payStatus === 'failed' && !isOrderCancelled && (
             <p className="text-xs text-muted-foreground">
               Lần thanh toán trước không thành công. Bạn có thể thử lại ngay
               trên đơn này, hoặc hủy đơn bên dưới để hoàn kho rồi đặt lại.
+            </p>
+          )}
+
+          {isVnpay && isOrderCancelled && (
+            <p className="text-xs text-muted-foreground">
+              Đơn đã hết hạn giữ hàng và được hủy tự động, hàng đã hoàn về kho.
+              Bạn có thể đặt lại đơn mới.
             </p>
           )}
           {order.global_coupon_code && (

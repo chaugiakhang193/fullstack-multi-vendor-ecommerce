@@ -8,6 +8,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
 // Entities
 import { Payment } from '@/modules/payments/entities/payment.entity';
 import { PaymentAttempt } from '@/modules/payments/entities/payment-attempt.entity';
@@ -16,8 +19,20 @@ import { Order } from '@/modules/orders/entities/order.entity';
 // Enums
 import { PaymentMethod, PaymentStatus, OrderStatus } from '@/common/enums';
 
+// Constants
+import {
+  VNPAY_EXPIRY_QUEUE,
+  VNPAY_SOFT_WINDOW_MS,
+  VNPAY_HARD_WINDOW_MS,
+  VNPAY_MIN_PAYABLE_MS,
+} from '@/modules/orders/vnpay-expiry.constants';
+
 // Services
 import { VnpayService } from '@/modules/payments/vnpay/vnpay.service';
+
+// Trần chờ khi đẩy job vào queue. Ngắn có chủ ý: hàng đợi chỉ là đường tối ưu,
+// mất job thì sweep vẫn dọn — không đáng để khách chờ lâu hơn ngần này.
+const QUEUE_ADD_TIMEOUT_MS = 2000;
 
 @Injectable()
 export class PaymentsService {
@@ -28,6 +43,8 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<Payment>,
     private readonly dataSource: DataSource,
     private readonly vnpayService: VnpayService,
+    @InjectQueue(VNPAY_EXPIRY_QUEUE)
+    private readonly expiryQueue: Queue,
   ) {}
 
   // ==========================================
@@ -58,6 +75,14 @@ export class PaymentsService {
     };
     const payment = manager.create(Payment, paymentData);
     const savedPayment = await manager.save(Payment, payment);
+
+    // Khách chọn VNPAY lúc checkout nhưng có thể không bao giờ bấm "Thanh toán"
+    // — không hẹn job ở đây thì đơn đó không bao giờ hết hạn, kho giam vĩnh viễn.
+    if (method === PaymentMethod.VNPAY) {
+      const firstExpireAt = new Date(Date.now() + VNPAY_SOFT_WINDOW_MS);
+      await this.scheduleExpiryJob(orderId, firstExpireAt);
+    }
+
     return savedPayment;
   }
 
@@ -75,6 +100,119 @@ export class PaymentsService {
     if (!payment) return;
     payment.amount = amount;
     await manager.save(Payment, payment);
+  }
+
+  /**
+   * Thông tin cần để quyết định một đơn VNPAY đã hết hạn giữ hàng chưa.
+   * OrdersService gọi qua đây thay vì tự query Payment — ranh giới module.
+   *
+   * latestAttemptAgeMs = tuổi của lần thử thanh toán MỚI NHẤT (ms, do Postgres
+   * tính); null nghĩa là khách chưa bấm "Thanh toán" lần nào, caller tự lấy
+   * orderAgeMs làm mốc mềm thay thế.
+   */
+  async getVnpayExpiryInfo(
+    orderId: string,
+    manager: EntityManager,
+  ): Promise<{
+    paymentId: string;
+    orderAgeMs: number;
+    latestAttemptAgeMs: number | null;
+  } | null> {
+    // TUỔI do Postgres tính, KHÔNG đọc timestamp lên rồi quy đổi ở tầng app: các
+    // cột thời gian là `timestamp without time zone` nên chỉ đúng khi tz của Node
+    // trùng tz của DB. Testcontainer chạy UTC còn máy dev chạy Asia/Saigon — lệch
+    // đúng một lần offset là mọi phép so hạn sai 7 tiếng mà code vẫn trông hợp lý.
+    // So bằng KHOẢNG thời gian thì không phụ thuộc tz của bên nào.
+    const attemptAgeSubQuery = `(
+      SELECT EXTRACT(EPOCH FROM (now() - attempt.created_at)) * 1000
+      FROM payment_attempt attempt
+      WHERE attempt.payment_id = payment.id
+      ORDER BY attempt.created_at DESC
+      LIMIT 1
+    )`;
+    const terminalStatuses = [PaymentStatus.COMPLETED, PaymentStatus.REFUNDED];
+
+    const raw = await manager
+      .createQueryBuilder(Payment, 'payment')
+      .innerJoin('payment.order', 'ord')
+      .select('payment.id', 'paymentId')
+      .addSelect(
+        'EXTRACT(EPOCH FROM (now() - ord.created_at)) * 1000',
+        'orderAgeMs',
+      )
+      .addSelect(attemptAgeSubQuery, 'latestAttemptAgeMs')
+      .where('ord.id = :orderId', { orderId })
+      .andWhere('payment.method = :method', { method: PaymentMethod.VNPAY })
+      .andWhere('payment.status NOT IN (:...terminalStatuses)', {
+        terminalStatuses,
+      })
+      .getRawOne<{
+        paymentId: string;
+        orderAgeMs: string;
+        latestAttemptAgeMs: string | null;
+      }>();
+
+    if (!raw) {
+      return null;
+    }
+
+    // EXTRACT trả numeric → driver đưa về string, phải ép số trước khi so sánh.
+    const latestAttemptAgeMs =
+      raw.latestAttemptAgeMs === null ? null : Number(raw.latestAttemptAgeMs);
+    return {
+      paymentId: raw.paymentId,
+      orderAgeMs: Number(raw.orderAgeMs),
+      latestAttemptAgeMs,
+    };
+  }
+
+  /**
+   * Đánh dấu payment thất bại khi đơn bị hủy do hết hạn giữ hàng. Để PENDING trên
+   * đơn đã hủy là tái lập đúng bệnh "kẹt PENDING vĩnh viễn" vừa chữa ở luồng COD.
+   */
+  async markVnpayExpired(
+    paymentId: string,
+    manager: EntityManager,
+  ): Promise<void> {
+    const payment = await manager.findOne(Payment, {
+      where: { id: paymentId },
+    });
+    if (!payment) {
+      return;
+    }
+    payment.status = PaymentStatus.FAILED;
+    await manager.save(Payment, payment);
+  }
+
+  /**
+   * ID các đơn VNPAY đã vượt TRẦN CỨNG mà vẫn chưa trả tiền — đầu vào của sweep.
+   * Lọc thô theo trần cứng thôi; mốc mềm do OrdersService kiểm lại từng đơn.
+   */
+  async findExpiredVnpayOrderIds(
+    hardWindowMs: number,
+    limit: number,
+  ): Promise<string[]> {
+    // So tuổi đơn ngay trong SQL vì cùng lý do với getVnpayExpiryInfo: truyền một
+    // mốc Date từ app xuống sẽ lệch khi tz của Node khác tz của DB.
+    const hardWindowSeconds = Math.floor(hardWindowMs / 1000);
+    const rows = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .innerJoin('payment.order', 'ord')
+      .select('ord.id', 'orderId')
+      .where('payment.method = :method', { method: PaymentMethod.VNPAY })
+      .andWhere('payment.status = :paymentStatus', {
+        paymentStatus: PaymentStatus.PENDING,
+      })
+      .andWhere('ord.status = :orderStatus', {
+        orderStatus: OrderStatus.PENDING,
+      })
+      .andWhere(
+        `ord.created_at < now() - (:hardWindowSeconds * interval '1 second')`,
+        { hardWindowSeconds },
+      )
+      .limit(limit)
+      .getRawMany<{ orderId: string }>();
+    return rows.map((row) => row.orderId);
   }
 
   // ==========================================
@@ -128,6 +266,7 @@ export class PaymentsService {
 
     let createdTxnRef: string;
     let createdAmount: number;
+    let createdExpireAt: Date;
     try {
       const manager = queryRunner.manager;
 
@@ -156,9 +295,30 @@ export class PaymentsService {
         throw new BadRequestException('Số tiền thanh toán không hợp lệ');
       }
 
+      // Trần cứng tính từ lúc tạo đơn — không nới theo số lần thử. Lấy tuổi đơn
+      // do DB tính (xem getVnpayExpiryInfo) thay vì trừ hai mốc Date ở tầng app.
+      const expiryInfo = await this.getVnpayExpiryInfo(params.orderId, manager);
+      if (!expiryInfo) {
+        throw new NotFoundException('Không tìm thấy đơn hàng');
+      }
+      const remainingMs = VNPAY_HARD_WINDOW_MS - expiryInfo.orderAgeMs;
+      // Cấp URL sống vài chục giây rồi hủy đơn giữa chừng thì khách trả tiền vào
+      // đơn đã chết. Từ chối thẳng, có message rõ ràng.
+      if (remainingMs < VNPAY_MIN_PAYABLE_MS) {
+        throw new BadRequestException(
+          'Đơn hàng sắp hết hạn giữ hàng. Vui lòng đặt đơn mới.',
+        );
+      }
+
       // Mã giao dịch phải duy nhất theo TmnCode/ngày. Ghép order_number + mốc ms.
       const timestamp = Date.now();
       const txnRef = `${orderNumber}-${timestamp}`;
+
+      // URL KHÔNG được sống lâu hơn đơn: hết hạn theo mốc nào tới trước. Cộng
+      // KHOẢNG thời gian còn lại vào đồng hồ app (không trộn mốc tuyệt đối của DB)
+      // — khoảng thời gian thì không phụ thuộc tz.
+      const payableMs = Math.min(VNPAY_SOFT_WINDOW_MS, remainingMs);
+      const expireAt = new Date(timestamp + payableMs);
 
       const attemptData = {
         payment_id: lockedPayment.id,
@@ -185,6 +345,7 @@ export class PaymentsService {
       await queryRunner.commitTransaction();
       createdTxnRef = txnRef;
       createdAmount = amount;
+      createdExpireAt = expireAt;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -199,9 +360,62 @@ export class PaymentsService {
       amount: createdAmount,
       orderInfo: orderInfoText,
       ipAddr: ipAddress,
+      expireAt: createdExpireAt,
     };
     const paymentUrl = this.vnpayService.buildPaymentUrl(buildParams);
+
+    // Hẹn job dọn đúng mốc URL này hết hạn. Mỗi lần thử đẩy thêm một job; job nào
+    // chạy sớm hơn hạn thật sẽ tự no-op nhờ isWithinPaymentWindow. Đẩy job SAU khi
+    // transaction commit — job chạy trước lúc commit sẽ đọc phải trạng thái cũ.
+    await this.scheduleExpiryJob(params.orderId, createdExpireAt);
+
     return { paymentUrl };
+  }
+
+  /**
+   * Đẩy delayed job hủy đơn quá hạn. Lỗi Redis KHÔNG được làm hỏng việc tạo URL —
+   * khách vẫn phải trả tiền được; sweep @Interval sẽ dọn nếu job không vào queue.
+   */
+  private async scheduleExpiryJob(
+    orderId: string,
+    expireAt: Date,
+  ): Promise<void> {
+    const delayMs = Math.max(0, expireAt.getTime() - Date.now());
+    const jobData = { orderId };
+    const jobOptions = {
+      delay: delayMs,
+      // Dọn job xong để Redis free 25MB không đầy vì lịch sử job.
+      removeOnComplete: true,
+      removeOnFail: 50,
+      attempts: 3,
+      backoff: { type: 'exponential' as const, delay: 5000 },
+    };
+    try {
+      // add() KHÔNG tự ném lỗi khi Redis không tới được: ioredis giữ lệnh trong
+      // offline queue chờ vô hạn (maxRetriesPerRequest=null). Hàm này còn được gọi
+      // TRONG transaction checkout đang giữ khoá tồn kho, nên treo ở đây là treo cả
+      // luồng đặt hàng và cạn connection pool. Bỏ cuộc sớm, sweep sẽ dọn bù.
+      const addPromise = this.expiryQueue.add(
+        'expire-order',
+        jobData,
+        jobOptions,
+      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () =>
+            reject(
+              new Error(`Redis không phản hồi trong ${QUEUE_ADD_TIMEOUT_MS}ms`),
+            ),
+          QUEUE_ADD_TIMEOUT_MS,
+        );
+      });
+      await Promise.race([addPromise, timeoutPromise]);
+    } catch (error) {
+      const queueErrorMessage =
+        `[PaymentsService.scheduleExpiryJob] Không đẩy được job hết hạn cho đơn ` +
+        `${orderId}: ${(error as Error).message} — sweep sẽ dọn bù`;
+      this.logger.warn(queueErrorMessage);
+    }
   }
 
   /**

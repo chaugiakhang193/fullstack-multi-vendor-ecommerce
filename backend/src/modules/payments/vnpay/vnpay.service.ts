@@ -34,6 +34,7 @@ export class VnpayService {
     amount: number;
     orderInfo: string;
     ipAddr: string;
+    expireAt: Date;
   }): string {
     const tmnCodeKey = 'VNP_TMN_CODE';
     const secretKey = 'VNP_HASH_SECRET';
@@ -47,9 +48,9 @@ export class VnpayService {
 
     const now = new Date();
     const createDate = this.formatVnpDate(now);
-    // Hết hạn 15 phút — trùng với cửa sổ "giữ kho tạm"
-    const expireMs = 15 * 60 * 1000;
-    const expireDate = this.formatVnpDate(new Date(now.getTime() + expireMs));
+    // Hạn do caller quyết: URL KHÔNG được sống lâu hơn cửa sổ giữ hàng của đơn,
+    // nếu không khách trả tiền vào đơn vừa bị job hủy.
+    const expireDate = this.formatVnpDate(params.expireAt);
 
     const calculatedAmount = Math.round(params.amount * 100);
     const amountStr = String(calculatedAmount);
