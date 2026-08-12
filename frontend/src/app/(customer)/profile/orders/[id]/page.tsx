@@ -123,6 +123,12 @@ export default function CustomerOrderDetailPage() {
   const isVnpay = payment?.method === 'vnpay';
   const payStatus = payment?.status;
 
+  // Cùng một nút, hai ngữ cảnh: lần đầu là "thanh toán", sau khi thất bại là "thử lại".
+  const isRetryPayment = payStatus === 'failed';
+  const payButtonLabel = isRetryPayment
+    ? 'Thử lại thanh toán'
+    : 'Thanh toán ngay';
+
   const handlePayNow = () => {
     const orderNumber = order.order_number ?? '';
     createUrl.mutate(order.id, {
@@ -182,7 +188,7 @@ export default function CustomerOrderDetailPage() {
             {isVnpay && payStatus && <PaymentStatusBadge status={payStatus} />}
           </div>
 
-          {isVnpay && payStatus === 'pending' && (
+          {isVnpay && (payStatus === 'pending' || payStatus === 'failed') && (
             <Button
               size="sm"
               className="w-full"
@@ -194,15 +200,15 @@ export default function CustomerOrderDetailPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Đang chuyển...
                 </>
               ) : (
-                'Thanh toán ngay'
+                payButtonLabel
               )}
             </Button>
           )}
 
           {isVnpay && payStatus === 'failed' && (
-            <p className="text-xs text-rose-600 dark:text-rose-400">
-              Thanh toán thất bại. Hiện chưa hỗ trợ trả lại trên đơn này — bạn
-              có thể hủy đơn bên dưới để hoàn kho rồi đặt lại.
+            <p className="text-xs text-muted-foreground">
+              Lần thanh toán trước không thành công. Bạn có thể thử lại ngay
+              trên đơn này, hoặc hủy đơn bên dưới để hoàn kho rồi đặt lại.
             </p>
           )}
           {order.global_coupon_code && (

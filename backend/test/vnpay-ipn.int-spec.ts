@@ -11,6 +11,7 @@ import {
 
 // Entities
 import { Payment } from '@/modules/payments/entities/payment.entity';
+import { PaymentAttempt } from '@/modules/payments/entities/payment-attempt.entity';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { User } from '@/modules/users/entities/user.entity';
 
@@ -123,6 +124,24 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
     return userRepo.save(created);
   };
 
+  // Từ commit #413, IPN tra theo payment_attempt.vnp_txn_ref chứ không còn theo
+  // payment.vnp_txn_ref — mọi test IPN phải seed kèm row lần thử tương ứng.
+  const seedAttempt = async (params: {
+    paymentId: string;
+    txnRef: string;
+    amount: number;
+  }): Promise<PaymentAttempt> => {
+    const attemptRepo = ds.getRepository(PaymentAttempt);
+    const attemptData = {
+      payment_id: params.paymentId,
+      vnp_txn_ref: params.txnRef,
+      amount: params.amount,
+      status: PaymentStatus.PENDING,
+    };
+    const created = attemptRepo.create(attemptData);
+    return attemptRepo.save(created);
+  };
+
   it('1. IPN hợp lệ (ResponseCode 00) → chuyển payment sang COMPLETED và lưu paid_at', async () => {
     const orderRepo = ds.getRepository(Order);
     const paymentRepo = ds.getRepository(Payment);
@@ -143,7 +162,15 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
       amount: 150000,
       vnp_txn_ref: txnRef,
     };
-    await paymentRepo.save(paymentRepo.create(paymentData));
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create(paymentData),
+    );
+    const attemptParams = {
+      paymentId: savedPayment.id,
+      txnRef,
+      amount: 150000,
+    };
+    await seedAttempt(attemptParams);
 
     const ipnRawParams: Record<string, string> = {
       vnp_TmnCode: 'TESTTMN',
@@ -197,7 +224,7 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
     );
 
     const txnRef = 'ORD-INT-002-2000';
-    await paymentRepo.save(
+    const savedPayment = await paymentRepo.save(
       paymentRepo.create({
         order: savedOrder,
         method: PaymentMethod.VNPAY,
@@ -206,6 +233,12 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
         vnp_txn_ref: txnRef,
       }),
     );
+    const attemptParams = {
+      paymentId: savedPayment.id,
+      txnRef,
+      amount: 200000,
+    };
+    await seedAttempt(attemptParams);
 
     const invalidSignatureQuery: Record<string, string> = {
       vnp_TmnCode: 'TESTTMN',
@@ -241,7 +274,7 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
     );
 
     const txnRef = 'ORD-INT-003-3000';
-    await paymentRepo.save(
+    const savedPayment = await paymentRepo.save(
       paymentRepo.create({
         order: savedOrder,
         method: PaymentMethod.VNPAY,
@@ -250,6 +283,12 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
         vnp_txn_ref: txnRef,
       }),
     );
+    const attemptParams = {
+      paymentId: savedPayment.id,
+      txnRef,
+      amount: 300000,
+    };
+    await seedAttempt(attemptParams);
 
     const wrongAmountParams: Record<string, string> = {
       vnp_TmnCode: 'TESTTMN',
@@ -284,7 +323,7 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
     );
 
     const txnRef = 'ORD-INT-004-4000';
-    await paymentRepo.save(
+    const savedPayment = await paymentRepo.save(
       paymentRepo.create({
         order: savedOrder,
         method: PaymentMethod.VNPAY,
@@ -293,6 +332,12 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
         vnp_txn_ref: txnRef,
       }),
     );
+    const attemptParams = {
+      paymentId: savedPayment.id,
+      txnRef,
+      amount: 250000,
+    };
+    await seedAttempt(attemptParams);
 
     const cancelledParams: Record<string, string> = {
       vnp_TmnCode: 'TESTTMN',
@@ -352,6 +397,14 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
       where: { order: { id: savedOrder.id } },
     });
     expect(savedPayment?.vnp_txn_ref).toContain(orderNumber);
+
+    const attemptRepo = ds.getRepository(PaymentAttempt);
+    const attempts = await attemptRepo.find({
+      where: { payment_id: savedPayment!.id },
+    });
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0].vnp_txn_ref).toBe(savedPayment?.vnp_txn_ref);
+    expect(attempts[0].status).toBe(PaymentStatus.PENDING);
   });
 
   it('7. createVnpayPaymentUrl (đơn của người khác) → NotFound', async () => {
@@ -438,6 +491,331 @@ describe('VNPay IPN Integration Test (real Postgres via Testcontainers)', () => 
         method: PaymentMethod.VNPAY,
         status: PaymentStatus.COMPLETED,
         amount: 150000,
+      }),
+    );
+
+    const buildParams = {
+      orderId: savedOrder.id,
+      userId: customer.id,
+      ipAddr: '127.0.0.1',
+    };
+    await expect(
+      paymentsService.createVnpayPaymentUrl(buildParams),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('10. createVnpayPaymentUrl khi payment FAILED → reset về PENDING và sinh lần thử thứ 2', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+    const attemptRepo = ds.getRepository(PaymentAttempt);
+
+    const customer = await seedCustomer('retry');
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-009',
+        total_amount: 180000,
+        status: OrderStatus.PENDING,
+        customer,
+      }),
+    );
+
+    const firstTxnRef = 'ORD-INT-009-9000';
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.FAILED,
+        amount: 180000,
+        vnp_txn_ref: firstTxnRef,
+        vnp_response_code: '24',
+      }),
+    );
+    const firstAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: firstTxnRef,
+      amount: 180000,
+    };
+    const firstAttempt = await seedAttempt(firstAttemptParams);
+    firstAttempt.status = PaymentStatus.FAILED;
+    firstAttempt.vnp_response_code = '24';
+    await attemptRepo.save(firstAttempt);
+
+    const buildParams = {
+      orderId: savedOrder.id,
+      userId: customer.id,
+      ipAddr: '127.0.0.1',
+    };
+    const result = await paymentsService.createVnpayPaymentUrl(buildParams);
+    expect(result.paymentUrl).toContain('vnp_SecureHash=');
+
+    // Không reset về PENDING thì IPN của lần thử mới sẽ bị guard hiểu nhầm là 02.
+    const retriedPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    expect(retriedPayment?.status).toBe(PaymentStatus.PENDING);
+    expect(retriedPayment?.vnp_response_code).toBeNull();
+    expect(retriedPayment?.vnp_txn_ref).not.toBe(firstTxnRef);
+
+    const attempts = await attemptRepo.find({
+      where: { payment_id: savedPayment.id },
+    });
+    expect(attempts).toHaveLength(2);
+  });
+
+  it('11. IPN của lần thử MỚI sau retry → payment COMPLETED', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+
+    const customer = await seedCustomer('retry-paid');
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-010',
+        total_amount: 120000,
+        status: OrderStatus.PENDING,
+        customer,
+      }),
+    );
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.FAILED,
+        amount: 120000,
+        vnp_txn_ref: 'ORD-INT-010-1',
+      }),
+    );
+    const staleAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: 'ORD-INT-010-1',
+      amount: 120000,
+    };
+    await seedAttempt(staleAttemptParams);
+
+    const buildParams = {
+      orderId: savedOrder.id,
+      userId: customer.id,
+      ipAddr: '127.0.0.1',
+    };
+    await paymentsService.createVnpayPaymentUrl(buildParams);
+
+    const retriedPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    const newTxnRef = retriedPayment!.vnp_txn_ref!;
+
+    const ipnRawParams: Record<string, string> = {
+      vnp_TmnCode: 'TESTTMN',
+      vnp_Amount: '12000000',
+      vnp_ResponseCode: '00',
+      vnp_TransactionNo: '14000002',
+      vnp_TxnRef: newTxnRef,
+    };
+    const signedQuery = signParams(ipnRawParams);
+
+    const ipnResult = await paymentsService.handleVnpayIpn(signedQuery);
+    expect(ipnResult.RspCode).toBe('00');
+
+    const paidPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    expect(paidPayment?.status).toBe(PaymentStatus.COMPLETED);
+    expect(paidPayment?.paid_at).not.toBeNull();
+    expect(paidPayment?.vnp_transaction_no).toBe('14000002');
+  });
+
+  it('12. IPN của lần thử CŨ đến muộn báo thành công, payment chưa completed → vẫn COMPLETED', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-011',
+        total_amount: 90000,
+        status: OrderStatus.PENDING,
+      }),
+    );
+    const oldTxnRef = 'ORD-INT-011-1';
+    const newTxnRef = 'ORD-INT-011-2';
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.PENDING,
+        amount: 90000,
+        vnp_txn_ref: newTxnRef,
+      }),
+    );
+    const oldAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: oldTxnRef,
+      amount: 90000,
+    };
+    await seedAttempt(oldAttemptParams);
+    const newAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: newTxnRef,
+      amount: 90000,
+    };
+    await seedAttempt(newAttemptParams);
+
+    const lateSuccessParams: Record<string, string> = {
+      vnp_TmnCode: 'TESTTMN',
+      vnp_Amount: '9000000',
+      vnp_ResponseCode: '00',
+      vnp_TransactionNo: '14000003',
+      vnp_TxnRef: oldTxnRef,
+    };
+    const signedQuery = signParams(lateSuccessParams);
+
+    const ipnResult = await paymentsService.handleVnpayIpn(signedQuery);
+    expect(ipnResult.RspCode).toBe('00');
+
+    // Tiền về thật thì đơn phải được đánh dấu đã trả, dù đó là URL của lần thử cũ.
+    const paidPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    expect(paidPayment?.status).toBe(PaymentStatus.COMPLETED);
+    expect(paidPayment?.vnp_txn_ref).toBe(oldTxnRef);
+  });
+
+  it('13. IPN lần thử CŨ báo thành công nhưng payment ĐÃ completed → RspCode 02, giữ nguyên payment', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+    const attemptRepo = ds.getRepository(PaymentAttempt);
+
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-012',
+        total_amount: 70000,
+        status: OrderStatus.PENDING,
+      }),
+    );
+    const oldTxnRef = 'ORD-INT-012-1';
+    const newTxnRef = 'ORD-INT-012-2';
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.PENDING,
+        amount: 70000,
+        vnp_txn_ref: newTxnRef,
+      }),
+    );
+    const oldAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: oldTxnRef,
+      amount: 70000,
+    };
+    await seedAttempt(oldAttemptParams);
+    const newAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: newTxnRef,
+      amount: 70000,
+    };
+    await seedAttempt(newAttemptParams);
+
+    const newSuccessParams: Record<string, string> = {
+      vnp_TmnCode: 'TESTTMN',
+      vnp_Amount: '7000000',
+      vnp_ResponseCode: '00',
+      vnp_TransactionNo: '14000004',
+      vnp_TxnRef: newTxnRef,
+    };
+    await paymentsService.handleVnpayIpn(signParams(newSuccessParams));
+
+    const paidPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    const firstPaidAt = paidPayment?.paid_at?.getTime();
+
+    // Khách quay lại tab cũ và trả thêm lần nữa → thu 2 lần.
+    const lateSuccessParams: Record<string, string> = {
+      vnp_TmnCode: 'TESTTMN',
+      vnp_Amount: '7000000',
+      vnp_ResponseCode: '00',
+      vnp_TransactionNo: '14000005',
+      vnp_TxnRef: oldTxnRef,
+    };
+    const lateResult = await paymentsService.handleVnpayIpn(
+      signParams(lateSuccessParams),
+    );
+    expect(lateResult.RspCode).toBe('02');
+
+    const finalPayment = await paymentRepo.findOneBy({ id: savedPayment.id });
+    expect(finalPayment?.paid_at?.getTime()).toBe(firstPaidAt);
+    expect(finalPayment?.vnp_transaction_no).toBe('14000004');
+
+    // Row attempt cũ vẫn phải được ghi lại — đây là bằng chứng để hoàn tiền.
+    const oldAttempt = await attemptRepo.findOneBy({ vnp_txn_ref: oldTxnRef });
+    expect(oldAttempt?.status).toBe(PaymentStatus.COMPLETED);
+    expect(oldAttempt?.vnp_transaction_no).toBe('14000005');
+  });
+
+  it('14. IPN thất bại của lần thử CŨ đến muộn → KHÔNG hạ payment xuống FAILED', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+    const attemptRepo = ds.getRepository(PaymentAttempt);
+
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-013',
+        total_amount: 60000,
+        status: OrderStatus.PENDING,
+      }),
+    );
+    const oldTxnRef = 'ORD-INT-013-1';
+    const newTxnRef = 'ORD-INT-013-2';
+    const savedPayment = await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.PENDING,
+        amount: 60000,
+        vnp_txn_ref: newTxnRef,
+      }),
+    );
+    const oldAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: oldTxnRef,
+      amount: 60000,
+    };
+    await seedAttempt(oldAttemptParams);
+    const newAttemptParams = {
+      paymentId: savedPayment.id,
+      txnRef: newTxnRef,
+      amount: 60000,
+    };
+    await seedAttempt(newAttemptParams);
+
+    const lateFailParams: Record<string, string> = {
+      vnp_TmnCode: 'TESTTMN',
+      vnp_Amount: '6000000',
+      vnp_ResponseCode: '24',
+      vnp_TransactionNo: '0',
+      vnp_TxnRef: oldTxnRef,
+    };
+    const ipnResult = await paymentsService.handleVnpayIpn(
+      signParams(lateFailParams),
+    );
+    expect(ipnResult.RspCode).toBe('00');
+
+    // Khách đang trả trên URL mới — báo FAILED lúc này là sai trạng thái.
+    const stillPending = await paymentRepo.findOneBy({ id: savedPayment.id });
+    expect(stillPending?.status).toBe(PaymentStatus.PENDING);
+
+    const oldAttempt = await attemptRepo.findOneBy({ vnp_txn_ref: oldTxnRef });
+    expect(oldAttempt?.status).toBe(PaymentStatus.FAILED);
+  });
+
+  it('15. createVnpayPaymentUrl khi đơn đã CANCELLED → BadRequest', async () => {
+    const orderRepo = ds.getRepository(Order);
+    const paymentRepo = ds.getRepository(Payment);
+
+    const customer = await seedCustomer('cancelled');
+    const savedOrder = await orderRepo.save(
+      orderRepo.create({
+        order_number: 'ORD-INT-014',
+        total_amount: 0,
+        status: OrderStatus.CANCELLED,
+        customer,
+      }),
+    );
+    await paymentRepo.save(
+      paymentRepo.create({
+        order: savedOrder,
+        method: PaymentMethod.VNPAY,
+        status: PaymentStatus.FAILED,
+        amount: 0,
       }),
     );
 

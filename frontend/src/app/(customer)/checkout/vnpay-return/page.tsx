@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -11,14 +12,17 @@ import { useAuthStore } from '@/store/useAuthStore';
 import {
   useVnpayReturn,
   usePollOrderPayment,
+  useCreateVnpayUrl,
   VNPAY_POLL_CAP_UPDATES,
 } from '@/hooks/usePayments';
 import { customerOrderKeys } from '@/constants/query-keys';
 import {
   readPendingPayment,
   clearPendingPayment,
+  setPendingPayment,
   type PendingPayment,
 } from '@/lib/vnpay-pending';
+import { getErrorMessage } from '@/lib/http';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -112,6 +116,30 @@ export default function VnpayReturnPage() {
     view = 'success';
   }
 
+  // Chỉ mở retry khi biết chắc đơn nào: orderId đến từ cầu nối sessionStorage, mất
+  // cầu nối thì chỉ còn đường vào trang đơn. Đơn đã hoàn tiền thì BE cũng chặn.
+  const createUrl = useCreateVnpayUrl();
+  const canRetryPayment =
+    view === 'failed' &&
+    !!orderId &&
+    !!pending &&
+    isAuthenticated &&
+    paymentStatus !== 'refunded';
+
+  const handleRetryPayment = () => {
+    if (!orderId || !pending) return;
+    const retryOrderNumber = pending.orderNumber;
+    createUrl.mutate(orderId, {
+      onSuccess: (res) => {
+        // Effect ở trên đã xóa cầu nối khi thấy trạng thái cuối — ghi lại trước
+        // khi rời trang, nếu không trang Return lần sau không suy được orderId.
+        setPendingPayment({ orderId, orderNumber: retryOrderNumber });
+        window.location.href = res.data.paymentUrl;
+      },
+      onError: (e) => toast.error(getErrorMessage(e)),
+    });
+  };
+
   const orderHref = orderId ? `/profile/orders/${orderId}` : '/profile/orders';
 
   return (
@@ -164,15 +192,35 @@ export default function VnpayReturnPage() {
               Thanh toán chưa thành công
             </h1>
             <p className="text-sm text-muted-foreground">
-              Giao dịch bị hủy hoặc thất bại. Bạn có thể mở đơn hàng để hủy
-              (hoàn kho) rồi đặt lại.
+              {canRetryPayment
+                ? 'Giao dịch bị hủy hoặc thất bại. Bạn có thể thử lại ngay trên đơn hàng này — giỏ hàng và mã giảm giá vẫn được giữ nguyên.'
+                : 'Giao dịch bị hủy hoặc thất bại. Mở đơn hàng để thử lại hoặc hủy đơn.'}
             </p>
           </>
         )}
 
         {view !== 'loading' && (
           <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto">
-            <Button render={<Link href={orderHref} />}>Xem đơn hàng</Button>
+            {canRetryPayment && (
+              <Button
+                onClick={handleRetryPayment}
+                disabled={createUrl.isPending}
+              >
+                {createUrl.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Đang chuyển...
+                  </>
+                ) : (
+                  'Thử lại thanh toán'
+                )}
+              </Button>
+            )}
+            <Button
+              variant={canRetryPayment ? 'outline' : 'default'}
+              render={<Link href={orderHref} />}
+            >
+              Xem đơn hàng
+            </Button>
             <Button variant="outline" render={<Link href="/products" />}>
               Tiếp tục mua sắm
             </Button>

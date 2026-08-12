@@ -49,6 +49,7 @@ import { OutboxEvent } from '@/common/entities/outbox-event.entity';
 import { Coupon } from '@/modules/promotions/entities/coupon.entity';
 import { UserCoupon } from '@/modules/promotions/entities/user-coupon.entity';
 import { Payment } from '@/modules/payments/entities/payment.entity';
+import { PaymentAttempt } from '@/modules/payments/entities/payment-attempt.entity';
 import { Review } from '@/modules/engagements/entities/review.entity';
 import { Notification } from '@/modules/engagements/entities/notification.entity';
 import { ProcessedEvent } from '@/modules/engagements/entities/processed-event.entity';
@@ -158,6 +159,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           Coupon,
           UserCoupon,
           Payment,
+          PaymentAttempt,
           Review,
           Notification,
           MediaAsset,

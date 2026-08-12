@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 
 // Services
 import { PaymentsService } from './payments.service';
@@ -22,8 +23,11 @@ import { UserRole } from '@/common/enums';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // Chặt hơn throttle global (100 req/60s): từ khi có retry, mỗi lần gọi sinh thêm
+  // một row payment_attempt. 5 lần/phút vẫn thừa cho thao tác thật của khách.
   @Post('vnpay/create-url')
   @Roles(UserRole.CUSTOMER)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Tạo URL thanh toán VNPay cho một đơn hàng' })
   createVnpayUrl(
