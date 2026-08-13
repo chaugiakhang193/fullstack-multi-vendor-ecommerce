@@ -158,7 +158,7 @@ export default function SellerDashboardPage() {
     {
       title: 'Tổng doanh thu',
       value: formattedRevenue,
-      change: 'Đơn giao thành công',
+      change: 'Đơn đã giao, chưa trừ phí sàn',
       icon: <TrendingUp className="h-5 w-5 text-violet-500" />,
       gradient: 'from-violet-500/10 to-purple-500/10 border-violet-500/20',
     },

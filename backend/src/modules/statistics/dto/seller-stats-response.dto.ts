@@ -35,15 +35,24 @@ export class StatusCountsDto {
 }
 
 export class SellerStatsResponseDto {
-  @ApiProperty({ description: 'Tổng doanh thu từ các đơn hàng đã hoàn thành' })
+  @ApiProperty({
+    description:
+      'Doanh thu thô từ đơn đã giao (sub_total - giảm giá shop), chưa trừ hoa hồng sàn. Không gồm phí ship — khớp với gross_revenue ở trang rút tiền',
+  })
   total_revenue: number;
 
   @ApiProperty({ description: 'Tổng số đơn hàng của shop' })
   total_orders: number;
 
-  @ApiProperty({ type: StatusCountsDto, description: 'Thống kê đơn hàng theo trạng thái' })
+  @ApiProperty({
+    type: StatusCountsDto,
+    description: 'Thống kê đơn hàng theo trạng thái',
+  })
   status_counts: StatusCountsDto;
 
-  @ApiProperty({ type: [BestSellerItemDto], description: 'Top 5 sản phẩm bán chạy của shop' })
+  @ApiProperty({
+    type: [BestSellerItemDto],
+    description: 'Top 5 sản phẩm bán chạy của shop',
+  })
   best_sellers: BestSellerItemDto[];
 }

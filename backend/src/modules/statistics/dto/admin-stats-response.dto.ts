@@ -8,5 +8,9 @@ export class AdminStatsResponseDto {
   @ApiProperty() pending_shops: number;
   @ApiProperty() total_categories: number;
   @ApiProperty() total_orders: number;
-  @ApiProperty() total_revenue: number;
+  @ApiProperty({
+    description:
+      'GMV toàn sàn: tổng tiền người mua trả trên các đơn đã giao, đã gồm phí ship. Khác doanh thu shop bên seller (không gồm ship)',
+  })
+  total_revenue: number;
 }

@@ -75,9 +75,9 @@ export default function AdminDashboardPage() {
           gradient: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20',
         },
         {
-          title: 'Doanh thu (đã giao)',
+          title: 'Tổng tiền đơn đã giao',
           value: formatVnd.format(stats.total_revenue),
-          change: 'Đơn giao thành công',
+          change: 'Toàn sàn, gồm phí ship',
           icon: <TrendingUp className="h-6 w-6 text-rose-500" />,
           gradient: 'from-rose-500/10 to-red-500/10 border-rose-500/20',
         },

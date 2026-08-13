@@ -1424,10 +1424,10 @@ export class OrdersService {
   // ==========================================
 
   /**
-   * Điều kiện SQL ẩn sub-order có payment VNPAY chưa COMPLETED — dùng chung ở
-   * `getSellerSubOrders` (list) và `getShopStats` (đếm status). Cả 2 nơi gọi
-   * phải tự join `order.payment AS payment` trước khi dùng — helper chỉ trả
-   * điều kiện, không tự join (2 nơi join từ alias gốc khác nhau).
+   * Điều kiện SQL ẩn sub-order có payment VNPAY chưa COMPLETED — dùng chung cho mọi
+   * chỗ seller nhìn thấy đơn: danh sách, chi tiết, thống kê và doanh thu rút tiền.
+   * Nơi gọi phải tự join `order.payment AS payment` trước khi dùng — helper chỉ trả
+   * điều kiện, không tự join (các nơi join từ alias gốc khác nhau).
    */
   private buildVnpayPaidFilter(): {
     condition: string;
@@ -1523,25 +1523,18 @@ export class OrdersService {
     const queryStatusStr = 'subOrder.status = :status';
     const deliveredStatusParam = { status: OrderStatus.DELIVERED };
 
-    // Cả 3 truy vấn dưới dùng CHUNG bộ lọc này. Trước đây chỉ phần đếm status áp
-    // nó, còn doanh thu và bán chạy thì không — ba con số cùng một màn hình mà đứng
-    // trên hai định nghĩa "đơn nào được tính". Hiện chưa lệch vì đơn VNPAY chưa trả
-    // kẹt PENDING nên không lọt vào DELIVERED, nhưng bất biến đó do
-    // updateSubOrderStatus giữ ở file khác, không nên để số liệu phụ thuộc ngầm.
+    // Cả 2 truy vấn dưới dùng CHUNG bộ lọc này. Trước đây chỉ phần đếm status áp
+    // nó, còn bán chạy thì không — các con số cùng một màn hình mà đứng trên hai
+    // định nghĩa "đơn nào được tính". Hiện chưa lệch vì đơn VNPAY chưa trả kẹt
+    // PENDING nên không lọt vào DELIVERED, nhưng bất biến đó do updateSubOrderStatus
+    // giữ ở file khác, không nên để số liệu phụ thuộc ngầm.
     const { condition: paymentFilterCondition, params: paymentFilterParams } =
       this.buildVnpayPaidFilter();
 
-    // 1. Tính tổng doanh thu (chỉ tính sub-order có status = DELIVERED)
-    const revenueResult = await subOrderRepository
-      .createQueryBuilder('subOrder')
-      .leftJoin('subOrder.order', 'order')
-      .leftJoin('order.payment', 'payment')
-      .select('SUM(subOrder.total_amount)', 'sum')
-      .where(queryShopIdStr, shopIdParam)
-      .andWhere(queryStatusStr, deliveredStatusParam)
-      .andWhere(paymentFilterCondition, paymentFilterParams)
-      .getRawOne();
-    const total_revenue = Number(revenueResult?.sum) || 0;
+    // 1. Doanh thu dùng chung hàm với trang rút tiền. Trước đây chỗ này tự tính
+    // SUM(total_amount) — vốn đã gồm shipping_fee — nên dashboard luôn cao hơn số dư
+    // payout đúng bằng tổng phí ship, trong khi phí ship không phải tiền của seller.
+    const total_revenue = await this.getShopDeliveredRevenue(shopId);
 
     // 2. Thống kê số lượng đơn hàng theo từng trạng thái. Loại sub-order VNPAY
     // chưa trả khỏi đếm — chúng kẹt PENDING vĩnh viễn, không phải PENDING "đang
@@ -1951,6 +1944,10 @@ export class OrdersService {
    * Tính tổng doanh thu THÔ (gross) của Shop trên các SubOrder đã giao (DELIVERED).
    * KHÔNG trừ hoa hồng tại đây — việc bóc tách gross/commission/net được thực hiện ở
    * nơi tính số dư (PayoutsService.calculateShopBalance) để hiển thị minh bạch cho seller.
+   *
+   * KHÔNG cộng shipping_fee: phí ship do sàn tính theo khoảng cách và thu hộ, seller
+   * không nhận khoản này. Đây là định nghĩa "doanh thu shop" DUY NHẤT — dashboard
+   * (`getShopStats`) gọi lại hàm này thay vì tự tính, để hai màn hình không lệch nhau.
    */
   async getShopDeliveredRevenue(
     shopId: string,
@@ -1968,11 +1965,20 @@ export class OrdersService {
     const whereStatusStr = 'subOrder.status = :status';
     const whereStatusParam = { status: OrderStatus.DELIVERED };
 
+    // Cùng bộ lọc VNPAY với các truy vấn thống kê khác. Hiện chưa lệch vì đơn VNPAY
+    // chưa trả kẹt PENDING nên không vào được DELIVERED, nhưng số tiền seller rút
+    // được không nên phụ thuộc ngầm vào bất biến do file khác giữ.
+    const { condition: paymentFilterCondition, params: paymentFilterParams } =
+      this.buildVnpayPaidFilter();
+
     const result = await repo
       .createQueryBuilder(alias)
+      .leftJoin('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
       .select(selectSql, selectAlias)
       .where(whereShopIdStr, whereShopIdParam)
       .andWhere(whereStatusStr, whereStatusParam)
+      .andWhere(paymentFilterCondition, paymentFilterParams)
       .getRawOne();
 
     const rawRevenue = Number(result?.revenue) || 0;
