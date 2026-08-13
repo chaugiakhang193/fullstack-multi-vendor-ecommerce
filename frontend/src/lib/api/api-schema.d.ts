@@ -3149,6 +3149,7 @@ export interface components {
             pending_shops: number;
             total_categories: number;
             total_orders: number;
+            /** @description GMV toàn sàn: tổng tiền người mua trả trên các đơn đã giao, đã gồm phí ship. Khác doanh thu shop bên seller (không gồm ship) */
             total_revenue: number;
         };
         StatusCountsDto: {
@@ -3176,7 +3177,7 @@ export interface components {
             total_sold: number;
         };
         SellerStatsResponseDto: {
-            /** @description Tổng doanh thu từ các đơn hàng đã hoàn thành */
+            /** @description Doanh thu thô từ đơn đã giao (sub_total - giảm giá shop), chưa trừ hoa hồng sàn. Không gồm phí ship — khớp với gross_revenue ở trang rút tiền */
             total_revenue: number;
             /** @description Tổng số đơn hàng của shop */
             total_orders: number;
