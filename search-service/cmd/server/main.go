@@ -124,18 +124,9 @@ func main() {
 		consumer.Run(ctx) // tu thoat khi ctx.Done()
 	}()
 
-	// Nguong giu row phai bang tuoi toi da mot message co the dat truoc khi duoc xu ly:
-	// 30 ngay nam queue chinh, het TTL thi sang DLQ va dong ho chay LAI TU DAU, 30 ngay
-	// nua o do. Cong 24h bien cho hai thu: TTL cua RabbitMQ het han kieu luoi (message
-	// chi bi don khi troi toi dau queue) va deleted_at den tu dong ho monolith trong khi
-	// nguong GC tinh bang now() cua Neon.
-	//
-	// Ghep o day chu khong tinh trong package index: hai hang so nam o broker, ma index
-	// khong import broker duoc (broker da import index). Viet bang cong thuc chu khong
-	// hardcode 61 ngay - ai doi TTL sau nay ma quen doi cho nay se mo lai lo hong mot
-	// cach am tham.
-	retentionMs := broker.MainQueueTTL + broker.DlqTTL
-	retention := time.Duration(retentionMs)*time.Millisecond + 24*time.Hour
+	// Ghep o main chu khong tinh trong package index: hai hang so TTL nam o broker, ma
+	// index khong import broker duoc (broker da import index, se thanh vong lap).
+	retention := retentionWindow(broker.MainQueueTTL, broker.DlqTTL)
 
 	retentionGC := index.NewRetentionGC(store, retention, cfg.RetentionGCEnabled, logger)
 	wg.Add(1)
@@ -170,6 +161,25 @@ func main() {
 	// Cho consumer + goroutine shutdown xong moi thoat de khong cat ngang viec do.
 	wg.Wait()
 	logger.Info("search-service da tat gon")
+}
+
+// retentionSafetyMargin bu cho hai thu ma cong thuc thuan tuy khong tinh duoc: TTL
+// cua RabbitMQ het han kieu LUOI (message chi bi don khi troi toi dau queue, nen tuoi
+// that co the vuot moc danh nghia), va deleted_at den tu dong ho monolith trong khi
+// nguong GC tinh bang now() cua Neon.
+const retentionSafetyMargin = 24 * time.Hour
+
+// retentionWindow suy nguong giu row cho retention GC tu TTL cua hai queue: message
+// nam toi da MainQueueTTL o queue chinh, het han thi dead-letter sang DLQ va dong ho
+// TTL CHAY LAI TU DAU, nam them toi da DlqTTL nua. Cong bien an toan.
+//
+// Tach khoi main() de test duoc, vi day la phep tinh nguy hiem nhat service: hai tham
+// so vao la MILI-giay (dinh dang RabbitMQ doi) con time.Duration dem NANO-giay. Thieu
+// * time.Millisecond thi ket qua tut tu 61 ngay xuong 24h0m5.184s - trong van vo hai
+// vi VAN co don vi gio - va GC se xoa gan sach hai bang ma khong mot dong log nao bao.
+func retentionWindow(mainQueueTTLms int64, dlqTTLms int64) time.Duration {
+	totalMs := mainQueueTTLms + dlqTTLms
+	return time.Duration(totalMs)*time.Millisecond + retentionSafetyMargin
 }
 
 // newLogger dung slog logger JSON theo level cau hinh.
