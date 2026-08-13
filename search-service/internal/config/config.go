@@ -31,6 +31,11 @@ type Config struct {
 
 	// OtelExporterEndpoint endpoint nhan OTLP HTTP traces (vd http://localhost:4318/v1/traces).
 	OtelExporterEndpoint string
+
+	// RetentionGCEnabled bat nhanh XOA cua retention GC. Mac dinh false: day la job
+	// dau tien biet DELETE, nen deploy lan dau de tat, nhin gauge vai ngay roi moi bat.
+	// Phan DEM cua job khong bi co nay gac.
+	RetentionGCEnabled bool
 }
 
 // defaultQueueName mang hau to .v2 vi doi args cua queue dang ton tai la khong the:
@@ -56,6 +61,7 @@ func Load() (Config, error) {
 		OtelEnabled:          os.Getenv("OTEL_ENABLED") == "true",
 		OtelServiceName:      getEnv("OTEL_SERVICE_NAME", "search-service"),
 		OtelExporterEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318/v1/traces"),
+		RetentionGCEnabled:   os.Getenv("SEARCH_RETENTION_GC_ENABLED") == "true",
 	}
 
 	if cfg.RabbitMQURL == "" {

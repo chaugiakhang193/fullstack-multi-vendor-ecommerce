@@ -38,9 +38,13 @@ const (
 	// KHONG dua vao env: doi TTL la doi args cua queue dang ton tai, RabbitMQ tra
 	// 406 PRECONDITION_FAILED va service khong boot duoc. Doi that thi phai rename
 	// queue - viec co ke hoach, khong phai xoay bien moi truong.
+	// MainQueueTTL va DlqTTL export vi retention GC (package index) phai suy nguong
+	// giu row tu chung. index KHONG import broker duoc (broker da import index, se
+	// thanh vong lap), nen main.go doc hai hang so nay roi truyen xuong duoi dang
+	// tham so. retryTTL khong ai ngoai package can nen giu nguyen viet thuong.
 	retryTTL     = int64(10 * 1000)                // 10 giay
-	mainQueueTTL = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
-	dlqTTL       = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
+	MainQueueTTL = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
+	DlqTTL       = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
 
 	// Chan kieu hong ma TTL khong chan duoc: 50k message do vao trong mot gio deu
 	// con moi tinh, TTL khong dung toi. Nguoc lai TTL chan duoc kieu ro ri cham ma
@@ -229,7 +233,7 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 	// xoa tham lang: khong co DLX thi event bien mat, index lech voi DB va khong de
 	// lai bat ky dau vet nao - chi phat hien khi khach bao tim khong ra hang.
 	mainArgs := amqp.Table{
-		"x-message-ttl":             mainQueueTTL,
+		"x-message-ttl":             MainQueueTTL,
 		"x-dead-letter-exchange":    retryExchange,
 		"x-dead-letter-routing-key": c.dlqRoutingKey,
 	}
@@ -260,7 +264,7 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 	// x-overflow dat tuong minh du drop-head la mac dinh, de y do nam trong code chu
 	// khong nam trong tri nho ai do.
 	dlqArgs := amqp.Table{
-		"x-message-ttl": dlqTTL,
+		"x-message-ttl": DlqTTL,
 		"x-max-length":  dlqMaxLength,
 		"x-overflow":    "drop-head",
 	}

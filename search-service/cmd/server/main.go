@@ -124,6 +124,26 @@ func main() {
 		consumer.Run(ctx) // tu thoat khi ctx.Done()
 	}()
 
+	// Nguong giu row phai bang tuoi toi da mot message co the dat truoc khi duoc xu ly:
+	// 30 ngay nam queue chinh, het TTL thi sang DLQ va dong ho chay LAI TU DAU, 30 ngay
+	// nua o do. Cong 24h bien cho hai thu: TTL cua RabbitMQ het han kieu luoi (message
+	// chi bi don khi troi toi dau queue) va deleted_at den tu dong ho monolith trong khi
+	// nguong GC tinh bang now() cua Neon.
+	//
+	// Ghep o day chu khong tinh trong package index: hai hang so nam o broker, ma index
+	// khong import broker duoc (broker da import index). Viet bang cong thuc chu khong
+	// hardcode 61 ngay - ai doi TTL sau nay ma quen doi cho nay se mo lai lo hong mot
+	// cach am tham.
+	retentionMs := broker.MainQueueTTL + broker.DlqTTL
+	retention := time.Duration(retentionMs)*time.Millisecond + 24*time.Hour
+
+	retentionGC := index.NewRetentionGC(store, retention, cfg.RetentionGCEnabled, logger)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		retentionGC.Run(ctx)
+	}()
+
 	searcher := search.NewService(store.Pool())
 	addr := ":" + httpPort
 	srv := httpapi.NewServer(addr, logger, searcher)

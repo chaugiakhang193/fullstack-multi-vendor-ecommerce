@@ -15,6 +15,13 @@ type Metrics struct {
 	HTTPRequestDuration  *prometheus.HistogramVec
 	EventsProcessedTotal *prometheus.CounterVec
 	IndexProductsGauge   prometheus.Gauge
+
+	// Ba gauge duoi phuc vu retention GC. Hai cai dau la chan doan (bang nao la thu
+	// pham), cai thu ba moi la thu do dung rang buoc that: han muc dia cua Neon free.
+	// Dem row hai bang nho khong the phat hien index GIN cua product_index phinh.
+	TombstoneRowsGauge       prometheus.Gauge
+	ProcessedEventsRowsGauge prometheus.Gauge
+	DatabaseSizeBytesGauge   prometheus.Gauge
 }
 
 var (
@@ -52,6 +59,24 @@ func InitMetrics() *Metrics {
 				prometheus.GaugeOpts{
 					Name: "search_index_products_total",
 					Help: "So luong san pham hien co trong index",
+				},
+			),
+			TombstoneRowsGauge: promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: "search_tombstone_rows_total",
+					Help: "So row hien co trong deleted_products_tombstone",
+				},
+			),
+			ProcessedEventsRowsGauge: promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: "search_processed_events_rows_total",
+					Help: "So row hien co trong processed_events",
+				},
+			),
+			DatabaseSizeBytesGauge: promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: "search_db_size_bytes",
+					Help: "Kich thuoc database DB#3 theo pg_database_size, tinh bang byte",
 				},
 			),
 		}
