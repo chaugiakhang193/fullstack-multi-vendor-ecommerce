@@ -22,10 +22,14 @@ interface ExpireOrderJobData {
  * có thể đã trượt sau khi job được hẹn (khách bấm thử lại).
  */
 @Processor(VNPAY_EXPIRY_QUEUE, {
-  // Tần suất quét kiểm tra và khôi phục các job bị kẹt (stalled)
-  stalledInterval: 150000, // 2.5 phút
-  // Thời gian chờ long-polling tối đa khi hàng đợi rỗng để tối ưu hóa tần suất lệnh gửi tới Redis
-  drainDelay: 60, // 60 giây
+  // Hai mốc dưới bị chặn bởi quota Upstash free (500k lệnh/tháng) chứ không phải
+  // bởi nhu cầu nghiệp vụ: worker rỗng vẫn tốn 8 lệnh mỗi vòng drain và 3 lệnh mỗi
+  // lần quét stalled — mức cũ (60s / 2.5 phút) đốt 91% quota khi không có traffic.
+  //
+  // Nới stalled lên 5 phút không làm đơn kẹt lâu hơn: khi Redis mất job, đường phục
+  // hồi thật là VnpayExpirySweep quét Postgres mỗi 5 phút, không phải stalled check.
+  stalledInterval: 300000, // 5 phút
+  drainDelay: 300, // 5 phút
 })
 export class VnpayExpiryProcessor extends WorkerHost {
   private readonly logger = new Logger(VnpayExpiryProcessor.name);
