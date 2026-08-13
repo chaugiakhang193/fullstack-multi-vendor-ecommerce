@@ -33,8 +33,10 @@ type Config struct {
 	OtelExporterEndpoint string
 }
 
-// defaultQueueName giu nguyen ten queue cu de khong doi hanh vi mac dinh.
-const defaultQueueName = "search_index.q"
+// defaultQueueName mang hau to .v2 vi doi args cua queue dang ton tai la khong the:
+// RabbitMQ tra 406 PRECONDITION_FAILED. Queue cu (search_index.q) phai duoc xoa tay
+// tren CloudAMQP sau khi xac nhan queue moi da nhan duoc event - xem task_0813_part1.
+const defaultQueueName = "search_index.v2.q"
 
 // Load doc cau hinh tu env, ap default cho bien khong bat buoc, va tra loi cho
 // bien bat buoc bi thieu (fail-fast ngay luc khoi dong thay vi chet luc runtime).

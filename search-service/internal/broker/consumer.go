@@ -21,9 +21,31 @@ import (
 const (
 	eventsExchange = "ecommerce.events"
 	retryExchange  = "ecommerce.retry"
-	retryTTL       = 10000 // 10s
 	prefetchCount  = 10
 	maxRetries     = 3
+
+	// Ca ba moc TTL deu int64. 30 ngay = 2.592.000.000 ms, vuot tran int32
+	// (2.147.483.647) - nhung 10 giay thi vua thoai mai. Van dung chung mot kieu de
+	// khong ai phai nho moc nao vua int32 moc nao khong: chon kieu theo tran cua
+	// tham so, khong theo gia tri hien tai cua no. Doi 10s thanh 30 ngay sau nay se
+	// khong keo theo mot lan doi kieu nua.
+	//
+	// TTL queue chinh tra loi cau hoi "he thong duoc chet bao lau ma van duoi kip
+	// khi song lai", KHONG phai de chan quota - viec do la cua x-max-length. Queue
+	// chinh chi phinh khi consumer chet, va luc do cai quyet dinh la BAO NHIEU event
+	// don lai chu khong phai chung GIA bao nhieu.
+	//
+	// KHONG dua vao env: doi TTL la doi args cua queue dang ton tai, RabbitMQ tra
+	// 406 PRECONDITION_FAILED va service khong boot duoc. Doi that thi phai rename
+	// queue - viec co ke hoach, khong phai xoay bien moi truong.
+	retryTTL     = int64(10 * 1000)                // 10 giay
+	mainQueueTTL = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
+	dlqTTL       = int64(30 * 24 * 60 * 60 * 1000) // 30 ngay
+
+	// Chan kieu hong ma TTL khong chan duoc: 50k message do vao trong mot gio deu
+	// con moi tinh, TTL khong dung toi. Nguoc lai TTL chan duoc kieu ro ri cham ma
+	// max-length khong thay. Hai tham so, hai kieu hong, khong the thay nhau.
+	dlqMaxLength = int64(10000)
 )
 
 // indexStore la interface hep cho phan store ma consumer thuc su can. Tach interface
@@ -195,8 +217,23 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare(eventsExchange, "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
-	// Queue durable, arg-free - bat bien, khop convention notifications.q.
-	if _, err := ch.QueueDeclare(c.queue, true, false, false, false, nil); err != nil {
+
+	// Retry exchange declare TRUOC queue chinh vi queue chinh dead-letter vao day.
+	// RabbitMQ khong bat buoc DLX phai ton tai luc declare queue, nhung neu no chua
+	// co vao dung luc mot message het han thi message do roi vao hu khong.
+	if err := ch.ExchangeDeclare(retryExchange, "direct", true, false, false, false, nil); err != nil {
+		return err
+	}
+
+	// Queue chinh KHONG con arg-free. Het TTL thi dead-letter sang DLQ chu khong bi
+	// xoa tham lang: khong co DLX thi event bien mat, index lech voi DB va khong de
+	// lai bat ky dau vet nao - chi phat hien khi khach bao tim khong ra hang.
+	mainArgs := amqp.Table{
+		"x-message-ttl":             mainQueueTTL,
+		"x-dead-letter-exchange":    retryExchange,
+		"x-dead-letter-routing-key": c.dlqRoutingKey,
+	}
+	if _, err := ch.QueueDeclare(c.queue, true, false, false, false, mainArgs); err != nil {
 		return err
 	}
 	for _, key := range bindingKeys {
@@ -205,12 +242,9 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 		}
 	}
 
-	// Declare DLQ & Retry Topology dong theo c.queue
-	if err := ch.ExchangeDeclare(retryExchange, "direct", true, false, false, false, nil); err != nil {
-		return err
-	}
+	// Retry queue: het 10s thi tra ve queue chinh qua default exchange.
 	retryArgs := amqp.Table{
-		"x-message-ttl":             int32(retryTTL),
+		"x-message-ttl":             retryTTL,
 		"x-dead-letter-exchange":    "",
 		"x-dead-letter-routing-key": c.queue,
 	}
@@ -221,7 +255,16 @@ func (c *Consumer) setupTopology(ch *amqp.Channel) error {
 		return err
 	}
 
-	if _, err := ch.QueueDeclare(c.dlqQueue, true, false, false, false, nil); err != nil {
+	// DLQ CO CHU DICH khong co x-dead-letter-exchange: day la diem cuoi. Gan DLX vao
+	// day thi message het han lai bi day di tiep, thanh chuoi khong hoi ket.
+	// x-overflow dat tuong minh du drop-head la mac dinh, de y do nam trong code chu
+	// khong nam trong tri nho ai do.
+	dlqArgs := amqp.Table{
+		"x-message-ttl": dlqTTL,
+		"x-max-length":  dlqMaxLength,
+		"x-overflow":    "drop-head",
+	}
+	if _, err := ch.QueueDeclare(c.dlqQueue, true, false, false, false, dlqArgs); err != nil {
 		return err
 	}
 	if err := ch.QueueBind(c.dlqQueue, c.dlqRoutingKey, retryExchange, false, nil); err != nil {

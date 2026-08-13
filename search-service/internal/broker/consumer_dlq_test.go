@@ -76,7 +76,7 @@ func (a *fakeAck) Reject(tag uint64, requeue bool) error {
 }
 
 func newTestConsumer(store indexStore) *Consumer {
-	queue := "search_index.q"
+	queue := "search_index.v2.q"
 	return &Consumer{
 		queue:           queue,
 		retryQueue:      queue + ".retry",
