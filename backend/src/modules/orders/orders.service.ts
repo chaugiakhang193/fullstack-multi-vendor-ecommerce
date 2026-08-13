@@ -1476,14 +1476,26 @@ export class OrdersService {
     sellerId: string,
     subOrderId: string,
   ): Promise<SubOrder> {
-    const subOrder = await this.dataSource.getRepository(SubOrder).findOne({
-      where: { id: subOrderId, shop: { seller: { id: sellerId } } },
-      relations: {
-        shop: true,
-        order: true,
-        items: { variant: true, product: true },
-      },
-    });
+    // Cùng bộ lọc với list: đơn VNPAY chưa trả tiền đã bị ẩn khỏi danh sách thì mở
+    // thẳng bằng id cũng phải 404. Không gate ở đây thì seller đọc được đơn mà mọi
+    // màn hình khác coi như chưa tồn tại — updateSubOrderStatus vốn đã chặn sẵn.
+    const { condition: paymentFilterCondition, params: paymentFilterParams } =
+      this.buildVnpayPaidFilter();
+
+    const subOrder = await this.dataSource
+      .getRepository(SubOrder)
+      .createQueryBuilder('subOrder')
+      .innerJoinAndSelect('subOrder.shop', 'shop')
+      .innerJoin('shop.seller', 'seller')
+      .leftJoinAndSelect('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
+      .leftJoinAndSelect('subOrder.items', 'item')
+      .leftJoinAndSelect('item.variant', 'variant')
+      .leftJoinAndSelect('item.product', 'product')
+      .where('subOrder.id = :subOrderId', { subOrderId })
+      .andWhere('seller.id = :sellerId', { sellerId })
+      .andWhere(paymentFilterCondition, paymentFilterParams)
+      .getOne();
     if (!subOrder) {
       throw new NotFoundException('Không tìm thấy đơn hàng con');
     }
