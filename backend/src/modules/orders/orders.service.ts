@@ -1523,21 +1523,29 @@ export class OrdersService {
     const queryStatusStr = 'subOrder.status = :status';
     const deliveredStatusParam = { status: OrderStatus.DELIVERED };
 
+    // Cả 3 truy vấn dưới dùng CHUNG bộ lọc này. Trước đây chỉ phần đếm status áp
+    // nó, còn doanh thu và bán chạy thì không — ba con số cùng một màn hình mà đứng
+    // trên hai định nghĩa "đơn nào được tính". Hiện chưa lệch vì đơn VNPAY chưa trả
+    // kẹt PENDING nên không lọt vào DELIVERED, nhưng bất biến đó do
+    // updateSubOrderStatus giữ ở file khác, không nên để số liệu phụ thuộc ngầm.
+    const { condition: paymentFilterCondition, params: paymentFilterParams } =
+      this.buildVnpayPaidFilter();
+
     // 1. Tính tổng doanh thu (chỉ tính sub-order có status = DELIVERED)
     const revenueResult = await subOrderRepository
       .createQueryBuilder('subOrder')
+      .leftJoin('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
       .select('SUM(subOrder.total_amount)', 'sum')
       .where(queryShopIdStr, shopIdParam)
       .andWhere(queryStatusStr, deliveredStatusParam)
+      .andWhere(paymentFilterCondition, paymentFilterParams)
       .getRawOne();
     const total_revenue = Number(revenueResult?.sum) || 0;
 
     // 2. Thống kê số lượng đơn hàng theo từng trạng thái. Loại sub-order VNPAY
-    // chưa trả khỏi đếm — chúng kẹt PENDING vĩnh viễn (gate updateSubOrderStatus
-    // chặn mọi transition khi chưa COMPLETED), không phải PENDING "đang chờ xử
-    // lý" thật, đếm vào sẽ khiến seller thấy số đơn chờ cao hơn thực tế trong list.
-    const { condition: paymentFilterCondition, params: paymentFilterParams } =
-      this.buildVnpayPaidFilter();
+    // chưa trả khỏi đếm — chúng kẹt PENDING vĩnh viễn, không phải PENDING "đang
+    // chờ xử lý" thật, đếm vào sẽ khiến seller thấy số đơn chờ cao hơn thực tế.
     const statusCountsRaw = await subOrderRepository
       .createQueryBuilder('subOrder')
       .leftJoin('subOrder.order', 'order')
@@ -1571,6 +1579,8 @@ export class OrdersService {
     const bestSellersRaw = await orderItemRepository
       .createQueryBuilder('item')
       .innerJoin('item.sub_order', 'subOrder')
+      .leftJoin('subOrder.order', 'order')
+      .leftJoin('order.payment', 'payment')
       .select([
         'item.product_id AS product_id',
         'item.product_name AS product_name',
@@ -1579,6 +1589,7 @@ export class OrdersService {
       .addSelect('SUM(item.quantity)', 'total_sold')
       .where(queryShopIdStr, shopIdParam)
       .andWhere(queryStatusStr, deliveredStatusParam)
+      .andWhere(paymentFilterCondition, paymentFilterParams)
       .groupBy('item.product_id')
       .addGroupBy('item.product_name')
       .addGroupBy('item.product_thumbnail')
