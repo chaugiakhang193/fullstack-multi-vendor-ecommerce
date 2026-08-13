@@ -48,6 +48,54 @@ service's own store). Key properties, all inherited from patterns already used e
   stemmer, which suits Vietnamese), so a name match outranks a description match and accent-free queries
   match accented text.
 
+## Out-of-order delivery, and the retention it forces
+
+Deduplication answers "have I seen this event?". It says nothing about "did this event happen before the
+one I already applied?" — and with a retry queue in the picture, events routinely arrive out of order:
+
+```mermaid
+sequenceDiagram
+  participant R as relay
+  participant Q as queue + retry
+  participant C as consumer
+  participant DB as search index
+
+  R->>Q: product.updated (occurredAt T1)
+  Q->>C: deliver
+  C->>DB: upsert → transient DB error
+  C->>Q: republish to retry queue (10 s TTL)
+  R->>Q: product.deleted (occurredAt T2, later than T1)
+  Q->>C: deliver
+  C->>DB: delete row, write tombstone at T2
+  Q->>C: redeliver the T1 update
+  C->>DB: upsert → T1 is not after T2, rejected
+```
+
+Ordering is settled by comparing timestamps, not arrival: a delete only removes a row whose `updated_at`
+is at or before the deletion, and an update only wins if it is newer. The awkward case is the one above.
+Once the row is gone there is nothing left to compare against, so a `deleted_products_tombstone` row
+stands in for it — the memory of a row that no longer exists.
+
+**That correctness mechanism is also a leak.** A tombstone is only dropped if the product comes back, and
+`processed_events` gains a row for every event forever. Both tables grow and never shrink, on a 0.5 GB
+managed Postgres shared with the index itself.
+
+They cannot simply be trimmed. A tombstone deleted too early stops guarding, and the stale update it
+would have rejected resurrects a deleted product in search results. Safe retention has to outlast the
+oldest message that could still be delivered — **and that number lived in RabbitMQ, not in Postgres.** The
+queues were declared without arguments, so the honest answer was "unbounded", and no retention window was
+defensible until that changed.
+
+So the queue was bounded first: a 30-day message TTL, and a dead-letter route so expired messages land in
+the DLQ instead of being dropped silently — a bare TTL would let the index drift from the source of record
+with no trace. The subtlety is that **the TTL clock restarts when a message is dead-lettered**, so the
+real bound is 30 days in the main queue plus 30 more in the DLQ. Retention is written as
+`mainQueueTTL + dlqTTL + margin` rather than the 61 days it currently evaluates to, so changing a TTL
+cannot silently leave the cutoff behind. A background sweep then deletes past that cutoff in capped
+batches, hourly, while the row-count and database-size gauges it reports stay on unconditionally — the
+switch that gates deletion does not gate observation, or there would be nothing to look at while deciding
+whether to turn it on.
+
 ## Read path — two-stage retrieval
 
 The service returns **ranked product IDs, not full documents** — the monolith hydrates them from its own
@@ -96,4 +144,9 @@ the p95 at 100 VU is **186 ms vs 6.07 s** — the old scan is O(rows), the index
 - **No fuzzy matching yet.** A misspelling that full-text search misses is not caught; a `pg_trgm`
   similarity branch is the intended next step for that.
 - **Reindex.** A backfill command to rebuild the index from the monolith's catalog (for a long outage or
-  a schema change) is planned.
+  a schema change) is planned. Its absence is why a dropped event is permanent rather than merely late,
+  and why the queue TTL is generous.
+- **Replaying from the DLQ has a shelf life.** Retention is sized for the 60-day window a message can
+  survive in the queues, so a message replayed by hand after that window may find its tombstone already
+  collected. The sweep is deliberately the conservative side of that trade: it keeps rows longer than
+  strictly needed rather than shorter.
