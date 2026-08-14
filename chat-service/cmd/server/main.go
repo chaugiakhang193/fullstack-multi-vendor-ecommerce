@@ -13,6 +13,7 @@ import (
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 )
 
 func main() {
@@ -37,6 +38,24 @@ func main() {
 	sigTerm := syscall.SIGTERM
 	ctx, stop := signal.NotifyContext(bgCtx, sigInt, sigTerm)
 	defer stop()
+
+	// Khoi tao Telemetry (Metrics + OpenTelemetry TracerProvider).
+	telemetry.InitMetrics()
+	tp, err := telemetry.InitTracer(ctx, cfg.OtelEnabled, cfg.OtelServiceName, cfg.OtelExporterEndpoint)
+	if err != nil {
+		// Tracing hong khong duoc lam chet service: quan sat la chuc nang phu tro, khong
+		// phai duong phuc vu chinh. Log warn roi tiep tuc.
+		logger.Warn("khoi tao OpenTelemetry loi", "err", err)
+	} else if tp != nil {
+		logger.Info("OpenTelemetry SDK khoi tao thanh cong")
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := tp.Shutdown(shutdownCtx); err != nil {
+				logger.Error("Shutdown OpenTelemetry TracerProvider loi", "err", err)
+			}
+		}()
+	}
 
 	var wg sync.WaitGroup
 

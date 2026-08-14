@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 )
 
 // NewServer dung *http.Server voi route da gan san.
@@ -12,6 +14,7 @@ func NewServer(addr string, logger *slog.Logger) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", healthHandler(logger))
+	mux.Handle("GET /metrics", telemetry.MetricsHandler())
 
 	return &http.Server{
 		Addr:    addr,
