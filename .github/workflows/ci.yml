@@ -292,7 +292,7 @@ jobs:
 
       # Service search nam o Render acc#2 (ne quota free cua acc#1) nen hook la mot
       # secret rieng. Guard rong ngay trong shell, khong dung `if: env.*` — env cap
-      # step khong chac doc duoc trong `if` cua chinh no, step co the bi skip oan.
+      # step khong chac doc duoc trong `if` cua chinh no, step co the bi skip nham.
       - name: Trigger Render deploy (search service)
         env:
           RENDER_DEPLOY_HOOK_SEARCH: ${{ secrets.RENDER_DEPLOY_HOOK_SEARCH }}
