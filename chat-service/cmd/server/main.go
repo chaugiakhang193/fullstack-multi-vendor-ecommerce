@@ -13,6 +13,7 @@ import (
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 )
 
@@ -56,6 +57,15 @@ func main() {
 			}
 		}()
 	}
+
+	// Chay migration truoc khi mo HTTP: bang phai san truoc khi co request dau tien.
+	// Fail-fast — service chay tren schema cu la kieu hong am tham nhat.
+	databaseURL := cfg.DatabaseURL
+	if err := store.RunMigrations(databaseURL); err != nil {
+		logger.Error("chay migration loi", "err", err)
+		os.Exit(1)
+	}
+	logger.Info("migration xong")
 
 	var wg sync.WaitGroup
 
