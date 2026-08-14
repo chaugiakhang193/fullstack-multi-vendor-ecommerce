@@ -137,7 +137,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: search-service/go.mod
-          cache-dependency-path: search-service/go.sum
+          cache-dependency-path: |
+            search-service/go.sum
+            chat-service/go.sum
 
       - name: Vet Search Service
         run: go vet ./...
@@ -156,6 +158,21 @@ jobs:
         working-directory: search-service
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+
+      - name: Vet Chat Service
+        run: go vet ./...
+        working-directory: chat-service
+
+      - name: Build Chat Service
+        run: go build ./...
+        working-directory: chat-service
+
+      # Chua co test nao, nhung `go test` van chay va bao "no test files". Giu buoc nay
+      # san de sau nay chi viec them TEST_DATABASE_URL, kem mot database rieng cho chat:
+      # dung chung database voi search se dung chung bang schema_migrations cua migrate.
+      - name: Test Chat Service
+        run: go test ./...
+        working-directory: chat-service
 
       - name: Build Frontend
         run: npm run build
@@ -285,3 +302,35 @@ jobs:
             exit 0
           fi
           curl -fsS -X POST "$RENDER_DEPLOY_HOOK_SEARCH"
+
+      - name: Extract chat service image metadata
+        id: meta-chat
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-chat
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Build and push chat service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./chat-service
+          push: true
+          tags: ${{ steps.meta-chat.outputs.tags }}
+          labels: ${{ steps.meta-chat.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Secret nay co the chua ton tai — guard rong ngay trong shell se bo qua va CI van
+      # xanh. Khong dung `if: env.*` vi env cap step khong chac doc duoc trong `if` cua
+      # chinh no, step co the bi skip nham.
+      - name: Trigger Render deploy (chat service)
+        env:
+          RENDER_DEPLOY_HOOK_CHAT: ${{ secrets.RENDER_DEPLOY_HOOK_CHAT }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_CHAT" ]; then
+            echo "RENDER_DEPLOY_HOOK_CHAT chưa set — bỏ qua trigger deploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_CHAT"
