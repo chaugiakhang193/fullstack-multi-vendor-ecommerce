@@ -149,15 +149,22 @@ jobs:
         run: go build ./...
         working-directory: search-service
 
-      # TEST_DATABASE_URL tro toi service container postgres o tren. Khong dat bien
-      # nay thi store_integration_test tu skip — dat vao de migration + SQL upsert
-      # duoc kiem THAT trong CI. Test tu chan URL khong phai localhost/127.0.0.1
-      # (no TRUNCATE bang) nen khong the lo tay tro vao Neon that.
+      # Database RIENG cho search-service, tach khoi `postgres` (dang phuc vu buoc gen-api
+      # cua backend): backend khong dung golang-migrate nen hom nay chua dung cham, nhung
+      # tach san tu dau de sau nay co them service Go thu 3 cung migrate vao `postgres`
+      # thi khong dam vao bang schema_migrations cua search.
+      - name: Create search test database
+        run: psql "postgresql://postgres:postgres@localhost:5432/postgres" -c 'CREATE DATABASE search_ci'
+
+      # TEST_DATABASE_URL tro toi database rieng search_ci. Khong dat bien nay thi
+      # store_integration_test tu skip — dat vao de migration + SQL upsert duoc kiem
+      # THAT trong CI. Test tu chan URL khong phai localhost/127.0.0.1 (no TRUNCATE
+      # bang) nen khong the lo tay tro vao Neon that.
       - name: Test Search Service
         run: go test ./...
         working-directory: search-service
         env:
-          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/search_ci?sslmode=disable
 
       - name: Vet Chat Service
         run: go vet ./...
