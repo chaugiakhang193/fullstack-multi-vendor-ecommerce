@@ -1,0 +1,20 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/store/query.sql"
+    # Tro THANG vao thu muc migration thay vi mot file schema.sql chep tay: sqlc hieu
+    # quy uoc ten cua golang-migrate va bo qua cac file *.down.sql. search-service dung
+    # schema.sql rieng va phai nho dong bo tay moi lan doi cot — o day bo han rui ro do.
+    schema: "internal/store/migrations"
+    gen:
+      go:
+        package: "chatdb"
+        out: "internal/store/chatdb"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        overrides:
+          # ID toan he dung string cho dong nhat voi monolith (JWT tra user id dang chuoi),
+          # thay vi pgtype.UUID phai chuyen doi o moi bien gioi.
+          - db_type: "uuid"
+            go_type: "string"

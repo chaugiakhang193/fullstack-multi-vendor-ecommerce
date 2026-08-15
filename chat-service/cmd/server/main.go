@@ -67,6 +67,21 @@ func main() {
 	}
 	logger.Info("migration xong")
 
+	// startupCtx rieng co timeout, khong dung ctx vong doi, de pool khong bi rang buoc
+	// theo vong doi tin hieu shutdown.
+	startupBgCtx := context.Background()
+	startupTimeout := 15 * time.Second
+	startupCtx, startupCancel := context.WithTimeout(startupBgCtx, startupTimeout)
+	chatStore, err := store.NewStore(startupCtx, databaseURL)
+	startupCancel()
+	if err != nil {
+		logger.Error("mo store loi", "err", err)
+		os.Exit(1)
+	}
+	// defer chay theo LIFO va nam sau wg.Wait() o cuoi main, nen pool chi dong khi moi
+	// goroutine da dung — khong cat ngang request dang chay.
+	defer chatStore.Close()
+
 	var wg sync.WaitGroup
 
 	addr := ":" + httpPort
