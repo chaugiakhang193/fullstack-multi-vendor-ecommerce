@@ -27,6 +27,11 @@ func NewServer(addr string, logger *slog.Logger, searcher *search.Service) *http
 	searchHandlerWithOTel := otelhttp.NewHandler(http.HandlerFunc(searchHandler(logger, searcher, metrics)), "search-http")
 	mux.Handle("GET /search", searchHandlerWithOTel)
 
+	// Route rieng cho bot: tra field hien thi thay vi chi id. Tach khoi /search chu khong
+	// them mot tham so vao no, vi hai duong co hinh dang tra ve khac han nhau.
+	detailedHandlerWithOTel := otelhttp.NewHandler(http.HandlerFunc(searchDetailedHandler(logger, searcher, metrics)), "search-detailed-http")
+	mux.Handle("GET /search/detailed", detailedHandlerWithOTel)
+
 	return &http.Server{
 		Addr:              addr,
 		Handler:           mux,
@@ -91,6 +96,57 @@ func searchHandler(logger *slog.Logger, searcher *search.Service, metrics *telem
 
 		outcome := "served"
 		if result.Total == 0 {
+			outcome = "empty"
+		}
+		metrics.HTTPRequestsTotal.WithLabelValues("200", outcome).Inc()
+		writeJSON(w, logger, http.StatusOK, result)
+	}
+}
+
+// searchDetailedHandler phuc vu chat-service: tra ve field hien thi cua toi da 5 san pham.
+// Khong nhan page/limit/shop_id/category_ids — bot khong gui chung, va moi tham so nhan them
+// la mot thu nua phai kiem.
+func searchDetailedHandler(logger *slog.Logger, searcher *search.Service, metrics *telemetry.Metrics) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		q := strings.TrimSpace(r.URL.Query().Get("q"))
+		if q == "" {
+			metrics.HTTPRequestsTotal.WithLabelValues("400", "bad_request").Inc()
+			metrics.HTTPRequestDuration.WithLabelValues("/search/detailed").Observe(time.Since(start).Seconds())
+			writeJSON(w, logger, http.StatusBadRequest, map[string]string{"error": "thieu tham so q"})
+			return
+		}
+
+		req := search.Request{
+			Query:    q,
+			MinPrice: numericParam(r.URL.Query().Get("min_price")),
+			MaxPrice: numericParam(r.URL.Query().Get("max_price")),
+		}
+
+		result, err := searcher.SearchDetailed(r.Context(), req)
+		metrics.HTTPRequestDuration.WithLabelValues("/search/detailed").Observe(time.Since(start).Seconds())
+
+		if err != nil {
+			if errors.Is(err, search.ErrEmptyQuery) {
+				metrics.HTTPRequestsTotal.WithLabelValues("400", "bad_request").Inc()
+				writeJSON(w, logger, http.StatusBadRequest, map[string]string{"error": "thieu tham so q"})
+				return
+			}
+			// Giong searchHandler: client cat ket noi la chuyen lanh tinh, tach ra khoi
+			// error-rate de khong lam nhieu bao dong.
+			if errors.Is(err, context.Canceled) {
+				metrics.HTTPRequestsTotal.WithLabelValues("499", "client_canceled").Inc()
+				logger.Info("client huy request search detailed", "q", q)
+			} else {
+				metrics.HTTPRequestsTotal.WithLabelValues("500", "error").Inc()
+				logger.Error("search detailed loi", "err", err)
+			}
+			writeJSON(w, logger, http.StatusInternalServerError, map[string]string{"error": "loi noi bo"})
+			return
+		}
+
+		outcome := "served"
+		if len(result.Items) == 0 {
 			outcome = "empty"
 		}
 		metrics.HTTPRequestsTotal.WithLabelValues("200", outcome).Inc()

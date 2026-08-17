@@ -77,6 +77,58 @@ func (q *Queries) CountSearchProductsTrgm(ctx context.Context, arg CountSearchPr
 	return total, err
 }
 
+const getProductsByIDs = `-- name: GetProductsByIDs :many
+
+SELECT
+    product_id,
+    name,
+    slug,
+    round(price)::bigint AS price
+FROM product_index
+WHERE product_id = ANY($1::uuid[])
+  AND status = 'active'
+  AND is_hidden = false
+`
+
+type GetProductsByIDsRow struct {
+	ProductID string `json:"product_id"`
+	Name      string `json:"name"`
+	Slug      string `json:"slug"`
+	Price     int64  `json:"price"`
+}
+
+// Lay field hien thi cua mot nhom product_id. Dung SAU khi Search() da xep hang xong nen
+// khong co ORDER BY o day — thu tu la viec cua ben goi (xem SearchDetailed trong service.go).
+// Van lap lai dieu kien status/is_hidden du Search() da loc: hai query chay o hai thoi diem
+// khac nhau, san pham co the vua bi an di o giua.
+//
+// round(price)::bigint vi VND khong co don vi le, va vi sqlc.yaml KHONG override numeric:
+// de `price` tran thi sinh ra pgtype.Numeric phai dich tay, ep sang bigint thi ra int64.
+func (q *Queries) GetProductsByIDs(ctx context.Context, productIds []string) ([]GetProductsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getProductsByIDs, productIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductsByIDsRow
+	for rows.Next() {
+		var i GetProductsByIDsRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Name,
+			&i.Slug,
+			&i.Price,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchProducts = `-- name: SearchProducts :many
 
 SELECT
@@ -111,7 +163,7 @@ type SearchProductsRow struct {
 
 // Search product theo full-text: match websearch_to_tsquery + xep hang ts_rank_cd.
 // Tra product_id + rank (Pattern B: monolith hydrate data day du tu DB chinh).
-// status = 'active' (chu THUONG, ProductStatus.ACTIVE) - loai deleted/suspended.
+// status = 'active' (chu THUONG, ProductStatus.ACTIVE) — loai deleted/suspended.
 // Cac filter nullable dung sqlc.narg: NULL = bo qua dieu kien do.
 func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error) {
 	rows, err := q.db.Query(ctx, searchProducts,
@@ -173,7 +225,7 @@ type SearchProductsTrgmRow struct {
 	Rank      float32 `json:"rank"`
 }
 
-// Search fuzzy/partial bang trigram - CHI chay khi FTS rong (recall backstop). Toan tu <%:
+// Search fuzzy/partial bang trigram — CHI chay khi FTS rong (recall backstop). Toan tu <%:
 // q co "tu" khop mo trong name_unaccent, nguong theo pg_trgm.word_similarity_threshold
 // (service SET LOCAL = 0.3). rank = word_similarity de xep gan dung nhat len truoc.
 func (q *Queries) SearchProductsTrgm(ctx context.Context, arg SearchProductsTrgmParams) ([]SearchProductsTrgmRow, error) {

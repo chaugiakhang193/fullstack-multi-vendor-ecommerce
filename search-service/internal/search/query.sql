@@ -58,3 +58,22 @@ WHERE unaccent(@query::text) <% name_unaccent
   AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric)
   AND (sqlc.narg('shop_id')::uuid IS NULL OR shop_id = sqlc.narg('shop_id')::uuid)
   AND (sqlc.narg('category_ids')::uuid[] IS NULL OR category_id = ANY(sqlc.narg('category_ids')::uuid[]));
+
+-- Lay field hien thi cua mot nhom product_id. Dung SAU khi Search() da xep hang xong nen
+-- khong co ORDER BY o day — thu tu la viec cua ben goi (xem SearchDetailed trong service.go).
+-- Van lap lai dieu kien status/is_hidden du Search() da loc: hai query chay o hai thoi diem
+-- khac nhau, san pham co the vua bi an di o giua.
+--
+-- round(price)::bigint vi VND khong co don vi le, va vi sqlc.yaml KHONG override numeric:
+-- de `price` tran thi sinh ra pgtype.Numeric phai dich tay, ep sang bigint thi ra int64.
+
+-- name: GetProductsByIDs :many
+SELECT
+    product_id,
+    name,
+    slug,
+    round(price)::bigint AS price
+FROM product_index
+WHERE product_id = ANY(@product_ids::uuid[])
+  AND status = 'active'
+  AND is_hidden = false;
