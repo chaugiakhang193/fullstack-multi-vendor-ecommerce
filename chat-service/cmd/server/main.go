@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot/gemini"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
@@ -82,6 +84,13 @@ func main() {
 	// goroutine da dung — khong cat ngang request dang chay.
 	defer chatStore.Close()
 
+	// Dung client bot ngay luc khoi dong du chua co endpoint nao goi toi (SSE lam o buoc
+	// sau): cau hinh sai lo ra bay gio, khong phai luc nguoi dung hoi cau dau tien.
+	botClient := buildBotClient(cfg, logger)
+	if botClient != nil {
+		logger.Info("nhanh bot san sang", "model", cfg.GeminiModel)
+	}
+
 	var wg sync.WaitGroup
 
 	addr := ":" + httpPort
@@ -109,6 +118,34 @@ func main() {
 	// Cho goroutine shutdown xong moi thoat de khong cat ngang viec do.
 	wg.Wait()
 	logger.Info("chat-service da tat gon")
+}
+
+// buildBotClient dung chuoi Breaker(Retrier(Gemini)), hoac nil neu nhanh bot dang tat.
+//
+// Thu tu boc co chu y: Breaker nam NGOAI Retrier de hai lan thu cua cung mot request chi
+// tinh la mot lan hong, va de khi breaker dang mo thi tiet kiem duoc luon ca khoang cho
+// giua hai lan thu.
+func buildBotClient(cfg config.Config, logger *slog.Logger) bot.Client {
+	if !cfg.BotReady() {
+		logger.Warn("nhanh bot tat",
+			"botEnabled", cfg.BotEnabled,
+			"hasApiKey", cfg.GeminiAPIKey != "",
+		)
+		return nil
+	}
+
+	geminiClient, err := gemini.New(gemini.Config{
+		APIKey: cfg.GeminiAPIKey,
+		Model:  cfg.GeminiModel,
+	})
+	if err != nil {
+		// Khong exit: bot hong thi phan chat 1-1 van phuc vu duoc, con bat service chet
+		// vi mot tinh nang phu la tu ha ca dich vu.
+		logger.Error("dung Gemini client loi, tat nhanh bot", "err", err)
+		return nil
+	}
+
+	return bot.NewBreaker(bot.NewRetrier(geminiClient))
 }
 
 // newLogger dung slog logger JSON theo level cau hinh.
