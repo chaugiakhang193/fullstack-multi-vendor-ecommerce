@@ -84,11 +84,14 @@ func main() {
 	// goroutine da dung — khong cat ngang request dang chay.
 	defer chatStore.Close()
 
-	// Dung client bot ngay luc khoi dong du chua co endpoint nao goi toi (SSE lam o buoc
-	// sau): cau hinh sai lo ra bay gio, khong phai luc nguoi dung hoi cau dau tien.
-	botClient := buildBotClient(cfg, logger)
-	if botClient != nil {
-		logger.Info("nhanh bot san sang", "model", cfg.GeminiModel)
+	// Dung ca tang dieu phoi ngay luc khoi dong du chua co endpoint nao goi toi (SSE lam o
+	// buoc sau): cau hinh sai lo ra bay gio, khong phai luc nguoi dung hoi cau dau tien.
+	botService := buildBotService(cfg, logger)
+	if botService != nil {
+		logger.Info("nhanh bot san sang",
+			"model", cfg.GeminiModel,
+			"searchServiceURL", cfg.SearchServiceURL,
+		)
 	}
 
 	var wg sync.WaitGroup
@@ -118,6 +121,25 @@ func main() {
 	// Cho goroutine shutdown xong moi thoat de khong cat ngang viec do.
 	wg.Wait()
 	logger.Info("chat-service da tat gon")
+}
+
+// buildBotService dung tang dieu phoi cua bot, hoac nil neu nhanh bot dang tat.
+func buildBotService(cfg config.Config, logger *slog.Logger) *bot.Service {
+	botClient := buildBotClient(cfg, logger)
+	if botClient == nil {
+		return nil
+	}
+
+	var searchTool *bot.SearchTool
+	if cfg.SearchServiceURL == "" {
+		// Khong phai loi: bot van tra loi duoc cau hoi khong can tra cuu san pham. Nhung day
+		// la trang thai de quen tren prod nen phai keu len.
+		logger.Warn("thieu SEARCH_SERVICE_URL, bot tra loi ma khong tra cuu duoc san pham")
+	} else {
+		searchTool = bot.NewSearchTool(cfg.SearchServiceURL, cfg.FrontendURL)
+	}
+
+	return bot.NewService(botClient, searchTool, logger)
 }
 
 // buildBotClient dung chuoi Breaker(Retrier(Gemini)), hoac nil neu nhanh bot dang tat.
