@@ -35,6 +35,14 @@ type Config struct {
 
 	// BotEnabled la kill switch cua nhanh chatbot (CHAT_BOT_ENABLED).
 	BotEnabled bool
+
+	// SearchServiceURL goc URL cua search-service (vd https://search-xxx.onrender.com).
+	// De rong = bot van chay nhung KHONG dang ky tool search_products: no tra loi duoc cau
+	// chao hoi va huong dan, chi khong tra cuu duoc san pham.
+	SearchServiceURL string
+
+	// FrontendURL goc URL cua storefront, dung de dung link san pham gui kem cau tra loi.
+	FrontendURL string
 }
 
 // defaultHTTPPort khac 8090 cua search-service de hai service Go chay song song duoc
@@ -44,6 +52,9 @@ const defaultHTTPPort = "8091"
 // defaultGeminiModel: flash-lite co RPD cao nhat va re nhat trong dong 2.5, du cho hoi
 // dap san pham.
 const defaultGeminiModel = "gemini-2.5-flash-lite"
+
+// defaultFrontendURL tro ve dev server Next.js de chay local khong phai dat them bien.
+const defaultFrontendURL = "http://localhost:3000"
 
 // Load doc cau hinh tu env, ap default cho bien khong bat buoc, va tra loi cho bien
 // bat buoc bi thieu (fail-fast ngay luc khoi dong thay vi chet luc runtime).
@@ -63,6 +74,9 @@ func Load() (Config, error) {
 		// Mac dinh bat: tat la hanh dong co chu y, con quen bat thi den luc demo moi phat
 		// hien. Thieu key van tat duoc nhanh bot (xem BotReady) nen mac dinh nay an toan.
 		BotEnabled: getEnv("CHAT_BOT_ENABLED", "true") == "true",
+
+		SearchServiceURL: getEnv("SEARCH_SERVICE_URL", ""),
+		FrontendURL:      getEnv("FRONTEND_URL", defaultFrontendURL),
 	}
 
 	// JWT_ACCESS_SECRET khong kiem o day: no chi thanh bat buoc khi co code that su doc.
