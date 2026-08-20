@@ -3,6 +3,8 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -14,8 +16,42 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
+// defaultSampleRatio: lay het trace. Giu lam mac dinh vi du an chua cam backend co
+// quota, va mat trace luc dang debug ton kem hon la ton dung luong.
+const defaultSampleRatio = 1.0
+
+// ParseSampleRatio doc ti le sampling tu chuoi env OTEL_TRACES_SAMPLER_ARG.
+// Chuoi rong = khong cau hinh -> lay het. Input hong hoac ngoai [0,1] van tra ve mot
+// ti le dung duoc KEM error: sampling la nut van quota, khong dang lam service chet
+// luc khoi dong; caller ghi log canh bao roi chay tiep.
+func ParseSampleRatio(raw string) (float64, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return defaultSampleRatio, nil
+	}
+
+	ratio, err := strconv.ParseFloat(trimmed, 64)
+	if err != nil {
+		return defaultSampleRatio, fmt.Errorf("OTEL_TRACES_SAMPLER_ARG %q khong phai so, dung %v: %w", raw, defaultSampleRatio, err)
+	}
+	// NaN truot moi phep so sanh nen phai bat rieng, neu khong no chui qua ca hai
+	// nhanh clamp roi vao thang TraceIDRatioBased.
+	if math.IsNaN(ratio) {
+		return defaultSampleRatio, fmt.Errorf("OTEL_TRACES_SAMPLER_ARG %q la NaN, dung %v", raw, defaultSampleRatio)
+	}
+	if ratio < 0 {
+		return 0, fmt.Errorf("OTEL_TRACES_SAMPLER_ARG %q am, clamp ve 0 (tat sampling)", raw)
+	}
+	if ratio > 1 {
+		return 1, fmt.Errorf("OTEL_TRACES_SAMPLER_ARG %q lon hon 1, clamp ve 1 (lay het)", raw)
+	}
+
+	return ratio, nil
+}
+
 // InitTracer khoi tao OpenTelemetry TracerProvider voi OTLP HTTP exporter. Neu enabled=false, tra ve nil.
-func InitTracer(ctx context.Context, enabled bool, serviceName, endpoint string) (*sdktrace.TracerProvider, error) {
+// sampleRatio nen lay tu ParseSampleRatio: InitTracer khong tu kiem tra mien gia tri.
+func InitTracer(ctx context.Context, enabled bool, serviceName, endpoint string, sampleRatio float64) (*sdktrace.TracerProvider, error) {
 	if !enabled {
 		return nil, nil
 	}
@@ -47,9 +83,13 @@ func InitTracer(ctx context.Context, enabled bool, serviceName, endpoint string)
 		return nil, fmt.Errorf("tao resource OTel loi: %w", err)
 	}
 
+	// ParentBased de quyet dinh sampling chi duoc chot MOT LAN o dau chuoi (monolith)
+	// roi cac service sau theo co sampled trong traceparent. Neu moi service tu quay
+	// xac suat rieng thi trace se bi cat khuc, dung cai ma ca chuoi nay sinh ra de xem.
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(sampleRatio))),
 	)
 
 	otel.SetTracerProvider(tp)

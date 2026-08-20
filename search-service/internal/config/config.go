@@ -32,6 +32,10 @@ type Config struct {
 	// OtelExporterEndpoint endpoint nhan OTLP HTTP traces (vd http://localhost:4318/v1/traces).
 	OtelExporterEndpoint string
 
+	// OtelTracesSamplerArg giu NGUYEN VAN chuoi env: viec dien giai (va canh bao khi
+	// nguoi dat go sai) thuoc ve telemetry.ParseSampleRatio, noi co logger de noi ra.
+	OtelTracesSamplerArg string
+
 	// RetentionGCEnabled bat nhanh XOA cua retention GC. Mac dinh false: day la job
 	// dau tien biet DELETE, nen deploy lan dau de tat, nhin gauge vai ngay roi moi bat.
 	// Phan DEM cua job khong bi co nay gac.
@@ -61,6 +65,7 @@ func Load() (Config, error) {
 		OtelEnabled:          os.Getenv("OTEL_ENABLED") == "true",
 		OtelServiceName:      getEnv("OTEL_SERVICE_NAME", "search-service"),
 		OtelExporterEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318/v1/traces"),
+		OtelTracesSamplerArg: getEnv("OTEL_TRACES_SAMPLER_ARG", ""),
 		RetentionGCEnabled:   os.Getenv("SEARCH_RETENTION_GC_ENABLED") == "true",
 	}
 

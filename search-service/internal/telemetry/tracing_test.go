@@ -137,3 +137,62 @@ func TestExtractAMQPContextKhongCoTraceparent(t *testing.T) {
 		})
 	}
 }
+
+// TestParseSampleRatioHopLe: cac gia tri dung phai qua nguyen ven, va chuoi rong
+// (bien chua dat tren Render) phai giu hanh vi cu la lay het trace.
+func TestParseSampleRatioHopLe(t *testing.T) {
+	cases := map[string]struct {
+		raw  string
+		want float64
+	}{
+		"chuoi rong":      {"", 1.0},
+		"chi co khoang":   {"   ", 1.0},
+		"mot phan muoi":   {"0.1", 0.1},
+		"tat han":         {"0", 0},
+		"lay het":         {"1", 1.0},
+		"co khoang trang": {" 0.25 ", 0.25},
+		"dang khoa hoc":   {"1e-2", 0.01},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			got, err := ParseSampleRatio(tc.raw)
+			if err != nil {
+				t.Fatalf("ParseSampleRatio(%q) tra loi bat ngo: %v", tc.raw, err)
+			}
+			if got != tc.want {
+				t.Errorf("ParseSampleRatio(%q) = %v, muon %v", tc.raw, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestParseSampleRatioHong: input hong phai vua bao loi (de main log canh bao) vua tra
+// ve mot ti le dung duoc. Tra ti le vo nghia kem error se lam service chay voi sampler
+// hong neu caller lo bo qua error.
+func TestParseSampleRatioHong(t *testing.T) {
+	cases := map[string]struct {
+		raw  string
+		want float64
+	}{
+		"khong phai so": {"mot nua", 1.0},
+		"dung dau phay": {"0,1", 1.0},
+		"co hau to":     {"10%", 1.0},
+		"NaN":           {"NaN", 1.0},
+		"am":            {"-0.5", 0},
+		"lon hon 1":     {"1.5", 1},
+		"vo cuc":        {"+Inf", 1},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			got, err := ParseSampleRatio(tc.raw)
+			if err == nil {
+				t.Fatalf("ParseSampleRatio(%q) khong bao loi, main se khong co gi de canh bao", tc.raw)
+			}
+			if got != tc.want {
+				t.Errorf("ParseSampleRatio(%q) = %v, muon %v", tc.raw, got, tc.want)
+			}
+		})
+	}
+}

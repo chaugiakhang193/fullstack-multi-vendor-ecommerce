@@ -50,11 +50,15 @@ func main() {
 
 	// Khoi tao Telemetry (Metrics + OpenTelemetry TracerProvider)
 	telemetry.InitMetrics()
-	tp, err := telemetry.InitTracer(ctx, cfg.OtelEnabled, cfg.OtelServiceName, cfg.OtelExporterEndpoint)
+	sampleRatio, err := telemetry.ParseSampleRatio(cfg.OtelTracesSamplerArg)
+	if err != nil {
+		logger.Warn("doc OTEL_TRACES_SAMPLER_ARG loi", "err", err, "dung", sampleRatio)
+	}
+	tp, err := telemetry.InitTracer(ctx, cfg.OtelEnabled, cfg.OtelServiceName, cfg.OtelExporterEndpoint, sampleRatio)
 	if err != nil {
 		logger.Warn("khoi tao OpenTelemetry loi", "err", err)
 	} else if tp != nil {
-		logger.Info("OpenTelemetry SDK khoi tao thanh cong")
+		logger.Info("OpenTelemetry SDK khoi tao thanh cong", "sampleRatio", sampleRatio)
 		defer func() {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
