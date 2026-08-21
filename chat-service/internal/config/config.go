@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 // Config gom toan bo tham so runtime doc tu bien moi truong. Khong dung thu vien
@@ -43,6 +44,20 @@ type Config struct {
 
 	// FrontendURL goc URL cua storefront, dung de dung link san pham gui kem cau tra loi.
 	FrontendURL string
+
+	// BotGuestDailyLimit so cau hoi moi ngay cua khach vang lai, dem theo IP that.
+	BotGuestDailyLimit int32
+
+	// BotUserDailyLimit so cau hoi moi ngay cua mot tai khoan da dang nhap.
+	BotUserDailyLimit int32
+
+	// BotUserHourlyLimit tran theo gio cua mot tai khoan. Tran ngay mot minh khong chan duoc
+	// nguoi dung dot sach 30 luot trong 2 phut roi bo di.
+	BotUserHourlyLimit int32
+
+	// BotGlobalDailyLimit tran cua CA service moi ngay. Day moi la con so cuu quota Gemini:
+	// 100 IP x 5 tin da vuot free tier, nen quota ca nhan mot minh khong du.
+	BotGlobalDailyLimit int32
 }
 
 // defaultHTTPPort khac 8090 cua search-service de hai service Go chay song song duoc
@@ -55,6 +70,15 @@ const defaultGeminiModel = "gemini-2.5-flash-lite"
 
 // defaultFrontendURL tro ve dev server Next.js de chay local khong phai dat them bien.
 const defaultFrontendURL = "http://localhost:3000"
+
+// Han muc mac dinh. Con so du de mot nguoi thu that long, khong du de mot nguoi dot sach
+// quota Gemini cua ca ngay.
+const (
+	defaultBotGuestDailyLimit  = 5
+	defaultBotUserDailyLimit   = 30
+	defaultBotUserHourlyLimit  = 10
+	defaultBotGlobalDailyLimit = 300
+)
 
 // Load doc cau hinh tu env, ap default cho bien khong bat buoc, va tra loi cho bien
 // bat buoc bi thieu (fail-fast ngay luc khoi dong thay vi chet luc runtime).
@@ -85,7 +109,48 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("DATABASE_URL bat buoc nhung dang rong")
 	}
 
+	// Han muc doc sau cung vi day la nhom duy nhat co the fail vi gia tri SAI DINH DANG, khac
+	// cac bien tren chi fail vi THIEU.
+	var err error
+	if cfg.BotGuestDailyLimit, err = positiveIntEnv("BOT_GUEST_DAILY_LIMIT", defaultBotGuestDailyLimit); err != nil {
+		return Config{}, err
+	}
+	if cfg.BotUserDailyLimit, err = positiveIntEnv("BOT_USER_DAILY_LIMIT", defaultBotUserDailyLimit); err != nil {
+		return Config{}, err
+	}
+	if cfg.BotUserHourlyLimit, err = positiveIntEnv("BOT_USER_HOURLY_LIMIT", defaultBotUserHourlyLimit); err != nil {
+		return Config{}, err
+	}
+	if cfg.BotGlobalDailyLimit, err = positiveIntEnv("BOT_DAILY_GLOBAL_LIMIT", defaultBotGlobalDailyLimit); err != nil {
+		return Config{}, err
+	}
+
 	return cfg, nil
+}
+
+// positiveIntEnv doc mot bien han muc. Bien khong dat thi lay mac dinh; dat nhung sai dinh
+// dang thi TRA LOI chu khong lang le roi ve mac dinh.
+//
+// Day la cho co chu y khac voi OTEL_TRACES_SAMPLER_ARG ben search-service (chon fail-open):
+// sampler hong thi mat bieu do, con han muc hong thi nguoi deploy tin nham rang minh da siet
+// trong khi khong siet gi ca.
+func positiveIntEnv(key string, fallback int32) (int32, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+
+	// bitSize 32 de gia tri qua lon bi bat ngay tai day, thay vi tran am sau khi ep kieu.
+	parsed, err := strconv.ParseInt(raw, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("%s=%q khong phai so nguyen 32-bit hop le", key, raw)
+	}
+	// 0 vua doc duoc la "cam han" vua doc duoc la "chua cau hinh"; da co CHAT_BOT_ENABLED lam
+	// cong tac tuong minh nen o day coi la loi.
+	if parsed <= 0 {
+		return 0, fmt.Errorf("%s=%d phai lon hon 0; muon tat han bot thi dung CHAT_BOT_ENABLED=false", key, parsed)
+	}
+	return int32(parsed), nil
 }
 
 // BotReady bao co du dieu kien bat nhanh chatbot khong. Thieu key thi coi nhu tat du co
