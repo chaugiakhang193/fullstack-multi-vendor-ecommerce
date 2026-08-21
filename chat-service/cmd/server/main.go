@@ -15,6 +15,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot/gemini"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 )
@@ -93,6 +94,30 @@ func main() {
 			"searchServiceURL", cfg.SearchServiceURL,
 		)
 	}
+
+	// Dung o day, MOT lan cho ca service, chu khong de handler tu dung theo request: co dang-chay
+	// cua Limiter va bo nho cua ReplyCache chi co nghia khi moi request dung CHUNG mot instance.
+	// Dung theo request thi ca hai van bien dich, van chay, chi la khong con tac dung gi - dang
+	// hong te nhat vi khong co dau hieu nao.
+	//
+	// Hom nay chua ai goi Acquire/Get/Put; ngay mai handler SSE nhan san hai thu nay.
+	botLimiter := quota.NewLimiter(chatStore.Queries(), quota.Limits{
+		GuestDaily:  cfg.BotGuestDailyLimit,
+		UserDaily:   cfg.BotUserDailyLimit,
+		UserHourly:  cfg.BotUserHourlyLimit,
+		GlobalDaily: cfg.BotGlobalDailyLimit,
+	})
+	replyCache := bot.NewReplyCache(bot.DefaultReplyCacheTTL, bot.DefaultReplyCacheMaxEntries)
+	// Bon truong deu la int32 nen gan nham thu tu o tren VAN bien dich va van xanh moi test.
+	// Dong log nay la cho duy nhat lech do lo ra - dung bo no di.
+	activeLimits := botLimiter.Limits()
+	logger.Info("cong han muc bot san sang",
+		"guestDaily", activeLimits.GuestDaily,
+		"userDaily", activeLimits.UserDaily,
+		"userHourly", activeLimits.UserHourly,
+		"globalDaily", activeLimits.GlobalDaily,
+		"replyCacheTTL", replyCache.TTL().String(),
+	)
 
 	var wg sync.WaitGroup
 
