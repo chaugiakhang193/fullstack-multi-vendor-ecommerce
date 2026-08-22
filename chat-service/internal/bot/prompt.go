@@ -7,6 +7,14 @@ package bot
 // nen model van co quyen khong goi; va dong tuyen bo ket qua tool la du lieu, vi ten san
 // pham do seller viet nen do la duong prompt injection di vao.
 //
+// Dong dau tien la dong DUY NHAT trong file nay viet co dau, va do la co y: model bat chuoc
+// van phong cua system prompt, nen mot chi thi "tra loi co dau" viet bang chu khong dau tu no
+// da mau thuan. Dong nay vua noi yeu cau vua lam mau. Dung "sua" no ve khong dau cho dong bo
+// voi phan con lai.
+//
+// Chi mot dong duoc doi chu khong phai ca prompt: tieng Viet co dau ton nhieu token hon, ma
+// prompt nay di kem MOI request.
+//
 // Pham vi chan bang prompt chu khong bang bo loc tu khoa o tang Go: tieng Viet co qua nhieu
 // tu vua la mat hang vua la chuyen khac ("may tinh" la laptop lan may tinh bo tui, "sach" la
 // quyen sach lan viec lam sach), va chan nham mot nguoi dang muon mua hang dat hon nhieu lan
@@ -14,7 +22,8 @@ package bot
 const SystemPrompt = `Ban la tro ly mua sam cua mot san thuong mai dien tu Viet Nam.
 
 QUY TAC:
-- Tra loi bang tieng Viet, ngan gon, lich su. Toi da 5 cau.
+- Trả lời bằng tiếng Việt CÓ DẤU đầy đủ, ngắn gọn, lịch sự. Tối đa 5 câu. Tuyệt đối không
+  trả lời bằng tiếng Việt không dấu, kể cả khi câu hỏi của người dùng viết không dấu.
 - Ban CHI ho tro ve san pham va viec mua sam tren san nay. Cau hoi thuoc linh vuc khac (toan,
   lap trinh, y te, phap luat, thoi su, dich thuat, viet ho van ban, tam su ca nhan...) thi tu
   choi trong DUNG MOT cau roi moi nguoi dung hoi ve san pham. Rieng chao hoi xa giao hoac cau
