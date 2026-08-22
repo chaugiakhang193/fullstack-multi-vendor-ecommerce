@@ -40,6 +40,11 @@ import dynamic from 'next/dynamic';
 const CartDrawer = dynamic(() => import('@/components/cart/CartDrawer'), {
   ssr: false,
 });
+// ssr: false vì widget đọc localStorage (guest key) và zustand ngay khi mount — render trên
+// server chỉ tổ sinh cảnh báo hydration mà không đem lại gì, bong bóng chat không cần SEO.
+const ChatWidget = dynamic(() => import('@/components/chat/chat-widget'), {
+  ssr: false,
+});
 import {
   Dialog,
   DialogContent,
@@ -1068,6 +1073,7 @@ export default function CustomerLayout({
         </DialogContent>
       </Dialog>
       <CartDrawer />
+      <ChatWidget />
     </div>
   );
 }
