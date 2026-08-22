@@ -1,0 +1,74 @@
+// Tên các event SSE mà chat-service nhả ra. Phải khớp nguyên văn với hằng số trong
+// chat-service/internal/httpapi/sse.go — lệch một chữ thì FE im lặng bỏ qua cả stream mà
+// không sinh lỗi nào để lần ra.
+export const CHAT_EVENTS = {
+  META: 'meta',
+  TOOL: 'tool',
+  TEXT: 'text',
+  DONE: 'done',
+  ERROR: 'error',
+} as const;
+
+// Khoá localStorage giữ định danh khách vãng lai.
+export const GUEST_KEY_STORAGE = 'chat_guest_key';
+
+// Đồng bộ với maxQuestionRunes bên chat-service. Chặn ở FE để người dùng thấy ngay, BE vẫn
+// chặn lại lần nữa vì không có lý do gì tin FE.
+export const MAX_QUESTION_LENGTH = 1000;
+
+// Sáu lý do 429 cần sáu câu khác nhau. Gộp chung thành "hết lượt" là làm người dùng bỏ đi
+// trong khi thực ra họ chỉ cần đợi ba giây.
+export const QUOTA_MESSAGES: Record<string, string> = {
+  burst: 'Bạn hỏi nhanh quá. Chờ vài giây rồi hỏi lại nhé.',
+  in_flight:
+    'Câu hỏi trước chưa trả lời xong. Đợi trợ lý trả lời hết rồi hãy hỏi tiếp nhé.',
+  guest_daily:
+    'Bạn đã dùng hết lượt hỏi miễn phí hôm nay. Đăng nhập để có thêm lượt nhé.',
+  user_hourly:
+    'Bạn đã hỏi khá nhiều trong một giờ qua. Thử lại sau ít phút nhé.',
+  user_daily: 'Bạn đã dùng hết lượt hỏi hôm nay. Mai quay lại nhé.',
+  global_daily:
+    'Trợ lý đã hết lượt cho cả ngày hôm nay. Mai bot đi làm lại nhé.',
+};
+
+// Lỗi trả về TRƯỚC khi stream mở — lúc còn đọc được HTTP status và body JSON.
+export const REQUEST_ERROR_MESSAGES: Record<string, string> = {
+  bot_disabled: 'Trợ lý đang tạm nghỉ. Bạn dùng thanh tìm kiếm phía trên nhé.',
+  unauthorized:
+    'Phiên đăng nhập đã hết hạn. Bạn đăng nhập lại rồi hỏi tiếp nhé.',
+  bad_question: `Câu hỏi đang trống hoặc dài quá ${MAX_QUESTION_LENGTH} ký tự.`,
+  quota_unavailable:
+    'Trợ lý đang trục trặc khi kiểm tra lượt. Thử lại sau ít phút nhé.',
+  stream_unavailable: 'Không mở được kết nối tới trợ lý. Bạn thử lại nhé.',
+};
+
+// Lỗi xảy ra GIỮA stream, sau khi đã 200. Header đã gửi rồi nên BE không đổi được status
+// nữa, event: error là đường duy nhất.
+export const STREAM_ERROR_MESSAGES: Record<string, string> = {
+  bot_unavailable:
+    'Trợ lý đang quá tải nên nghỉ vài phút. Bạn thử lại sau nhé.',
+  provider_rate_limited:
+    'Trợ lý đang bận trả lời người khác. Chờ chút rồi hỏi lại nhé.',
+  timeout:
+    'Trợ lý trả lời lâu quá nên mình dừng lại. Bạn thử hỏi ngắn gọn hơn nhé.',
+  blocked: 'Câu hỏi này mình không trả lời được. Bạn thử hỏi về sản phẩm nhé.',
+  upstream: 'Có lỗi khi hỏi trợ lý. Bạn thử lại nhé.',
+};
+
+// Dùng khi BE thêm mã lý do mới mà FE chưa cập nhật. Thà một câu chung chung còn hơn hiện
+// nguyên chuỗi mã tiếng Anh ra cho người mua hàng đọc.
+export const FALLBACK_ERROR_MESSAGE = 'Có lỗi khi hỏi trợ lý. Bạn thử lại nhé.';
+
+export const NETWORK_ERROR_MESSAGE =
+  'Không kết nối được tới trợ lý. Kiểm tra mạng rồi thử lại nhé.';
+
+export const TRUNCATED_NOTICE =
+  'Câu trả lời hơi dài nên bị cắt bớt. Bạn hỏi lại cụ thể hơn nhé.';
+
+// Tên tool → câu tiếng Việt. BE cố ý chỉ gửi tên tool chứ không gửi chữ tiếng Việt, để phần
+// hiển thị thuộc về FE.
+export const TOOL_LABELS: Record<string, string> = {
+  search_products: 'Đang tìm sản phẩm…',
+};
+
+export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
