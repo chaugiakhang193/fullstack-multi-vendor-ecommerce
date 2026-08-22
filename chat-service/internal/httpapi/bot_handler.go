@@ -13,7 +13,9 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/auth"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
+	"github.com/google/uuid"
 )
 
 const (
@@ -24,6 +26,9 @@ const (
 	// maxBodyBytes chan doc body qua lon TRUOC khi parse. Rune 4 byte + JSON escape nen de rong
 	// gap ~8 lan gioi han rune.
 	maxBodyBytes = 8 << 10
+
+	// historyLimit: bot.Ask tu cat con 6 luot, doc du 12 tin (6 cap hoi-dap) la thoa.
+	historyLimit = 12
 )
 
 // BotAsker la phan cua tang dieu phoi ma handler can. Khai o day de test dung ban gia khong can
@@ -40,6 +45,10 @@ type BotDeps struct {
 	Cache    *bot.ReplyCache
 	Verifier *auth.Verifier
 	Logger   *slog.Logger
+
+	// Store de nil duoc: khi do bot van tra loi, chi khong nho gi. Nho vay test cua handler
+	// khong phai dung Postgres.
+	Store *store.Store
 
 	// Enabled la kill switch. False = bot nghi, tra 503 co ly do ro rang.
 	Enabled bool
@@ -77,7 +86,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 			return
 		}
 
-		subject, _, err := resolveSubject(r, deps.Verifier)
+		subject, guestKey, err := resolveSubject(r, deps.Verifier)
 		if err != nil {
 			writeError(w, deps.Logger, http.StatusUnauthorized, errorBody{Reason: "unauthorized"})
 			return
@@ -100,7 +109,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 			defer release()
 
 			metrics.BotReplyCacheTotal.WithLabelValues("hit").Inc()
-			streamCached(w, deps.Logger, cached)
+			streamCached(w, r, deps, subject, guestKey, question, cached)
 			return
 		}
 		metrics.BotReplyCacheTotal.WithLabelValues("miss").Inc()
@@ -119,7 +128,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 			return
 		}
 
-		streamAnswer(w, r, deps, metrics, question, decision)
+		streamAnswer(w, r, deps, metrics, question, decision, subject, guestKey)
 	}
 }
 
@@ -151,6 +160,8 @@ func streamAnswer(
 	metrics *telemetry.Metrics,
 	question string,
 	decision quota.Decision,
+	subject quota.Subject,
+	guestKey string,
 ) {
 	writer, err := newSSEWriter(w)
 	if err != nil {
@@ -165,6 +176,22 @@ func streamAnswer(
 	if err := writer.event(eventMeta, map[string]any{"remaining": decision.Remaining}); err != nil {
 		return
 	}
+
+	// r.Context() bi huy khi client ngat ket noi, nen khong dung no cho cac lenh GHI.
+	//
+	// Cua so dang gia nhat la khi Ask da xong ma ket noi vua dut: model da chay, token da tieu,
+	// chu da hien tren man hinh - roi lenh ghi cau tra loi that bai vi ctx da huy. WithoutCancel
+	// giu nguyen gia tri cua context (trace) nhung bo tin hieu huy, nen lenh ghi van chay.
+	//
+	// No KHONG ngan duoc chuyen "cau hoi khong co cau tra loi": dong tab som thi Ask loi va ham
+	// return truoc lenh ghi thu hai. Luc do lich su con lai dung mot cau hoi - dung su that.
+	writeCtx := context.WithoutCancel(r.Context())
+
+	// Doc lich su TRUOC khi ghi cau hoi vua nhan: doc sau thi cau do lot vao history trong khi
+	// no da di bang tham so question, va model nhan cung mot cau hai lan.
+	conversation := conversationFor(writeCtx, deps, subject, guestKey)
+	history := historyFor(writeCtx, deps, conversation)
+	appendMessage(writeCtx, deps, conversation.ConversationID, conversation.HumanID, question)
 
 	started := time.Now()
 	sink := func(ev bot.Event) error {
@@ -188,9 +215,12 @@ func streamAnswer(
 		}
 	}
 
-	result, err := deps.Asker.Ask(r.Context(), question, nil, sink)
+	result, err := deps.Asker.Ask(r.Context(), question, history, sink)
 	if err != nil {
 		// Khong gui noi dung loi that ra ngoai: no co the chua thong tin cua provider.
+		//
+		// Cau hoi da duoc ghi o tren va khong go ra: nguoi dung da hoi that. Luot sau doc lai
+		// lich su se thay mot cau hoi khong co tra loi, dung nhu da xay ra.
 		deps.Logger.Error("hoi bot loi", "err", err, "latencyMs", time.Since(started).Milliseconds())
 		_ = writer.event(eventError, map[string]string{"reason": botErrorReason(err)})
 		return
@@ -202,6 +232,7 @@ func streamAnswer(
 	if result.Text != "" && !result.Truncated {
 		deps.Cache.Put(question, result.Text)
 	}
+	appendMessage(writeCtx, deps, conversation.ConversationID, conversation.BotID, result.Text)
 
 	// Khong log noi dung cau hoi lan cau tra loi - chi do dai va so token.
 	deps.Logger.Info("tra loi bot xong",
@@ -217,10 +248,23 @@ func streamAnswer(
 }
 
 // streamCached tra ve cau tra loi da co san, van bang SSE de FE chi co MOT duong doc.
-func streamCached(w http.ResponseWriter, logger *slog.Logger, answer string) {
+//
+// Van luu vao DB nhu duong thuong: khong luu thi lich su mat dung nhung cau trung voi cau nguoi
+// khac vua hoi, va bot khong hieu cau ke tiep noi ve cai gi.
+//
+// Khong doc lich su o day vi khong co lan goi model nao de gui lich su len.
+func streamCached(
+	w http.ResponseWriter,
+	r *http.Request,
+	deps BotDeps,
+	subject quota.Subject,
+	guestKey string,
+	question string,
+	answer string,
+) {
 	writer, err := newSSEWriter(w)
 	if err != nil {
-		writeError(w, logger, http.StatusInternalServerError, errorBody{Reason: "stream_unavailable"})
+		writeError(w, deps.Logger, http.StatusInternalServerError, errorBody{Reason: "stream_unavailable"})
 		return
 	}
 
@@ -232,6 +276,14 @@ func streamCached(w http.ResponseWriter, logger *slog.Logger, answer string) {
 		return
 	}
 	_ = writer.event(eventDone, map[string]any{"cached": true})
+
+	// Ghi SAU khi da stream xong, khac duong thuong o tren. O do cau hoi phai duoc ghi truoc vi
+	// model co the chet giua chung; o day cau tra loi da nam san trong tay nen khong co gi hong
+	// giua hai lenh ghi, va ghi sau thi nguoi dung thay chu ngay chu khong cho ba lenh SELECT.
+	writeCtx := context.WithoutCancel(r.Context())
+	conversation := conversationFor(writeCtx, deps, subject, guestKey)
+	appendMessage(writeCtx, deps, conversation.ConversationID, conversation.HumanID, question)
+	appendMessage(writeCtx, deps, conversation.ConversationID, conversation.BotID, answer)
 }
 
 // botErrorReason doi loi noi bo thanh mot ma ngan cho FE. Khong bao gio tra nguyen van loi.
@@ -277,4 +329,73 @@ func readQuestion(w http.ResponseWriter, r *http.Request) (string, error) {
 // writeError tra loi JSON cho cac truong hop tu choi TRUOC khi stream bat dau.
 func writeError(w http.ResponseWriter, logger *slog.Logger, status int, body errorBody) {
 	writeJSON(w, logger, status, body)
+}
+
+// conversationFor tra ve id hoi thoai va participant, hoac bo id rong neu khong luu duoc.
+//
+// Khong lam hong ca cau tra loi khi DB loi: nguoi dung hoi mot cau ma nhan loi chi vi lich su
+// khong ghi duoc la danh doi sai. Ghi log roi tra loi tiep, chap nhan luot nay khong duoc nho.
+func conversationFor(ctx context.Context, deps BotDeps, subject quota.Subject, guestKey string) store.BotConversation {
+	if deps.Store == nil {
+		return store.BotConversation{}
+	}
+
+	owner := store.BotOwner{UserID: subject.UserID, GuestKey: guestKey}
+	// Khach khong gui X-Guest-Key, hoac gui khoa khong hop le: khong co gi de gan hoi thoai vao
+	// nen bo qua phan luu. Van tra loi duoc, chi khong nho.
+	if owner.UserID == "" && owner.GuestKey == "" {
+		return store.BotConversation{}
+	}
+
+	conversation, err := deps.Store.EnsureBotConversation(ctx, owner)
+	if err != nil {
+		deps.Logger.Error("dung hoi thoai bot loi", "err", err)
+		return store.BotConversation{}
+	}
+	return conversation
+}
+
+// historyFor doc lich su va ghep thanh cac luot gui len model.
+func historyFor(ctx context.Context, deps BotDeps, conversation store.BotConversation) []bot.Turn {
+	if deps.Store == nil || conversation.ConversationID == "" {
+		return nil
+	}
+
+	messages, err := deps.Store.RecentBotMessages(ctx, conversation.ConversationID, historyLimit)
+	if err != nil {
+		deps.Logger.Error("doc lich su loi", "err", err)
+		return nil
+	}
+
+	turns := make([]bot.Turn, 0, len(messages))
+	for _, message := range messages {
+		// Phan vai theo participant chu khong theo mot cot role tren message: message khong co
+		// cot do, va participant cua bot la dong duy nhat co role='bot' trong hoi thoai.
+		role := bot.RoleUser
+		if message.SenderParticipantID == conversation.BotID {
+			role = bot.RoleModel
+		}
+		turns = append(turns, bot.Turn{Role: role, Text: message.Body})
+	}
+	return turns
+}
+
+// appendMessage ghi mot tin nhan, nuot loi sau khi log: mat mot dong lich su khong dang lam hong
+// cau tra loi dang stream.
+func appendMessage(ctx context.Context, deps BotDeps, conversationID, senderID, body string) {
+	if deps.Store == nil || conversationID == "" || body == "" {
+		return
+	}
+
+	params := store.AppendMessageParams{
+		// UUIDv7 chu khong phai v4: ListMessagesBefore phan trang keyset theo chinh cot id nay
+		// nen id phai sap theo thoi gian.
+		MessageID:           uuid.Must(uuid.NewV7()).String(),
+		ConversationID:      conversationID,
+		SenderParticipantID: senderID,
+		Body:                body,
+	}
+	if _, err := deps.Store.AppendMessage(ctx, params); err != nil {
+		deps.Logger.Error("ghi tin nhan loi", "err", err)
+	}
 }

@@ -135,6 +135,9 @@ func main() {
 		Cache:    replyCache,
 		Verifier: verifier,
 		Logger:   logger,
+		// Store de nil duoc o tang handler, nen quen dong nay van bien dich va bot van tra loi -
+		// chi la bang message rong.
+		Store: chatStore,
 		// botService nil khi thieu key hoac CHAT_BOT_ENABLED=false. Gan con tro nil vao
 		// interface BotAsker cho ra interface khac nil (cap type+value), nen kiem
 		// deps.Asker != nil o handler khong chan duoc gi - goi method van panic. Co Enabled la
