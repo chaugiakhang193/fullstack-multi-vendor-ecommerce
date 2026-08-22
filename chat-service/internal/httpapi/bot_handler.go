@@ -229,7 +229,7 @@ func streamAnswer(
 	metrics.BotTokensTotal.WithLabelValues("prompt").Add(float64(result.PromptTokens))
 	metrics.BotTokensTotal.WithLabelValues("output").Add(float64(result.OutputTokens))
 
-	if result.Text != "" && !result.Truncated {
+	if cacheable(result, history) {
 		deps.Cache.Put(question, result.Text)
 	}
 	appendMessage(writeCtx, deps, conversation.ConversationID, conversation.BotID, result.Text)
@@ -329,6 +329,26 @@ func readQuestion(w http.ResponseWriter, r *http.Request) (string, error) {
 // writeError tra loi JSON cho cac truong hop tu choi TRUOC khi stream bat dau.
 func writeError(w http.ResponseWriter, logger *slog.Logger, status int, body errorBody) {
 	writeJSON(w, logger, status, body)
+}
+
+// cacheable bao cau tra loi nay co dung chung cho nguoi khac duoc khong.
+//
+// cacheKey chi bam CAU HOI, khong bam lich su. Nen mot cau tra loi sinh ra kem ngu canh se bi
+// phat cho nguoi co ngu canh khac: ai do hoi "con mau xanh thi sao" sau khi xem dien thoai, roi
+// nguoi dang xem giay hoi dung cau do se nhan cau tra loi ve dien thoai.
+//
+// Cau mo dau khong mang ngu canh nen dung chung duoc - va do cung la loai hay bi hoi lap nhat,
+// tuc la phan cache thuc su co gia.
+func cacheable(result bot.Result, history []bot.Turn) bool {
+	if result.Text == "" {
+		// Cache mot cau tra loi rong la nhan ban su co do cho moi nguoi trong suot TTL.
+		return false
+	}
+	if result.Truncated {
+		// Cau bi cat giua chung khong nen phat lai cho nguoi khac.
+		return false
+	}
+	return len(history) == 0
 }
 
 // conversationFor tra ve id hoi thoai va participant, hoac bo id rong neu khong luu duoc.

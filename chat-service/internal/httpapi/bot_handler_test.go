@@ -172,8 +172,8 @@ func TestBotHandlerCacheHitKhongGoiModelVaKhongTonLuot(t *testing.T) {
 	}
 }
 
-// Cache hit khong tinh luot NHUNG van phai qua co dang-chay: tu #448 moi cache hit la mot loat
-// lenh ghi xuong DB, va day la duong duy nhat trong service khong co tran neu bo cua nay.
+// Cache hit khong tinh luot NHUNG van phai qua co dang-chay: moi cache hit van la mot loat lenh
+// ghi xuong DB, va day la duong duy nhat trong service khong co tran neu bo cua nay.
 func TestBotHandlerCacheHitVanQuaCoDangChay(t *testing.T) {
 	deps := testDeps(t, &fakeAsker{chunks: []string{"cau tra loi"}})
 
@@ -241,5 +241,32 @@ func TestBotHandlerLoiModelDiBangEventError(t *testing.T) {
 	body := recorder.Body.String()
 	if !strings.Contains(body, "event: error") || !strings.Contains(body, "bot_unavailable") {
 		t.Errorf("mong doi event: error kem ma bot_unavailable, nhan:\n%s", body)
+	}
+}
+
+func TestCacheableChiChoCauMoDau(t *testing.T) {
+	traLoiTot := bot.Result{Text: "co 5 san pham"}
+	lichSu := []bot.Turn{{Role: bot.RoleUser, Text: "cau hoi truoc do"}}
+
+	cases := []struct {
+		name    string
+		result  bot.Result
+		history []bot.Turn
+		want    bool
+	}{
+		{name: "cau mo dau", result: traLoiTot, history: nil, want: true},
+		// Cau tra loi nay sinh ra kem ngu canh nen khong dung chung duoc: cacheKey khong bam
+		// lich su, ai hoi trung cau se nhan ngu canh cua nguoi khac.
+		{name: "co lich su", result: traLoiTot, history: lichSu, want: false},
+		{name: "tra loi rong", result: bot.Result{}, history: nil, want: false},
+		{name: "bi cat giua chung", result: bot.Result{Text: "co 5", Truncated: true}, history: nil, want: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := cacheable(tc.result, tc.history); got != tc.want {
+				t.Errorf("cacheable = %v, mong doi %v", got, tc.want)
+			}
+		})
 	}
 }
