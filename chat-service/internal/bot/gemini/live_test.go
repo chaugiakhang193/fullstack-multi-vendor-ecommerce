@@ -55,7 +55,7 @@ func TestLiveGenerateStream(t *testing.T) {
 		t.Error("khong nhan duoc manh nao qua sink — stream khong hoat dong")
 	}
 
-	// Kiem tra thuc te quan trong nhat: voi ThinkingBudget 0, so token output phai xap xi
+	// Kiem tra thuc te quan trong nhat: voi ThinkingLevel MINIMAL, so token output phai xap xi
 	// do dai cau tra loi. Neu no lon bat thuong nghia la thinking token dang bi tinh vao.
 	t.Logf("model=%s finish=%s prompt=%d output=%d chunks=%d text=%q",
 		client.model, res.FinishReason, res.PromptTokens, res.OutputTokens, chunks, res.Text)

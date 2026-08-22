@@ -17,6 +17,11 @@ const (
 type ToolCall struct {
 	Name string
 	Args map[string]any
+
+	// Signature la chu ky provider dong kem lan goi tool nay. Tang bot khong doc noi dung,
+	// chi giu de tra lai nguyen ven o vong sau: Gemini 3 tra 400 neu functionCall quay len
+	// ma thieu chu ky. Rong la hop le — provider khac co the khong dung truong nay.
+	Signature []byte
 }
 
 // ToolResult la ket qua tra nguoc cho model o vong sau. Payload bat buoc la map de

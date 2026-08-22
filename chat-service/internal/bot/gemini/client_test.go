@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"google.golang.org/genai"
+
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
 )
 
@@ -88,15 +90,19 @@ func TestGenerateStreamGhepChuVaDayTungManh(t *testing.T) {
 	}
 }
 
-// Test quan trong nhat cua file nay: ThinkingBudget 0 phai that su nam trong request
-// body. Dat sai o day thi khong co loi nao bao — chi la token bay vao phan suy nghi va
-// cau tra loi bi cat ngang.
-func TestGenerateGuiThinkingBudgetBangKhongVaCapOutput(t *testing.T) {
+// Test quan trong nhat cua file nay: muc suy nghi phai that su nam trong request body.
+// Dat sai o day thi khong co loi nao bao — chi la token bay vao phan suy nghi va cau tra
+// loi bi cat ngang.
+//
+// Kiem ca viec KHONG con gui thinkingBudget: dong Gemini 3 tra 400 INVALID_ARGUMENT khi
+// thay truong do, va httptest thi nhan moi thu nen chi test nay chan duoc no quay lai.
+func TestGenerateGuiThinkingLevelToiThieuVaCapOutput(t *testing.T) {
 	var captured struct {
 		GenerationConfig struct {
 			MaxOutputTokens int `json:"maxOutputTokens"`
 			ThinkingConfig  *struct {
-				ThinkingBudget *int `json:"thinkingBudget"`
+				ThinkingLevel  string `json:"thinkingLevel"`
+				ThinkingBudget *int   `json:"thinkingBudget"`
 			} `json:"thinkingConfig"`
 		} `json:"generationConfig"`
 	}
@@ -117,12 +123,11 @@ func TestGenerateGuiThinkingBudgetBangKhongVaCapOutput(t *testing.T) {
 	if captured.GenerationConfig.ThinkingConfig == nil {
 		t.Fatal("request khong co thinkingConfig")
 	}
-	budget := captured.GenerationConfig.ThinkingConfig.ThinkingBudget
-	if budget == nil {
-		t.Fatal("thinkingBudget khong duoc gui (nil) — model se tu chon budget")
+	if got := captured.GenerationConfig.ThinkingConfig.ThinkingLevel; got != string(genai.ThinkingLevelMinimal) {
+		t.Errorf("thinkingLevel = %q, muon %q — de trong la model tu chon muc suy nghi", got, genai.ThinkingLevelMinimal)
 	}
-	if *budget != 0 {
-		t.Errorf("thinkingBudget = %d, muon 0", *budget)
+	if budget := captured.GenerationConfig.ThinkingConfig.ThinkingBudget; budget != nil {
+		t.Errorf("thinkingBudget = %d nhung dong Gemini 3 tu choi truong nay bang 400", *budget)
 	}
 	if got := captured.GenerationConfig.MaxOutputTokens; got != maxOutputTokens {
 		t.Errorf("maxOutputTokens = %d, muon %d", got, maxOutputTokens)
@@ -379,6 +384,72 @@ func TestGenerateGuiLichSuCoToolCallVaToolResult(t *testing.T) {
 	}
 	if captured.Contents[2].Role != "user" || len(captured.Contents[2].Parts[0].FunctionResp) == 0 {
 		t.Errorf("luot 3 phai la functionResponse cua user, nhan %+v", captured.Contents[2])
+	}
+}
+
+// Chu ky phai di tron vong: doc ra tu response cua vong 1, gui lai o lich su vong 2.
+// Ca hai dau deu khong co test nao khac cham toi, ma httptest thi nhan moi request nen
+// mat chu ky se khong lam do bat ky test nao khac — chi Gemini that tra 400.
+func TestGenerateDocDuocThoughtSignatureCuaToolCall(t *testing.T) {
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, sseChunk(`{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"search_products","args":{"query":"dien thoai"}},"thoughtSignature":"Y2h1LWt5LWdpYQ=="}]},"finishReason":"STOP"}]}`))
+	})
+
+	req := bot.Request{History: []bot.Turn{{Role: bot.RoleUser, Text: "tim dien thoai"}}, Stream: true}
+	res, err := client.Generate(context.Background(), req, nil)
+	if err != nil {
+		t.Fatalf("Generate loi: %v", err)
+	}
+
+	if len(res.ToolCalls) != 1 {
+		t.Fatalf("so tool call = %d, muon 1", len(res.ToolCalls))
+	}
+	if got := string(res.ToolCalls[0].Signature); got != "chu-ky-gia" {
+		t.Errorf("Signature = %q, muon %q", got, "chu-ky-gia")
+	}
+}
+
+func TestGenerateGuiLaiThoughtSignatureOLichSu(t *testing.T) {
+	var captured struct {
+		Contents []struct {
+			Parts []struct {
+				ThoughtSignature []byte `json:"thoughtSignature"`
+			} `json:"parts"`
+		} `json:"contents"`
+	}
+
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &captured); err != nil {
+			t.Errorf("doc request body loi: %v", err)
+		}
+		_, _ = io.WriteString(w, textChunk("xong"))
+	})
+
+	req := bot.Request{
+		History: []bot.Turn{
+			{Role: bot.RoleUser, Text: "co dien thoai nao khong"},
+			{Role: bot.RoleModel, ToolCall: &bot.ToolCall{
+				Name:      "search_products",
+				Args:      map[string]any{"query": "dien thoai"},
+				Signature: []byte("chu-ky-gia"),
+			}},
+			{Role: bot.RoleUser, ToolResult: &bot.ToolResult{
+				Name:    "search_products",
+				Payload: map[string]any{"items": []any{}},
+			}},
+		},
+		Stream: true,
+	}
+	if _, err := client.Generate(context.Background(), req, nil); err != nil {
+		t.Fatalf("Generate loi: %v", err)
+	}
+
+	if len(captured.Contents) != 3 {
+		t.Fatalf("so content = %d, muon 3", len(captured.Contents))
+	}
+	if got := string(captured.Contents[1].Parts[0].ThoughtSignature); got != "chu-ky-gia" {
+		t.Errorf("thoughtSignature gui len = %q, muon %q", got, "chu-ky-gia")
 	}
 }
 

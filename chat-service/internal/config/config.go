@@ -75,9 +75,9 @@ type Config struct {
 // tren cung mot may local ma khong tranh cong.
 const defaultHTTPPort = "8091"
 
-// defaultGeminiModel: flash-lite co RPD cao nhat va re nhat trong dong 2.5, du cho hoi
-// dap san pham.
-const defaultGeminiModel = "gemini-2.5-flash-lite"
+// defaultGeminiModel: flash-lite la ban re nhat va co RPD cao nhat trong dong, du cho hoi
+// dap san pham. Dong 2.5 da khoa voi key tao moi nen phai la 3.5 — xem gemini.DefaultModel.
+const defaultGeminiModel = "gemini-3.5-flash-lite"
 
 // defaultFrontendURL tro ve dev server Next.js de chay local khong phai dat them bien.
 const defaultFrontendURL = "http://localhost:3000"

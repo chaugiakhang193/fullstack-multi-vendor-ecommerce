@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	// DefaultModel dung khi GEMINI_MODEL de trong.
-	DefaultModel = "gemini-2.5-flash-lite"
+	// DefaultModel dung khi GEMINI_MODEL de trong. Dong 2.5 khong con mo cho key tao moi
+	// (goi that tra 404 NOT_FOUND, ke ca gemini-2.5-flash), nen mac dinh phai o dong 3.
+	DefaultModel = "gemini-3.5-flash-lite"
 
 	// maxOutputTokens 512 ~ 350 chu tieng Viet, du cho 5 goi y san pham. Day la nut van
 	// chi phi chinh: moi token sinh ra deu tinh tien.
@@ -39,7 +40,7 @@ type Config struct {
 	Model  string
 
 	// BaseURL de trong o moi truong that. Test tro no vao httptest.Server de kiem duoc
-	// phan de sai nhat — request body co dung ThinkingBudget 0 khong, 429 co map dung
+	// phan de sai nhat — request body co dung ThinkingLevel MINIMAL khong, 429 co map dung
 	// khong — ma khong ton mot lan goi API that nao.
 	BaseURL string
 }
@@ -177,14 +178,20 @@ func (a *accumulator) consume(resp *genai.GenerateContentResponse, sink bot.Sink
 			continue
 		}
 
-		// Bo phan "suy nghi" cua model. Voi ThinkingBudget 0 thi khong nen co, nhung neu
+		// Bo phan "suy nghi" cua model. Voi ThinkingLevel MINIMAL thi it khi co, nhung neu
 		// co thi day la doc thoai noi tam — day ra man hinh nguoi dung la ro ri thang.
 		if part.Thought {
 			continue
 		}
 
 		if part.FunctionCall != nil {
-			call := bot.ToolCall{Name: part.FunctionCall.Name, Args: part.FunctionCall.Args}
+			// ThoughtSignature phai theo lan goi nay den luc gui functionResponse — xem
+			// ghi chu o toPart.
+			call := bot.ToolCall{
+				Name:      part.FunctionCall.Name,
+				Args:      part.FunctionCall.Args,
+				Signature: part.ThoughtSignature,
+			}
 			a.toolCalls = append(a.toolCalls, call)
 			if sink != nil {
 				if err := sink(bot.Event{Kind: bot.EventToolCall, ToolCall: &call}); err != nil {
@@ -240,11 +247,15 @@ func buildConfig(req bot.Request) *genai.GenerateContentConfig {
 	config := &genai.GenerateContentConfig{
 		MaxOutputTokens: maxOutputTokens,
 
-		// ThinkingBudget PHAI dat tuong minh bang 0. Dong Gemini 2.5 tinh thinking token
-		// VAO output: de nil la model tu chon budget, token bay het vao phan suy nghi
-		// khong ai doc duoc, roi cau tra loi bi cat ngang vi cham MaxOutputTokens. Hong
-		// kieu nay im lang — log chi thay cau tra loi cut, khong thay bao loi nao.
-		ThinkingConfig: &genai.ThinkingConfig{ThinkingBudget: genai.Ptr[int32](0)},
+		// Muc suy nghi PHAI dat tuong minh. Thinking token tinh VAO output: de nil la model
+		// tu chon, token bay het vao phan suy nghi khong ai doc duoc, roi cau tra loi bi cat
+		// ngang vi cham MaxOutputTokens. Hong kieu nay im lang — log chi thay cau tra loi
+		// cut, khong thay bao loi nao.
+		//
+		// Dong Gemini 3 doi nut nay tu ThinkingBudget (so token) sang ThinkingLevel (nac):
+		// gui ThinkingBudget len tra 400 INVALID_ARGUMENT. MINIMAL la nac thap nhat duoc
+		// chap nhan; khong con muc tat han.
+		ThinkingConfig: &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelMinimal},
 	}
 
 	if req.SystemInstruction != "" {
@@ -297,10 +308,15 @@ func toContents(history []bot.Turn) []*genai.Content {
 func toPart(turn bot.Turn) *genai.Part {
 	switch {
 	case turn.ToolCall != nil:
-		return &genai.Part{FunctionCall: &genai.FunctionCall{
-			Name: turn.ToolCall.Name,
-			Args: turn.ToolCall.Args,
-		}}
+		// ThoughtSignature quay len nguyen ven cung functionCall da ky no. Thieu thi Gemini 3
+		// tra 400 INVALID_ARGUMENT cho ca request, nen vong hoi tool khong chay duoc nua.
+		return &genai.Part{
+			FunctionCall: &genai.FunctionCall{
+				Name: turn.ToolCall.Name,
+				Args: turn.ToolCall.Args,
+			},
+			ThoughtSignature: turn.ToolCall.Signature,
+		}
 	case turn.ToolResult != nil:
 		return &genai.Part{FunctionResponse: &genai.FunctionResponse{
 			Name:     turn.ToolResult.Name,
