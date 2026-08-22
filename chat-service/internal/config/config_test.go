@@ -58,6 +58,7 @@ func TestPositiveIntEnv(t *testing.T) {
 
 func TestLoadLayHanMucMacDinh(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/chat?sslmode=disable")
+	t.Setenv("JWT_ACCESS_SECRET", "secret-test")
 
 	cfg, err := Load()
 	if err != nil {
@@ -91,6 +92,7 @@ func TestLoadTuChoiKhiHanMucHong(t *testing.T) {
 	for _, key := range keys {
 		t.Run(key, func(t *testing.T) {
 			t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/chat?sslmode=disable")
+			t.Setenv("JWT_ACCESS_SECRET", "secret-test")
 			t.Setenv(key, "3OO")
 
 			_, err := Load()

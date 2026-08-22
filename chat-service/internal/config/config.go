@@ -45,6 +45,10 @@ type Config struct {
 	// FrontendURL goc URL cua storefront, dung de dung link san pham gui kem cau tra loi.
 	FrontendURL string
 
+	// JWTAccessSecret secret HS256 DUNG CHUNG voi monolith de verify access token.
+	// Lech mot ky tu voi monolith thi moi token deu bi tu choi trong khi token hoan toan dung.
+	JWTAccessSecret string
+
 	// BotGuestDailyLimit so cau hoi moi ngay cua khach vang lai, dem theo IP that.
 	BotGuestDailyLimit int32
 
@@ -101,12 +105,17 @@ func Load() (Config, error) {
 
 		SearchServiceURL: getEnv("SEARCH_SERVICE_URL", ""),
 		FrontendURL:      getEnv("FRONTEND_URL", defaultFrontendURL),
+		JWTAccessSecret:  getEnv("JWT_ACCESS_SECRET", ""),
 	}
 
-	// JWT_ACCESS_SECRET khong kiem o day: no chi thanh bat buoc khi co code that su doc.
-	// Bat buoc mot bien chua ai dung chi lam nguoi deploy phai bia gia tri cho qua.
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL bat buoc nhung dang rong")
+	}
+	// Bien nay duoc doc that khi verify token o /chat/bot. Thieu ma van chay thi moi user dang
+	// nhap am tham bi coi la khach vang lai: tut tu 30 luot xuong 5 luot/ngay theo IP, khong co
+	// dau hieu nao ngoai viec nguoi dung keu.
+	if cfg.JWTAccessSecret == "" {
+		return Config{}, fmt.Errorf("JWT_ACCESS_SECRET bat buoc nhung dang rong")
 	}
 
 	// Han muc doc sau cung vi day la nhom duy nhat co the fail vi gia tri SAI DINH DANG, khac
