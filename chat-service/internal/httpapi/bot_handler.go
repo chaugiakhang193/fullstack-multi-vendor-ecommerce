@@ -46,6 +46,10 @@ type BotDeps struct {
 	Verifier *auth.Verifier
 	Logger   *slog.Logger
 
+	// Burst la tran theo toc do, dat truoc ca cache. Bat buoc khac nil: de nil thi cua nay bien
+	// mat lang le va khong test nao bat duoc.
+	Burst *quota.Burst
+
 	// Store de nil duoc: khi do bot van tra loi, chi khong nho gi. Nho vay test cua handler
 	// khong phai dung Postgres.
 	Store *store.Store
@@ -70,7 +74,7 @@ type errorBody struct {
 //
 // Thu tu cac cua:
 //
-//	kill switch -> auth -> doc body -> cache (+ Reserve) -> quota -> model
+//	kill switch -> auth -> BURST -> doc body -> cache (+ Reserve) -> quota -> model
 //
 // Cache dung truoc quota vi quota ton tai de bao ve han muc Gemini, ma cache hit thi khong goi
 // Gemini. Dat sau quota thi mot cau hoi pho bien van tru luot cua nguoi dung du no khong ton gi.
@@ -89,6 +93,14 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 		subject, guestKey, err := resolveSubject(r, deps.Verifier)
 		if err != nil {
 			writeError(w, deps.Logger, http.StatusUnauthorized, errorBody{Reason: "unauthorized"})
+			return
+		}
+
+		// Tran toc do dat TRUOC khi doc body va truoc ca cache: request bi chan o day khong parse
+		// mot byte nao va khong cham DB mot lenh nao. Dat sau auth vi no dem theo subject, ma
+		// subject chi biet duoc sau khi verify token.
+		if decision := deps.Burst.Allow(subject); !decision.Allowed {
+			writeQuotaRejected(w, deps.Logger, metrics, decision)
 			return
 		}
 

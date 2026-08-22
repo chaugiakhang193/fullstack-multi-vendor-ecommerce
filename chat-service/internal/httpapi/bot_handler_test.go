@@ -64,9 +64,12 @@ func testDeps(t *testing.T, asker BotAsker) BotDeps {
 	}
 	limits := quota.Limits{GuestDaily: 2, UserDaily: 5, UserHourly: 5, GlobalDaily: 10}
 	return BotDeps{
-		Asker:    asker,
-		Limiter:  quota.NewLimiter(&fakeUsageCounter{}, limits),
-		Cache:    bot.NewReplyCache(bot.DefaultReplyCacheTTL, bot.DefaultReplyCacheMaxEntries),
+		Asker:   asker,
+		Limiter: quota.NewLimiter(&fakeUsageCounter{}, limits),
+		Cache:   bot.NewReplyCache(bot.DefaultReplyCacheTTL, bot.DefaultReplyCacheMaxEntries),
+		// Suc chua rong de cac test khac khong phai nghi ve cua nay. Test cua chinh Burst tu dat
+		// lai deps.Burst bang mot gao be.
+		Burst:    quota.NewBurst(100, time.Second),
 		Verifier: verifier,
 		Logger:   slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		Enabled:  true,
@@ -268,5 +271,58 @@ func TestCacheableChiChoCauMoDau(t *testing.T) {
 				t.Errorf("cacheable = %v, mong doi %v", got, tc.want)
 			}
 		})
+	}
+}
+
+// Day la nhanh ma Reserve mot minh khong chan duoc: cac request khong chong len nhau.
+func TestBotHandlerBurstChanVongLapTuanTu(t *testing.T) {
+	asker := &fakeAsker{chunks: []string{"cau tra loi"}}
+	deps := testDeps(t, asker)
+	// Gao 1 token, nap lai mot tieng moi duoc mot: request thu hai chac chan bi chan.
+	deps.Burst = quota.NewBurst(1, time.Hour)
+
+	first := httptest.NewRecorder()
+	botHandler(deps)(first, askRequestFor("cau hoi mot"))
+	if first.Code != http.StatusOK {
+		t.Fatalf("cau dau: status = %d, mong doi 200", first.Code)
+	}
+
+	second := httptest.NewRecorder()
+	botHandler(deps)(second, askRequestFor("cau hoi hai"))
+
+	if second.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, mong doi 429", second.Code)
+	}
+	var body errorBody
+	if err := json.Unmarshal(second.Body.Bytes(), &body); err != nil {
+		t.Fatalf("doc body loi: %v", err)
+	}
+	if body.Reason != string(quota.ReasonBurst) {
+		t.Errorf("reason = %q, mong doi %q", body.Reason, quota.ReasonBurst)
+	}
+	if asker.calls != 1 {
+		t.Errorf("goi model %d lan, mong doi 1 - request bi chan van di toi model", asker.calls)
+	}
+}
+
+// Burst phai dung TRUOC cache: dung sau thi mot vong lap bam lai cau da co trong cache van di
+// thang xuong DB, dung cai lo ma no sinh ra de va.
+func TestBotHandlerBurstChanCaNhanhCacheHit(t *testing.T) {
+	deps := testDeps(t, &fakeAsker{chunks: []string{"cau tra loi"}})
+	// Dat gao 1 token TRUOC khi nap cache: lan nap tieu dung token do, nen lan hoi lai - lan se
+	// trung cache - khong con token nao.
+	deps.Burst = quota.NewBurst(1, time.Hour)
+
+	warmup := httptest.NewRecorder()
+	botHandler(deps)(warmup, askRequestFor("cau hoi giong nhau"))
+	if warmup.Code != http.StatusOK {
+		t.Fatalf("nap cache that bai: status = %d", warmup.Code)
+	}
+
+	blocked := httptest.NewRecorder()
+	botHandler(deps)(blocked, askRequestFor("cau hoi giong nhau"))
+
+	if blocked.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, mong doi 429 - Burst dang dung SAU cache", blocked.Code)
 	}
 }

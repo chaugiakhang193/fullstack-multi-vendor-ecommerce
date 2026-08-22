@@ -109,6 +109,10 @@ func main() {
 		GlobalDaily: cfg.BotGlobalDailyLimit,
 	})
 	replyCache := bot.NewReplyCache(bot.DefaultReplyCacheTTL, bot.DefaultReplyCacheMaxEntries)
+	botBurst := quota.NewBurst(
+		int(cfg.BotBurstCapacity),
+		time.Duration(cfg.BotBurstRefillSeconds)*time.Second,
+	)
 
 	// Dung verifier o day de secret hong lam service chet luc khoi dong, khong phai luc mot
 	// nguoi dang nhap hoi cau dau tien.
@@ -127,6 +131,8 @@ func main() {
 		"userHourly", activeLimits.UserHourly,
 		"globalDaily", activeLimits.GlobalDaily,
 		"replyCacheTTL", replyCache.TTL().String(),
+		"burstCapacity", cfg.BotBurstCapacity,
+		"burstRefillSeconds", cfg.BotBurstRefillSeconds,
 	)
 
 	botDeps := httpapi.BotDeps{
@@ -135,6 +141,7 @@ func main() {
 		Cache:    replyCache,
 		Verifier: verifier,
 		Logger:   logger,
+		Burst:    botBurst,
 		// Store de nil duoc o tang handler, nen quen dong nay van bien dich va bot van tra loi -
 		// chi la bang message rong.
 		Store: chatStore,

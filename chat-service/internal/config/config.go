@@ -62,6 +62,13 @@ type Config struct {
 	// BotGlobalDailyLimit tran cua CA service moi ngay. Day moi la con so cuu quota Gemini:
 	// 100 IP x 5 tin da vuot free tier, nen quota ca nhan mot minh khong du.
 	BotGlobalDailyLimit int32
+
+	// BotBurstCapacity so cau duoc bam lien tuc truoc khi phai cho. Day la tran theo TOC DO,
+	// giu trong RAM va dat truoc ca cache, nen request bi no chan khong cham DB lenh nao.
+	BotBurstCapacity int32
+
+	// BotBurstRefillSeconds so giay de hoi lai mot luot burst.
+	BotBurstRefillSeconds int32
 }
 
 // defaultHTTPPort khac 8090 cua search-service de hai service Go chay song song duoc
@@ -82,6 +89,9 @@ const (
 	defaultBotUserDailyLimit   = 30
 	defaultBotUserHourlyLimit  = 10
 	defaultBotGlobalDailyLimit = 300
+
+	defaultBotBurstCapacity      = 10
+	defaultBotBurstRefillSeconds = 6
 )
 
 // Load doc cau hinh tu env, ap default cho bien khong bat buoc, va tra loi cho bien
@@ -131,6 +141,12 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.BotGlobalDailyLimit, err = positiveIntEnv("BOT_DAILY_GLOBAL_LIMIT", defaultBotGlobalDailyLimit); err != nil {
+		return Config{}, err
+	}
+	if cfg.BotBurstCapacity, err = positiveIntEnv("BOT_BURST_CAPACITY", defaultBotBurstCapacity); err != nil {
+		return Config{}, err
+	}
+	if cfg.BotBurstRefillSeconds, err = positiveIntEnv("BOT_BURST_REFILL_SECONDS", defaultBotBurstRefillSeconds); err != nil {
 		return Config{}, err
 	}
 

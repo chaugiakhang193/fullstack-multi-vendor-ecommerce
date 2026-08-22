@@ -73,8 +73,11 @@ type Limits struct {
 type Reason string
 
 const (
-	ReasonOK          Reason = "ok"
-	ReasonInFlight    Reason = "in_flight"
+	ReasonOK       Reason = "ok"
+	ReasonInFlight Reason = "in_flight"
+	// ReasonBurst: bam qua nhanh. Khac ReasonInFlight o cho in_flight noi "cau truoc chua xong",
+	// con burst noi "cau truoc xong roi nhung ban dang bam nhanh hon nguoi that".
+	ReasonBurst       Reason = "burst"
 	ReasonGuestDaily  Reason = "guest_daily"
 	ReasonUserHourly  Reason = "user_hourly"
 	ReasonUserDaily   Reason = "user_daily"

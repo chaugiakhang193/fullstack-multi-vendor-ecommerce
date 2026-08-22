@@ -87,6 +87,8 @@ func TestLoadTuChoiKhiHanMucHong(t *testing.T) {
 		"BOT_USER_DAILY_LIMIT",
 		"BOT_USER_HOURLY_LIMIT",
 		"BOT_DAILY_GLOBAL_LIMIT",
+		"BOT_BURST_CAPACITY",
+		"BOT_BURST_REFILL_SECONDS",
 	}
 
 	for _, key := range keys {
