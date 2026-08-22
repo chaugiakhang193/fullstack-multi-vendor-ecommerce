@@ -15,6 +15,7 @@ node_modules/
 *.md
 !/README.md
 !/docs/observability.md
+!/docs/chat-architecture.md
 !/notification-service/README.md
 
 # Local env (docker-compose DB overrides) — chứa secret, không commit
