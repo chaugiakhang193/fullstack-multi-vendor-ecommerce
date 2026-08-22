@@ -10,11 +10,22 @@ import (
 )
 
 // NewServer dung *http.Server voi route da gan san.
-func NewServer(addr string, logger *slog.Logger) *http.Server {
+//
+// botDeps truyen theo gia tri: cac truong deu la con tro nen ban sao van dung chung state, chi
+// khac la khong ai sua duoc cau hinh cua server sau khi da khoi dong.
+func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps BotDeps) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", healthHandler(logger))
 	mux.Handle("GET /metrics", telemetry.MetricsHandler())
+
+	// CORS chi boc /chat/bot: /health va /metrics khong bao gio duoc goi tu trinh duyet, va
+	// boc chung lai chi lam cron keep-warm co them mot cua de vuong.
+	botRoute := corsAllowlist(frontendURL, botHandler(botDeps))
+	mux.Handle("POST /chat/bot", botRoute)
+	// Preflight dang ky rieng vi ServeMux phan tuyen theo ca method: route "POST /chat/bot"
+	// khong nhan OPTIONS, va trinh duyet se nhan 405 truoc khi kip gui request that.
+	mux.Handle("OPTIONS /chat/bot", botRoute)
 
 	return &http.Server{
 		Addr:    addr,

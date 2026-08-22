@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/auth"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot/gemini"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
@@ -108,6 +109,15 @@ func main() {
 		GlobalDaily: cfg.BotGlobalDailyLimit,
 	})
 	replyCache := bot.NewReplyCache(bot.DefaultReplyCacheTTL, bot.DefaultReplyCacheMaxEntries)
+
+	// Dung verifier o day de secret hong lam service chet luc khoi dong, khong phai luc mot
+	// nguoi dang nhap hoi cau dau tien.
+	verifier, err := auth.NewVerifier(cfg.JWTAccessSecret)
+	if err != nil {
+		logger.Error("dung verifier JWT loi", "err", err)
+		os.Exit(1)
+	}
+
 	// Bon truong deu la int32 nen gan nham thu tu o tren VAN bien dich va van xanh moi test.
 	// Dong log nay la cho duy nhat lech do lo ra - dung bo no di.
 	activeLimits := botLimiter.Limits()
@@ -119,10 +129,23 @@ func main() {
 		"replyCacheTTL", replyCache.TTL().String(),
 	)
 
+	botDeps := httpapi.BotDeps{
+		Asker:    botService,
+		Limiter:  botLimiter,
+		Cache:    replyCache,
+		Verifier: verifier,
+		Logger:   logger,
+		// botService nil khi thieu key hoac CHAT_BOT_ENABLED=false. Gan con tro nil vao
+		// interface BotAsker cho ra interface khac nil (cap type+value), nen kiem
+		// deps.Asker != nil o handler khong chan duoc gi - goi method van panic. Co Enabled la
+		// thu chan that va phai duoc kiem truoc moi lan cham deps.Asker.
+		Enabled: botService != nil,
+	}
+
 	var wg sync.WaitGroup
 
 	addr := ":" + httpPort
-	srv := httpapi.NewServer(addr, logger)
+	srv := httpapi.NewServer(addr, logger, cfg.FrontendURL, botDeps)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

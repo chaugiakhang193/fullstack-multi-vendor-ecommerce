@@ -277,3 +277,54 @@ func TestThongBaoLoiKhongChuaIP(t *testing.T) {
 		t.Errorf("thong bao loi chua IP that: %q", err.Error())
 	}
 }
+
+func TestReserveKhongTangBoDemNao(t *testing.T) {
+	counter := newFakeCounter()
+	limiter := newTestLimiter(counter, time.Now())
+	subject := Subject{IP: "14.169.17.140"}
+
+	// GuestDaily = 3, nhung goi Reserve 10 lan.
+	for i := 0; i < 10; i++ {
+		release, decision := limiter.Reserve(subject)
+		if !decision.Allowed {
+			t.Fatalf("lan %d bi tu choi: %s", i+1, decision.Reason)
+		}
+		release()
+	}
+
+	if got := counter.count(subject.dayKey()); got != 0 {
+		t.Errorf("bo dem ngay = %d, mong doi 0 - cache hit dang bi tinh luot", got)
+	}
+	if got := counter.count(globalKey); got != 0 {
+		t.Errorf("bo dem global = %d, mong doi 0", got)
+	}
+}
+
+func TestReserveChanKhiChuaNhaCo(t *testing.T) {
+	limiter := newTestLimiter(newFakeCounter(), time.Now())
+	subject := Subject{IP: "14.169.17.140"}
+
+	release, first := limiter.Reserve(subject)
+	if !first.Allowed {
+		t.Fatalf("lan dau bi tu choi: %s", first.Reason)
+	}
+
+	// Chua goi release: mo phong tab thu hai bam trong luc tab dau dang chay.
+	_, second := limiter.Reserve(subject)
+	if second.Allowed {
+		t.Fatal("lan hai PHAI bi chan - khong co gi chan thi mot vong lap ghi DB khong gioi han")
+	}
+	if second.Reason != ReasonInFlight {
+		t.Errorf("reason = %q, mong doi %q", second.Reason, ReasonInFlight)
+	}
+	if second.RetryAfter <= 0 {
+		t.Error("bi chan thi phai goi y khi nao thu lai duoc")
+	}
+
+	release()
+
+	// Nha co roi thi nguoi do hoi tiep duoc ngay: co dang-chay khong phai la mot hinh phat.
+	if _, third := limiter.Reserve(subject); !third.Allowed {
+		t.Error("nha co roi ma van bi chan - co dang-chay dang khong duoc xoa")
+	}
+}

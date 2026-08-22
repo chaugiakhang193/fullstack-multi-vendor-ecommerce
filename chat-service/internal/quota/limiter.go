@@ -78,6 +78,26 @@ func (l *Limiter) Acquire(ctx context.Context, subj Subject) (Release, Decision,
 	return release, decision, nil
 }
 
+// Reserve gianh co dang-chay ma khong tang bo dem nao.
+//
+// Dung cho nhanh tra loi tu cache: cache hit khong goi Gemini nen khong tinh luot, nhung van
+// ghi hoi thoai xuong DB nen can mot cua chan vong lap bam lai cung mot cau hoi.
+//
+// Tra ve Decision giong Acquire chu khong phai bool de hai duong tu choi trong handler dung
+// chung mot khoi ghi loi, va de RetryAfter khong phai go tay.
+//
+// Chi chan duoc cac request chong nhau: mot vong lap tuan tu van di qua het vi moi request da
+// nha co truoc khi request sau vao.
+func (l *Limiter) Reserve(subj Subject) (Release, Decision) {
+	release, ok := l.enter(subj.dayKey())
+	if !ok {
+		return noopRelease, deny(ReasonInFlight, inFlightRetryAfter)
+	}
+	// Remaining de 0: khong dem thi khong biet con bao nhieu. Nhanh cache gui event meta
+	// {"cached":true} chu khong gui remaining.
+	return release, Decision{Allowed: true, Reason: ReasonOK}
+}
+
 // charge tang cac bo dem theo dung thu tu va tra ve quyet dinh.
 //
 // THU TU LA MOT QUYET DINH BAO MAT chu khong phai sap xep tuy y:
