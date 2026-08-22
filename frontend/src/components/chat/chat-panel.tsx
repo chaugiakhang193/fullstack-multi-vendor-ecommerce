@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,14 @@ const SUGGESTIONS = [
   'Gợi ý tai nghe để chạy bộ',
   'Laptop nào hợp cho sinh viên?',
 ];
+
+// Coi là "đang ở đáy" khi còn cách đáy dưới ngần này pixel. Nới rộng hơn 0 vì cuộn bằng con
+// lăn hiếm khi dừng đúng đáy tuyệt đối.
+const NEAR_BOTTOM_PX = 80;
+
+// Chỉ hiện bộ đếm khi sắp chạm trần, không hiện suốt: câu hỏi mua sắm thường vài chục ký tự,
+// nhắc giới hạn 1000 từ đầu chỉ làm rối.
+const COUNTER_THRESHOLD = 100;
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -37,22 +45,65 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Cuộn xuống đáy mỗi khi có chữ mới. Phụ thuộc cả toolLabel và notice vì hai dòng đó cũng
-  // làm danh sách dài thêm.
-  useEffect(() => {
+  // Người đọc có đang bám đáy không. Để trong ref chứ không phải state: nó đổi theo từng sự
+  // kiện cuộn, mà không có gì trên màn hình phụ thuộc vào nó nên re-render là phí.
+  const stickToBottomRef = useRef(true);
+
+  const handleScroll = () => {
     const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    if (!list) return;
+
+    const distanceFromBottom =
+      list.scrollHeight - list.scrollTop - list.clientHeight;
+    stickToBottomRef.current = distanceFromBottom <= NEAR_BOTTOM_PX;
+  };
+
+  // Trôi theo dòng chữ đang chảy, NHƯNG chỉ khi người đọc vốn đang ở đáy. Họ cuộn lên xem lại
+  // câu trước mà mảnh chữ mới kéo màn hình xuống là mất chỗ đang đọc.
+  //
+  // useLayoutEffect chứ không phải useEffect: cuộn sau khi trình duyệt đã vẽ sẽ thấy một khung
+  // hình ở sai vị trí. Widget mount bằng dynamic(ssr: false) nên không có bản render phía
+  // server để hook này cảnh báo.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || !stickToBottomRef.current) return;
+    list.scrollTop = list.scrollHeight;
   }, [messages, toolLabel, notice]);
+
+  // Ô nhập cao dần theo số dòng, tới trần max-h-24 thì cuộn bên trong.
+  //
+  // Phải hạ height về 'auto' TRƯỚC khi đọc scrollHeight: giữ nguyên chiều cao cũ thì
+  // scrollHeight không bao giờ nhỏ lại, ô chỉ phình ra mà không co về khi xoá chữ.
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    // box-sizing: border-box nên height bao gồm cả viền, còn scrollHeight thì không. Thiếu
+    // phần bù này là ô luôn ngắn hơn nội dung đúng bằng độ dày viền và sinh thanh cuộn thừa.
+    const borderHeight = input.offsetHeight - input.clientHeight;
+    input.style.height = 'auto';
+    input.style.height = `${input.scrollHeight + borderHeight}px`;
+  }, [draft]);
+
+  // Gửi câu hỏi và kéo người đọc về đáy. Bấm gửi là chủ động muốn xem câu trả lời, nên lần
+  // này bỏ qua việc họ đang cuộn ở đâu.
+  const send = (question: string) => {
+    stickToBottomRef.current = true;
+    onSend(question);
+  };
 
   const submit = () => {
     const question = draft.trim();
     if (!question || isStreaming) return;
-    onSend(question);
+    send(question);
     setDraft('');
   };
 
   const isEmpty = messages.length === 0;
+  const remainingChars = MAX_QUESTION_LENGTH - draft.length;
+  const showCounter = remainingChars <= COUNTER_THRESHOLD;
 
   return (
     <div className="fixed right-5 bottom-5 z-40 flex h-[min(32rem,calc(100vh-2.5rem))] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
@@ -78,7 +129,11 @@ export function ChatPanel({
         </Button>
       </header>
 
-      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div
+        ref={listRef}
+        onScroll={handleScroll}
+        className="flex-1 space-y-3 overflow-y-auto px-4 py-3"
+      >
         {isEmpty ? (
           <div className="space-y-2 pt-2">
             <p className="text-muted-foreground text-sm">
@@ -88,7 +143,7 @@ export function ChatPanel({
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => onSend(suggestion)}
+                onClick={() => send(suggestion)}
                 disabled={isStreaming}
                 className="block w-full rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
               >
@@ -138,6 +193,7 @@ export function ChatPanel({
       <footer className="border-t border-zinc-200 p-3 dark:border-zinc-800">
         <div className="flex items-end gap-2">
           <textarea
+            ref={inputRef}
             value={draft}
             onChange={(event) =>
               setDraft(event.target.value.slice(0, MAX_QUESTION_LENGTH))
@@ -171,10 +227,27 @@ export function ChatPanel({
             )}
           </Button>
         </div>
-        <p className="text-muted-foreground mt-2 text-[11px]">
-          Trợ lý có thể trả lời sai. Giá và tình trạng hàng lấy theo trang sản
-          phẩm.
-        </p>
+
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <p className="text-muted-foreground text-[11px]">
+            Trợ lý có thể trả lời sai. Giá và tình trạng hàng lấy theo trang sản
+            phẩm.
+          </p>
+          {showCounter ? (
+            <span
+              className={cn(
+                'shrink-0 text-[11px] tabular-nums',
+                remainingChars === 0
+                  ? 'text-rose-600'
+                  : 'text-muted-foreground',
+              )}
+            >
+              {remainingChars === 0
+                ? `Tối đa ${MAX_QUESTION_LENGTH} ký tự`
+                : `Còn ${remainingChars} ký tự`}
+            </span>
+          ) : null}
+        </div>
       </footer>
     </div>
   );
