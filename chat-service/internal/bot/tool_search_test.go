@@ -22,7 +22,9 @@ func newToolServer(t *testing.T, handler http.HandlerFunc) *SearchTool {
 
 func TestExecuteDoiKetQuaThanhPayloadChoModel(t *testing.T) {
 	tool := newToolServer(t, func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"items":[{"productId":"p1","name":"Dien thoai A","slug":"dien-thoai-a","price":4990000}],"total":3}`)
+		// productId dung dang UUID that chu khong phai "p1": no di thang vao duoi duong dan
+		// san pham, va ben FE co regex chi nhan UUID o vi tri do.
+		_, _ = io.WriteString(w, `{"items":[{"productId":"f7fbe0a9-4820-451e-a72a-8d0b78869d4f","name":"Dien thoai A","slug":"dien-thoai-a","price":4990000}],"total":3}`)
 	})
 
 	payload := tool.Execute(context.Background(), map[string]any{"query": "dien thoai"})
@@ -42,8 +44,12 @@ func TestExecuteDoiKetQuaThanhPayloadChoModel(t *testing.T) {
 	if got := product["priceText"]; got != "4.990.000₫" {
 		t.Errorf("priceText = %v, muon 4.990.000₫", got)
 	}
-	if got := product["url"]; got != testFrontendURL+"/products/dien-thoai-a" {
-		t.Errorf("url = %v", got)
+	// Hau to "-i.<uuid>" la bat buoc: route storefront la /products/<slug>-i.<uuid> va trang
+	// chi tiet moc UUID ra tu duoi duong dan de tra san pham. Bo hau to thi link van bam duoc
+	// nhung luon ra "khong tim thay san pham".
+	wantURL := testFrontendURL + "/products/dien-thoai-a-i.f7fbe0a9-4820-451e-a72a-8d0b78869d4f"
+	if got := product["url"]; got != wantURL {
+		t.Errorf("url = %v, muon %v", got, wantURL)
 	}
 	// description khong duoc co mat du search-service co lo tra ve: payload chi mang dung
 	// bon truong da chon.

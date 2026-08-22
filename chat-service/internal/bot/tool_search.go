@@ -131,7 +131,7 @@ func (t *SearchTool) Execute(ctx context.Context, args map[string]any) map[strin
 			"id":        item.ProductID,
 			"name":      item.Name,
 			"priceText": FormatVND(item.Price),
-			"url":       t.productURL(item.Slug),
+			"url":       t.productURL(item.Slug, item.ProductID),
 		})
 	}
 
@@ -172,10 +172,20 @@ func buildToolQuery(query string, args map[string]any) string {
 	return values.Encode()
 }
 
-// productURL dung link tu slug cua chinh minh, khong lay tu URL model sinh ra. Route cua
-// storefront la /products/<slug>; PathEscape vi slug bat nguon tu du lieu seller nhap.
-func (t *SearchTool) productURL(slug string) string {
-	return t.frontendURL + "/products/" + url.PathEscape(slug)
+// productURL dung link tu slug cua chinh minh, khong lay tu URL model sinh ra.
+//
+// Route cua storefront la /products/<slug>-i.<uuid>, KHONG phai /products/<slug>. Trang chi
+// tiet moc UUID ra khoi duoi duong dan roi tra san pham theo id (extractProductId ben FE);
+// thieu hau to thi no dem nguyen slug di tra nhu mot id va luon ra "khong tim thay san pham".
+// Link van bam duoc, chi la khong bao gio den dung cho - kieu hong khong sinh loi nao.
+//
+// Slug trong DB la slug tran (vd "ao-thun-cotton-6xm8"), va payload outbox truyen dung gia tri
+// do sang search-service, nen hau to phai ghep o day chu khong the trong cho tang duoi.
+//
+// PathEscape chi boc phan slug vi do la du lieu seller nhap; hau to giu nguyen van de dau "."
+// khong bi ma hoa thanh %2E.
+func (t *SearchTool) productURL(slug, productID string) string {
+	return t.frontendURL + "/products/" + url.PathEscape(slug) + "-i." + productID
 }
 
 // stringArg doc mot tham so kieu chuoi tu args cua model. args giai ma tu JSON nen moi
