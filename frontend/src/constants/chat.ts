@@ -80,3 +80,25 @@ export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
 export const CONFIG_CACHE_STORAGE = 'chat_config_enabled';
 
 export const HISTORY_LOADING_NOTICE = 'Đang mở lại hội thoại cũ…';
+
+// Những lý do đáng đưa kết quả tìm kiếm thay thế: chúng đều nghĩa là "hôm nay đừng quay lại nữa".
+//
+// Cố ý KHÔNG có 'burst' và 'in_flight': hai cái đó chỉ cần chờ vài giây, đẩy người dùng sang một
+// luồng khác trong khi câu trả lời sắp tới nơi là làm hỏng chính cái họ đang đợi.
+export const FALLBACK_SEARCH_REASONS = new Set([
+  'guest_daily',
+  'user_hourly',
+  'user_daily',
+  'global_daily',
+  'bot_disabled',
+  'bot_unavailable',
+]);
+
+// Số sản phẩm hiện trong panel khi bot không trả lời được. Năm là vừa một màn hình 24rem mà
+// không phải cuộn — nhiều hơn thì phần gợi ý che mất chính câu báo lỗi ở trên nó.
+export const FALLBACK_RESULT_LIMIT = 5;
+
+export const FALLBACK_SEARCH_HEADING = 'Trong lúc đó, mình tìm nhanh giúp bạn:';
+
+export const FALLBACK_SEARCH_EMPTY =
+  'Chưa tìm thấy sản phẩm nào khớp. Bạn thử vài từ khoá ngắn hơn ở thanh tìm kiếm nhé.';

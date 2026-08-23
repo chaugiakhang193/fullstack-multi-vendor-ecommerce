@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FALLBACK_ERROR_MESSAGE,
+  FALLBACK_SEARCH_REASONS,
   FALLBACK_TOOL_LABEL,
   NETWORK_ERROR_MESSAGE,
   QUOTA_MESSAGES,
@@ -83,6 +84,9 @@ export default function ChatWidget() {
   const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // Câu hỏi vừa bị từ chối, giữ lại để tìm sản phẩm thay thế. Chuỗi rỗng = không có gì để gợi ý.
+  const [fallbackQuery, setFallbackQuery] = useState('');
+
   const abortRef = useRef<AbortController | null>(null);
   const hasLoadedHistoryRef = useRef(false);
 
@@ -140,6 +144,7 @@ export default function ChatWidget() {
 
       setNotice('');
       setToolLabel('');
+      setFallbackQuery('');
       setIsStreaming(true);
 
       const botId = crypto.randomUUID();
@@ -184,6 +189,9 @@ export default function ChatWidget() {
                 setNotice(
                   STREAM_ERROR_MESSAGES[event.reason] ?? FALLBACK_ERROR_MESSAGE,
                 );
+                if (FALLBACK_SEARCH_REASONS.has(event.reason)) {
+                  setFallbackQuery(trimmed);
+                }
                 break;
             }
           },
@@ -195,6 +203,15 @@ export default function ChatWidget() {
           failed = true;
           setMessages((prev) => markStatus(prev, botId, 'error'));
           setNotice(messageForError(error));
+
+          // Lý do chỉ có ở ChatRequestError. ChatNetworkError thì không gợi ý gì cả — gọi API
+          // tìm kiếm trong lúc mạng đang hỏng cũng chỉ hỏng nốt.
+          if (
+            error instanceof ChatRequestError &&
+            FALLBACK_SEARCH_REASONS.has(error.reason)
+          ) {
+            setFallbackQuery(trimmed);
+          }
         }
       } finally {
         abortRef.current = null;
@@ -222,6 +239,7 @@ export default function ChatWidget() {
           toolLabel={toolLabel}
           remaining={remaining}
           notice={notice}
+          fallbackQuery={fallbackQuery}
           onSend={handleSend}
           onClose={close}
         />

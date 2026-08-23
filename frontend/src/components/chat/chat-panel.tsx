@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { HISTORY_LOADING_NOTICE, MAX_QUESTION_LENGTH } from '@/constants/chat';
 import { MessageText } from '@/components/chat/message-text';
+import { ChatProductResults } from '@/components/chat/chat-product-results';
 import type { ChatMessage } from '@/types/chat';
 
 // Câu gợi ý cho màn hình trống. Cả ba đều là câu hỏi sản phẩm vì system prompt bắt bot gọi
@@ -31,6 +32,7 @@ interface ChatPanelProps {
   toolLabel: string;
   remaining: number | null;
   notice: string;
+  fallbackQuery: string;
   onSend: (question: string) => void;
   onClose: () => void;
 }
@@ -42,6 +44,7 @@ export function ChatPanel({
   toolLabel,
   remaining,
   notice,
+  fallbackQuery,
   onSend,
   onClose,
 }: ChatPanelProps) {
@@ -72,7 +75,7 @@ export function ChatPanel({
     const list = listRef.current;
     if (!list || !stickToBottomRef.current) return;
     list.scrollTop = list.scrollHeight;
-  }, [messages, toolLabel, notice]);
+  }, [messages, toolLabel, notice, fallbackQuery]);
 
   // Ô nhập cao dần theo số dòng, tới trần max-h-24 thì cuộn bên trong.
   //
@@ -197,6 +200,8 @@ export function ChatPanel({
             {notice}
           </p>
         ) : null}
+
+        {fallbackQuery ? <ChatProductResults query={fallbackQuery} /> : null}
       </div>
 
       <footer className="border-t border-zinc-200 p-3 dark:border-zinc-800">
