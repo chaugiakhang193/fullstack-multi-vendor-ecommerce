@@ -94,11 +94,14 @@ export const FALLBACK_SEARCH_REASONS = new Set([
   'bot_unavailable',
 ]);
 
-// Số sản phẩm hiện trong panel khi bot không trả lời được. Năm là vừa một màn hình 24rem mà
-// không phải cuộn — nhiều hơn thì phần gợi ý che mất chính câu báo lỗi ở trên nó.
+// Số sản phẩm hiện trong panel. Năm là vừa một màn hình 24rem mà không phải cuộn — nhiều hơn
+// thì khối sản phẩm che mất chính câu báo lỗi ở trên nó.
 export const FALLBACK_RESULT_LIMIT = 5;
 
-export const FALLBACK_SEARCH_HEADING = 'Trong lúc đó, mình tìm nhanh giúp bạn:';
+// Số sản phẩm xin từ server trước khi tự xếp hạng lại. Lấy dư vì BE chỉ sắp được theo MỘT cột
+// nên nó không biết luật phá thế hoà bằng số đánh giá — xin đúng 5 là nhận 5 món đã bị chọn sai
+// thứ tự trước khi tới tay mình.
+export const RANKING_POOL_SIZE = 20;
 
 export const FALLBACK_SEARCH_EMPTY =
-  'Chưa tìm thấy sản phẩm nào khớp. Bạn thử vài từ khoá ngắn hơn ở thanh tìm kiếm nhé.';
+  'Danh mục này chưa có sản phẩm nào. Bạn thử danh mục khác nhé.';

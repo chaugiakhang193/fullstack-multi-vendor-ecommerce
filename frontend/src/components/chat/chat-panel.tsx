@@ -32,7 +32,6 @@ interface ChatPanelProps {
   toolLabel: string;
   remaining: number | null;
   notice: string;
-  fallbackQuery: string;
   onSend: (question: string) => void;
   onClose: () => void;
 }
@@ -44,7 +43,6 @@ export function ChatPanel({
   toolLabel,
   remaining,
   notice,
-  fallbackQuery,
   onSend,
   onClose,
 }: ChatPanelProps) {
@@ -75,7 +73,7 @@ export function ChatPanel({
     const list = listRef.current;
     if (!list || !stickToBottomRef.current) return;
     list.scrollTop = list.scrollHeight;
-  }, [messages, toolLabel, notice, fallbackQuery]);
+  }, [messages, toolLabel, notice]);
 
   // Ô nhập cao dần theo số dòng, tới trần max-h-24 thì cuộn bên trong.
   //
@@ -164,28 +162,39 @@ export function ChatPanel({
             ))}
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'flex',
-                message.role === 'user' ? 'justify-end' : 'justify-start',
-              )}
-            >
+          messages.map((message) =>
+            // Khối sản phẩm vẽ tràn chiều ngang chứ không bọc trong bong bóng: nó là kết quả
+            // tra cứu, không phải lời ai nói. Vẽ nó thành bong bóng của bot là hứa với người
+            // đọc rằng nó sẽ còn đó sau khi tải lại trang.
+            message.kind === 'products' ? (
+              <ChatProductResults
+                key={message.id}
+                categoryId={message.categoryId}
+                categoryName={message.categoryName}
+              />
+            ) : (
               <div
+                key={message.id}
                 className={cn(
-                  'max-w-[85%] rounded-2xl px-3 py-2',
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-foreground bg-zinc-100 dark:bg-zinc-900',
-                  message.status === 'error' &&
-                    'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
+                  'flex',
+                  message.role === 'user' ? 'justify-end' : 'justify-start',
                 )}
               >
-                <MessageText text={message.text} />
+                <div
+                  className={cn(
+                    'max-w-[85%] rounded-2xl px-3 py-2',
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground bg-zinc-100 dark:bg-zinc-900',
+                    message.status === 'error' &&
+                      'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
+                  )}
+                >
+                  <MessageText text={message.text} />
+                </div>
               </div>
-            </div>
-          ))
+            ),
+          )
         )}
 
         {toolLabel ? (
@@ -200,8 +209,6 @@ export function ChatPanel({
             {notice}
           </p>
         ) : null}
-
-        {fallbackQuery ? <ChatProductResults query={fallbackQuery} /> : null}
       </div>
 
       <footer className="border-t border-zinc-200 p-3 dark:border-zinc-800">

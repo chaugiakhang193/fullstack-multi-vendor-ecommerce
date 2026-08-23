@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FALLBACK_ERROR_MESSAGE,
-  FALLBACK_SEARCH_REASONS,
   FALLBACK_TOOL_LABEL,
   NETWORK_ERROR_MESSAGE,
   QUOTA_MESSAGES,
@@ -20,13 +19,20 @@ import { ChatBubble } from '@/components/chat/chat-bubble';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import type { ChatMessage, ChatMessageStatus } from '@/types/chat';
 
+// Ba hàm dưới đây đều kiểm `kind === 'text'` trước khi chạm vào `text` hay `status`.
+//
+// Không phải phòng thủ thừa: id truyền vào luôn là id của một tin chữ, nhưng TypeScript không
+// biết điều đó, và khối sản phẩm không có hai trường ấy. Kiểm tường minh vừa để trình biên dịch
+// thu hẹp kiểu, vừa để một khối sản phẩm lỡ trùng id không bị biến dạng.
 function appendText(
   messages: ChatMessage[],
   id: string,
   chunk: string,
 ): ChatMessage[] {
   return messages.map((message) =>
-    message.id === id ? { ...message, text: message.text + chunk } : message,
+    message.kind === 'text' && message.id === id
+      ? { ...message, text: message.text + chunk }
+      : message,
   );
 }
 
@@ -36,7 +42,9 @@ function markStatus(
   status: ChatMessageStatus,
 ): ChatMessage[] {
   return messages.map((message) =>
-    message.id === id ? { ...message, status } : message,
+    message.kind === 'text' && message.id === id
+      ? { ...message, status }
+      : message,
   );
 }
 
@@ -44,7 +52,8 @@ function markStatus(
 // trông như bot đang treo trong khi câu báo lỗi đã hiện ở dưới rồi.
 function dropEmptyBot(messages: ChatMessage[], id: string): ChatMessage[] {
   return messages.filter(
-    (message) => !(message.id === id && message.text === ''),
+    (message) =>
+      !(message.kind === 'text' && message.id === id && message.text === ''),
   );
 }
 
@@ -83,9 +92,6 @@ export default function ChatWidget() {
   // khi chưa hỏi xong thì nó nhấp nháy rồi biến mất nếu bot đang tắt.
   const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  // Câu hỏi vừa bị từ chối, giữ lại để tìm sản phẩm thay thế. Chuỗi rỗng = không có gì để gợi ý.
-  const [fallbackQuery, setFallbackQuery] = useState('');
 
   const abortRef = useRef<AbortController | null>(null);
   const hasLoadedHistoryRef = useRef(false);
@@ -127,10 +133,15 @@ export default function ChatWidget() {
         if (history.length === 0) return;
         setMessages(
           history.map((message) => ({
+            kind: 'text' as const,
             id: crypto.randomUUID(),
             role: message.role,
             text: message.text,
             status: 'done' as const,
+            // createdAt là chuỗi RFC3339 theo UTC. Chuỗi hỏng cho ra NaN, mà NaN lọt vào hàm so
+            // sánh của sort sẽ làm thứ tự thành vô định — ép về 0 để tin hỏng dồn lên đầu thay
+            // vì phá cả danh sách.
+            at: Date.parse(message.createdAt) || 0,
           })),
         );
       })
@@ -144,14 +155,29 @@ export default function ChatWidget() {
 
       setNotice('');
       setToolLabel('');
-      setFallbackQuery('');
       setIsStreaming(true);
 
       const botId = crypto.randomUUID();
+      const now = Date.now();
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'user', text: trimmed },
-        { id: botId, role: 'bot', text: '', status: 'streaming' },
+        {
+          kind: 'text',
+          id: crypto.randomUUID(),
+          role: 'user',
+          text: trimmed,
+          at: now,
+        },
+        // Cộng một mili giây để câu trả lời luôn đứng sau câu hỏi khi trộn lại theo thời gian.
+        // Hai tin sinh trong cùng một mili giây thì `sort` không có căn cứ nào để xếp.
+        {
+          kind: 'text',
+          id: botId,
+          role: 'bot',
+          text: '',
+          status: 'streaming',
+          at: now + 1,
+        },
       ]);
 
       const controller = new AbortController();
@@ -189,9 +215,6 @@ export default function ChatWidget() {
                 setNotice(
                   STREAM_ERROR_MESSAGES[event.reason] ?? FALLBACK_ERROR_MESSAGE,
                 );
-                if (FALLBACK_SEARCH_REASONS.has(event.reason)) {
-                  setFallbackQuery(trimmed);
-                }
                 break;
             }
           },
@@ -203,15 +226,6 @@ export default function ChatWidget() {
           failed = true;
           setMessages((prev) => markStatus(prev, botId, 'error'));
           setNotice(messageForError(error));
-
-          // Lý do chỉ có ở ChatRequestError. ChatNetworkError thì không gợi ý gì cả — gọi API
-          // tìm kiếm trong lúc mạng đang hỏng cũng chỉ hỏng nốt.
-          if (
-            error instanceof ChatRequestError &&
-            FALLBACK_SEARCH_REASONS.has(error.reason)
-          ) {
-            setFallbackQuery(trimmed);
-          }
         }
       } finally {
         abortRef.current = null;
@@ -239,7 +253,6 @@ export default function ChatWidget() {
           toolLabel={toolLabel}
           remaining={remaining}
           notice={notice}
-          fallbackQuery={fallbackQuery}
           onSend={handleSend}
           onClose={close}
         />
