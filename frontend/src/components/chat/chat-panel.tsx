@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { MAX_QUESTION_LENGTH } from '@/constants/chat';
+import { HISTORY_LOADING_NOTICE, MAX_QUESTION_LENGTH } from '@/constants/chat';
 import { MessageText } from '@/components/chat/message-text';
 import type { ChatMessage } from '@/types/chat';
 
@@ -27,6 +27,7 @@ const COUNTER_THRESHOLD = 100;
 interface ChatPanelProps {
   messages: ChatMessage[];
   isStreaming: boolean;
+  isLoadingHistory: boolean;
   toolLabel: string;
   remaining: number | null;
   notice: string;
@@ -37,6 +38,7 @@ interface ChatPanelProps {
 export function ChatPanel({
   messages,
   isStreaming,
+  isLoadingHistory,
   toolLabel,
   remaining,
   notice,
@@ -134,7 +136,14 @@ export function ChatPanel({
         onScroll={handleScroll}
         className="flex-1 space-y-3 overflow-y-auto px-4 py-3"
       >
-        {isEmpty ? (
+        {isLoadingHistory && isEmpty ? (
+          // Không hiện gợi ý câu hỏi trong lúc lịch sử đang bay về: mời người dùng bấm vào một
+          // câu sắp bị chính lịch sử đó đẩy đi.
+          <p className="text-muted-foreground flex items-center gap-2 pt-2 text-sm">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            {HISTORY_LOADING_NOTICE}
+          </p>
+        ) : isEmpty ? (
           <div className="space-y-2 pt-2">
             <p className="text-muted-foreground text-sm">
               Mình tìm sản phẩm trên sàn giúp bạn. Thử một câu xem:

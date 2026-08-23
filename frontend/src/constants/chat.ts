@@ -72,3 +72,11 @@ export const TOOL_LABELS: Record<string, string> = {
 };
 
 export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
+
+// Khoá sessionStorage giữ kết quả /chat/config. sessionStorage chứ không localStorage: kill
+// switch là thứ được bật lên giữa sự cố, và một câu trả lời cũ sống qua nhiều ngày nghĩa là
+// widget vẫn ẩn sau khi bot đã bật lại. Trong một phiên duyệt web thì lệch vài phút là chấp
+// nhận được, đổi lại không đánh thức chat-service ở mỗi lần chuyển trang.
+export const CONFIG_CACHE_STORAGE = 'chat_config_enabled';
+
+export const HISTORY_LOADING_NOTICE = 'Đang mở lại hội thoại cũ…';

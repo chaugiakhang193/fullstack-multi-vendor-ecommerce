@@ -12,6 +12,8 @@ import {
   TRUNCATED_NOTICE,
 } from '@/constants/chat';
 import { askBot, ChatNetworkError, ChatRequestError } from '@/lib/chat/stream';
+import { fetchChatEnabled } from '@/lib/chat/config';
+import { fetchHistory } from '@/lib/chat/history';
 import { useChatWidgetStore } from '@/store/useChatWidgetStore';
 import { ChatBubble } from '@/components/chat/chat-bubble';
 import { ChatPanel } from '@/components/chat/chat-panel';
@@ -76,7 +78,13 @@ export default function ChatWidget() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
 
+  // null = chưa biết bot còn sống hay không. Ba trạng thái chứ không phải hai: vẽ bong bóng ngay
+  // khi chưa hỏi xong thì nó nhấp nháy rồi biến mất nếu bot đang tắt.
+  const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
+  const hasLoadedHistoryRef = useRef(false);
 
   // Cắt stream khi widget bị gỡ (người dùng rời khỏi route group (customer)).
   //
@@ -85,6 +93,45 @@ export default function ChatWidget() {
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
+
+  // Hỏi kill switch một lần lúc mount. Kết quả được cache trong sessionStorage nên chuyển trang
+  // không gọi lại.
+  useEffect(() => {
+    let alive = true;
+    fetchChatEnabled().then((enabled) => {
+      if (alive) setIsEnabled(enabled);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Nạp lịch sử ở lần MỞ PANEL đầu tiên, không phải lúc mount: mount xảy ra ở mọi trang khách,
+  // còn mở panel thì hiếm hơn nhiều. Đặt ở mount là bắt Neon đọc cho cả những người không bao
+  // giờ bấm vào bong bóng.
+  useEffect(() => {
+    // Cắm cờ TRƯỚC khi gọi, không phải trong .then: đóng rồi mở lại panel lúc request đang bay
+    // sẽ bắn thêm một request nữa, và cái về sau ghi đè lên tin nhắn người dùng vừa gõ.
+    if (!isOpen || hasLoadedHistoryRef.current) return;
+    hasLoadedHistoryRef.current = true;
+
+    setIsLoadingHistory(true);
+    fetchHistory()
+      .then((history) => {
+        // Chỉ ghi đè khi thật sự có lịch sử. Người dùng mở panel rồi hỏi luôn trong lúc request
+        // chưa về: một setMessages với mảng rỗng sẽ xoá mất câu họ vừa gõ.
+        if (history.length === 0) return;
+        setMessages(
+          history.map((message) => ({
+            id: crypto.randomUUID(),
+            role: message.role,
+            text: message.text,
+            status: 'done' as const,
+          })),
+        );
+      })
+      .finally(() => setIsLoadingHistory(false));
+  }, [isOpen]);
 
   const handleSend = useCallback(
     async (question: string) => {
@@ -159,13 +206,19 @@ export default function ChatWidget() {
     [isStreaming],
   );
 
+  // Biết chắc là tắt thì không vẽ gì. Widget vẫn mount để hai effect ở trên chạy, chỉ là không
+  // chiếm chỗ nào trên màn hình.
+  if (isEnabled === false) return null;
+
   return (
     <>
-      <ChatBubble isHidden={isOpen} onClick={toggle} />
+      {/* isEnabled === null: chưa hỏi xong kill switch, giữ bong bóng ẩn thêm một nhịp. */}
+      <ChatBubble isHidden={isOpen || isEnabled === null} onClick={toggle} />
       {isOpen ? (
         <ChatPanel
           messages={messages}
           isStreaming={isStreaming}
+          isLoadingHistory={isLoadingHistory}
           toolLabel={toolLabel}
           remaining={remaining}
           notice={notice}

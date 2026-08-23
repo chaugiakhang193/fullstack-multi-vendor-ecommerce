@@ -10,3 +10,11 @@ export interface ChatMessage {
   // lời hỏng giữa chừng nên tô khác màu. Tin của người dùng không bao giờ mang status.
   status?: ChatMessageStatus;
 }
+
+// Một dòng lịch sử do GET /chat/history trả về. Khác ChatMessage ở chỗ không có id (DB có id
+// nhưng FE không cần) và createdAt là chuỗi RFC3339 theo UTC.
+export interface ChatHistoryMessage {
+  role: ChatRole;
+  text: string;
+  createdAt: string;
+}
