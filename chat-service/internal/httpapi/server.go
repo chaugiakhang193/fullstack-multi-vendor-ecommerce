@@ -32,6 +32,12 @@ func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps Bot
 	mux.Handle("GET /chat/config", configRoute)
 	mux.Handle("OPTIONS /chat/config", configRoute)
 
+	// History KHONG doc co Enabled: kill switch chan duong tieu tien (goi Gemini), khong phai
+	// duong doc. Bot nghi ma mo widget van thay hoi thoai hom qua moi la dung.
+	historyRoute := corsAllowlist(frontendURL, historyHandler(botDeps))
+	mux.Handle("GET /chat/history", historyRoute)
+	mux.Handle("OPTIONS /chat/history", historyRoute)
+
 	return &http.Server{
 		Addr:    addr,
 		Handler: mux,

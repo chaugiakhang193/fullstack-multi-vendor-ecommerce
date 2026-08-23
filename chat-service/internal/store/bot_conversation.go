@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store/chatdb"
 	"github.com/google/uuid"
@@ -194,4 +195,71 @@ func (s *Store) RecentBotMessages(ctx context.Context, conversationID string, li
 		oldestFirst = append(oldestFirst, newestFirst[i])
 	}
 	return oldestFirst, nil
+}
+
+// BotHistoryMessage la mot dong lich su da gan vai, du de FE ve lai bong bong chat.
+//
+// Khac chatdb.Message o dung cho quan trong: bang message khong co cot role, vai duoc suy ra bang
+// cach so sender_participant_id voi participant 'bot'. Tang tren khong nen phai biet luat do.
+type BotHistoryMessage struct {
+	Role      string
+	Text      string
+	CreatedAt time.Time
+}
+
+// FindBotHistory doc lich su hoi thoai bot cua chu so huu, KHONG tao gi neu chua co.
+//
+// Day la ly do no ton tai canh EnsureBotConversation thay vi dung lai ham do: mot lenh GET khong
+// duoc phep sinh du lieu. Dung Ensure o day nghia la moi tab mo widget len deu de lai mot hoi
+// thoai rong cong hai participant cho mot nguoi chua bao gio hoi cau nao.
+//
+// Chua hoi cau nao thi tra ve rong VA nil error: "chua co gi" la mot cau tra loi hop le, khong
+// phai loi de bat.
+func (s *Store) FindBotHistory(ctx context.Context, owner BotOwner, limit int32) ([]BotHistoryMessage, error) {
+	if (owner.UserID == "") == (owner.GuestKey == "") {
+		return nil, errors.New("chu so huu phai la user HOAC khach, khong the ca hai")
+	}
+
+	cols, err := botOwnerColumns(owner)
+	if err != nil {
+		return nil, err
+	}
+
+	conversation, err := s.getBotConversation(ctx, cols)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("doc hoi thoai bot loi: %w", err)
+	}
+
+	lookup := chatdb.GetParticipantByRoleParams{ConversationID: conversation.ID, Role: "bot"}
+	botParticipant, err := s.q.GetParticipantByRole(ctx, lookup)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("doc participant bot loi: %w", err)
+	}
+	// ErrNoRows: hoi thoai co that nhung chua co participant 'bot'. botID rong khong khop id nao
+	// nen moi tin se mang vai 'user'. Duong ghi binh thuong khong tao ra trang thai nay -
+	// EnsureBotConversation luon tao ca hai participant - nen gan sai vai con hon tu choi tra ve
+	// mot hoi thoai van doc duoc.
+	botID := botParticipant.ID
+
+	messages, err := s.RecentBotMessages(ctx, conversation.ID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	history := make([]BotHistoryMessage, 0, len(messages))
+	for _, message := range messages {
+		role := "user"
+		if message.SenderParticipantID == botID {
+			role = "bot"
+		}
+		history = append(history, BotHistoryMessage{
+			Role:      role,
+			Text:      message.Body,
+			CreatedAt: message.CreatedAt.Time,
+		})
+	}
+	return history, nil
 }

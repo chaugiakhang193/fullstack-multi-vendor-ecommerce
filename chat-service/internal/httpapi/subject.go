@@ -17,9 +17,9 @@ const (
 	guestKeyHeader = "X-Guest-Key"
 
 	// minGuestKeyLen 16 chu khong phai 8: khoa nay la bi mat duy nhat bao ve hoi thoai cua mot
-	// khach vang lai. Chua co endpoint doc lich su nen chua lo truc tiep, nhung lich su cua
-	// nguoi khac se di vao context cua model neu doan trung khoa, ma 8 ky tu [A-Za-z0-9_-] thi
-	// doan duoc. FE sinh khoa bang crypto.randomUUID().
+	// khach vang lai, va tu khi co GET /chat/history thi doan trung khoa la DOC DUOC nguyen hoi
+	// thoai cua nguoi khac, khong con chi la lam ban ngu canh model nua. FE sinh khoa bang
+	// crypto.randomUUID() - 122 bit ngau nhien, khong phai 16 ky tu tu chon.
 	//
 	// Toi da 64 de mot header dai bat thuong khong di thang vao cot owner_guest_key va vao khoa
 	// unique index.

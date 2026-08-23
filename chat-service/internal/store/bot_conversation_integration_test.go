@@ -188,3 +188,72 @@ func TestRecentBotMessagesTraCuTruoc(t *testing.T) {
 		}
 	}
 }
+
+// Chua hoi cau nao: FindBotHistory phai tra rong VA khong tao gi ca. Do la khac biet duy nhat voi
+// EnsureBotConversation, va cung la ly do ham nay ton tai thay vi dung lai ham do.
+func TestFindBotHistoryKhongTaoHoiThoai(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	history, err := s.FindBotHistory(ctx, BotOwner{GuestKey: testGuestKey}, 30)
+	if err != nil {
+		t.Fatalf("FindBotHistory loi: %v", err)
+	}
+	if len(history) != 0 {
+		t.Fatalf("co %d tin, mong doi 0", len(history))
+	}
+
+	// Doi chieu o tang DB: mot lenh doc ma de lai mot dong nghia la dang goi nham
+	// EnsureBotConversation, va moi tab mo widget se sinh mot hoi thoai rong.
+	var conversations int
+	row := s.Pool().QueryRow(ctx, `SELECT count(*) FROM conversation WHERE type = 'bot'`)
+	if err := row.Scan(&conversations); err != nil {
+		t.Fatalf("dem hoi thoai loi: %v", err)
+	}
+	if conversations != 0 {
+		t.Errorf("co %d hoi thoai, mong doi 0 - mot lenh doc vua tao ra du lieu", conversations)
+	}
+}
+
+// Vai duoc suy ra tu participant chu khong tu mot cot tren message. Test nay la thu duy nhat bat
+// duoc loi gan nguoc vai, vi ca hai vai deu la chuoi hop le nen khong co kieu du lieu nao chan.
+func TestFindBotHistoryGanDungVai(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	conversation, err := s.EnsureBotConversation(ctx, BotOwner{GuestKey: testGuestKey})
+	if err != nil {
+		t.Fatalf("EnsureBotConversation loi: %v", err)
+	}
+
+	bodies := []string{"co dien thoai nao duoi 5 trieu khong", "co mot vai lua chon"}
+	senders := []string{conversation.HumanID, conversation.BotID}
+	for i, body := range bodies {
+		params := AppendMessageParams{
+			MessageID:           newMessageID(t),
+			ConversationID:      conversation.ConversationID,
+			SenderParticipantID: senders[i],
+			Body:                body,
+		}
+		if _, err := s.AppendMessage(ctx, params); err != nil {
+			t.Fatalf("ghi tin %d loi: %v", i, err)
+		}
+	}
+
+	history, err := s.FindBotHistory(ctx, BotOwner{GuestKey: testGuestKey}, 30)
+	if err != nil {
+		t.Fatalf("FindBotHistory loi: %v", err)
+	}
+	if len(history) != 2 {
+		t.Fatalf("co %d tin, mong doi 2", len(history))
+	}
+
+	// Thu tu cu-truoc: cau hoi phai dung truoc cau tra loi.
+	if history[0].Role != "user" || history[1].Role != "bot" {
+		t.Errorf("vai = [%s %s], mong doi [user bot]", history[0].Role, history[1].Role)
+	}
+	if history[0].Text != bodies[0] {
+		t.Errorf("tin dau = %q, mong doi %q", history[0].Text, bodies[0])
+	}
+	if history[0].CreatedAt.IsZero() {
+		t.Error("CreatedAt rong: pgtype.Timestamptz chua duoc doc ra time.Time")
+	}
+}
