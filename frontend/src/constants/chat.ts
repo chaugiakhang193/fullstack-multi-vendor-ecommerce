@@ -105,3 +105,9 @@ export const RANKING_POOL_SIZE = 20;
 
 export const FALLBACK_SEARCH_EMPTY =
   'Danh mục này chưa có sản phẩm nào. Bạn thử danh mục khác nhé.';
+
+// Hai lời dẫn cho cùng một hàng chip. Ở màn hình trống nó là lựa chọn thêm bên cạnh việc hỏi;
+// sau khi bị từ chối nó là đường duy nhất còn lại, nên câu chữ phải khác nhau.
+export const CHIP_HEADING_IDLE = 'Hoặc xem nhanh theo danh mục:';
+
+export const CHIP_HEADING_AFTER_REFUSAL = 'Bạn xem nhanh theo danh mục nhé:';

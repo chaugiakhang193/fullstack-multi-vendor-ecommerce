@@ -89,8 +89,8 @@ export function ChatProductResults({
       {top.map((product: ProductResponseType) => (
         <Link
           key={product.id}
-          // Khuôn URL phải là {slug}-i.{id}, giống hệt link mà bot tự dựng trong câu trả lời
-          // (tool_search.go:188). Thiếu phần "-i.{id}" là trang chi tiết không tìm ra sản phẩm.
+          // Khuôn URL phải là {slug}-i.{id}, giống link mà bot tự dựng trong câu trả lời của nó.
+          // Thiếu phần "-i.{id}" thì trang chi tiết không tìm ra sản phẩm.
           href={`/products/${product.slug}-i.${product.id}`}
           className="flex items-center gap-2 rounded-lg border border-zinc-200 p-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
         >

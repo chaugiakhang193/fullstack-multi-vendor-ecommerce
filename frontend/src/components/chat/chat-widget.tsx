@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FALLBACK_ERROR_MESSAGE,
+  FALLBACK_SEARCH_REASONS,
   FALLBACK_TOOL_LABEL,
   NETWORK_ERROR_MESSAGE,
   QUOTA_MESSAGES,
@@ -11,6 +12,8 @@ import {
   TOOL_LABELS,
   TRUNCATED_NOTICE,
 } from '@/constants/chat';
+import { useCategories } from '@/hooks/useCategories';
+import { matchCategory } from '@/lib/chat/category-match';
 import { askBot, ChatNetworkError, ChatRequestError } from '@/lib/chat/stream';
 import { fetchChatEnabled } from '@/lib/chat/config';
 import { fetchHistory } from '@/lib/chat/history';
@@ -21,9 +24,9 @@ import type { ChatMessage, ChatMessageStatus } from '@/types/chat';
 
 // Ba hàm dưới đây đều kiểm `kind === 'text'` trước khi chạm vào `text` hay `status`.
 //
-// Không phải phòng thủ thừa: id truyền vào luôn là id của một tin chữ, nhưng TypeScript không
-// biết điều đó, và khối sản phẩm không có hai trường ấy. Kiểm tường minh vừa để trình biên dịch
-// thu hẹp kiểu, vừa để một khối sản phẩm lỡ trùng id không bị biến dạng.
+// Id truyền vào luôn thuộc về một tin chữ, nhưng TypeScript không suy ra được điều đó, mà khối
+// sản phẩm thì không có hai trường ấy. Phép kiểm giúp trình biên dịch thu hẹp kiểu, đồng thời
+// giữ nguyên khối sản phẩm nếu id có trùng.
 function appendText(
   messages: ChatMessage[],
   id: string,
@@ -93,6 +96,12 @@ export default function ChatWidget() {
   const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // Bot vừa từ chối vì hết lượt hoặc đang nghỉ — khi đó panel hiện lại hàng chip ngay dưới câu
+  // báo lỗi, vì hàng chip ở màn hình trống đã bị cuộn khuất từ lâu.
+  const [wasRefused, setWasRefused] = useState(false);
+
+  const { data: categoriesData } = useCategories();
+
   const abortRef = useRef<AbortController | null>(null);
   const hasLoadedHistoryRef = useRef(false);
 
@@ -155,19 +164,46 @@ export default function ChatWidget() {
 
       setNotice('');
       setToolLabel('');
+      setWasRefused(false);
+
+      const now = Date.now();
+      const userMessage: ChatMessage = {
+        kind: 'text',
+        id: crypto.randomUUID(),
+        role: 'user',
+        text: trimmed,
+        at: now,
+      };
+
+      // Phím tắt danh mục: câu vừa gõ khớp đúng một danh mục thì trả lời ngay tại đây, không gọi
+      // bot và không tiêu một lượt quota nào.
+      //
+      // Khối này đứng trước cả setIsStreaming vì đường này không chạm mạng nên không có gì để
+      // chờ. Bật cờ streaming rồi tắt ngay trong cùng một nhịp chỉ làm nút gửi nhấp nháy.
+      const matched = matchCategory(trimmed, categoriesData?.data ?? []);
+      if (matched) {
+        setMessages((prev) => [
+          ...prev,
+          userMessage,
+          {
+            kind: 'products',
+            id: crypto.randomUUID(),
+            categoryId: matched.id,
+            categoryName: matched.name,
+            // Cộng một mili giây để khối sản phẩm luôn đứng sau câu hỏi khi trộn lại theo thời
+            // gian: hai tin sinh trong cùng một mili giây thì sort không có căn cứ nào để xếp.
+            at: now + 1,
+          },
+        ]);
+        return;
+      }
+
       setIsStreaming(true);
 
       const botId = crypto.randomUUID();
-      const now = Date.now();
       setMessages((prev) => [
         ...prev,
-        {
-          kind: 'text',
-          id: crypto.randomUUID(),
-          role: 'user',
-          text: trimmed,
-          at: now,
-        },
+        userMessage,
         // Cộng một mili giây để câu trả lời luôn đứng sau câu hỏi khi trộn lại theo thời gian.
         // Hai tin sinh trong cùng một mili giây thì `sort` không có căn cứ nào để xếp.
         {
@@ -215,6 +251,9 @@ export default function ChatWidget() {
                 setNotice(
                   STREAM_ERROR_MESSAGES[event.reason] ?? FALLBACK_ERROR_MESSAGE,
                 );
+                if (FALLBACK_SEARCH_REASONS.has(event.reason)) {
+                  setWasRefused(true);
+                }
                 break;
             }
           },
@@ -226,6 +265,15 @@ export default function ChatWidget() {
           failed = true;
           setMessages((prev) => markStatus(prev, botId, 'error'));
           setNotice(messageForError(error));
+
+          // ChatNetworkError không mang reason nhưng vẫn nên hiện chip. Chat-service và monolith
+          // nằm trên hai host khác nhau, nên chat-service không gọi được không có nghĩa là danh
+          // mục cũng không lấy được — và useCategories thường đã cache sẵn từ trước đó.
+          const shouldOfferChips =
+            error instanceof ChatRequestError
+              ? FALLBACK_SEARCH_REASONS.has(error.reason)
+              : error instanceof ChatNetworkError;
+          if (shouldOfferChips) setWasRefused(true);
         }
       } finally {
         abortRef.current = null;
@@ -253,6 +301,7 @@ export default function ChatWidget() {
           toolLabel={toolLabel}
           remaining={remaining}
           notice={notice}
+          wasRefused={wasRefused}
           onSend={handleSend}
           onClose={close}
         />

@@ -19,9 +19,9 @@ export interface ChatTextMessage {
 
 // Kết quả của phím tắt danh mục: một khối sản phẩm chứ không phải một câu chữ.
 //
-// Giữ categoryId chứ KHÔNG giữ danh sách sản phẩm: giá và tồn kho phải lấy tươi mỗi lần vẽ. Cất
-// sẵn kết quả nghĩa là mở lại hội thoại hôm sau thấy giá hôm qua, ngay bên dưới dòng "Giá và
-// tình trạng hàng lấy theo trang sản phẩm".
+// Giữ categoryId chứ không giữ danh sách sản phẩm, vì giá và tồn kho phải lấy tươi mỗi lần vẽ.
+// Cất sẵn kết quả nghĩa là mở lại hội thoại hôm sau vẫn thấy giá hôm qua, ngay bên dưới dòng
+// "Giá và tình trạng hàng lấy theo trang sản phẩm" ở chân panel.
 export interface ChatProductsMessage {
   kind: 'products';
   id: string;

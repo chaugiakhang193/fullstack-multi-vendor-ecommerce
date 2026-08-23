@@ -4,9 +4,15 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { HISTORY_LOADING_NOTICE, MAX_QUESTION_LENGTH } from '@/constants/chat';
+import {
+  CHIP_HEADING_AFTER_REFUSAL,
+  CHIP_HEADING_IDLE,
+  HISTORY_LOADING_NOTICE,
+  MAX_QUESTION_LENGTH,
+} from '@/constants/chat';
 import { MessageText } from '@/components/chat/message-text';
 import { ChatProductResults } from '@/components/chat/chat-product-results';
+import { ChatCategoryChips } from '@/components/chat/chat-category-chips';
 import type { ChatMessage } from '@/types/chat';
 
 // Câu gợi ý cho màn hình trống. Cả ba đều là câu hỏi sản phẩm vì system prompt bắt bot gọi
@@ -32,6 +38,7 @@ interface ChatPanelProps {
   toolLabel: string;
   remaining: number | null;
   notice: string;
+  wasRefused: boolean;
   onSend: (question: string) => void;
   onClose: () => void;
 }
@@ -43,6 +50,7 @@ export function ChatPanel({
   toolLabel,
   remaining,
   notice,
+  wasRefused,
   onSend,
   onClose,
 }: ChatPanelProps) {
@@ -73,7 +81,7 @@ export function ChatPanel({
     const list = listRef.current;
     if (!list || !stickToBottomRef.current) return;
     list.scrollTop = list.scrollHeight;
-  }, [messages, toolLabel, notice]);
+  }, [messages, toolLabel, notice, wasRefused]);
 
   // Ô nhập cao dần theo số dòng, tới trần max-h-24 thì cuộn bên trong.
   //
@@ -160,6 +168,17 @@ export function ChatPanel({
                 {suggestion}
               </button>
             ))}
+
+            {/* Chip có mặt ngay từ màn hình trống chứ không đợi tới lúc hết lượt. Nếu chỉ hiện
+                sau khi bị từ chối thì phần lớn người dùng không bao giờ thấy nó, và những lượt
+                hỏi mà nó sinh ra để giữ lại thì đã tiêu hết trước đó. */}
+            <div className="pt-1">
+              <ChatCategoryChips
+                heading={CHIP_HEADING_IDLE}
+                disabled={isStreaming}
+                onPick={send}
+              />
+            </div>
           </div>
         ) : (
           messages.map((message) =>
@@ -208,6 +227,16 @@ export function ChatPanel({
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
             {notice}
           </p>
+        ) : null}
+
+        {/* Hàng chip hiện lần thứ hai ở đây. Hàng ở màn hình trống lúc này đã bị cuộn khuất, mà
+            khi bot từ chối thì nó là đường duy nhất còn lại. */}
+        {wasRefused ? (
+          <ChatCategoryChips
+            heading={CHIP_HEADING_AFTER_REFUSAL}
+            disabled={isStreaming}
+            onPick={send}
+          />
         ) : null}
       </div>
 
