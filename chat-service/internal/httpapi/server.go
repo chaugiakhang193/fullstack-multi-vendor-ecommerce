@@ -19,13 +19,18 @@ func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps Bot
 	mux.HandleFunc("GET /health", healthHandler(logger))
 	mux.Handle("GET /metrics", telemetry.MetricsHandler())
 
-	// CORS chi boc /chat/bot: /health va /metrics khong bao gio duoc goi tu trinh duyet, va
-	// boc chung lai chi lam cron keep-warm co them mot cua de vuong.
+	// CORS boc moi route duoi /chat: chung deu duoc goi tu trinh duyet. /health va /metrics thi
+	// khong bao gio, va boc chung lai chi lam cron keep-warm co them mot cua de vuong.
 	botRoute := corsAllowlist(frontendURL, botHandler(botDeps))
 	mux.Handle("POST /chat/bot", botRoute)
 	// Preflight dang ky rieng vi ServeMux phan tuyen theo ca method: route "POST /chat/bot"
 	// khong nhan OPTIONS, va trinh duyet se nhan 405 truoc khi kip gui request that.
 	mux.Handle("OPTIONS /chat/bot", botRoute)
+
+	// Config di truoc moi thu: FE goi no luc mount de biet co nen ve bong bong hay khong.
+	configRoute := corsAllowlist(frontendURL, configHandler(botDeps.Enabled, logger))
+	mux.Handle("GET /chat/config", configRoute)
+	mux.Handle("OPTIONS /chat/config", configRoute)
 
 	return &http.Server{
 		Addr:    addr,

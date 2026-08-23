@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -102,5 +103,29 @@ func TestCORSPreflightKhongVaoHandler(t *testing.T) {
 	}
 	if recorder.Code != http.StatusNoContent {
 		t.Errorf("status = %d, mong doi 204", recorder.Code)
+	}
+}
+
+// Allow-Methods phai ke ca GET lan POST: /chat/bot la POST con /chat/config va /chat/history la
+// GET, ma ca ba dung chung mot middleware.
+//
+// Thieu mot method o day la trinh duyet chan request TRUOC KHI no roi may: server khong nhan
+// duoc gi de log, va dau vet duy nhat la mot dong CORS trong DevTools. Vi vay no can mot test
+// rieng thay vi tin vao smoke test.
+func TestCORSPreflightKeDuMethod(t *testing.T) {
+	reached := false
+	handler := corsAllowlist(testFrontendURL, okHandler(&reached))
+
+	r := httptest.NewRequest(http.MethodOptions, "/chat/config", nil)
+	r.Header.Set("Origin", testFrontendURL)
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, r)
+
+	allowed := recorder.Header().Get("Access-Control-Allow-Methods")
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodOptions} {
+		if !strings.Contains(allowed, method) {
+			t.Errorf("Allow-Methods = %q, thieu %s", allowed, method)
+		}
 	}
 }

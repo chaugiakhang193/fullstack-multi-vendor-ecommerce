@@ -34,7 +34,7 @@ func corsAllowlist(frontendURL string, next http.Handler) http.Handler {
 			header := w.Header()
 			header.Set("Access-Control-Allow-Origin", origin)
 			header.Set("Access-Control-Allow-Headers", "Authorization, Content-Type, "+guestKeyHeader)
-			header.Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			header.Set("Access-Control-Max-Age", "600")
 			// Origin doi thi response phai khac nhau: thieu Vary thi cache trung gian co the
 			// tra header cua goc nay cho goc kia.
