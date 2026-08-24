@@ -1,4 +1,7 @@
-import { CONFIG_CACHE_STORAGE } from '@/constants/chat';
+import {
+  CHAT_CONFIG_CACHE_TTL_MS,
+  CONFIG_CACHE_STORAGE,
+} from '@/constants/chat';
 import { CHAT_SERVICE_URL } from '@/lib/chat/request';
 
 // Hỏi chat-service xem bot có đang bật không.
@@ -29,12 +32,29 @@ export async function fetchChatEnabled(): Promise<boolean> {
   }
 }
 
+interface CachedConfig {
+  enabled: boolean;
+  at: number;
+}
+
 function readCache(): boolean | null {
   if (typeof window === 'undefined') return null;
   try {
-    const saved = window.sessionStorage.getItem(CONFIG_CACHE_STORAGE);
-    if (saved === null) return null;
-    return saved === 'true';
+    const raw = window.sessionStorage.getItem(CONFIG_CACHE_STORAGE);
+    if (raw === null) return null;
+
+    // Bản cache đời cũ là chuỗi 'true'/'false' trần: JSON.parse ra boolean, phép kiểm kiểu ngay
+    // dưới trượt, và hàm trả null nên lần sau gọi lại từ đầu. Không cần migration.
+    const cached = JSON.parse(raw) as Partial<CachedConfig>;
+    if (
+      typeof cached?.enabled !== 'boolean' ||
+      typeof cached?.at !== 'number'
+    ) {
+      return null;
+    }
+
+    if (Date.now() - cached.at > CHAT_CONFIG_CACHE_TTL_MS) return null;
+    return cached.enabled;
   } catch {
     return null;
   }
@@ -43,7 +63,8 @@ function readCache(): boolean | null {
 function writeCache(enabled: boolean): void {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(CONFIG_CACHE_STORAGE, String(enabled));
+    const cached: CachedConfig = { enabled, at: Date.now() };
+    window.sessionStorage.setItem(CONFIG_CACHE_STORAGE, JSON.stringify(cached));
   } catch {
     // Trình duyệt chặn storage. Không sao: lần chuyển trang sau chỉ tốn thêm một request.
   }

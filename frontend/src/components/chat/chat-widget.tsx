@@ -165,10 +165,23 @@ export default function ChatWidget() {
           (a, b) => a.at - b.at,
         );
 
-        // Chỉ ghi đè khi thật sự có gì đó. Người dùng mở panel rồi hỏi luôn trong lúc request
-        // chưa về: một setMessages với mảng rỗng sẽ xoá mất câu họ vừa gõ.
+        // Không có gì cũ để chèn thì thôi, khỏi tạo một mảng mới làm React vẽ lại vô ích.
         if (merged.length === 0) return;
-        setMessages(merged);
+
+        // Lịch sử về sau khi người dùng đã kịp gõ: giữ nguyên những gì họ vừa tạo, chỉ chèn thêm
+        // phần THỰC SỰ cũ hơn. Bất cứ thứ gì sinh ra trong phiên này thì `prev` mới là bản thật —
+        // bản trong `merged` chỉ là ảnh chụp cùng một sự việc từ DB hoặc localStorage.
+        //
+        // Lọc theo mốc thời gian chứ không theo id: `loadShortcutMessages` cố ý sinh id mới mỗi
+        // lần gọi, nên khối chip vừa bấm mang hai id khác nhau ở hai nguồn và lọc trùng theo id
+        // sẽ để lọt đúng hai bản.
+        setMessages((prev) => {
+          if (prev.length === 0) return merged;
+
+          const earliest = Math.min(...prev.map((message) => message.at));
+          const older = merged.filter((message) => message.at < earliest);
+          return [...older, ...prev];
+        });
       })
       .finally(() => setIsLoadingHistory(false));
   }, [isOpen]);

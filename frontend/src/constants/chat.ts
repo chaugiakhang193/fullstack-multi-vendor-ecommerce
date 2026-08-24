@@ -75,9 +75,16 @@ export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
 
 // Khoá sessionStorage giữ kết quả /chat/config. sessionStorage chứ không localStorage: kill
 // switch là thứ được bật lên giữa sự cố, và một câu trả lời cũ sống qua nhiều ngày nghĩa là
-// widget vẫn ẩn sau khi bot đã bật lại. Trong một phiên duyệt web thì lệch vài phút là chấp
-// nhận được, đổi lại không đánh thức chat-service ở mỗi lần chuyển trang.
+// widget vẫn ẩn sau khi bot đã bật lại.
+//
+// Giá trị lưu là JSON {enabled, at} chứ không phải chuỗi 'true'/'false' như trước: từ khi có
+// kill switch tự động, cờ này tự tắt khi trần global vỡ và tự bật lại lúc nửa đêm mà không ai
+// gọi gì cả. Không có mốc thời gian thì một tab mở từ chiều sẽ giấu nút chat tới hết phiên.
 export const CONFIG_CACHE_STORAGE = 'chat_config_enabled';
+
+// Năm phút: đủ dài để chuyển trang không đánh thức chat-service, đủ ngắn để quota hồi lúc nửa
+// đêm thì tab đang mở thấy được trong vòng một lượt điều hướng.
+export const CHAT_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const HISTORY_LOADING_NOTICE = 'Đang mở lại hội thoại cũ…';
 
