@@ -103,18 +103,96 @@ Every rejection carries a `Reason` and a `RetryAfter` the limiter already comput
 `untilNextHour`), so the six distinct 429s reach the client as six distinct messages rather than one flat
 "out of quota".
 
-## Identity is a token or a guessable secret
+## Identity answers two different questions
 
-`resolveSubject` (`internal/httpapi`) decides who is asking. A valid `Authorization` bearer, verified with
-the same HS256 secret the monolith signs with, makes a signed-in subject on the higher limits. No token
-falls back to the guest path, keyed by an `X-Guest-Key` UUID the client generates and keeps in
-`localStorage`.
+`resolveSubject` (`internal/httpapi`) is the only place a caller's identity is decided, and its signature
+gives away the design: it returns **three** values, `(Subject, guestKey, error)`. The guest key is
+deliberately *not* a field of `Subject`, because the two answer different questions.
 
-That guest key started as a way to keep one anonymous visitor's context separate from another's. Once
-`GET /chat/history` existed, it became something stronger: guessing a key now reads that visitor's stored
-conversation, not just their model context. The key is still a 36-character UUID, so the difficulty is
-unchanged — but the comment in `subject.go` that once called it low-stakes had to be corrected, because it
-now guards a read.
+**`Subject` answers "who is billed".** It is assembled on the server and holds two fields:
+
+```go
+type Subject struct {
+    UserID string // empty means guest
+    IP     string
+}
+```
+
+`dayKey()` turns that into `user:<id>` for a signed-in caller and `ip:<addr>` for a guest. Metering guests
+by IP rather than by their guest key is the load-bearing choice: a key lives in `localStorage`, so counting
+against it would mean clearing site data buys five fresh turns. The IP is never taken from the request
+body — it is derived server-side by `ClientIP`, reading Cloudflare's `cf-connecting-ip`, because a
+client-declared address would make the guest ceiling decorative.
+
+**The guest key answers "whose conversation is this".** It arrives as the `X-Guest-Key` header, and it is
+what `EnsureBotConversation` stores as the owner of an anonymous thread. For a signed-in caller it comes
+back empty — the conversation belongs to the account instead.
+
+So an anonymous visitor is *rate-limited by IP* while their *history is addressed by key*. Two office
+workers behind one NAT share a quota but never see each other's threads; clearing storage loses the thread
+but grants no extra turns.
+
+Three details around that:
+
+- **The key travels in a header, not the body.** Identity has to be settled before the body is read, so
+  that quota can reject a request whose body is garbage.
+- **A bad token is a `401`, never a silent demotion to guest.** A signed-in user quietly dropped to five
+  IP-based turns a day is a symptom nobody can diagnose; the status code tells the client to refresh and
+  retry.
+- **`IP` is filled even for signed-in callers**, though `dayKey()` ignores it there. `ClientIP` has already
+  run, so carrying it costs nothing, and it is the only lead left if one account has to be traced for
+  abuse. The `quota` package deliberately keeps IP out of its logs, so any future use of that field has to
+  be a conscious choice rather than an accident.
+
+That guest key started as a way to keep one anonymous visitor's model context separate from another's.
+Once `GET /chat/history` existed it became something stronger: guessing a key now *reads* that visitor's
+stored conversation. The key is still a 122-bit `crypto.randomUUID()`, so the difficulty is unchanged —
+but the comment in `subject.go` that once called it low-stakes had to be corrected, because it now guards
+a read. The validator enforces a 16–64 character bound and an alphanumeric-plus-`-_` charset before the
+value ever reaches the `owner_guest_key` column.
+
+### Where a Subject travels, and where it stops
+
+`Subject` is not a general-purpose user context passed around the service. It reaches exactly two places,
+and the list is short enough to be worth stating in full:
+
+| Destination | Call | Why it needs identity |
+|---|---|---|
+| Rate limiting | `Burst.Allow(subject)` | which bucket to spend a token from |
+| Quota counters | `Limiter.Reserve` / `Acquire(ctx, subject)` | which row of `bot_usage_daily` to increment |
+| Conversation ownership | `conversationFor(...)` | which thread to append to |
+
+At the third one it is taken apart rather than passed on:
+
+```go
+owner := store.BotOwner{UserID: subject.UserID, GuestKey: guestKey}
+```
+
+Only `UserID` survives, recombined with the guest key into a different type. This is the same split as
+above, expressed in the type system: `Subject` is a *metering* identity, `BotOwner` is an *ownership*
+identity, and neither is substitutable for the other.
+
+The boundary that matters most is where `Subject` does **not** go: it never enters `internal/bot`. The
+prompt builder, the tool loop, the retrier, the breaker and the provider client are all written without
+any notion of who is asking — they receive a question and a history, nothing more.
+
+That buys three things. Caller identity cannot leak into a prompt sent to Google, because the layer that
+builds prompts has never seen it. Changing how callers are metered — say, adding a paid tier — touches
+`internal/quota` and stops there. And the model layer stays honestly testable: there is no user to
+construct in order to exercise it.
+
+Counters keyed by subject, meanwhile, are plain strings rather than columns:
+
+| Tier | Key |
+|---|---|
+| Guest, per day | `ip:1.2.3.4` |
+| Signed-in, per hour | `userhour:<uuid>:14` — the hour, in `Asia/Ho_Chi_Minh` |
+| Signed-in, per day | `user:<uuid>` |
+| Whole service, per day | `global` — no prefix, because it identifies nobody |
+
+The hour is folded into the key instead of getting a column of its own: the primary key of
+`bot_usage_daily` is `(subject_key, usage_date)`, the date half already carries the day, so two digits of
+hour in the key are enough to separate the buckets. One table serves all four tiers.
 
 ## The stream is the only channel
 
