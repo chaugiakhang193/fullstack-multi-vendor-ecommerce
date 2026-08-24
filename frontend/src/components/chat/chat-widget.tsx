@@ -282,7 +282,7 @@ export default function ChatWidget() {
         if (failed) setMessages((prev) => dropEmptyBot(prev, botId));
       }
     },
-    [isStreaming],
+    [isStreaming, categoriesData],
   );
 
   // Biết chắc là tắt thì không vẽ gì. Widget vẫn mount để hai effect ở trên chạy, chỉ là không
