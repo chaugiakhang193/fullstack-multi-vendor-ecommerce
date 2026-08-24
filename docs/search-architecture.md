@@ -15,7 +15,7 @@ flowchart TB
   subgraph MONO["NestJS monolith · DB #1 (system of record)"]
     WR["product create / update"] -->|same transaction| OB[("outbox_event")]
     OB --> RELAY["outbox relay"]
-    Q["GET /products?q="] --> SC{"SearchClient<br/>flag on? 300 ms budget"}
+    Q["GET /products?q="] --> SC{"SearchClient<br/>flag on? 700 ms budget"}
     HYD["hydrate shop / stock / rating<br/>+ filter, sort, paginate"] --> RESP["paginated response"]
   end
 
@@ -98,8 +98,8 @@ whether to turn it on.
 
 ## Read path — two-stage retrieval
 
-The service returns **ranked product IDs, not full documents** — the monolith hydrates them from its own
-database (Pattern B):
+On its main endpoint the service returns **ranked product IDs, not full documents** — the monolith
+hydrates them from its own database (Pattern B):
 
 1. **Retrieve.** The monolith calls `/search`, which uses the GIN index to rank matches and returns a
    bounded window of `{ productId, rank }` (the top ~300 candidates).
@@ -108,6 +108,29 @@ database (Pattern B):
    out-of-stock ordering, and any user-chosen sort. Total count and pagination are computed here, so they
    stay correct.
 3. **Hydrate.** Only the final page (~20 products) is loaded with its relations (shop, variants, images).
+
+**Full-text first, trigram as a recall backstop.** Full-text search matches whole lexemes, so a typo or a
+half-typed word — `dienn`, `laptp`, `die` — matches nothing at all. When the full-text pass returns zero
+rows, and only then, a second pass uses `pg_trgm`'s word-similarity operator `<%` against
+`name_unaccent`, with `word_similarity_threshold` set to `0.3` via `SET LOCAL` so the threshold belongs to
+that transaction rather than to the session. Rank comes from the similarity score, so the closest
+spelling leads. A dedicated GIN trigram index (migration `000003`) keeps that pass from degrading into a
+scan. Ordering the two passes this way matters: trigram is a **backstop for recall**, not a competitor to
+full-text, and running it first would let loose fuzzy matches outrank exact ones.
+
+**A second read contract, for the bot.** `GET /search/detailed` serves the chat service rather than the
+monolith, and it deliberately breaks the ranked-ids rule above: the bot has no database to hydrate from,
+so this endpoint returns up to five display-ready items — `productId`, `name`, `slug`, `price` — while
+`total` still reports the true match count in the index, so the caller can say "30 products matched, here
+are five". It accepts `q` plus an optional price range and nothing else; no `page`, `limit`, `shop_id` or
+`category_ids`, because the bot does not send them and every accepted parameter is one more thing to
+validate.
+
+What it omits is the interesting part. **`description` is excluded on purpose**: it is seller-authored
+text, and feeding it to a model would be a direct prompt-injection path into the model's context. Shop
+name is absent for a duller reason — `product_index` does not store it, and neither does the outbox
+payload, so adding it would mean changing three places. The search service, in other words, knows one of
+its callers is an LLM and trims its own attack surface accordingly.
 
 **Why keep volatile data out of the index.** Stock, rating and shop status change far more often than a
 product's name or description, and they are owned by the monolith. Denormalizing them into the index
@@ -121,9 +144,14 @@ this choice: results are the top-K most relevant matches, re-filtered and re-ran
 
 Search is an optimization, never a dependency. The client is **fail-open**:
 
-- A **300 ms timeout** (via `AbortController`) plus a check on the HTTP status — `fetch` does not throw on
+- A **700 ms timeout** (via `AbortController`) plus a check on the HTTP status — `fetch` does not throw on
   5xx — means any timeout, error, or bad shape returns `null`, and the caller falls back to the old
   `ILIKE` query. If the service is asleep or down, the storefront still returns results.
+
+  The budget started at 300 ms and had to be raised: a warm `/search` answers in roughly 170–300 ms, so
+  the original threshold was expiring on a service that was working perfectly well. 700 ms leaves room
+  for that spread while staying far below a cold start (~13 s), which is what keeps the intended
+  behaviour intact — a sleeping service still blows the budget and still falls back.
 - An empty result (HTTP 200, zero matches) is a **valid answer**, not a failure — it is returned as-is,
   not retried against `ILIKE`.
 - A `SEARCH_SERVICE_ENABLED` flag (default off) is the kill switch: turning it off routes every request
@@ -137,12 +165,11 @@ the p95 at 100 VU is **186 ms vs 6.07 s** — the old scan is O(rows), the index
 
 ## Status and limitations
 
-- **Integrated behind a flag and measured, not yet enabled for users in production.** The read path has
-  been verified end-to-end locally (happy path, fallback, and filters) and load-tested; the production
-  flag is still off pending the remaining rollout work.
+- **Live in production since 20 August 2026.** `SEARCH_SERVICE_ENABLED` is on, so real storefront traffic
+  is served by the indexed path with `ILIKE` behind it as the fallback. The behaviour is externally
+  checkable: an accent-free `dien thoai` returns accented products, and `laptp` still returns laptops —
+  neither is something the old query could do.
 - **Top-K window.** Deep pagination past the candidate window is out of scope by design.
-- **No fuzzy matching yet.** A misspelling that full-text search misses is not caught; a `pg_trgm`
-  similarity branch is the intended next step for that.
 - **Reindex.** A backfill command to rebuild the index from the monolith's catalog (for a long outage or
   a schema change) is planned. Its absence is why a dropped event is permanent rather than merely late,
   and why the queue TTL is generous.
