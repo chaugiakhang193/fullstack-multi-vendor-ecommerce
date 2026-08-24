@@ -12,10 +12,11 @@ Logs on either side can each say "I did my part" while the notification silently
 The whole point of the observability work is to make *"what happened to **this** order's
 notification?"* answerable again.
 
-A third service has since joined — a **Go** search service that maintains its own index off the same
-event stream — which turned out to be a useful test of whether the answer generalises. It does: the
-carrier is a W3C standard, not a framework feature, so the same trace crosses a language boundary
-without anything new being invented.
+Two more services have since joined — a **Go** search service that maintains its own index off the
+same event stream, and a **Go** chat service that serves the chatbot and 1-to-1 chat over HTTP/WS —
+which turned out to be a useful test of whether the answer generalises. It does: the carrier is a
+W3C standard, not a framework feature, so the same trace crosses a language boundary without
+anything new being invented.
 
 ---
 
@@ -31,6 +32,7 @@ flowchart LR
         MONO["monolith-backend<br/>NestJS"]
         NS["notification-service<br/>NestJS"]
         SEARCH["search-service<br/>Go"]
+        CHAT["chat-service<br/>Go"]
     end
 
     subgraph Traces["Traces pipeline (PUSH)"]
@@ -45,9 +47,11 @@ flowchart LR
     MONO -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
     NS -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
     SEARCH -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
+    CHAT -->|"OTLP/HTTP :4318<br/>push spans"| JAEGER
     PROM -->|"scrape /api/v1/metrics<br/>every 5s"| MONO
     PROM -->|"scrape :3001/metrics"| NS
     PROM -->|"scrape :8090/metrics"| SEARCH
+    PROM -->|"scrape :8091/metrics"| CHAT
     GRAF -->|"query (no storage)"| PROM
 ```
 
@@ -70,8 +74,9 @@ nothing to show — a distinction that matters for the retention limit below.
 | `monolith-backend` (NestJS) | ✅ | ✅ RED + outbox-lag gauge |
 | `notification-service` (NestJS) | ✅ | ✅ consumer metrics |
 | `search-service` (Go) | ✅ | ✅ RED **and** consumer metrics |
+| `chat-service` (Go) | ✅ | ✅ RED + bot-specific counters |
 
-All three services are traced and all three are scraped. The asymmetry is not *whether* a service is
+All four services are traced and all four are scraped. The asymmetry is not *whether* a service is
 measured any more — it is **what is worth measuring**, and that follows from what the service is.
 
 The monolith is an HTTP server, so RED (rate / errors / duration) is the natural frame. The
@@ -79,10 +84,16 @@ notification service is a pure **consumer**: it has no meaningful request traffi
 metrics there would be close to noise. What deserves measuring instead is events processed by
 outcome, DLQ depth, and per-event processing time.
 
-The search service is the only one that is **both** — it serves `GET /search` over HTTP *and*
+The search service is the one that is **both** — it serves `GET /search` over HTTP *and*
 consumes `product.*` events to maintain its index — so it is the only service publishing both metric
 families side by side. That is why it gets its own subsection below rather than a row in the
 monolith's table.
+
+The chat service is HTTP-only like the monolith — it has no RabbitMQ consumer, since chat 1-to-1 and
+the chatbot are both served directly over HTTP/WS — so plain RED covers its request traffic. What it
+adds on top is a set of counters specific to *why* a request failed or cost something: quota
+rejections by tier, Gemini reply-cache hit/miss, and tokens spent split prompt vs. output. A 429 on
+`/chat/bot` is not the same failure as a 5xx, and RED alone cannot tell them apart.
 
 ---
 
@@ -303,6 +314,32 @@ would inflate the error rate with something no operator can act on.
 > `/search` is. Prometheus scrapes every 5 seconds, and health probes run continuously, so
 > instrumenting them would bury the real traffic under a steady stream of self-observation spans.
 
+### The chat service — RED plus a kill-switch gauge
+
+The chat service ([`internal/telemetry/metrics.go`](../chat-service/internal/telemetry/metrics.go))
+exposes the same RED pair as the monolith:
+
+| Metric | Labels |
+|---|---|
+| `chat_requests_total` | `status`, `outcome` |
+| `chat_request_duration_seconds` | `endpoint` |
+
+Layered on top are counters that explain *why* the bot flow specifically failed or cost money,
+rather than just that a request happened:
+
+| Metric | Labels | What it answers |
+|---|---|---|
+| `chat_bot_quota_rejected_total` | `reason` | Is the quota biting a real abuser or a normal user? |
+| `chat_bot_reply_cache_total` | `result` (hit/miss) | How often is a Gemini call avoided entirely? |
+| `chat_bot_tokens_total` | `kind` (prompt/output) | What does the daily question budget actually cost? |
+| `chat_bot_enabled` | — (gauge) | Is the kill switch on right now? |
+
+`chat_bot_enabled` is a `GaugeFunc`, not a `Gauge` with `Set` calls — it reads the kill-switch state
+live at scrape time rather than waiting for an event to push a new value. The alternative would sit
+at 0 until the next request came in and updated it, which is exactly the wrong failure mode: the
+gauge would still read "off" long after an auto-recovery flipped the bot back on overnight, when
+nobody was watching the dashboard to notice.
+
 ---
 
 ## 4. Known limitations
@@ -354,10 +391,10 @@ The observability stack is a **separate** compose file so the app stack stays le
 docker compose -f docker-compose.observability.yml up -d
 ```
 
-Then set `OTEL_ENABLED=true` in **all three** of `backend/.env`, `notification-service/.env` and
-`search-service/.env`, and restart the services. Instrumentation is opt-in behind that flag, so
-nothing is exported until you ask for it — the production write path pays nothing for tracing it
-isn't using.
+Then set `OTEL_ENABLED=true` in **all four** of `backend/.env`, `notification-service/.env`,
+`search-service/.env` and `chat-service/.env`, and restart the services. Instrumentation is opt-in
+behind that flag, so nothing is exported until you ask for it — the production write path pays
+nothing for tracing it isn't using.
 
 | Component | URL / port |
 |---|---|
@@ -367,6 +404,7 @@ isn't using.
 | Monolith metrics endpoint | http://localhost:8080/api/v1/metrics |
 | Notification service metrics endpoint | http://localhost:3001/metrics |
 | Search service metrics endpoint | http://localhost:8090/metrics |
+| Chat service metrics endpoint | http://localhost:8091/metrics |
 
 > The Go service reads `PORT` first and falls back to `SEARCH_HTTP_PORT`, defaulting to **8090** —
 > `PORT` is the variable Render injects and port-scans, so listening anywhere else fails the health
