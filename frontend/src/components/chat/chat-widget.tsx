@@ -17,10 +17,19 @@ import { matchCategory } from '@/lib/chat/category-match';
 import { askBot, ChatNetworkError, ChatRequestError } from '@/lib/chat/stream';
 import { fetchChatEnabled } from '@/lib/chat/config';
 import { fetchHistory } from '@/lib/chat/history';
+import {
+  loadShortcutMessages,
+  rememberShortcut,
+} from '@/lib/chat/shortcut-storage';
 import { useChatWidgetStore } from '@/store/useChatWidgetStore';
 import { ChatBubble } from '@/components/chat/chat-bubble';
 import { ChatPanel } from '@/components/chat/chat-panel';
-import type { ChatMessage, ChatMessageStatus } from '@/types/chat';
+import type {
+  ChatMessage,
+  ChatMessageStatus,
+  ChatProductsMessage,
+  ChatTextMessage,
+} from '@/types/chat';
 
 // Ba hàm dưới đây đều kiểm `kind === 'text'` trước khi chạm vào `text` hay `status`.
 //
@@ -137,22 +146,29 @@ export default function ChatWidget() {
     setIsLoadingHistory(true);
     fetchHistory()
       .then((history) => {
-        // Chỉ ghi đè khi thật sự có lịch sử. Người dùng mở panel rồi hỏi luôn trong lúc request
-        // chưa về: một setMessages với mảng rỗng sẽ xoá mất câu họ vừa gõ.
-        if (history.length === 0) return;
-        setMessages(
-          history.map((message) => ({
-            kind: 'text' as const,
-            id: crypto.randomUUID(),
-            role: message.role,
-            text: message.text,
-            status: 'done' as const,
-            // createdAt là chuỗi RFC3339 theo UTC. Chuỗi hỏng cho ra NaN, mà NaN lọt vào hàm so
-            // sánh của sort sẽ làm thứ tự thành vô định — ép về 0 để tin hỏng dồn lên đầu thay
-            // vì phá cả danh sách.
-            at: Date.parse(message.createdAt) || 0,
-          })),
+        const fromServer: ChatMessage[] = history.map((message) => ({
+          kind: 'text' as const,
+          id: crypto.randomUUID(),
+          role: message.role,
+          text: message.text,
+          status: 'done' as const,
+          // createdAt là chuỗi RFC3339 theo UTC. Đây là chỗ trường đó có việc: nó là khoá để
+          // xếp tin của bot (lấy từ DB) xen với khối chip (lấy từ localStorage) đúng thứ tự
+          // thời gian. Chuỗi hỏng cho ra NaN, mà NaN lọt vào hàm so sánh của sort sẽ làm thứ
+          // tự thành vô định — ép về 0 để tin hỏng dồn lên đầu thay vì phá cả danh sách.
+          at: Date.parse(message.createdAt) || 0,
+        }));
+
+        // Khối chip không nằm trong DB nên phải ghép vào từ trình duyệt. Hai nguồn về không
+        // theo thứ tự nào cả, sắp lại theo mốc thời gian mới ra đúng dòng hội thoại đã diễn ra.
+        const merged = [...fromServer, ...loadShortcutMessages()].sort(
+          (a, b) => a.at - b.at,
         );
+
+        // Chỉ ghi đè khi thật sự có gì đó. Người dùng mở panel rồi hỏi luôn trong lúc request
+        // chưa về: một setMessages với mảng rỗng sẽ xoá mất câu họ vừa gõ.
+        if (merged.length === 0) return;
+        setMessages(merged);
       })
       .finally(() => setIsLoadingHistory(false));
   }, [isOpen]);
@@ -167,7 +183,7 @@ export default function ChatWidget() {
       setWasRefused(false);
 
       const now = Date.now();
-      const userMessage: ChatMessage = {
+      const userMessage: ChatTextMessage = {
         kind: 'text',
         id: crypto.randomUUID(),
         role: 'user',
@@ -182,19 +198,20 @@ export default function ChatWidget() {
       // chờ. Bật cờ streaming rồi tắt ngay trong cùng một nhịp chỉ làm nút gửi nhấp nháy.
       const matched = matchCategory(trimmed, categoriesData?.data ?? []);
       if (matched) {
-        setMessages((prev) => [
-          ...prev,
-          userMessage,
-          {
-            kind: 'products',
-            id: crypto.randomUUID(),
-            categoryId: matched.id,
-            categoryName: matched.name,
-            // Cộng một mili giây để khối sản phẩm luôn đứng sau câu hỏi khi trộn lại theo thời
-            // gian: hai tin sinh trong cùng một mili giây thì sort không có căn cứ nào để xếp.
-            at: now + 1,
-          },
-        ]);
+        const productsMessage: ChatProductsMessage = {
+          kind: 'products',
+          id: crypto.randomUUID(),
+          categoryId: matched.id,
+          categoryName: matched.name,
+          // Cộng một mili giây để khối sản phẩm luôn đứng sau câu hỏi khi trộn lại theo thời
+          // gian: hai tin sinh trong cùng một mili giây thì sort không có căn cứ nào để xếp.
+          at: now + 1,
+        };
+        setMessages((prev) => [...prev, userMessage, productsMessage]);
+
+        // Ghi xuống localStorage để lượt này còn lại sau khi tải lại trang. Lượt hỏi bot không
+        // cần dòng nào tương đương: chat-service đã lưu nó vào DB rồi.
+        rememberShortcut(userMessage, productsMessage);
         return;
       }
 
