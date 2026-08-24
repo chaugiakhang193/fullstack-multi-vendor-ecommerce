@@ -48,6 +48,19 @@ service's own store). Key properties, all inherited from patterns already used e
   stemmer, which suits Vietnamese), so a name match outranks a description match and accent-free queries
   match accented text.
 
+Each guarantee and the thing that actually enforces it:
+
+| Guarantee | Enforced by | Fails how, without it |
+|---|---|---|
+| Index cannot diverge from a committed write | outbox row written in the product's transaction | a write commits, the event is lost, the index silently lags forever |
+| Redelivery is harmless | `processed_events`, unique on `event_id`, written in the same transaction as the index row | at-least-once delivery double-applies |
+| A stale update cannot overwrite a newer one | `WHERE updated_at < EXCLUDED.updated_at` on upsert | retry queues reorder events and an old name wins |
+| A stale update cannot resurrect a deleted product | `deleted_products_tombstone` | the row is gone, so there is no timestamp left to compare against |
+| Those two tables do not grow forever | `RetentionGC.tick`, hourly, capped batches | a 0.5 GB managed Postgres fills with rows nothing reads |
+| Deleting is safe to switch off, measuring is not | `SEARCH_RETENTION_GC_ENABLED` gates `deleteExpired` but never `refreshGauges` | nothing to look at while deciding whether to enable deletion |
+| Accent-free queries match accented text | `unaccent` applied on both sides, in the trigger and the query | `dien thoai` misses `Điện thoại` — the original bug |
+| Typos still return something | `pg_trgm` `<%` pass, only when full-text counts zero | a single wrong letter returns an empty page |
+
 ## Out-of-order delivery, and the retention it forces
 
 Deduplication answers "have I seen this event?". It says nothing about "did this event happen before the
@@ -95,6 +108,39 @@ cannot silently leave the cutoff behind. A background sweep then deletes past th
 batches, hourly, while the row-count and database-size gauges it reports stay on unconditionally — the
 switch that gates deletion does not gate observation, or there would be nothing to look at while deciding
 whether to turn it on.
+
+## A query's path through the service
+
+Two stages are described below at the level of the system. Inside the service, one `GET /search` runs a
+shorter and more mechanical sequence:
+
+```
+searchHandler → Service.Search → CountSearchProducts → [ SearchProducts | searchTrgm ]
+```
+
+| Step | Function | What it decides |
+|---|---|---|
+| Parse | `searchHandler` (`internal/httpapi`) | `q` missing → `400` before any database work |
+| Clamp | `Service.Search` (`internal/search`) | `page` floors at 1, `limit` defaults to 20 and is capped at **300** — the ceiling the monolith's candidate window is matched to |
+| Count | `CountSearchProducts` | the total, and — because it runs **first** — whether full-text matched anything at all |
+| Page | `SearchProducts` | the ranked window, only when the count was non-zero |
+| Fallback | `searchTrgm` | the trigram pass, taken instead of the page query when the count was zero |
+
+Running the count before the page query is what makes the fallback cheap. A zero count proves the
+full-text page query would also come back empty, so it is skipped outright rather than executed and
+discarded.
+
+The trigram branch is the one place the service opens a transaction, and not for atomicity — both
+queries are read-only. It exists to scope `SET LOCAL pg_trgm.word_similarity_threshold = 0.3`, because
+the default of `0.6` is too strict for the case that motivated the fallback: a prefix like `die` does not
+clear it. `SET LOCAL` keeps the loosened threshold inside that one transaction instead of leaking onto a
+pooled connection that other queries will reuse.
+
+**A cancelled request is not an error.** When the monolith's 700 ms `AbortController` fires it drops the
+connection, the in-flight query returns `context.Canceled`, and the handler records that as **`499` /
+`client_canceled`** with an `INFO` log — deliberately separate from the `500` / `error` bucket. Without
+that split, the fail-open design on the monolith side would manufacture an error rate on the search side
+every time it did exactly what it was built to do.
 
 ## Read path — two-stage retrieval
 
