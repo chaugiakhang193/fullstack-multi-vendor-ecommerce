@@ -1,15 +1,19 @@
-# Full-stack DISTRIBUTED local: `docker compose up` → 6 service dựng trọn kiến trúc
+# Full-stack DISTRIBUTED local: `docker compose up` → 10 service dựng trọn kiến trúc
 # Tier 4 (database-per-service + message broker + WS cross-process) trên máy trống.
 #
 #   db          Postgres DB#1 — monolith backend (outbox_event, notification_read, processed_events)
 #   notif-db    Postgres DB#2 — notification-service (notification = source of truth, processed_events,
 #               notification_outbox)
+#   search-db   Postgres DB#3 — search-service (bảng index sản phẩm + tombstone + processed_events)
+#   chat-db     Postgres DB#4 — chat-service (hội thoại bot + participant + bot_usage_daily)
 #   rabbitmq    Message broker + Management UI (http://localhost:15672 — guest/guest)
 #   redis       Pub/sub cho WebSocket cross-process (socket.io redis-adapter/emitter)
 #   backend     NestJS monolith — producer outbox + WS server (redis-adapter) + projection consumer
 #   notification NestJS microservice — consumer notifications.q + notif source-of-truth + WS emitter
+#   search      Go service — consumer search_index queue + HTTP /search (ranked product IDs)
+#   chat        Go service — HTTP SSE chatbot Gemini, gọi search làm tool; chưa đụng rabbitmq/redis
 #
-# Cả 2 service self-migrate (migration:run:prod trong CMD) nên DB rỗng được dựng schema tự động.
+# Bốn NestJS/Go service self-migrate (migration lúc khởi động) nên DB rỗng được dựng schema tự động.
 # FE chạy riêng: `cd frontend && npm run dev` (trỏ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1).
 #
 # Biến DB lấy từ .env.docker (xem .env.docker.example), có default để chạy ngay không cần file .env.
@@ -43,6 +47,45 @@ services:
       - '5433:5432' # host 5433 để không đụng DB#1 (5432)
     volumes:
       - notifpgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ecommerce}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- DB#3: search-service (database-per-service) ------------------------
+  # Credential CỐ ĐỊNH postgres/postgres, KHÔNG theo ${DB_PASSWORD} như db/notif-db.
+  # Lý do: search nhận một DATABASE_URL duy nhất, mà mật khẩu có ký tự URL đặc biệt
+  # (dev hay đặt kiểu ctc123!@#) nhét vào URL sẽ vỡ cú pháp — compose không encode được.
+  # NestJS miễn nhiễm vì nhận field rời. DB throwaway nên pin cứng là an toàn nhất.
+  search-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-ecommerce}
+    ports:
+      - '5434:5432' # host 5434 để không đụng DB#1 (5432) và DB#2 (5433)
+    volumes:
+      - searchpgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ecommerce}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- DB#4: chat-service (database-per-service) --------------------------
+  # Credential CỐ ĐỊNH postgres/postgres, cùng lý do URL-encode như search-db ở trên.
+  chat-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-ecommerce}
+    ports:
+      - '5435:5432' # host 5435 để không đụng ba DB kia
+    volumes:
+      - chatpgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ecommerce}']
       interval: 5s
@@ -134,6 +177,71 @@ services:
     ports:
       - '3001:3001'
 
+  # ---- Search service (Go) -------------------------------------------------
+  search:
+    build:
+      context: ./search-service
+    depends_on:
+      search-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SEARCH_HTTP_PORT: 8090
+      # sslmode=disable: Postgres local không bật SSL. Prod trỏ Neon nên phải require —
+      # để require ở đây là fail kết nối ngay lúc khởi động.
+      DATABASE_URL: postgres://postgres:postgres@search-db:5432/${DB_NAME:-ecommerce}?sslmode=disable
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      # Tên queue riêng cho local. Trùng tên queue trên Render thì RabbitMQ chia round-robin
+      # event giữa hai bên, mỗi bên chỉ nhận một nửa.
+      SEARCH_QUEUE_NAME: search_index.v2.local.q
+      LOG_LEVEL: info
+    ports:
+      - '8090:8090'
+
+  # ---- Chat service (Go) ---------------------------------------------------
+  chat:
+    build:
+      context: ./chat-service
+    depends_on:
+      chat-db:
+        condition: service_healthy
+      # Chờ search chạy để bot có tool search_products; cách một (§bàn 24/08) chỉ chờ
+      # container khởi động, không chờ readiness — câu hỏi đầu tiên chịu được cold start.
+      search:
+        condition: service_started
+    # JWT_ACCESS_SECRET phải trùng y hệt backend, nên nạp từ CÙNG backend/.env. Lệch nhau
+    # thì mọi token hợp lệ vẫn bị chat từ chối mà không có dấu hiệu nào ngoài "user kêu".
+    #
+    # Nhưng env_file kéo TOÀN BỘ env backend vào, gồm PORT=8080, OTEL_ENABLED=true và
+    # FRONTEND_URL trỏ domain prod — cả ba trùng tên với config chat. Khối environment bên
+    # dưới phải đè lại từng cái, vì environment thắng env_file. Thiếu đè PORT là chat nghe
+    # nhầm 8080 (config đọc PORT trước CHAT_HTTP_PORT) và cổng 8091 map vào chỗ trống.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      # Đặt PORT (không phải CHAT_HTTP_PORT) vì config ưu tiên PORT, và đây là biến bị
+      # backend/.env ghi đè thành 8080 nếu không chặn.
+      PORT: 8091
+      # sslmode=disable vì cùng lý do như search: Postgres local không có SSL.
+      DATABASE_URL: postgres://postgres:postgres@chat-db:5432/${DB_NAME:-ecommerce}?sslmode=disable
+      SEARCH_SERVICE_URL: http://search:8090
+      # Chặn giá trị prod rò từ backend/.env — FE local ở localhost:3000, để domain prod
+      # thì mọi request từ FE local ăn 403 CORS.
+      FRONTEND_URL: http://localhost:3000
+      # Backend bật OTEL; chat local không có collector nên tắt để khỏi init vô ích.
+      OTEL_ENABLED: 'false'
+      CHAT_BOT_ENABLED: 'true'
+      # Đi qua ${..:-} nên thiếu key thì chat vẫn boot, chỉ tắt nhánh bot — để
+      # `docker compose up` chạy được trên máy chưa có key Gemini.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LOG_LEVEL: info
+    ports:
+      - '8091:8091'
+
 volumes:
   pgdata:
   notifpgdata:
+  searchpgdata:
+  chatpgdata:
