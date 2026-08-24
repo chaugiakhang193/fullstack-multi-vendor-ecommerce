@@ -31,7 +31,7 @@ export function ChatCategoryChips({
 
   return (
     <div className="space-y-2">
-      <p className="text-muted-foreground text-xs">{heading}</p>
+      <p className="text-muted-foreground text-sm">{heading}</p>
       <div className="flex flex-wrap gap-1.5">
         {categories.map((category: CategoryResponseType) => (
           <button
@@ -39,7 +39,7 @@ export function ChatCategoryChips({
             type="button"
             onClick={() => onPick(category.name)}
             disabled={disabled}
-            className="rounded-full border border-zinc-200 px-3 py-1 text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            className="rounded-full border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
           >
             {category.name}
           </button>

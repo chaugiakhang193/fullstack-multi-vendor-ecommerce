@@ -24,7 +24,7 @@ export function MessageText({ text }: { text: string }) {
   const parts = text.split(URL_PATTERN);
 
   return (
-    <p className="text-sm break-words whitespace-pre-wrap">
+    <p className="text-base break-words whitespace-pre-wrap">
       {parts.map((part, index) => {
         const isUrl = index % 2 === 1;
         if (!isUrl) return <React.Fragment key={index}>{part}</React.Fragment>;

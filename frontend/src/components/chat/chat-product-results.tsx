@@ -59,7 +59,7 @@ export function ChatProductResults({
 
   if (isLoading) {
     return (
-      <p className="text-muted-foreground flex items-center gap-2 text-xs">
+      <p className="text-muted-foreground flex items-center gap-2 text-sm">
         <Loader2 className="h-3 w-3 animate-spin" />
         Đang lấy sản phẩm…
       </p>
@@ -76,13 +76,13 @@ export function ChatProductResults({
 
   if (top.length === 0) {
     return (
-      <p className="text-muted-foreground text-xs">{FALLBACK_SEARCH_EMPTY}</p>
+      <p className="text-muted-foreground text-sm">{FALLBACK_SEARCH_EMPTY}</p>
     );
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         Vài sản phẩm được đánh giá cao trong {categoryName}:
       </p>
 
@@ -97,15 +97,16 @@ export function ChatProductResults({
           <Image
             src={product.thumbnail_url || '/placeholder-product.png'}
             alt={product.name}
-            width={40}
-            height={40}
-            className="h-10 w-10 shrink-0 rounded object-cover"
+            width={48}
+            height={48}
+            // Ảnh lên 48px theo chữ lên text-sm, giữ tỉ lệ ảnh/chữ như cũ thay vì để ảnh lép đi.
+            className="h-12 w-12 shrink-0 rounded object-cover"
           />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium">
+            <span className="block truncate text-sm font-medium">
               {product.name}
             </span>
-            <span className="text-primary block text-xs">
+            <span className="text-primary block text-sm">
               {priceFormatter.format(Number(product.price))}
             </span>
           </span>
@@ -115,7 +116,7 @@ export function ChatProductResults({
       {total > top.length ? (
         <Link
           href={`/products?category_id=${categoryId}`}
-          className="text-primary block text-xs hover:underline"
+          className="text-primary block text-sm hover:underline"
         >
           Xem tất cả {total} sản phẩm
         </Link>

@@ -117,7 +117,7 @@ export function ChatPanel({
   const showCounter = remainingChars <= COUNTER_THRESHOLD;
 
   return (
-    <div className="fixed right-5 bottom-5 z-40 flex h-[min(32rem,calc(100vh-2.5rem))] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="fixed right-5 bottom-5 z-40 flex h-[min(36rem,calc(100vh-2.5rem))] w-[min(26rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
       <header className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full">
           <Bot className="h-4 w-4" />
@@ -262,7 +262,7 @@ export function ChatPanel({
             }}
             rows={1}
             placeholder="Hỏi về sản phẩm..."
-            className="focus:border-primary max-h-24 flex-1 resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none dark:border-zinc-800 dark:bg-zinc-900"
+            className="focus:border-primary max-h-24 flex-1 resize-none rounded-lg border border-zinc-200 px-3 py-2 text-base outline-none dark:border-zinc-800 dark:bg-zinc-900"
           />
           <Button
             size="icon"
