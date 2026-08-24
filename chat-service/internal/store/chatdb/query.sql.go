@@ -170,6 +170,29 @@ func (q *Queries) GetBotUsage(ctx context.Context, arg GetBotUsageParams) (int32
 	return message_count, err
 }
 
+const getConversationByID = `-- name: GetConversationByID :one
+SELECT id, type, owner_user_id, owner_guest_key, shop_id, last_message_at, last_message_preview, created_at FROM conversation WHERE id = $1
+`
+
+// Dung cho phan quyen doc: lay hoi thoai roi moi doi chieu voi nguoi goi. Tach khoi
+// GetDirectConversation vi o day chua biet nguoi goi la buyer hay seller, nen chua co
+// owner_user_id de loc.
+func (q *Queries) GetConversationByID(ctx context.Context, id string) (Conversation, error) {
+	row := q.db.QueryRow(ctx, getConversationByID, id)
+	var i Conversation
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.OwnerUserID,
+		&i.OwnerGuestKey,
+		&i.ShopID,
+		&i.LastMessageAt,
+		&i.LastMessagePreview,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getDirectConversation = `-- name: GetDirectConversation :one
 SELECT id, type, owner_user_id, owner_guest_key, shop_id, last_message_at, last_message_preview, created_at FROM conversation
 WHERE type = 'direct' AND owner_user_id = $1 AND shop_id = $2

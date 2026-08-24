@@ -35,6 +35,12 @@ WHERE type = 'direct' AND shop_id = @shop_id
 ORDER BY last_message_at DESC NULLS LAST
 LIMIT @page_limit;
 
+-- name: GetConversationByID :one
+-- Dung cho phan quyen doc: lay hoi thoai roi moi doi chieu voi nguoi goi. Tach khoi
+-- GetDirectConversation vi o day chua biet nguoi goi la buyer hay seller, nen chua co
+-- owner_user_id de loc.
+SELECT * FROM conversation WHERE id = @id;
+
 -- name: AddParticipant :one
 INSERT INTO participant (id, conversation_id, role, user_id, guest_key)
 VALUES (@id, @conversation_id, @role, sqlc.narg('user_id'), sqlc.narg('guest_key'))
