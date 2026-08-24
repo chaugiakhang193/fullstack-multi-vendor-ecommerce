@@ -34,8 +34,11 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
 - **End-to-end distributed tracing** — a single **OpenTelemetry** trace follows one request through the
   monolith, the **outbox table**, **RabbitMQ**, and into the consuming service — **across a language
   boundary into Go** — plus Prometheus/Grafana **RED dashboards** and a k6 load baseline.
+- **Grounded shopping chatbot** — a second **Go** service streams answers over **SSE**, calling the search
+  service as a **tool** so replies cite real catalogue products, behind a three-tier quota that caps
+  provider spend. A category shortcut answers a whole class of questions on the client, costing nothing.
 - **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **14 domain event types**,
-  **3 services / 3 databases**.
+  **4 services / 4 databases**.
 - **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
   logging (pino), Sentry, CodeQL, Dependabot.
 
@@ -56,8 +59,9 @@ the matching order live (right, same order id), with no page refresh:
 
 ## 🧩 Features
 
-**Customer** — browse & search products, multi-shop cart, checkout with shipping & coupons, order
-tracking, returns, product reviews, realtime notifications, Google login.
+**Customer** — browse & search products, ask a shopping assistant that cites real catalogue items,
+multi-shop cart, checkout with shipping & coupons, order tracking, returns, product reviews, realtime
+notifications, Google login.
 
 **Seller** — shop setup, product & variant management, order fulfilment, payouts, a stats dashboard,
 and realtime new-order alerts.
@@ -66,11 +70,12 @@ and realtime new-order alerts.
 
 ---
 
-## 🏛️ Architecture: three services, three databases
+## 🏛️ Architecture: four services, four databases
 
-Two capabilities have been carved out of the monolith, each owning its own database and each fed by
-the **same** RabbitMQ topic exchange. Neither reads the monolith's tables. Solid arrows below are
-asynchronous events; the one dashed arrow is the only synchronous call between services.
+Three capabilities have been carved out of the monolith, each owning its own database. None of them
+reads the monolith's tables. Two are fed asynchronously by the **same** RabbitMQ topic exchange; the
+third — the chatbot — is not an event consumer at all, but a synchronous service the browser streams
+from. Solid arrows below are asynchronous events; dashed arrows are synchronous calls.
 
 ```mermaid
 flowchart LR
@@ -93,6 +98,13 @@ flowchart LR
         DB3[("DB#3 Neon<br/>product_index")]
     end
 
+    subgraph CSvc["Chat Service · Go"]
+        CC["SSE bot<br/>POST /chat/bot"]
+        DB4[("DB#4 Neon<br/>conversations")]
+    end
+
+    GEM{{"Gemini"}}
+
     CLIENT --> API
     API --- DB1
     API -->|publish| MQ
@@ -101,6 +113,10 @@ flowchart LR
     NSC --- DB2
     SC --- DB3
     API -.->|"ranked ids"| SC
+    CLIENT -.->|"SSE stream"| CC
+    CC --- DB4
+    CC -.->|"tool: search"| SC
+    CC -.-> GEM
 ```
 
 Redis carries the WebSocket push from the notification service back to the socket the monolith holds;
@@ -112,6 +128,7 @@ it is left out above to keep the shape readable and drawn in full in the
 | Monolith | NestJS | DB#1 (Supabase) | HTTP | catalogue, orders, payouts, the read projection |
 | Notification | NestJS | DB#2 (Supabase) | `order.*` `review.*` `payout.*` `return.*` | notifications (source of truth) |
 | Search | **Go** | DB#3 (Neon) | `product.*` | the full-text index |
+| Chat | **Go** | DB#4 (Neon) | HTTP (SSE) | bot conversations, quota counters |
 
 ### The notification path
 
@@ -351,6 +368,98 @@ one, the oldest deliverable event has no upper bound, so no retention window can
 
 ---
 
+## 💬 Shopping Chatbot
+
+> 📖 **Deep dive:** [`docs/chat-architecture.md`](docs/chat-architecture.md) — the request path, the
+> quota layers, and what the Gemini 3 line requires of a caller.
+
+A shopping assistant is easy to demo and easy to get wrong in two specific ways: it invents products
+that are not for sale, and it bills an unbounded amount of somebody's API quota. Both are design
+problems, not prompt problems.
+
+### Answers are grounded in the catalogue, not in the model
+
+The bot is given exactly one tool: the **search service** from the section above. When a question needs
+product facts, the model calls it, and the reply is written from what came back — real names, real
+prices, real availability.
+
+Product links are then built **from our own stored slug and id**, never from a URL the model composed:
+
+```
+FRONTEND_URL + "/products/" + slug + "-i." + productId
+```
+
+The storefront resolves on the id after `-i.`, so the link survives a slug that has lost its diacritics.
+Letting the model write URLs would invite a plausible-looking link to a product that does not exist —
+the one failure a shopper cannot detect before clicking.
+
+### Quota is the design constraint, not an afterthought
+
+A free-tier provider key is a shared, exhaustible resource, so the ceiling had to be structural. Six
+gates sit in front of the model, ordered cheapest-first, so a rejected request is turned away before it
+costs anything it did not have to:
+
+| Layer | Held in | Spares |
+|---|---|---|
+| Kill switch · auth | config / stateless | a provider call while the bot is off |
+| **Burst** — token bucket, 10 capacity, +1 / 6 s | RAM, per subject | a runaway loop, before it reaches the DB |
+| **Reply cache** — 500 entries, 10 min TTL | RAM | the model call **and** the quota charge |
+| **In-flight latch** — one request per subject | RAM | twenty open tabs each spending a turn |
+| **Counters** — guest 5/day · user 10/hr, 30/day · **global 300/day** | Neon DB#4 | the provider's daily quota |
+
+The counter order is a security decision rather than a tidy sort: **individual before global**, so
+someone already out of their own allowance cannot keep drawing down the shared 300; and **hour before
+day**, so a user who hits the hourly wall has not also lost one of their daily turns. The counters are
+**fail-closed** — a database error refuses the request, because a service that cannot count cannot know
+how much quota is already gone.
+
+### The cheapest answer costs nothing at all
+
+A whole class of questions never reaches the service. When a shopper's message names a catalogue
+category — including the accent-free and colloquial spellings people actually type — the **frontend**
+matches it against a synonym dictionary and renders products straight from data it already holds:
+
+| Path | Cost | Latency |
+|---|---|---|
+| Category shortcut | **zero** — no server call, no quota | instant |
+| Cached reply | one DB write | ~100 ms |
+| Full bot answer | 1 quota turn + 1–2 model calls (+ a search) | ~7–9 s |
+| Out of quota | falls back to search results in-panel | ~100 ms |
+
+Running out of quota **degrades rather than breaks**: the panel answers with real search results for the
+question just asked, so the shopper keeps shopping instead of hitting a dead end.
+
+### Mechanisms (mapped to code)
+
+| Mechanism | Where |
+|---|---|
+| **SSE, not WebSocket** | a question is request-and-response, so a socket lifecycle buys nothing; `meta` → `tool` → `text` → `done` over plain HTTP |
+| **Two-turn tool loop** | turn one decides *whether* to search (prose suppressed); turn two streams the answer with the tool result attached — one tool call per question, so one question cannot burn several searches |
+| **Provider-agnostic core** | quota, cache, retry, breaker and persistence never learn which model is behind them; one package converts types and maps provider errors |
+| **Breaker outside retrier** | `Breaker(Retrier(Gemini))` — both attempts of one request count as a single failure, and an open breaker skips the retry wait too |
+| **Identity, split two ways** | *who to bill* and *whose conversation* are separate: guests are metered by IP (clearing storage buys no new turns) while their history is keyed by an `X-Guest-Key` UUID; signed-in users are metered and stored by account, via an HS256 token verified with the monolith's secret |
+| **Durable conversation** | history lives in DB#4 and is read back on first open — free of quota, with a server-side limit of 30 so no client can ask for the whole table |
+| **Kill switch** | `CHAT_BOT_ENABLED=false` answers `503` with a reason and the widget hides itself; `GET /chat/config` reports it without touching the database |
+
+### Known limitations
+
+**Four of ten category shortcuts are dead ends in production.** The chips are built from live leaf
+categories, but measured against the production catalogue, `Xiaomi Poco`, `Áo Khoác`, `Samsung` and
+`Iphone` hold **0 products** each, while the other six hold 10–15. The matching code is correct; the
+seed data is thin. Filtering chips by product count needs a count the categories endpoint does not
+currently return.
+
+**A cold start costs ~12.5 s.** On the free tier the service sleeps after 15 minutes; a measured wake
+was **12.5 s**, of which TCP connect was 0.107 s — essentially all of it is the platform restarting the
+container. A first question after an idle period therefore lands around 20 s. Nothing times out, because
+the client sets no deadline, but it is the honest number.
+
+**Quota state is per-instance.** Burst buckets, the in-flight latch and the reply cache live in RAM,
+which is what makes them exact on one instance — and the first assumption to break on two, where the
+real ceiling becomes the configured one times the instance count.
+
+---
+
 ## 🔭 Observability
 
 > 📖 **Deep dive:** [`docs/observability.md`](docs/observability.md) — the two pipelines, how trace
@@ -480,11 +589,12 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
 | **Backend (monolith)** | NestJS 11 · TypeORM · PostgreSQL · Socket.IO · Passport (JWT access/refresh + Google OAuth2) |
 | **Notification Service** | NestJS 11 · RabbitMQ (amqplib) · Redis · PostgreSQL (database-per-service) |
 | **Search Service** | **Go 1.26** · pgx · sqlc · RabbitMQ (amqp091-go) · PostgreSQL full-text (`tsvector` + GIN + `unaccent` + `pg_trgm`) |
+| **Chat Service** | **Go 1.26** · pgx · sqlc · SSE streaming · Gemini (function calling) · circuit breaker + retry + reply cache |
 | **Frontend** | Next.js · React · TanStack Query · Zustand · Tailwind / shadcn-style UI |
 | **Messaging & realtime** | RabbitMQ (topic exchange, DLX/retry/DLQ) · Redis (socket.io adapter/emitter) |
 | **Observability** | OpenTelemetry (traces, W3C context propagation) · Jaeger · Prometheus (`prom-client` + `client_golang`) · Grafana (dashboard as code) · k6 (load baseline) |
 | **DevOps** | Docker (multi-stage) · Docker Compose · GitHub Actions → GHCR → Render · pino · Sentry · CodeQL · Dependabot |
-| **Infra (prod)** | Render · Supabase (DB#1, DB#2) + Neon (DB#3) · CloudAMQP · Upstash Redis · Vercel |
+| **Infra (prod)** | Render · Supabase (DB#1, DB#2) + Neon (DB#3, DB#4) · CloudAMQP · Upstash Redis · Vercel |
 
 ---
 
@@ -512,17 +622,23 @@ Once up:
 | Swagger API docs | http://localhost:8080/api/docs |
 | Notification Service health | http://localhost:3001/health |
 | RabbitMQ Management UI | http://localhost:15672 (guest / guest) |
+| Search Service health | http://localhost:8090/health |
+| Chat Service health | http://localhost:8091/health |
 | Postgres DB#1 (monolith) | localhost:5432 |
 | Postgres DB#2 (notification) | localhost:5433 |
+| Postgres DB#3 (search) | localhost:5434 |
+| Postgres DB#4 (chat) | localhost:5435 |
 
 Run the frontend separately: `cd frontend && npm run dev` (set
-`NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`).
+`NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1` and
+`NEXT_PUBLIC_CHAT_SERVICE_URL=http://localhost:8091`).
 
-> The **search service is not part of this compose file** — it needs its own Postgres (DB#3) and is
-> run on its own: `cd search-service && go run ./cmd/server` with `DATABASE_URL` and `RABBITMQ_URL`
-> set. It listens on **8090**. The monolith only calls it when `SEARCH_SERVICE_ENABLED=true`, and
-> falls back to the in-monolith `ILIKE` query when it is off or unreachable, so the stack above works
-> without it. See [`docs/deploy-search-service.md`](docs/deploy-search-service.md).
+> **Both Go services are in the compose file** — all ten containers come up together. Two notes on
+> degraded modes, both deliberate: the monolith only calls search when `SEARCH_SERVICE_ENABLED=true`
+> and otherwise falls back to the in-monolith `ILIKE` query; and the chat service starts fine without
+> `GEMINI_API_KEY`, simply leaving the bot branch unregistered. Neither missing piece breaks the stack.
+> See [`docs/deploy-search-service.md`](docs/deploy-search-service.md) and
+> [`docs/deploy-chat-service.md`](docs/deploy-chat-service.md).
 
 ### Optional: the observability stack
 
@@ -548,9 +664,9 @@ you ask for it.
 > Grafana is on **3002**, not its usual 3000/3001 — those are taken by the Next.js frontend and the
 > notification service respectively.
 
-All three services **self-migrate** on startup — the two NestJS services run `migration:run:prod`
-before `node dist/main`, and the Go service runs its embedded migrations before it opens the pool —
-so an empty database is provisioned automatically.
+All four services **self-migrate** on startup — the two NestJS services run `migration:run:prod`
+before `node dist/main`, and the two Go services run their embedded migrations before opening the
+pool — so an empty database is provisioned automatically.
 
 ---
 
