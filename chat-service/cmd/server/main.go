@@ -16,6 +16,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot/gemini"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/config"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/killswitch"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
@@ -135,6 +136,16 @@ func main() {
 		"burstRefillSeconds", cfg.BotBurstRefillSeconds,
 	)
 
+	// botService nil khi thieu key hoac CHAT_BOT_ENABLED=false. Gan con tro nil vao interface
+	// BotAsker cho ra interface khac nil (cap type+value), nen kiem deps.Asker != nil o handler
+	// khong chan duoc gi - goi method van panic. Kill switch la thu chan that va phai duoc kiem
+	// truoc moi lan cham deps.Asker.
+	botSwitch := killswitch.New(botService != nil)
+
+	// Dang ky o day chu khong trong InitMetrics: gauge nay phai doc duoc botSwitch, ma
+	// InitMetrics chay tu truoc khi co no.
+	telemetry.RegisterBotEnabledGauge(botSwitch.Enabled)
+
 	botDeps := httpapi.BotDeps{
 		Asker:    botService,
 		Limiter:  botLimiter,
@@ -144,12 +155,8 @@ func main() {
 		Burst:    botBurst,
 		// Store de nil duoc o tang handler, nen quen dong nay van bien dich va bot van tra loi -
 		// chi la bang message rong.
-		Store: chatStore,
-		// botService nil khi thieu key hoac CHAT_BOT_ENABLED=false. Gan con tro nil vao
-		// interface BotAsker cho ra interface khac nil (cap type+value), nen kiem
-		// deps.Asker != nil o handler khong chan duoc gi - goi method van panic. Co Enabled la
-		// thu chan that va phai duoc kiem truoc moi lan cham deps.Asker.
-		Enabled: botService != nil,
+		Store:  chatStore,
+		Switch: botSwitch,
 	}
 
 	var wg sync.WaitGroup

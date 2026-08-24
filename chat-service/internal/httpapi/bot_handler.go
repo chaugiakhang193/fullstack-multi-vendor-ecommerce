@@ -12,6 +12,7 @@ import (
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/auth"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/killswitch"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
@@ -29,6 +30,18 @@ const (
 
 	// historyLimit: bot.Ask tu cat con 6 luot, doc du 12 tin (6 cap hoi-dap) la thoa.
 	historyLimit = 12
+
+	// Hai ma loi duoi day duoc SO SANH chu khong chi duoc tra ve, nen phai la hang: mot lan go
+	// nham chuoi o cho so sanh se lam kill switch im lang khong cam co, va khong co gi bao.
+	reasonBotUnavailable      = "bot_unavailable"
+	reasonProviderRateLimited = "provider_rate_limited"
+
+	// providerTripFor la thoi gian tat bot khi loi den tu phia nha cung cap.
+	//
+	// 60s de trung voi breakerOpenFor ben internal/bot: co song lau hon breaker nghia la widget
+	// van an trong khi bot da khoe lai. Hai con so nay phai doi cung nhau - breakerOpenFor la
+	// hang khong xuat nen o day khong tham chieu duoc, chi ghi lai rang buoc.
+	providerTripFor = 60 * time.Second
 )
 
 // BotAsker la phan cua tang dieu phoi ma handler can. Khai o day de test dung ban gia khong can
@@ -54,8 +67,14 @@ type BotDeps struct {
 	// khong phai dung Postgres.
 	Store *store.Store
 
-	// Enabled la kill switch. False = bot nghi, tra 503 co ly do ro rang.
-	Enabled bool
+	// Switch la kill switch. Enabled() false = bot nghi, tra 503 co ly do ro rang.
+	//
+	// Doc DONG chu khong phai ban copy luc boot: co tu dong duoc cam ngay tai cho phat hien tran
+	// global vo, va phai co hieu luc voi request ngay sau do.
+	//
+	// Bat buoc khac nil, giong Burst: de nil thi cua nay bien mat lang le va khong test nao bat
+	// duoc.
+	Switch *killswitch.Switch
 }
 
 // askRequest la body cua POST /chat/bot.
@@ -85,7 +104,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 	metrics := telemetry.GetMetrics()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !deps.Enabled {
+		if !deps.Switch.Enabled() {
 			writeError(w, deps.Logger, http.StatusServiceUnavailable, errorBody{Reason: "bot_disabled"})
 			return
 		}
@@ -100,7 +119,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 		// mot byte nao va khong cham DB mot lenh nao. Dat sau auth vi no dem theo subject, ma
 		// subject chi biet duoc sau khi verify token.
 		if decision := deps.Burst.Allow(subject); !decision.Allowed {
-			writeQuotaRejected(w, deps.Logger, metrics, decision)
+			writeQuotaRejected(w, deps, metrics, decision)
 			return
 		}
 
@@ -115,7 +134,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 			// ghi xuong DB.
 			release, decision := deps.Limiter.Reserve(subject)
 			if !decision.Allowed {
-				writeQuotaRejected(w, deps.Logger, metrics, decision)
+				writeQuotaRejected(w, deps, metrics, decision)
 				return
 			}
 			defer release()
@@ -136,7 +155,7 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 		defer release()
 
 		if !decision.Allowed {
-			writeQuotaRejected(w, deps.Logger, metrics, decision)
+			writeQuotaRejected(w, deps, metrics, decision)
 			return
 		}
 
@@ -148,17 +167,34 @@ func botHandler(deps BotDeps) http.HandlerFunc {
 //
 // Dung chung cho ca hai duong tu choi (Reserve va Acquire) de FE chi phai xu ly mot khuon 429,
 // va de them mot tang han muc sau nay khong phai sua hai cho.
+//
+// Nhan deps chu khong nhan rieng logger: day la cho duy nhat biet tran global vua vo, nen no
+// phai voi toi duoc kill switch.
 func writeQuotaRejected(
 	w http.ResponseWriter,
-	logger *slog.Logger,
+	deps BotDeps,
 	metrics *telemetry.Metrics,
 	decision quota.Decision,
 ) {
 	metrics.BotQuotaRejectedTotal.WithLabelValues(string(decision.Reason)).Inc()
 
+	// Tran global la ly do duy nhat trong nhom nay noi ve CA SERVICE chu khong ve mot nguoi.
+	// Cam co ngay tai day de request tiep theo bi chan o cong dau, khong con ton lenh ghi Neon
+	// moi cau chi de biet lai dieu vua biet.
+	//
+	// RetryAfter da la thoi gian toi nua dem ICT - limiter tinh san de dien vao header, khong
+	// phai tinh them gi o day.
+	if decision.Reason == quota.ReasonGlobalDaily {
+		deps.Switch.TripFor(decision.RetryAfter)
+		deps.Logger.Warn("tat bot tu dong",
+			"reason", string(decision.Reason),
+			"forSeconds", int(decision.RetryAfter.Seconds()),
+		)
+	}
+
 	retryAfter := int(decision.RetryAfter.Seconds())
 	w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-	writeError(w, logger, http.StatusTooManyRequests, errorBody{
+	writeError(w, deps.Logger, http.StatusTooManyRequests, errorBody{
 		Reason:     string(decision.Reason),
 		RetryAfter: retryAfter,
 	})
@@ -233,8 +269,20 @@ func streamAnswer(
 		//
 		// Cau hoi da duoc ghi o tren va khong go ra: nguoi dung da hoi that. Luot sau doc lai
 		// lich su se thay mot cau hoi khong co tra loi, dung nhu da xay ra.
+		reason := botErrorReason(err)
 		deps.Logger.Error("hoi bot loi", "err", err, "latencyMs", time.Since(started).Milliseconds())
-		_ = writer.event(eventError, map[string]string{"reason": botErrorReason(err)})
+
+		// Breaker mo hoac provider tu choi la su co ben NHA CUNG CAP, khong phai tran cua minh:
+		// tat ngan roi tu mo lai, khac han ca tran global nghi toi nua dem.
+		if reason == reasonBotUnavailable || reason == reasonProviderRateLimited {
+			deps.Switch.TripFor(providerTripFor)
+			deps.Logger.Warn("tat bot tu dong",
+				"reason", reason,
+				"forSeconds", int(providerTripFor.Seconds()),
+			)
+		}
+
+		_ = writer.event(eventError, map[string]string{"reason": reason})
 		return
 	}
 
@@ -302,9 +350,9 @@ func streamCached(
 func botErrorReason(err error) string {
 	switch {
 	case errors.Is(err, bot.ErrCircuitOpen):
-		return "bot_unavailable"
+		return reasonBotUnavailable
 	case errors.Is(err, bot.ErrRateLimited):
-		return "provider_rate_limited"
+		return reasonProviderRateLimited
 	case errors.Is(err, bot.ErrTimeout):
 		return "timeout"
 	case errors.Is(err, bot.ErrBlocked):

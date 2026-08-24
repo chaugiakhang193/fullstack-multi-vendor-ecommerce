@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/killswitch"
 )
 
 func TestConfigTraCoEnabled(t *testing.T) {
@@ -23,7 +25,7 @@ func TestConfigTraCoEnabled(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodGet, "/chat/config", nil)
 
-			configHandler(tc.enabled, logger)(recorder, request)
+			configHandler(killswitch.New(tc.enabled), logger)(recorder, request)
 
 			if recorder.Code != http.StatusOK {
 				t.Fatalf("status = %d, mong doi 200", recorder.Code)
@@ -50,7 +52,7 @@ func TestConfigKhongChoCache(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/chat/config", nil)
 
-	configHandler(true, logger)(recorder, request)
+	configHandler(killswitch.New(true), logger)(recorder, request)
 
 	if got := recorder.Header().Get("Cache-Control"); got != "no-store" {
 		t.Errorf("Cache-Control = %q, mong doi %q", got, "no-store")

@@ -31,6 +31,10 @@ type Metrics struct {
 var (
 	globalMetrics *Metrics
 	metricsOnce   sync.Once
+
+	// botEnabledOnce rieng khoi metricsOnce vi gauge nay duoc dang ky tu main sau khi kill
+	// switch da dung xong, khong phai luc InitMetrics chay.
+	botEnabledOnce sync.Once
 )
 
 // InitMetrics khoi tao va dang ky metric voi Prometheus qua sync.Once de tranh panic
@@ -87,4 +91,29 @@ func GetMetrics() *Metrics {
 // MetricsHandler cung cap HTTP handler phuc vu scraping metrics tai endpoint /metrics.
 func MetricsHandler() http.Handler {
 	return promhttp.Handler()
+}
+
+// RegisterBotEnabledGauge dang ky gauge doc trang thai kill switch TAI THOI DIEM SCRAPE.
+//
+// GaugeFunc chu khong phai Gauge kem Set: co tu dong het han lang le theo dong ho, khong co su
+// kien nao de goi Set luc bot song lai. Gauge thuong vi vay se ket o 0 cho toi request dau tien
+// sau nua dem - dung vao khung gio khong ai ngoi nhin bang.
+//
+// sync.Once vi promauto panic khi dang ky trung ten: mot test dung hai server trong cung mot
+// process khong duoc lam do ca goi test. Lan dang ky dau thang, cac lan sau bi bo qua.
+func RegisterBotEnabledGauge(enabled func() bool) {
+	botEnabledOnce.Do(func() {
+		promauto.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "chat_bot_enabled",
+				Help: "Kill switch nhanh chatbot: 1 dang nhan cau hoi, 0 dang nghi",
+			},
+			func() float64 {
+				if enabled() {
+					return 1
+				}
+				return 0
+			},
+		)
+	})
 }

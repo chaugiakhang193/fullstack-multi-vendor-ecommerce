@@ -13,6 +13,7 @@ import (
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/auth"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/killswitch"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store/chatdb"
 )
@@ -72,7 +73,7 @@ func testDeps(t *testing.T, asker BotAsker) BotDeps {
 		Burst:    quota.NewBurst(100, time.Second),
 		Verifier: verifier,
 		Logger:   slog.New(slog.NewJSONHandler(io.Discard, nil)),
-		Enabled:  true,
+		Switch:   killswitch.New(true),
 	}
 }
 
@@ -102,7 +103,7 @@ func TestBotHandlerStreamChu(t *testing.T) {
 
 func TestBotHandlerTatBotTra503(t *testing.T) {
 	deps := testDeps(t, &fakeAsker{})
-	deps.Enabled = false
+	deps.Switch = killswitch.New(false)
 	recorder := httptest.NewRecorder()
 
 	botHandler(deps)(recorder, askRequestFor("co dien thoai nao khong"))
@@ -324,5 +325,36 @@ func TestBotHandlerBurstChanCaNhanhCacheHit(t *testing.T) {
 
 	if blocked.Code != http.StatusTooManyRequests {
 		t.Fatalf("status = %d, mong doi 429 - Burst dang dung SAU cache", blocked.Code)
+	}
+}
+
+// Tran global vo la LY DO TON TAI cua kill switch tu dong: cau tiep theo phai bi chan o cong dau
+// chu khong di het duong roi moi bi Limiter tu choi lan nua.
+func TestTranGlobalVoThiCamCoKillSwitch(t *testing.T) {
+	asker := &fakeAsker{chunks: []string{"xong"}}
+	deps := testDeps(t, asker)
+
+	// GlobalDaily 1: cau dau di lot, cau thu hai cham tran.
+	limits := quota.Limits{GuestDaily: 100, UserDaily: 100, UserHourly: 100, GlobalDaily: 1}
+	deps.Limiter = quota.NewLimiter(&fakeUsageCounter{}, limits)
+
+	botHandler(deps)(httptest.NewRecorder(), askRequestFor("cau thu nhat"))
+
+	if !deps.Switch.Enabled() {
+		t.Fatal("moi het mot cau dau, kill switch chua duoc phep cam")
+	}
+
+	botHandler(deps)(httptest.NewRecorder(), askRequestFor("cau thu hai"))
+
+	if deps.Switch.Enabled() {
+		t.Error("tran global da vo ma kill switch van bat")
+	}
+
+	// Va cau thu ba phai chet ngay o cong dau voi ma khac han 429 cua han muc.
+	recorder := httptest.NewRecorder()
+	botHandler(deps)(recorder, askRequestFor("cau thu ba"))
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, mong doi 503", recorder.Code)
 	}
 }

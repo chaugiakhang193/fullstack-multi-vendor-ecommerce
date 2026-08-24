@@ -11,8 +11,8 @@ import (
 
 // NewServer dung *http.Server voi route da gan san.
 //
-// botDeps truyen theo gia tri: cac truong deu la con tro nen ban sao van dung chung state, chi
-// khac la khong ai sua duoc cau hinh cua server sau khi da khoi dong.
+// botDeps truyen theo gia tri: moi truong deu la con tro nen ban sao van dung chung state - ke ca
+// kill switch, vay nen cam co o tang handler co hieu luc ngay voi route da gan tu luc khoi dong.
 func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps BotDeps) *http.Server {
 	mux := http.NewServeMux()
 
@@ -28,7 +28,7 @@ func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps Bot
 	mux.Handle("OPTIONS /chat/bot", botRoute)
 
 	// Config di truoc moi thu: FE goi no luc mount de biet co nen ve bong bong hay khong.
-	configRoute := corsAllowlist(frontendURL, configHandler(botDeps.Enabled, logger))
+	configRoute := corsAllowlist(frontendURL, configHandler(botDeps.Switch, logger))
 	mux.Handle("GET /chat/config", configRoute)
 	mux.Handle("OPTIONS /chat/config", configRoute)
 
