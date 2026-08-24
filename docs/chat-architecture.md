@@ -1,11 +1,206 @@
-# Chat service: the bot's provider layer
+# Chat service: the shopping bot
 
 The chat service answers product questions by streaming a Gemini reply over SSE, with one tool the model
 may call to search the catalogue. Everything above the provider — retry, circuit breaker, quota, cache,
 persistence — is written without knowing which model is behind it.
 
-This note covers the boundary itself: what the Gemini 3 line requires of a caller, and why the code carries
-a field it never reads.
+This note has two halves. The first follows a question through the service: the gates it passes before a
+token is ever spent, how identity and quota are decided, and how the answer comes back. The second is the
+provider boundary itself — what the Gemini 3 line requires of a caller, and why the code carries a field it
+never reads.
+
+## A question's path through the service
+
+`botHandler` (`internal/httpapi`) runs a fixed sequence of gates, and the order is deliberate — each one is
+cheaper than the next, so a rejected request is turned away before it costs anything it did not have to:
+
+```
+kill switch → auth → burst → read body → cache (Reserve) → quota → model
+```
+
+```mermaid
+flowchart TD
+  Q[POST /chat/bot] --> K{bot enabled?}
+  K -- no --> R1[503 bot_disabled]
+  K -- yes --> A{valid token<br/>or guest key?}
+  A -- no --> R2[401 unauthorized]
+  A -- yes --> B{burst bucket<br/>has a token?}
+  B -- no --> R3[429 burst]
+  B -- yes --> C{answer in<br/>reply cache?}
+  C -- hit --> RC[Reserve — no charge,<br/>stream cached reply]
+  C -- miss --> D{quota:<br/>hour · day · global?}
+  D -- over --> R4[429 guest / user / global]
+  D -- under --> M[call model, stream answer]
+```
+
+The kill switch (`CHAT_BOT_ENABLED`) and auth come first because they need no state and no I/O. Burst is a
+pure in-memory check, so it fences off a runaway loop before that loop can touch the database. Only after
+the body is read and the cache is missed does the request reach the counters that write to Neon. `Reserve`
+on the cache-hit branch and `Acquire` on the miss branch return the same `Decision` shape, so the handler
+has one rejection path to format, not two.
+
+Each layer in one view — ordered by the path, cheapest first, so the columns read as "how much did this
+request cost before it was turned away":
+
+| Layer | Function | State lives in | Check cost | What it spares | Rejects with |
+|---|---|---|---|---|---|
+| Kill switch | `botDeps.Enabled` | config flag (RAM) | none | a provider call while the bot is off | `503 bot_disabled` |
+| Auth | `resolveSubject` | stateless — HS256 verify / guest UUID | one signature check | — (identifies, does not spare) | `401 unauthorized` |
+| Burst | `quota.Burst.Allow` | token bucket in RAM, per subject (cap 10, +1 / 6s; swept every 256 calls) | in-memory, no I/O | a runaway loop before it reaches the DB | `429 burst` |
+| Reply cache | `bot.ReplyCache.Get` | TTL map in RAM (500 entries, 10 min) | map lookup | the model call **and** the quota charge, for a repeated question | hit streams the cached reply |
+| In-flight latch | `Limiter.enter` | set in RAM, per subject-day | in-memory | concurrent tabs each spending a turn | `429 in_flight` |
+| Quota counters | `Limiter.charge` | Neon `bot_usage_daily` | 1–3 DB increments | the provider's daily quota (guest 5 · user 30/hr-cap 10 · global 300) | `429 guest_daily / user_hourly / user_daily / global_daily` |
+| Retrier | `bot.Retrier` | stateless | — (one retry on upstream/timeout) | — (spends a call to save an answer) | passes the error through |
+| Breaker | `bot.Breaker` | state + fail count in RAM (5 consecutive failures → open 60s) | in-memory | repeated calls to a provider that is down | `503 bot_unavailable` |
+
+The first six are gates on the request path, run in sequence. The last two are not gates — they wrap the
+provider call itself, and the model loop below explains why they nest in that order.
+
+Two of these behave in a way the row cannot hold. The cache **never evicts to make room**: when it is full
+it sweeps expired entries, and if it is still full it simply skips storing the new reply. A full cache means
+the questions are all different, which is exactly when a cache has stopped paying for itself — so the code
+declines to add an eviction policy it would not benefit from. And the breaker counts *consecutive* failures:
+one success in between resets the count to zero, so a provider that is merely flaky never trips it.
+
+Every counter and bucket in the table lives in **RAM on one instance**. That is what makes the burst ceiling
+and the in-flight latch exact — and it is also the assumption that breaks first if the service is ever
+scaled to two instances, where the real ceiling becomes the configured one multiplied by the instance count.
+
+## Quota is three ceilings and a speed limit
+
+Burst is a token bucket held per subject in RAM (`quota.Burst.Allow`): a fixed capacity refilled one token
+every few seconds. It is the speed limit, and it answers without a round trip, which is the point — the
+request it blocks never reaches the database.
+
+Those per-subject buckets accumulate, so they have to be cleaned up, and *how* is a deliberate choice. The
+sweep runs **on call count, not on a timer**: every 256th `Allow` drops the buckets that have been idle long
+enough, inline, while the caller already holds the lock. There is no background goroutine and no ticker —
+one more goroutine is one more thing to shut down correctly, and the map only grows while requests are
+arriving, so tying the cleanup to request volume means it happens exactly when it is needed and never while
+the service is quiet.
+
+The idle threshold is not a tuned constant either: it is `capacity × refill`, the time a bucket takes to
+refill from empty. Past that point a remembered bucket and a fresh one are indistinguishable, so dropping it
+costs nothing. It is not a memory-versus-accuracy trade — beyond that horizon there is no accuracy left to
+trade away.
+
+The three counters live in `quota.Limiter.charge`, and their order is a security decision, not a tidy
+sort:
+
+- **Individual before global.** Guest-daily or the user's hour/day counter is charged first; the global
+  daily ceiling last. Reversed, someone already out of their own allowance could still add to the 300-per-day
+  global total and starve the bot for everyone else.
+- **Hour before day, for signed-in users.** Reversed, a user who hits the hourly wall would still have spent
+  one of their daily allowance on the request that got refused.
+
+Two guards sit around the counters. An **in-flight** latch (`Limiter.enter`, keyed per subject-day) admits
+one request at a time, so opening twenty tabs blocks nineteen at the latch and none of them spends a turn.
+And the counters are **fail-closed**: a database error refuses the request rather than waving it through,
+because a service that cannot count cannot know how much of the provider quota is already gone — and if the
+counter write failed, the conversation write would fail too.
+
+Every rejection carries a `Reason` and a `RetryAfter` the limiter already computed (`untilNextDay`,
+`untilNextHour`), so the six distinct 429s reach the client as six distinct messages rather than one flat
+"out of quota".
+
+## Identity is a token or a guessable secret
+
+`resolveSubject` (`internal/httpapi`) decides who is asking. A valid `Authorization` bearer, verified with
+the same HS256 secret the monolith signs with, makes a signed-in subject on the higher limits. No token
+falls back to the guest path, keyed by an `X-Guest-Key` UUID the client generates and keeps in
+`localStorage`.
+
+That guest key started as a way to keep one anonymous visitor's context separate from another's. Once
+`GET /chat/history` existed, it became something stronger: guessing a key now reads that visitor's stored
+conversation, not just their model context. The key is still a 36-character UUID, so the difficulty is
+unchanged — but the comment in `subject.go` that once called it low-stakes had to be corrected, because it
+now guards a read.
+
+## The stream is the only channel
+
+Both branches answer over SSE, never a plain JSON body. A question is a request-and-response, not a
+conversation, so a WebSocket would buy nothing and cost a connection lifecycle; SSE is one-directional and
+rides ordinary HTTP. `internal/httpapi/sse.go` emits a fixed event vocabulary:
+
+| Event | Payload | Meaning |
+|---|---|---|
+| `meta` | `{"remaining": n}` or `{"cached": true}` | sent first, before any text |
+| `tool` | `{"name": "search_products"}` | the model asked to search |
+| `text` | `{"v": "…"}` | one chunk of the answer |
+| `done` | `{"cached", "truncated"}` | the stream is complete |
+| `error` | `{"reason": "…"}` | failed after the stream opened |
+
+The cache-hit branch streams too, one `text` event carrying the whole stored reply, so the client has a
+single code path to read. Errors split at the stream boundary: a rejection *before* the first byte is a
+normal HTTP status with a JSON body the client can read; a failure *after* the stream is open can only be
+an `error` event, because the status line is already sent.
+
+## The model loop, and the ring around it
+
+`Service.Ask` (`internal/bot`) turns one question into at most two model calls. History is trimmed to the
+last `maxHistoryTurns` (6) before the question is appended, so an old conversation cannot grow the prompt
+without bound.
+
+Turn one is non-streaming and carries the tool declaration, but its sink is wrapped in `toolCallOnly` — only
+a `tool` event reaches the client, and any prose the model writes on this turn is suppressed. The turn
+exists to decide one thing: does the model want to search?
+
+- **No tool call.** The answer is already complete on turn one. It is flushed once through the sink and the
+  service stops. Calling the model a second time just to obtain a stream would pay twice for the same
+  answer.
+- **A tool call.** Only the first is run (`decided.ToolCalls[0]`); a model that asks to search several times
+  in one turn cannot burn several search calls on one question. The tool result is appended and turn two
+  streams the real answer. The two turns must stay adjacent — Gemini rejects the request if the
+  `functionResponse` does not immediately follow its `functionCall`, which is the signature contract
+  described below.
+
+The whole of `Ask` runs under an `answerBudget` timeout, with a tighter `decideBudget` around turn one, so a
+slow provider fails on a deadline rather than holding the stream open.
+
+Around the provider sits a two-layer ring, composed in `buildBotClient` as `Breaker(Retrier(Gemini))`:
+
+- **Retrier** retries a failed call once, on `ErrUpstream` / `ErrTimeout` only, after a jittered backoff. A
+  call that already delivered bytes is not retried — that would double the visible text.
+- **Breaker** sits *outside* the retrier, on purpose. Both attempts of one request count as a single failure
+  toward its threshold, and while the breaker is open it short-circuits before the retrier's wait, so a
+  provider that is down stops costing latency as well as calls.
+
+The reply cache is deliberately *not* in this ring. It is a handler gate checked before quota (see the path
+above), so a repeated question is answered from memory without reaching the model or spending a turn — the
+ring protects the call, the cache avoids it.
+
+## The search tool, and links built from our own slugs
+
+When the model asks to search, `SearchTool` calls the search service at `GET /search/detailed` and hands
+the results back as the tool response. The two-round protocol that this requires — and the signature Gemini
+attaches to the call — is the subject of the provider half below.
+
+One detail lives on this side of the boundary. Product links in the answer are built by `productURL` from
+our own stored slug and id, `FRONTEND_URL + "/products/" + slug + "-i." + id`, never from a URL the model
+composed. The storefront route resolves on the id after `-i.`, so a link works even when the slug has lost
+its diacritics; letting the model write the URL would invite a plausible-looking link to a product that
+does not exist.
+
+## Conversation is stored once, and read without cost
+
+The database is the single copy of a conversation. `EnsureBotConversation` (`internal/store`) attaches
+every turn to a conversation owned by the subject, and `GET /chat/history` reads it back when the panel
+first opens.
+
+Two decisions keep that read cheap. History **does not touch quota** — it is a handful of SELECTs that never
+call the model, so re-opening the widget to read yesterday's thread costs nothing. And its `limit` is a
+server-side constant of 30, not a query parameter: a client-set limit would be a handle for anyone to make
+the service read the whole table. `GET /chat/config` is cheaper still — it returns `{"enabled": bool}`
+without a database call, because the widget mounts on every storefront page and must not bill a query just
+to decide whether to draw a button.
+
+## Not every question reaches the service
+
+A class of questions never arrives here at all. When a shopper's message matches a catalogue category, the
+frontend answers it directly from data it already holds and never calls `/chat/bot` — no model, no quota,
+no server round trip. This is why the question count a user generates runs ahead of the calls this service
+sees, and why the quota numbers are smaller than the traffic suggests. The mechanism — the synonym
+dictionary and category matching — is a frontend concern, described in the project README.
 
 ## The boundary
 
