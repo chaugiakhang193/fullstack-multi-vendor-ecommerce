@@ -227,6 +227,8 @@ services:
       # sslmode=disable vì cùng lý do như search: Postgres local không có SSL.
       DATABASE_URL: postgres://postgres:postgres@chat-db:5432/${DB_NAME:-ecommerce}?sslmode=disable
       SEARCH_SERVICE_URL: http://search:8090
+      # Dùng để hỏi monolith "seller này sở hữu shop nào" khi đọc inbox/hội thoại 1-1.
+      MONOLITH_URL: http://backend:8080
       # Chặn giá trị prod rò từ backend/.env — FE local ở localhost:3000, để domain prod
       # thì mọi request từ FE local ăn 403 CORS.
       FRONTEND_URL: http://localhost:3000

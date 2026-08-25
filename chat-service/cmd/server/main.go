@@ -18,6 +18,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/httpapi"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/killswitch"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/shopclient"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 )
@@ -159,10 +160,21 @@ func main() {
 		Switch: botSwitch,
 	}
 
+	// Client hoi monolith "nguoi nay so huu shop nao". MonolithURL rong thi client van dung
+	// duoc, chi luon tra ve khong co shop - phan buyer khong bi anh huong.
+	shops := shopclient.New(cfg.MonolithURL)
+
+	chatDeps := httpapi.ChatDeps{
+		Store:    chatStore,
+		Shops:    shops,
+		Verifier: verifier,
+		Logger:   logger,
+	}
+
 	var wg sync.WaitGroup
 
 	addr := ":" + httpPort
-	srv := httpapi.NewServer(addr, logger, cfg.FrontendURL, botDeps)
+	srv := httpapi.NewServer(addr, logger, cfg.FrontendURL, botDeps, chatDeps)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

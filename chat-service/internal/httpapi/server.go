@@ -13,7 +13,13 @@ import (
 //
 // botDeps truyen theo gia tri: moi truong deu la con tro nen ban sao van dung chung state - ke ca
 // kill switch, vay nen cam co o tang handler co hieu luc ngay voi route da gan tu luc khoi dong.
-func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps BotDeps) *http.Server {
+func NewServer(
+	addr string,
+	logger *slog.Logger,
+	frontendURL string,
+	botDeps BotDeps,
+	chatDeps ChatDeps,
+) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", healthHandler(logger))
@@ -37,6 +43,15 @@ func NewServer(addr string, logger *slog.Logger, frontendURL string, botDeps Bot
 	historyRoute := corsAllowlist(frontendURL, historyHandler(botDeps))
 	mux.Handle("GET /chat/history", historyRoute)
 	mux.Handle("OPTIONS /chat/history", historyRoute)
+
+	// Chat 1-1. Cung duoc CORS boc nhu moi route /chat khac: chung deu goi tu trinh duyet.
+	conversationsRoute := corsAllowlist(frontendURL, conversationsHandler(chatDeps))
+	mux.Handle("GET /chat/conversations", conversationsRoute)
+	mux.Handle("OPTIONS /chat/conversations", conversationsRoute)
+
+	messagesRoute := corsAllowlist(frontendURL, messagesHandler(chatDeps))
+	mux.Handle("GET /chat/messages", messagesRoute)
+	mux.Handle("OPTIONS /chat/messages", messagesRoute)
 
 	return &http.Server{
 		Addr:    addr,

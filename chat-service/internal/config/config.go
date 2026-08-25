@@ -42,6 +42,10 @@ type Config struct {
 	// chao hoi va huong dan, chi khong tra cuu duoc san pham.
 	SearchServiceURL string
 
+	// MonolithURL goc URL cua monolith NestJS (vd https://xxx.onrender.com). Dung de hoi
+	// seller nay so huu shop nao. De rong = phan inbox seller tat, phan buyer van chay.
+	MonolithURL string
+
 	// FrontendURL goc URL cua storefront, dung de dung link san pham gui kem cau tra loi.
 	FrontendURL string
 
@@ -114,6 +118,7 @@ func Load() (Config, error) {
 		BotEnabled: getEnv("CHAT_BOT_ENABLED", "true") == "true",
 
 		SearchServiceURL: getEnv("SEARCH_SERVICE_URL", ""),
+		MonolithURL:      getEnv("MONOLITH_URL", ""),
 		FrontendURL:      getEnv("FRONTEND_URL", defaultFrontendURL),
 		JWTAccessSecret:  getEnv("JWT_ACCESS_SECRET", ""),
 	}
