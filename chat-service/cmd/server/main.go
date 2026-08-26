@@ -21,6 +21,7 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/shopclient"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/ws"
 )
 
 func main() {
@@ -171,10 +172,30 @@ func main() {
 		Logger:   logger,
 	}
 
+	// Hub giu ket noi realtime cua chat 1-1. Dung o day, MOT lan cho ca service, cung ly do voi
+	// Limiter va ReplyCache: hub dung theo request thi van bien dich, van chay, chi la khong ai
+	// nhin thay ai - dang hong te nhat vi khong co dau hieu nao.
+	hub := ws.NewHub()
+	telemetry.RegisterWSConnectionsGauge(hub.Len)
+
+	// Burst RIENG cho duong chat, khong dung chung instance voi bot: chung nhau thi mot nguoi hoi
+	// bot vai cau se an mat luot nhan tin cua chinh ho, va con so bi tu choi khong con noi len
+	// dieu gi ve nguyen nhan.
+	chatBurst := quota.NewBurst(ws.DefaultBurstCapacity, ws.DefaultBurstRefill)
+
+	wsDeps := ws.Deps{
+		Hub:      hub,
+		Store:    chatStore,
+		Shops:    shops,
+		Verifier: verifier,
+		Logger:   logger,
+		Burst:    chatBurst,
+	}
+
 	var wg sync.WaitGroup
 
 	addr := ":" + httpPort
-	srv := httpapi.NewServer(addr, logger, cfg.FrontendURL, botDeps, chatDeps)
+	srv := httpapi.NewServer(addr, logger, cfg.FrontendURL, botDeps, chatDeps, ws.Handler(wsDeps, cfg.FrontendURL))
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

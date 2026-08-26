@@ -13,12 +13,17 @@ import (
 //
 // botDeps truyen theo gia tri: moi truong deu la con tro nen ban sao van dung chung state - ke ca
 // kill switch, vay nen cam co o tang handler co hieu luc ngay voi route da gan tu luc khoi dong.
+//
+// wsHandler nhan vao duoi dang http.Handler chu khong phai ws.Deps: httpapi khong can biet gi ve
+// hub, ve frame hay ve vong ping. Nho vay hai package khong tao vong import, va test cua server
+// gan duoc mot handler gia.
 func NewServer(
 	addr string,
 	logger *slog.Logger,
 	frontendURL string,
 	botDeps BotDeps,
 	chatDeps ChatDeps,
+	wsHandler http.Handler,
 ) *http.Server {
 	mux := http.NewServeMux()
 
@@ -52,6 +57,15 @@ func NewServer(
 	messagesRoute := corsAllowlist(frontendURL, messagesHandler(chatDeps))
 	mux.Handle("GET /chat/messages", messagesRoute)
 	mux.Handle("OPTIONS /chat/messages", messagesRoute)
+
+	// /ws KHONG boc corsAllowlist: bat tay WebSocket khong phai request CORS - trinh duyet khong
+	// gui preflight cho no va khong doc Access-Control-* trong phan hoi. Cua chan goc that su nam
+	// trong websocket.AcceptOptions.OriginPatterns, ngay tai cho nang cap ket noi.
+	//
+	// nil duoc: test cua package nay dung server khong co duong realtime.
+	if wsHandler != nil {
+		mux.Handle("GET /ws", wsHandler)
+	}
 
 	return &http.Server{
 		Addr:    addr,

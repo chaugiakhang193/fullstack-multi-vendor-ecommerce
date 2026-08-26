@@ -3,6 +3,7 @@ module github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service
 go 1.26.5
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/exaring/otelpgx v0.11.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1

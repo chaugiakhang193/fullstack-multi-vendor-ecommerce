@@ -35,6 +35,10 @@ var (
 	// botEnabledOnce rieng khoi metricsOnce vi gauge nay duoc dang ky tu main sau khi kill
 	// switch da dung xong, khong phai luc InitMetrics chay.
 	botEnabledOnce sync.Once
+
+	// wsConnectionsOnce: cung ly do voi botEnabledOnce - gauge nay doc hub, ma hub duoc dung o
+	// main sau InitMetrics.
+	wsConnectionsOnce sync.Once
 )
 
 // InitMetrics khoi tao va dang ky metric voi Prometheus qua sync.Once de tranh panic
@@ -114,6 +118,23 @@ func RegisterBotEnabledGauge(enabled func() bool) {
 				}
 				return 0
 			},
+		)
+	})
+}
+
+// RegisterWSConnectionsGauge dang ky gauge dem ket noi WebSocket dang mo, doc TAI THOI DIEM SCRAPE.
+//
+// GaugeFunc chu khong phai Gauge kem Inc/Dec: mot ket noi co it nhat bon duong chet (client dong,
+// ping that bai, ghi that bai, service shutdown) va moi duong do deu phai nho goi Dec. Doc thang
+// hub luc scrape thi khong co duong nao de quen, va con so khong bao gio troi khoi su that.
+func RegisterWSConnectionsGauge(count func() int) {
+	wsConnectionsOnce.Do(func() {
+		promauto.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "chat_ws_connections",
+				Help: "So ket noi WebSocket chat 1-1 dang mo tren instance nay",
+			},
+			func() float64 { return float64(count()) },
 		)
 	})
 }
