@@ -1073,7 +1073,9 @@ export default function CustomerLayout({
         </DialogContent>
       </Dialog>
       <CartDrawer />
-      <ChatWidget />
+      {/* Widget bot nổi ở góc phải dưới — đúng chỗ ô nhập của trang /chat. Hai khung chat chồng
+          lên nhau trên một màn hình, nên trang nào là chat 1-1 thì bot nghỉ. */}
+      {pathname !== '/chat' && <ChatWidget />}
     </div>
   );
 }

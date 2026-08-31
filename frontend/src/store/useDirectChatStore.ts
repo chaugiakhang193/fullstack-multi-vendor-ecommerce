@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import shopsApiRequest from '@/apiRequests/shops/shops';
 import {
   DIRECT_ERROR_MESSAGES,
   DIRECT_FALLBACK_ERROR,
@@ -35,6 +36,9 @@ interface DirectChatState {
   draftMessages: DirectMessage[];
   loadingMessages: boolean;
   errorMessage: string | null;
+  // Tên shop tra theo shopId. chat-service không có bảng shop nên inbox chỉ trả về id;
+  // tên phải đi hỏi monolith và nhớ lại ở đây.
+  shopNames: Record<string, string>;
 
   connect: (viewer: DirectViewer) => void;
   disconnect: () => void;
@@ -42,6 +46,8 @@ interface DirectChatState {
   openConversation: (conversationId: string, shopId: string) => Promise<void>;
   openDraft: (shopId: string) => void;
   sendText: (text: string) => void;
+  loadShopNames: () => Promise<void>;
+  retryFailed: (clientMsgId: string) => void;
   clearError: () => void;
 }
 
@@ -66,6 +72,7 @@ export const useDirectChatStore = create<DirectChatState>()((set, get) => ({
   draftMessages: [],
   loadingMessages: false,
   errorMessage: null,
+  shopNames: {},
 
   connect: (viewer) => {
     set({ viewer });
@@ -194,6 +201,68 @@ export const useDirectChatStore = create<DirectChatState>()((set, get) => ({
     });
 
     if (!sent) markFailed(set, get, clientMsgId);
+  },
+
+  // Hỏi tên cho những shop chưa biết tên.
+  //
+  // Mỗi shop một request vì monolith chưa có endpoint lấy theo danh sách id. Chấp nhận được vì
+  // inbox tối đa 30 dòng và số shop khác nhau thường ít hơn nhiều — nhưng đây đúng là chỗ đầu
+  // tiên nên sửa khi có endpoint lấy hàng loạt.
+  //
+  // allSettled chứ không phải all: một shop bị xoá hoặc một request hỏng không được làm mất tên
+  // của tất cả các shop còn lại.
+  loadShopNames: async () => {
+    const { conversations, shopNames } = get();
+    const missing = Array.from(
+      new Set(
+        conversations
+          .map((item) => item.shopId)
+          .filter((id) => id && !shopNames[id]),
+      ),
+    );
+    if (missing.length === 0) return;
+
+    const results = await Promise.allSettled(
+      missing.map((id) => shopsApiRequest.getPublicShopDetail(id)),
+    );
+
+    const fetched: Record<string, string> = {};
+    results.forEach((result, index) => {
+      if (result.status !== 'fulfilled') return;
+      const name = result.value?.data?.name;
+      if (typeof name === 'string' && name.length > 0) {
+        fetched[missing[index]] = name;
+      }
+    });
+
+    if (Object.keys(fetched).length === 0) return;
+    set((state) => ({ shopNames: { ...state.shopNames, ...fetched } }));
+  },
+
+  // Gửi lại một tin đã hỏng: bỏ tin cũ khỏi danh sách rồi gửi mới.
+  //
+  // Bỏ trước khi gửi chứ không giữ lại rồi đổi trạng thái: tin gửi lại mang clientMsgId MỚI, nên
+  // giữ tin cũ nghĩa là một câu chữ hiện hai lần nếu lần này thành công.
+  retryFailed: (clientMsgId) => {
+    const target = get().target;
+    if (!target) return;
+
+    const list =
+      target.kind === 'draft'
+        ? get().draftMessages
+        : (get().messages[target.conversationId] ?? []);
+    const failed = list.find((item) => item.clientMsgId === clientMsgId);
+    if (!failed) return;
+
+    const remaining = list.filter((item) => item.clientMsgId !== clientMsgId);
+    if (target.kind === 'draft') {
+      set({ draftMessages: remaining });
+    } else {
+      const id = target.conversationId;
+      set((state) => ({ messages: { ...state.messages, [id]: remaining } }));
+    }
+
+    get().sendText(failed.text);
   },
 
   clearError: () => set({ errorMessage: null }),
