@@ -111,7 +111,7 @@ func resolveTarget(
 	frame clientFrame,
 ) (store.DirectTarget, error) {
 	if frame.ConversationID != "" {
-		return deps.Store.ResolveDirectSend(ctx, frame.ConversationID, conn.UserID, conn.ShopID)
+		return deps.Store.ResolveDirectParticipant(ctx, frame.ConversationID, conn.UserID, conn.ShopID)
 	}
 
 	if frame.ShopID == "" {

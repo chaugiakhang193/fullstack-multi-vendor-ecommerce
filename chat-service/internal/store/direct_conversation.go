@@ -360,7 +360,11 @@ type DirectTarget struct {
 	SenderRole string
 }
 
-// ResolveDirectSend phan quyen mot nguoi gui vao mot hoi thoai da co, roi tra ve dinh danh de ghi.
+// ResolveDirectParticipant phan quyen mot nguoi vao mot hoi thoai da co, roi tra ve cho ngoi cua
+// ho trong do.
+//
+// Ten khong nhac toi viec gui tin, vi co hai duong GHI can cau tra loi nay: gui mot tin, va danh
+// dau da doc. Dat ten theo mot trong hai nguoi goi thi nguoi goi con lai doc len thay sai.
 //
 // Dung lai AuthorizeDirectRead lam cong duy nhat: quyen GHI vao mot hoi thoai 1-1 khong rong hon
 // quyen DOC no. Tach thanh hai bo luat la mo duong cho chung lech nhau ma khong ai phat hien.
@@ -368,22 +372,22 @@ type DirectTarget struct {
 // Vai duoc suy tu chinh hoi thoai chu khong tu tham so: ai khong phai chu so huu ma qua duoc cong
 // tren thi chi con duong seller (khop shop_id), va suy nhu vay thi mot ngay them vai moi khong
 // lam hong cho nay.
-func (s *Store) ResolveDirectSend(
+func (s *Store) ResolveDirectParticipant(
 	ctx context.Context,
-	conversationID, senderUserID, senderShopID string,
+	conversationID, viewerUserID, viewerShopID string,
 ) (DirectTarget, error) {
-	conversation, err := s.AuthorizeDirectRead(ctx, conversationID, senderUserID, senderShopID)
+	conversation, err := s.AuthorizeDirectRead(ctx, conversationID, viewerUserID, viewerShopID)
 	if err != nil {
 		return DirectTarget{}, err
 	}
 
 	buyerUserID := uuidText(conversation.OwnerUserID)
 	role := "seller"
-	if buyerUserID == senderUserID {
+	if buyerUserID == viewerUserID {
 		role = "user"
 	}
 
-	senderCol, err := parseUUIDColumn(senderUserID, "sender user id")
+	senderCol, err := parseUUIDColumn(viewerUserID, "viewer user id")
 	if err != nil {
 		return DirectTarget{}, err
 	}
@@ -407,8 +411,9 @@ func (s *Store) ResolveDirectSend(
 
 // MarkDirectRead ghi moc "da doc toi day" cho nguoi dang mo hoi thoai.
 //
-// Dung lai ResolveDirectSend lam cong: danh dau da doc can dung mot phep phan quyen va dung mot
-// row participant voi duong ghi. Hai duong tu tim participant rieng la mo cho chung lech nhau.
+// Dung lai ResolveDirectParticipant lam cong: danh dau da doc can dung mot phep phan quyen va
+// dung mot row participant voi duong gui tin. Hai duong tu tim participant rieng la mo cho chung
+// lech nhau.
 //
 // Ham nay TAO row participant cho seller neu ho chua tra loi lan nao - va do la ly do no chi duoc
 // goi tu mot request GHI. Mot lenh GET khong duoc de lai du lieu (xem FindBotHistory).
@@ -420,7 +425,7 @@ func (s *Store) MarkDirectRead(
 	conversationID, viewerUserID, viewerShopID string,
 	readAt time.Time,
 ) error {
-	target, err := s.ResolveDirectSend(ctx, conversationID, viewerUserID, viewerShopID)
+	target, err := s.ResolveDirectParticipant(ctx, conversationID, viewerUserID, viewerShopID)
 	if err != nil {
 		return err
 	}

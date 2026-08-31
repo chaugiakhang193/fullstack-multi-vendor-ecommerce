@@ -297,7 +297,7 @@ receives. `last_read_at` is per conversation by definition. Neither belongs on a
 The natural key here would be `(conversation_id, user_id)`, and in a system with a single kind of identity
 it would be the better choice: `message` already carries `conversation_id`, so a composite foreign key would
 let the database enforce that a sender belongs to the conversation they are writing into. Today that
-invariant is held by code — `ResolveDirectSend` hands both ids to `AppendMessage` from one authorized
+invariant is held by code — `ResolveDirectParticipant` hands both ids to `AppendMessage` from one authorized
 lookup — and not by a constraint. What rules the natural key out is the two rows with no `user_id`. Identity
 here is polymorphic, and a surrogate key is what keeps that shape in one table instead of spreading it
 across every table that references it.

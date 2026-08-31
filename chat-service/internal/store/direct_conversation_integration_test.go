@@ -189,7 +189,7 @@ func TestUnreadDemTinCuaNguoiKia(t *testing.T) {
 	}
 
 	// Seller tra loi mot cau: buoc nay tao luon participant cua ho.
-	seller, err := s.ResolveDirectSend(ctx, conversation.ConversationID, sellerID, shopID)
+	seller, err := s.ResolveDirectParticipant(ctx, conversation.ConversationID, sellerID, shopID)
 	if err != nil {
 		t.Fatalf("phan quyen seller loi: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestUnreadVeKhongSauKhiDanhDauDaDoc(t *testing.T) {
 	if err != nil {
 		t.Fatalf("mo hoi thoai loi: %v", err)
 	}
-	seller, err := s.ResolveDirectSend(ctx, conversation.ConversationID, sellerID, shopID)
+	seller, err := s.ResolveDirectParticipant(ctx, conversation.ConversationID, sellerID, shopID)
 	if err != nil {
 		t.Fatalf("phan quyen seller loi: %v", err)
 	}
