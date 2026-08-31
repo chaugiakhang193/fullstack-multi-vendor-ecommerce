@@ -66,9 +66,13 @@ export function connectDirectChat(next: SocketHandlers): void {
 
   const token = useAuthStore.getState().accessToken;
   if (!token) {
-    // Chưa đăng nhập thì không có gì để mở: chat 1-1 đòi tài khoản thật, và BE sẽ đóng ngay
-    // bằng 4401. Báo trạng thái rồi dừng, không vào vòng nối lại.
-    handlers.onStatus('unauthorized');
+    // Ngay sau F5 hay vào thẳng URL /chat, accessToken chưa kịp hồi phục — AppProvider đang
+    // silentRefresh() ở nền (dùng refresh-token cookie). chatFetch tự chờ được nhờ retry-sau-401
+    // (xem lib/chat/request.ts), nhưng ở đây chưa có kết nối nào để nhận một cái 401 mà retry —
+    // tự thử refresh rồi nối lại một lần, thay vì báo 'unauthorized' oan cho người đã đăng nhập
+    // thật chỉ vì thua một cuộc đua timing.
+    handlers.onStatus('connecting');
+    void connectAfterInitialRefresh(next);
     return;
   }
 
@@ -116,6 +120,25 @@ export function connectDirectChat(next: SocketHandlers): void {
   // Không xử lý gì ở onerror: trình duyệt luôn bắn onclose ngay sau đó, và xử lý cả hai chỗ
   // sẽ đặt hai lịch nối lại cho cùng một lần rớt.
   ws.onerror = () => {};
+}
+
+// Không có token lúc mở kết nối: thử refresh đúng MỘT LẦN rồi nối lại.
+//
+// silentRefresh cập nhật accessToken vào store TRƯỚC KHI resolve true (xem useAuthStore), nên
+// gọi lại connectDirectChat ngay sau đó luôn thấy token mới — không có vòng lặp.
+//
+// So `handlers !== next` sau await: nếu trong lúc chờ mà connectDirectChat đã bị gọi lại bằng
+// một cặp handlers khác (component remount) hoặc disconnect() đã dọn handlers về null, tiếp tục
+// bằng `next` cũ là thao tác trên một phiên đã chết.
+async function connectAfterInitialRefresh(next: SocketHandlers): Promise<void> {
+  const refreshed = await useAuthStore.getState().silentRefresh();
+  if (handlers !== next) return;
+
+  if (!refreshed) {
+    next.onStatus('unauthorized');
+    return;
+  }
+  connectDirectChat(next);
 }
 
 // Đóng 4401 = danh tính không dùng được. Làm mới token rồi nối lại ĐÚNG MỘT LẦN.
