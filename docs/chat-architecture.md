@@ -272,6 +272,41 @@ the service read the whole table. `GET /chat/config` is cheaper still — it ret
 without a database call, because the widget mounts on every storefront page and must not bill a query just
 to decide whether to draw a button.
 
+## The bot is not a separate system, it is a kind of participant
+
+One `message` table carries both the bot thread and the one-to-one threads between a shopper and a shop.
+That is possible because a message does not point at a person. It points at a `participant` row — a
+person's *seat in one conversation* — and that row is where identity lives:
+
+| Sender | `user_id` | `guest_key` | `role` |
+| :--- | :--- | :--- | :--- |
+| Signed-in shopper | set | — | `user` |
+| Shop owner | set | — | `seller` |
+| Visitor who never signed in | — | set | `user` |
+| The bot | — | — | `bot` |
+
+Two of those four have no user id at all, and `message.sender_participant_id` is `NOT NULL`. Pointing
+messages directly at a user id would mean a nullable column, a `CHECK` explaining which identity column is
+in play, and that branch repeated in every query that reads a thread. Behind a participant id, all four
+look identical to the reader.
+
+The seat, not the person, is also the right grain for the columns that hang off it. `role` differs per
+conversation — the same account is a `user` in the threads it opened and a `seller` in the threads its shop
+receives. `last_read_at` is per conversation by definition. Neither belongs on an account.
+
+The natural key here would be `(conversation_id, user_id)`, and in a system with a single kind of identity
+it would be the better choice: `message` already carries `conversation_id`, so a composite foreign key would
+let the database enforce that a sender belongs to the conversation they are writing into. Today that
+invariant is held by code — `ResolveDirectSend` hands both ids to `AppendMessage` from one authorized
+lookup — and not by a constraint. What rules the natural key out is the two rows with no `user_id`. Identity
+here is polymorphic, and a surrogate key is what keeps that shape in one table instead of spreading it
+across every table that references it.
+
+There is a second reason to keep the key local: `user_id` is issued by the monolith. Making another
+service's identifier part of this one's primary key would tie the storage layout to their identity scheme.
+The surrogate is a layer of insulation, and it is also why a participant id — not a user id — is what
+travels out to the browser on every message frame.
+
 ## Not every question reaches the service
 
 A class of questions never arrives here at all. When a shopper's message matches a catalogue category, the
