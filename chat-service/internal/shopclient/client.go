@@ -126,3 +126,14 @@ func (c *Client) remember(userID, shopID string) {
 	defer c.mu.Unlock()
 	c.entries[userID] = cacheEntry{shopID: shopID, expiresAt: time.Now().Add(cacheTTL)}
 }
+
+// Seed nap san mot cap user-shop vao cache.
+//
+// Ton tai cho TEST: dung mot monolith gia chi de tra ve mot chuoi la dung ba chuc dong cho mot
+// su that khong co gi de kiem chung. Khong co duong nao goi no tu code chay that.
+//
+// Chi co tac dung khi client duoc dung voi baseURL khac rong: ShopIDFor tra ve som truoc khi hoi
+// cache neu baseURL rong.
+func (c *Client) Seed(userID, shopID string) {
+	c.remember(userID, shopID)
+}

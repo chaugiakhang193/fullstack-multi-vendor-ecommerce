@@ -322,3 +322,63 @@ func uuidText(value pgtype.UUID) string {
 	}
 	return uuid.UUID(value.Bytes).String()
 }
+
+// DirectTarget la moi thu duong GHI can biet ve mot hoi thoai: no o dau, hai dau la ai, va
+// participant nao dung ten nguoi gui.
+//
+// Vi sao khong tra thang chatdb.Conversation nhu AuthorizeDirectRead: kieu do mang pgtype.UUID,
+// va de package ws tu doi sang chuoi nghia la logic "cot NULL thi la chuoi rong" bi sao chep
+// sang mot package khong co viec gi voi tang DB.
+type DirectTarget struct {
+	ConversationID      string
+	BuyerUserID         string
+	ShopID              string
+	SenderParticipantID string
+	// SenderRole la 'user' hoac 'seller' - dung bang chu ma cot participant.role cho phep.
+	SenderRole string
+}
+
+// ResolveDirectSend phan quyen mot nguoi gui vao mot hoi thoai da co, roi tra ve dinh danh de ghi.
+//
+// Dung lai AuthorizeDirectRead lam cong duy nhat: quyen GHI vao mot hoi thoai 1-1 khong rong hon
+// quyen DOC no. Tach thanh hai bo luat la mo duong cho chung lech nhau ma khong ai phat hien.
+//
+// Vai duoc suy tu chinh hoi thoai chu khong tu tham so: ai khong phai chu so huu ma qua duoc cong
+// tren thi chi con duong seller (khop shop_id), va suy nhu vay thi mot ngay them vai moi khong
+// lam hong cho nay.
+func (s *Store) ResolveDirectSend(
+	ctx context.Context,
+	conversationID, senderUserID, senderShopID string,
+) (DirectTarget, error) {
+	conversation, err := s.AuthorizeDirectRead(ctx, conversationID, senderUserID, senderShopID)
+	if err != nil {
+		return DirectTarget{}, err
+	}
+
+	buyerUserID := uuidText(conversation.OwnerUserID)
+	role := "seller"
+	if buyerUserID == senderUserID {
+		role = "user"
+	}
+
+	senderCol, err := parseUUIDColumn(senderUserID, "sender user id")
+	if err != nil {
+		return DirectTarget{}, err
+	}
+
+	// Participant cua seller duoc tao O DAY - lan dau ho tra loi, khong phai luc buyer mo hoi
+	// thoai (luc do chua biet ai la chu shop) va cung khong phai luc ho doc (mot lenh GET khong
+	// duoc tao du lieu - dung ly do FindBotHistory da co y tranh).
+	participantID, err := s.ensureUserParticipant(ctx, conversationID, role, senderCol)
+	if err != nil {
+		return DirectTarget{}, err
+	}
+
+	return DirectTarget{
+		ConversationID:      conversation.ID,
+		BuyerUserID:         buyerUserID,
+		ShopID:              uuidText(conversation.ShopID),
+		SenderParticipantID: participantID,
+		SenderRole:          role,
+	}, nil
+}

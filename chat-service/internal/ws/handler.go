@@ -208,6 +208,8 @@ func readLoop(ctx context.Context, deps Deps, conn *Conn) {
 		}
 
 		switch frame.Type {
+		case frameSend:
+			handleSend(ctx, deps, conn, frame)
 		default:
 			// Tra loi thay vi lo di: mot FE gui nham type ma khong nhan duoc gi se treo cho mot
 			// phan hoi khong bao gio toi.
