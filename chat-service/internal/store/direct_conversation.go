@@ -229,7 +229,7 @@ func (s *Store) ListInboxForUser(ctx context.Context, userID string, limit int32
 
 	items := make([]InboxItem, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, toInboxItem(row.Conversation, row.UnreadTotal))
+		items = append(items, toInboxItem(row.Conversation, row.Unread))
 	}
 	return items, nil
 }
@@ -265,7 +265,7 @@ func (s *Store) ListInboxForShop(
 
 	items := make([]InboxItem, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, toInboxItem(row.Conversation, row.UnreadTotal))
+		items = append(items, toInboxItem(row.Conversation, row.Unread))
 	}
 	return items, nil
 }

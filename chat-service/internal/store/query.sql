@@ -29,7 +29,7 @@ WHERE type = 'bot' AND owner_guest_key = @owner_guest_key;
 --
 -- p co the NULL (LEFT JOIN): hoi thoai ma nguoi xem chua co row participant. Luc do
 -- IS DISTINCT FROM NULL dung cho MOI tin, tuc chua doc gi ca - dung y nghia can.
-SELECT sqlc.embed(c), unread.total AS unread_total
+SELECT sqlc.embed(c), unread.total AS unread
 FROM conversation c
 LEFT JOIN participant p
     ON p.conversation_id = c.id AND p.user_id = @owner_user_id
@@ -50,7 +50,7 @@ LIMIT @page_limit;
 --
 -- Nhung so chua doc thi van phai qua participant, va do la mot join KHAC: seller chua tra
 -- loi lan nao thi khong co row nao, va ca hoi thoai dem la chua doc.
-SELECT sqlc.embed(c), unread.total AS unread_total
+SELECT sqlc.embed(c), unread.total AS unread
 FROM conversation c
 LEFT JOIN participant p
     ON p.conversation_id = c.id AND p.user_id = @viewer_user_id

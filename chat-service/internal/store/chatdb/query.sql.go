@@ -47,28 +47,6 @@ func (q *Queries) AddParticipant(ctx context.Context, arg AddParticipantParams) 
 	return i, err
 }
 
-const countUnread = `-- name: CountUnread :one
-SELECT count(*) AS unread
-FROM message
-WHERE conversation_id = $1
-  AND sender_participant_id <> $2
-  AND created_at > COALESCE($3::timestamptz, '-infinity'::timestamptz)
-`
-
-type CountUnreadParams struct {
-	ConversationID      string             `json:"conversation_id"`
-	ViewerParticipantID string             `json:"viewer_participant_id"`
-	LastReadAt          pgtype.Timestamptz `json:"last_read_at"`
-}
-
-// Tin cua chinh minh khong tinh la chua doc. last_read_at NULL = chua doc gi bao gio.
-func (q *Queries) CountUnread(ctx context.Context, arg CountUnreadParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countUnread, arg.ConversationID, arg.ViewerParticipantID, arg.LastReadAt)
-	var unread int64
-	err := row.Scan(&unread)
-	return unread, err
-}
-
 const createConversation = `-- name: CreateConversation :one
 INSERT INTO conversation (id, type, owner_user_id, owner_guest_key, shop_id)
 VALUES ($1, $2, $3, $4, $5)
@@ -326,7 +304,7 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 }
 
 const listConversationsForShop = `-- name: ListConversationsForShop :many
-SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread_total
+SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread
 FROM conversation c
 LEFT JOIN participant p
     ON p.conversation_id = c.id AND p.user_id = $1
@@ -350,7 +328,7 @@ type ListConversationsForShopParams struct {
 
 type ListConversationsForShopRow struct {
 	Conversation Conversation `json:"conversation"`
-	UnreadTotal  int64        `json:"unread_total"`
+	Unread       int64        `json:"unread"`
 }
 
 // Inbox cua seller: truy hoi thoai theo shop_id chu KHONG qua participant, vi luc buyer mo
@@ -376,7 +354,7 @@ func (q *Queries) ListConversationsForShop(ctx context.Context, arg ListConversa
 			&i.Conversation.LastMessageAt,
 			&i.Conversation.LastMessagePreview,
 			&i.Conversation.CreatedAt,
-			&i.UnreadTotal,
+			&i.Unread,
 		); err != nil {
 			return nil, err
 		}
@@ -389,7 +367,7 @@ func (q *Queries) ListConversationsForShop(ctx context.Context, arg ListConversa
 }
 
 const listConversationsForUser = `-- name: ListConversationsForUser :many
-SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread_total
+SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread
 FROM conversation c
 LEFT JOIN participant p
     ON p.conversation_id = c.id AND p.user_id = $1
@@ -412,7 +390,7 @@ type ListConversationsForUserParams struct {
 
 type ListConversationsForUserRow struct {
 	Conversation Conversation `json:"conversation"`
-	UnreadTotal  int64        `json:"unread_total"`
+	Unread       int64        `json:"unread"`
 }
 
 // Inbox cua buyer. Hoi thoai chua co tin nhan nao (last_message_at NULL) xep cuoi.
@@ -441,7 +419,7 @@ func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversa
 			&i.Conversation.LastMessageAt,
 			&i.Conversation.LastMessagePreview,
 			&i.Conversation.CreatedAt,
-			&i.UnreadTotal,
+			&i.Unread,
 		); err != nil {
 			return nil, err
 		}
