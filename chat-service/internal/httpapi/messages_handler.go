@@ -12,10 +12,13 @@ import (
 const messagesReadLimit = 30
 
 type directMessageItem struct {
-	ID        string `json:"id"`
-	SenderID  string `json:"senderId"`
-	Text      string `json:"text"`
-	CreatedAt string `json:"createdAt"`
+	ID       string `json:"id"`
+	SenderID string `json:"senderId"`
+	// SenderRole la thu DUY NHAT cho FE biet tin nay cua ben nao. senderId la id cua mot dong
+	// participant, khong phai user id, va service khong bao gio gui user id xuong trinh duyet.
+	SenderRole string `json:"senderRole"`
+	Text       string `json:"text"`
+	CreatedAt  string `json:"createdAt"`
 }
 
 type messagesResponse struct {
@@ -86,9 +89,10 @@ func messagesHandler(deps ChatDeps) http.HandlerFunc {
 		body := messagesResponse{Messages: make([]directMessageItem, 0, len(messages))}
 		for _, message := range messages {
 			body.Messages = append(body.Messages, directMessageItem{
-				ID:       message.ID,
-				SenderID: message.SenderParticipantID,
-				Text:     message.Body,
+				ID:         message.ID,
+				SenderID:   message.SenderParticipantID,
+				SenderRole: message.SenderRole,
+				Text:       message.Body,
 				// RFC3339 theo UTC: FE tu doi sang gio may nguoi dung. Gui gio local cua server
 				// la gui gio cua Render, khong phai gio cua nguoi doc.
 				CreatedAt: message.CreatedAt.UTC().Format(time.RFC3339),

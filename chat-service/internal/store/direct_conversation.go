@@ -38,8 +38,11 @@ type InboxItem struct {
 type DirectMessage struct {
 	ID                  string
 	SenderParticipantID string
-	Body                string
-	CreatedAt           time.Time
+	// SenderRole la 'user' hoac 'seller'. Doc tu bang participant chu khong tu bang message:
+	// message khong co cot role, va FE can no de biet ve bong bong ben nao.
+	SenderRole string
+	Body       string
+	CreatedAt  time.Time
 }
 
 // ErrConversationNotFound: hoi thoai khong ton tai, HOAC nguoi goi khong co quyen doc no.
@@ -279,7 +282,7 @@ func (s *Store) DirectMessages(
 	conversationID, beforeID string,
 	limit int32,
 ) ([]DirectMessage, error) {
-	params := chatdb.ListMessagesBeforeParams{
+	params := chatdb.ListDirectMessagesBeforeParams{
 		ConversationID: conversationID,
 		PageLimit:      limit,
 	}
@@ -292,7 +295,7 @@ func (s *Store) DirectMessages(
 		}
 	}
 
-	rows, err := s.q.ListMessagesBefore(ctx, params)
+	rows, err := s.q.ListDirectMessagesBefore(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("doc tin nhan loi: %w", err)
 	}
@@ -300,10 +303,11 @@ func (s *Store) DirectMessages(
 	messages := make([]DirectMessage, 0, len(rows))
 	for _, row := range rows {
 		messages = append(messages, DirectMessage{
-			ID:                  row.ID,
-			SenderParticipantID: row.SenderParticipantID,
-			Body:                row.Body,
-			CreatedAt:           row.CreatedAt.Time,
+			ID:                  row.Message.ID,
+			SenderParticipantID: row.Message.SenderParticipantID,
+			SenderRole:          row.SenderRole,
+			Body:                row.Message.Body,
+			CreatedAt:           row.Message.CreatedAt.Time,
 		})
 	}
 	return messages, nil

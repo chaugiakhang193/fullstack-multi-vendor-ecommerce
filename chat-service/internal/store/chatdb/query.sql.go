@@ -431,6 +431,63 @@ func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversa
 	return items, nil
 }
 
+const listDirectMessagesBefore = `-- name: ListDirectMessagesBefore :many
+SELECT m.id, m.conversation_id, m.sender_participant_id, m.body, m.created_at, p.role AS sender_role
+FROM message m
+JOIN participant p ON p.id = m.sender_participant_id
+WHERE m.conversation_id = $1
+  AND ($2::uuid IS NULL OR m.id < $2::uuid)
+ORDER BY m.id DESC
+LIMIT $3
+`
+
+type ListDirectMessagesBeforeParams struct {
+	ConversationID string      `json:"conversation_id"`
+	BeforeID       pgtype.UUID `json:"before_id"`
+	PageLimit      int32       `json:"page_limit"`
+}
+
+type ListDirectMessagesBeforeRow struct {
+	Message    Message `json:"message"`
+	SenderRole string  `json:"sender_role"`
+}
+
+// Nhu ListMessagesBefore nhung kem vai cua nguoi gui, phuc vu chat 1-1.
+//
+// Vi sao khong sua thang cau tren: nhanh bot cung goi no (RecentBotMessages), va nhanh do dang
+// chay tren prod. Doi kieu row cua mot cau dung chung se keo theo mot duong dang phuc vu nguoi
+// dung that. Gop hai duong lai la viec cua dot don dep sau.
+//
+// JOIN thuong chu khong LEFT: message.sender_participant_id la NOT NULL va co khoa ngoai tro
+// sang participant, nen dong ben kia luon ton tai. LEFT o day chi lam nguoi doc tuong rang no
+// co the thieu.
+func (q *Queries) ListDirectMessagesBefore(ctx context.Context, arg ListDirectMessagesBeforeParams) ([]ListDirectMessagesBeforeRow, error) {
+	rows, err := q.db.Query(ctx, listDirectMessagesBefore, arg.ConversationID, arg.BeforeID, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDirectMessagesBeforeRow
+	for rows.Next() {
+		var i ListDirectMessagesBeforeRow
+		if err := rows.Scan(
+			&i.Message.ID,
+			&i.Message.ConversationID,
+			&i.Message.SenderParticipantID,
+			&i.Message.Body,
+			&i.Message.CreatedAt,
+			&i.SenderRole,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMessagesBefore = `-- name: ListMessagesBefore :many
 SELECT id, conversation_id, sender_participant_id, body, created_at FROM message
 WHERE conversation_id = $1

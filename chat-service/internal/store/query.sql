@@ -106,6 +106,24 @@ WHERE conversation_id = @conversation_id
 ORDER BY id DESC
 LIMIT @page_limit;
 
+-- name: ListDirectMessagesBefore :many
+-- Nhu ListMessagesBefore nhung kem vai cua nguoi gui, phuc vu chat 1-1.
+--
+-- Vi sao khong sua thang cau tren: nhanh bot cung goi no (RecentBotMessages), va nhanh do dang
+-- chay tren prod. Doi kieu row cua mot cau dung chung se keo theo mot duong dang phuc vu nguoi
+-- dung that. Gop hai duong lai la viec cua dot don dep sau.
+--
+-- JOIN thuong chu khong LEFT: message.sender_participant_id la NOT NULL va co khoa ngoai tro
+-- sang participant, nen dong ben kia luon ton tai. LEFT o day chi lam nguoi doc tuong rang no
+-- co the thieu.
+SELECT sqlc.embed(m), p.role AS sender_role
+FROM message m
+JOIN participant p ON p.id = m.sender_participant_id
+WHERE m.conversation_id = @conversation_id
+  AND (sqlc.narg('before_id')::uuid IS NULL OR m.id < sqlc.narg('before_id')::uuid)
+ORDER BY m.id DESC
+LIMIT @page_limit;
+
 -- name: MarkRead :exec
 UPDATE participant SET last_read_at = @last_read_at WHERE id = @id;
 

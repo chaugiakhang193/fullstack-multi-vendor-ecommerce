@@ -292,3 +292,42 @@ func TestUnreadCuaSellerChuaTraLoiLanNao(t *testing.T) {
 		t.Errorf("seller chua tra loi thay %d tin chua doc, mong doi 2", unread)
 	}
 }
+
+// TestDirectMessagesTraVeVaiNguoiGui: lich su doc qua HTTP phai noi duoc tin nao cua ben nao.
+//
+// Khong co truong nay thi FE ve moi bong bong ve mot phia sau khi bam F5 — tin den qua WebSocket
+// co senderRole, tin tai tu lich su thi khong.
+func TestDirectMessagesTraVeVaiNguoiGui(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	buyerID := uuid.NewString()
+	sellerID := uuid.NewString()
+	shopID := uuid.NewString()
+
+	conversation, err := s.EnsureDirectConversation(ctx, buyerID, shopID)
+	if err != nil {
+		t.Fatalf("mo hoi thoai loi: %v", err)
+	}
+	seller, err := s.ResolveDirectParticipant(ctx, conversation.ConversationID, sellerID, shopID)
+	if err != nil {
+		t.Fatalf("phan quyen seller loi: %v", err)
+	}
+
+	sendAs(t, ctx, s, conversation.ConversationID, conversation.BuyerID, "shop oi con hang khong")
+	sendAs(t, ctx, s, conversation.ConversationID, seller.SenderParticipantID, "con hang ban nhe")
+
+	// Query tra MOI NHAT TRUOC, nen tin cua seller dung truoc.
+	messages, err := s.DirectMessages(ctx, conversation.ConversationID, "", 10)
+	if err != nil {
+		t.Fatalf("doc tin nhan loi: %v", err)
+	}
+	if len(messages) != 2 {
+		t.Fatalf("doc duoc %d tin, mong doi 2", len(messages))
+	}
+	if messages[0].SenderRole != "seller" {
+		t.Errorf("tin moi nhat co vai %q, mong doi %q", messages[0].SenderRole, "seller")
+	}
+	if messages[1].SenderRole != "user" {
+		t.Errorf("tin cu hon co vai %q, mong doi %q", messages[1].SenderRole, "user")
+	}
+}
