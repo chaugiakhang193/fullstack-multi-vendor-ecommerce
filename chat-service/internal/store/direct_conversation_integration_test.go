@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -132,7 +133,7 @@ func TestDirectInboxForShop(t *testing.T) {
 		t.Fatalf("mo hoi thoai shop khac loi: %v", err)
 	}
 
-	items, err := s.ListInboxForShop(ctx, shopID, 30)
+	items, err := s.ListInboxForShop(ctx, shopID, uuid.NewString(), 30)
 	if err != nil {
 		t.Fatalf("doc inbox shop loi: %v", err)
 	}
@@ -140,5 +141,154 @@ func TestDirectInboxForShop(t *testing.T) {
 		if item.ShopID != shopID {
 			t.Errorf("inbox shop %q lot hoi thoai cua shop %q", shopID, item.ShopID)
 		}
+	}
+}
+
+// sendAs ghi mot tin cua mot participant vao hoi thoai.
+func sendAs(t *testing.T, ctx context.Context, s *Store, conversationID, participantID, body string) {
+	t.Helper()
+
+	_, err := s.AppendMessage(ctx, AppendMessageParams{
+		MessageID:           uuid.Must(uuid.NewV7()).String(),
+		ConversationID:      conversationID,
+		SenderParticipantID: participantID,
+		Body:                body,
+	})
+	if err != nil {
+		t.Fatalf("ghi tin loi: %v", err)
+	}
+}
+
+// findInboxItem lay dong cua mot hoi thoai trong mot inbox.
+func findInboxItem(t *testing.T, items []InboxItem, conversationID string) InboxItem {
+	t.Helper()
+
+	for _, item := range items {
+		if item.ConversationID == conversationID {
+			return item
+		}
+	}
+	t.Fatalf("inbox khong co hoi thoai %q", conversationID)
+	return InboxItem{}
+}
+
+// TestUnreadDemTinCuaNguoiKia: tin cua chinh minh khong lam inbox cua minh sang len.
+//
+// Day la ca de sai nhat cua ca query: dem tat ca tin sau last_read_at thi nguoi vua gui xong mot
+// tin se thay chinh no la "chua doc".
+func TestUnreadDemTinCuaNguoiKia(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	buyerID := uuid.NewString()
+	sellerID := uuid.NewString()
+	shopID := uuid.NewString()
+
+	conversation, err := s.EnsureDirectConversation(ctx, buyerID, shopID)
+	if err != nil {
+		t.Fatalf("mo hoi thoai loi: %v", err)
+	}
+
+	// Seller tra loi mot cau: buoc nay tao luon participant cua ho.
+	seller, err := s.ResolveDirectSend(ctx, conversation.ConversationID, sellerID, shopID)
+	if err != nil {
+		t.Fatalf("phan quyen seller loi: %v", err)
+	}
+
+	sendAs(t, ctx, s, conversation.ConversationID, conversation.BuyerID, "shop oi con hang khong")
+	sendAs(t, ctx, s, conversation.ConversationID, seller.SenderParticipantID, "con hang ban nhe")
+	sendAs(t, ctx, s, conversation.ConversationID, seller.SenderParticipantID, "ban dat luon nhe")
+
+	buyerInbox, err := s.ListInboxForUser(ctx, buyerID, 30)
+	if err != nil {
+		t.Fatalf("doc inbox buyer loi: %v", err)
+	}
+	if unread := findInboxItem(t, buyerInbox, conversation.ConversationID).Unread; unread != 2 {
+		t.Errorf("buyer thay %d tin chua doc, mong doi 2 (tin cua chinh ho khong duoc tinh)", unread)
+	}
+
+	sellerInbox, err := s.ListInboxForShop(ctx, shopID, sellerID, 30)
+	if err != nil {
+		t.Fatalf("doc inbox seller loi: %v", err)
+	}
+	if unread := findInboxItem(t, sellerInbox, conversation.ConversationID).Unread; unread != 1 {
+		t.Errorf("seller thay %d tin chua doc, mong doi 1", unread)
+	}
+}
+
+// TestUnreadVeKhongSauKhiDanhDauDaDoc: MarkDirectRead phai xoa het so chua doc.
+func TestUnreadVeKhongSauKhiDanhDauDaDoc(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	buyerID := uuid.NewString()
+	sellerID := uuid.NewString()
+	shopID := uuid.NewString()
+
+	conversation, err := s.EnsureDirectConversation(ctx, buyerID, shopID)
+	if err != nil {
+		t.Fatalf("mo hoi thoai loi: %v", err)
+	}
+	seller, err := s.ResolveDirectSend(ctx, conversation.ConversationID, sellerID, shopID)
+	if err != nil {
+		t.Fatalf("phan quyen seller loi: %v", err)
+	}
+	sendAs(t, ctx, s, conversation.ConversationID, seller.SenderParticipantID, "con hang ban nhe")
+
+	// Moc doc lay tu created_at cua chinh tin vua gui, khong phai time.Now() cua tien trinh test:
+	// created_at do DB dat, va hai dong ho lech nhau vai mili giay la du de test chop tat. Lay
+	// moc tu DB thi ca hai ve cua phep so deu do cung mot dong ho dem.
+	//
+	// Cung khong dat moc o tuong lai: no se nuot luon nhung tin den sau do, dung cai bay ma
+	// readHandler tranh bang cach khong nhan moc thoi gian tu client.
+	stored, err := s.DirectMessages(ctx, conversation.ConversationID, "", 10)
+	if err != nil {
+		t.Fatalf("doc lai tin loi: %v", err)
+	}
+	if err := s.MarkDirectRead(ctx, conversation.ConversationID, buyerID, "", stored[0].CreatedAt); err != nil {
+		t.Fatalf("danh dau da doc loi: %v", err)
+	}
+
+	buyerInbox, err := s.ListInboxForUser(ctx, buyerID, 30)
+	if err != nil {
+		t.Fatalf("doc inbox buyer loi: %v", err)
+	}
+	if unread := findInboxItem(t, buyerInbox, conversation.ConversationID).Unread; unread != 0 {
+		t.Errorf("sau khi danh dau da doc van con %d tin chua doc", unread)
+	}
+
+	// Tin moi ve sau moc do van phai dem lai tu dau.
+	sendAs(t, ctx, s, conversation.ConversationID, seller.SenderParticipantID, "ban con hoi gi khong")
+	buyerInbox, err = s.ListInboxForUser(ctx, buyerID, 30)
+	if err != nil {
+		t.Fatalf("doc lai inbox buyer loi: %v", err)
+	}
+	if unread := findInboxItem(t, buyerInbox, conversation.ConversationID).Unread; unread != 1 {
+		t.Errorf("tin den sau lan doc dem duoc %d, mong doi 1", unread)
+	}
+}
+
+// TestUnreadCuaSellerChuaTraLoiLanNao: khong co row participant thi moi tin deu la chua doc.
+//
+// Day la ca ma mot cau JOIN thuong bo mat: seller chua tra loi lan nao thi khong co participant,
+// va mot INNER JOIN se lam ca hoi thoai bien mat khoi inbox cua ho.
+func TestUnreadCuaSellerChuaTraLoiLanNao(t *testing.T) {
+	s, ctx := setupTestDB(t)
+
+	buyerID := uuid.NewString()
+	sellerID := uuid.NewString()
+	shopID := uuid.NewString()
+
+	conversation, err := s.EnsureDirectConversation(ctx, buyerID, shopID)
+	if err != nil {
+		t.Fatalf("mo hoi thoai loi: %v", err)
+	}
+	sendAs(t, ctx, s, conversation.ConversationID, conversation.BuyerID, "shop oi")
+	sendAs(t, ctx, s, conversation.ConversationID, conversation.BuyerID, "co ai khong")
+
+	sellerInbox, err := s.ListInboxForShop(ctx, shopID, sellerID, 30)
+	if err != nil {
+		t.Fatalf("doc inbox seller loi: %v", err)
+	}
+	if unread := findInboxItem(t, sellerInbox, conversation.ConversationID).Unread; unread != 2 {
+		t.Errorf("seller chua tra loi thay %d tin chua doc, mong doi 2", unread)
 	}
 }

@@ -22,17 +22,47 @@ WHERE type = 'bot' AND owner_guest_key = @owner_guest_key;
 
 -- name: ListConversationsForUser :many
 -- Inbox cua buyer. Hoi thoai chua co tin nhan nao (last_message_at NULL) xep cuoi.
-SELECT * FROM conversation
-WHERE owner_user_id = @owner_user_id
-ORDER BY last_message_at DESC NULLS LAST
+--
+-- So chua doc tinh bang LATERAL trong CUNG mot cau, khong phai goi CountUnread cho tung
+-- dong: mot inbox 30 hoi thoai se thanh 31 luot di ve Neon, ma Neon nam o xa va co the
+-- dang ngu.
+--
+-- p co the NULL (LEFT JOIN): hoi thoai ma nguoi xem chua co row participant. Luc do
+-- IS DISTINCT FROM NULL dung cho MOI tin, tuc chua doc gi ca - dung y nghia can.
+SELECT sqlc.embed(c), unread.total AS unread_total
+FROM conversation c
+LEFT JOIN participant p
+    ON p.conversation_id = c.id AND p.user_id = @owner_user_id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS total
+    FROM message m
+    WHERE m.conversation_id = c.id
+      AND m.sender_participant_id IS DISTINCT FROM p.id
+      AND m.created_at > COALESCE(p.last_read_at, '-infinity'::timestamptz)
+) unread ON TRUE
+WHERE c.owner_user_id = @owner_user_id
+ORDER BY c.last_message_at DESC NULLS LAST
 LIMIT @page_limit;
 
 -- name: ListConversationsForShop :many
--- Inbox cua seller: truy theo shop_id chu KHONG qua participant, vi luc buyer mo hoi
--- thoai thi chat-service chua biet user_id cua seller.
-SELECT * FROM conversation
-WHERE type = 'direct' AND shop_id = @shop_id
-ORDER BY last_message_at DESC NULLS LAST
+-- Inbox cua seller: truy hoi thoai theo shop_id chu KHONG qua participant, vi luc buyer mo
+-- hoi thoai thi chat-service chua biet user_id cua seller.
+--
+-- Nhung so chua doc thi van phai qua participant, va do la mot join KHAC: seller chua tra
+-- loi lan nao thi khong co row nao, va ca hoi thoai dem la chua doc.
+SELECT sqlc.embed(c), unread.total AS unread_total
+FROM conversation c
+LEFT JOIN participant p
+    ON p.conversation_id = c.id AND p.user_id = @viewer_user_id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS total
+    FROM message m
+    WHERE m.conversation_id = c.id
+      AND m.sender_participant_id IS DISTINCT FROM p.id
+      AND m.created_at > COALESCE(p.last_read_at, '-infinity'::timestamptz)
+) unread ON TRUE
+WHERE c.type = 'direct' AND c.shop_id = @shop_id
+ORDER BY c.last_message_at DESC NULLS LAST
 LIMIT @page_limit;
 
 -- name: GetConversationByID :one
@@ -78,14 +108,6 @@ LIMIT @page_limit;
 
 -- name: MarkRead :exec
 UPDATE participant SET last_read_at = @last_read_at WHERE id = @id;
-
--- name: CountUnread :one
--- Tin cua chinh minh khong tinh la chua doc. last_read_at NULL = chua doc gi bao gio.
-SELECT count(*) AS unread
-FROM message
-WHERE conversation_id = @conversation_id
-  AND sender_participant_id <> @viewer_participant_id
-  AND created_at > COALESCE(sqlc.narg('last_read_at')::timestamptz, '-infinity'::timestamptz);
 
 -- name: IncrementBotUsage :one
 -- TANG-ROI-SO-SANH, khong phai doc-roi-kiem: hai request cung doc 4/5 roi cung ghi 5 se

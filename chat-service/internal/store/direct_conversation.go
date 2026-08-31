@@ -24,15 +24,14 @@ type DirectConversation struct {
 }
 
 // InboxItem la mot dong trong danh sach hoi thoai.
-//
-// Chua co so tin chua doc: tinh dung can hoac N+1 query hoac mot query LATERAL moi, ma tang
-// tren chua can toi. CountUnread da nam san trong query.sql cho luc can.
 type InboxItem struct {
 	ConversationID string
 	ShopID         string
 	BuyerUserID    string
 	Preview        string
 	LastMessageAt  time.Time
+	// Unread dem tin CUA NGUOI KIA sau lan doc cuoi cua nguoi xem. Chua tung doc = dem tat ca.
+	Unread int64
 }
 
 // DirectMessage la mot tin nhan da bo cac cot tang duoi khong can biet.
@@ -227,22 +226,48 @@ func (s *Store) ListInboxForUser(ctx context.Context, userID string, limit int32
 	if err != nil {
 		return nil, fmt.Errorf("doc inbox buyer loi: %w", err)
 	}
-	return toInboxItems(rows), nil
+
+	items := make([]InboxItem, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toInboxItem(row.Conversation, row.UnreadTotal))
+	}
+	return items, nil
 }
 
 // ListInboxForShop tra ve hoi thoai direct cua mot shop, moi nhat truoc.
-func (s *Store) ListInboxForShop(ctx context.Context, shopID string, limit int32) ([]InboxItem, error) {
+//
+// viewerUserID la nguoi DANG XEM, khong phai chu hoi thoai: danh sach hoi thoai truy theo shop,
+// nhung so chua doc truy theo participant cua chinh nguoi mo inbox. Hai id nay khac nhau va deu
+// bat buoc - truyen nham thi danh sach van dung con so chua doc thi sai am tham.
+func (s *Store) ListInboxForShop(
+	ctx context.Context,
+	shopID, viewerUserID string,
+	limit int32,
+) ([]InboxItem, error) {
 	shopCol, err := parseUUIDColumn(shopID, "shop id")
 	if err != nil {
 		return nil, err
 	}
+	viewerCol, err := parseUUIDColumn(viewerUserID, "viewer user id")
+	if err != nil {
+		return nil, err
+	}
 
-	params := chatdb.ListConversationsForShopParams{ShopID: shopCol, PageLimit: limit}
+	params := chatdb.ListConversationsForShopParams{
+		ShopID:       shopCol,
+		ViewerUserID: viewerCol,
+		PageLimit:    limit,
+	}
 	rows, err := s.q.ListConversationsForShop(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("doc inbox shop loi: %w", err)
 	}
-	return toInboxItems(rows), nil
+
+	items := make([]InboxItem, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toInboxItem(row.Conversation, row.UnreadTotal))
+	}
+	return items, nil
 }
 
 // DirectMessages tra ve mot trang tin nhan, MOI NHAT TRUOC.
@@ -284,22 +309,19 @@ func (s *Store) DirectMessages(
 	return messages, nil
 }
 
-// toInboxItems doi dong DB sang kieu cua tang tren, phang cac cot nullable.
-func toInboxItems(rows []chatdb.Conversation) []InboxItem {
-	items := make([]InboxItem, 0, len(rows))
-	for _, row := range rows {
-		item := InboxItem{
-			ConversationID: row.ID,
-			ShopID:         uuidText(row.ShopID),
-			BuyerUserID:    uuidText(row.OwnerUserID),
-			LastMessageAt:  row.LastMessageAt.Time,
-		}
-		if row.LastMessagePreview != nil {
-			item.Preview = *row.LastMessagePreview
-		}
-		items = append(items, item)
+// toInboxItem doi mot dong DB sang kieu cua tang tren, phang cac cot nullable.
+func toInboxItem(row chatdb.Conversation, unread int64) InboxItem {
+	item := InboxItem{
+		ConversationID: row.ID,
+		ShopID:         uuidText(row.ShopID),
+		BuyerUserID:    uuidText(row.OwnerUserID),
+		LastMessageAt:  row.LastMessageAt.Time,
+		Unread:         unread,
 	}
-	return items
+	if row.LastMessagePreview != nil {
+		item.Preview = *row.LastMessagePreview
+	}
+	return item
 }
 
 // parseUUIDColumn doi chuoi sang kieu cot ma sqlc doi.
@@ -381,4 +403,34 @@ func (s *Store) ResolveDirectSend(
 		SenderParticipantID: participantID,
 		SenderRole:          role,
 	}, nil
+}
+
+// MarkDirectRead ghi moc "da doc toi day" cho nguoi dang mo hoi thoai.
+//
+// Dung lai ResolveDirectSend lam cong: danh dau da doc can dung mot phep phan quyen va dung mot
+// row participant voi duong ghi. Hai duong tu tim participant rieng la mo cho chung lech nhau.
+//
+// Ham nay TAO row participant cho seller neu ho chua tra loi lan nao - va do la ly do no chi duoc
+// goi tu mot request GHI. Mot lenh GET khong duoc de lai du lieu (xem FindBotHistory).
+//
+// readAt do caller truyen chu khong lay now() o day: test can dat moc thoi gian, va gio cua mot
+// lan doc la thong tin cua tang tren chu khong phai cua tang DB.
+func (s *Store) MarkDirectRead(
+	ctx context.Context,
+	conversationID, viewerUserID, viewerShopID string,
+	readAt time.Time,
+) error {
+	target, err := s.ResolveDirectSend(ctx, conversationID, viewerUserID, viewerShopID)
+	if err != nil {
+		return err
+	}
+
+	params := chatdb.MarkReadParams{
+		ID:         target.SenderParticipantID,
+		LastReadAt: pgtype.Timestamptz{Time: readAt, Valid: true},
+	}
+	if err := s.q.MarkRead(ctx, params); err != nil {
+		return fmt.Errorf("ghi moc da doc loi: %w", err)
+	}
+	return nil
 }

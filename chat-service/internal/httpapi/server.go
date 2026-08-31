@@ -58,6 +58,10 @@ func NewServer(
 	mux.Handle("GET /chat/messages", messagesRoute)
 	mux.Handle("OPTIONS /chat/messages", messagesRoute)
 
+	readRoute := corsAllowlist(frontendURL, readHandler(chatDeps))
+	mux.Handle("POST /chat/read", readRoute)
+	mux.Handle("OPTIONS /chat/read", readRoute)
+
 	// /ws KHONG boc corsAllowlist: bat tay WebSocket khong phai request CORS - trinh duyet khong
 	// gui preflight cho no va khong doc Access-Control-* trong phan hoi. Cua chan goc that su nam
 	// trong websocket.AcceptOptions.OriginPatterns, ngay tai cho nang cap ket noi.

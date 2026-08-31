@@ -17,6 +17,9 @@ type conversationItem struct {
 	BuyerUserID    string `json:"buyerUserId"`
 	Preview        string `json:"preview"`
 	LastMessageAt  string `json:"lastMessageAt,omitempty"`
+	// Unread khong co omitempty: mot hoi thoai da doc het phai gui ve 0, khong phai bien mat.
+	// Thieu truong thi FE giu lai con so cu cua lan ve truoc.
+	Unread int64 `json:"unread"`
 }
 
 type conversationsResponse struct {
@@ -71,7 +74,7 @@ func conversationsHandler(deps ChatDeps) http.HandlerFunc {
 				return
 			}
 
-			rows, err := deps.Store.ListInboxForShop(r.Context(), shopID, inboxReadLimit)
+			rows, err := deps.Store.ListInboxForShop(r.Context(), shopID, claims.UserID, inboxReadLimit)
 			if err != nil {
 				deps.Logger.Error("doc inbox shop loi", "err", err)
 				writeError(w, deps.Logger, http.StatusServiceUnavailable, errorBody{Reason: "inbox_unavailable"})
@@ -102,6 +105,7 @@ func toConversationsResponse(rows []store.InboxItem) conversationsResponse {
 			ShopID:         row.ShopID,
 			BuyerUserID:    row.BuyerUserID,
 			Preview:        row.Preview,
+			Unread:         row.Unread,
 		}
 		// LastMessageAt zero = hoi thoai chua co tin nao. Bo trong truong nay thay vi gui
 		// "0001-01-01T00:00:00Z", thu ma FE se phai biet cach nhan ra.

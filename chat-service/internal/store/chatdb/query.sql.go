@@ -326,37 +326,57 @@ func (q *Queries) InsertMessage(ctx context.Context, arg InsertMessageParams) (M
 }
 
 const listConversationsForShop = `-- name: ListConversationsForShop :many
-SELECT id, type, owner_user_id, owner_guest_key, shop_id, last_message_at, last_message_preview, created_at FROM conversation
-WHERE type = 'direct' AND shop_id = $1
-ORDER BY last_message_at DESC NULLS LAST
-LIMIT $2
+SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread_total
+FROM conversation c
+LEFT JOIN participant p
+    ON p.conversation_id = c.id AND p.user_id = $1
+LEFT JOIN LATERAL (
+    SELECT count(*) AS total
+    FROM message m
+    WHERE m.conversation_id = c.id
+      AND m.sender_participant_id IS DISTINCT FROM p.id
+      AND m.created_at > COALESCE(p.last_read_at, '-infinity'::timestamptz)
+) unread ON TRUE
+WHERE c.type = 'direct' AND c.shop_id = $2
+ORDER BY c.last_message_at DESC NULLS LAST
+LIMIT $3
 `
 
 type ListConversationsForShopParams struct {
-	ShopID    pgtype.UUID `json:"shop_id"`
-	PageLimit int32       `json:"page_limit"`
+	ViewerUserID pgtype.UUID `json:"viewer_user_id"`
+	ShopID       pgtype.UUID `json:"shop_id"`
+	PageLimit    int32       `json:"page_limit"`
 }
 
-// Inbox cua seller: truy theo shop_id chu KHONG qua participant, vi luc buyer mo hoi
-// thoai thi chat-service chua biet user_id cua seller.
-func (q *Queries) ListConversationsForShop(ctx context.Context, arg ListConversationsForShopParams) ([]Conversation, error) {
-	rows, err := q.db.Query(ctx, listConversationsForShop, arg.ShopID, arg.PageLimit)
+type ListConversationsForShopRow struct {
+	Conversation Conversation `json:"conversation"`
+	UnreadTotal  int64        `json:"unread_total"`
+}
+
+// Inbox cua seller: truy hoi thoai theo shop_id chu KHONG qua participant, vi luc buyer mo
+// hoi thoai thi chat-service chua biet user_id cua seller.
+//
+// Nhung so chua doc thi van phai qua participant, va do la mot join KHAC: seller chua tra
+// loi lan nao thi khong co row nao, va ca hoi thoai dem la chua doc.
+func (q *Queries) ListConversationsForShop(ctx context.Context, arg ListConversationsForShopParams) ([]ListConversationsForShopRow, error) {
+	rows, err := q.db.Query(ctx, listConversationsForShop, arg.ViewerUserID, arg.ShopID, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Conversation
+	var items []ListConversationsForShopRow
 	for rows.Next() {
-		var i Conversation
+		var i ListConversationsForShopRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Type,
-			&i.OwnerUserID,
-			&i.OwnerGuestKey,
-			&i.ShopID,
-			&i.LastMessageAt,
-			&i.LastMessagePreview,
-			&i.CreatedAt,
+			&i.Conversation.ID,
+			&i.Conversation.Type,
+			&i.Conversation.OwnerUserID,
+			&i.Conversation.OwnerGuestKey,
+			&i.Conversation.ShopID,
+			&i.Conversation.LastMessageAt,
+			&i.Conversation.LastMessagePreview,
+			&i.Conversation.CreatedAt,
+			&i.UnreadTotal,
 		); err != nil {
 			return nil, err
 		}
@@ -369,9 +389,19 @@ func (q *Queries) ListConversationsForShop(ctx context.Context, arg ListConversa
 }
 
 const listConversationsForUser = `-- name: ListConversationsForUser :many
-SELECT id, type, owner_user_id, owner_guest_key, shop_id, last_message_at, last_message_preview, created_at FROM conversation
-WHERE owner_user_id = $1
-ORDER BY last_message_at DESC NULLS LAST
+SELECT c.id, c.type, c.owner_user_id, c.owner_guest_key, c.shop_id, c.last_message_at, c.last_message_preview, c.created_at, unread.total AS unread_total
+FROM conversation c
+LEFT JOIN participant p
+    ON p.conversation_id = c.id AND p.user_id = $1
+LEFT JOIN LATERAL (
+    SELECT count(*) AS total
+    FROM message m
+    WHERE m.conversation_id = c.id
+      AND m.sender_participant_id IS DISTINCT FROM p.id
+      AND m.created_at > COALESCE(p.last_read_at, '-infinity'::timestamptz)
+) unread ON TRUE
+WHERE c.owner_user_id = $1
+ORDER BY c.last_message_at DESC NULLS LAST
 LIMIT $2
 `
 
@@ -380,25 +410,38 @@ type ListConversationsForUserParams struct {
 	PageLimit   int32       `json:"page_limit"`
 }
 
+type ListConversationsForUserRow struct {
+	Conversation Conversation `json:"conversation"`
+	UnreadTotal  int64        `json:"unread_total"`
+}
+
 // Inbox cua buyer. Hoi thoai chua co tin nhan nao (last_message_at NULL) xep cuoi.
-func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversationsForUserParams) ([]Conversation, error) {
+//
+// So chua doc tinh bang LATERAL trong CUNG mot cau, khong phai goi CountUnread cho tung
+// dong: mot inbox 30 hoi thoai se thanh 31 luot di ve Neon, ma Neon nam o xa va co the
+// dang ngu.
+//
+// p co the NULL (LEFT JOIN): hoi thoai ma nguoi xem chua co row participant. Luc do
+// IS DISTINCT FROM NULL dung cho MOI tin, tuc chua doc gi ca - dung y nghia can.
+func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversationsForUserParams) ([]ListConversationsForUserRow, error) {
 	rows, err := q.db.Query(ctx, listConversationsForUser, arg.OwnerUserID, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Conversation
+	var items []ListConversationsForUserRow
 	for rows.Next() {
-		var i Conversation
+		var i ListConversationsForUserRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Type,
-			&i.OwnerUserID,
-			&i.OwnerGuestKey,
-			&i.ShopID,
-			&i.LastMessageAt,
-			&i.LastMessagePreview,
-			&i.CreatedAt,
+			&i.Conversation.ID,
+			&i.Conversation.Type,
+			&i.Conversation.OwnerUserID,
+			&i.Conversation.OwnerGuestKey,
+			&i.Conversation.ShopID,
+			&i.Conversation.LastMessageAt,
+			&i.Conversation.LastMessagePreview,
+			&i.Conversation.CreatedAt,
+			&i.UnreadTotal,
 		); err != nil {
 			return nil, err
 		}
