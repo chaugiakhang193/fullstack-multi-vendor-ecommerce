@@ -381,3 +381,10 @@ behind the `gemini_live` build tag, which is the only check that the configured 
 - **Free-tier traffic may be used to improve Google's products.** The service sends the question, the system
   prompt, and the tool results — public catalogue data and whatever the user typed. No order or account data
   crosses that boundary.
+- **Read access to a direct conversation has two sources, and they can drift apart.** A buyer is admitted by a
+  `participant` row carrying their user id. The shop side is admitted by the conversation's `shop_id` matching a
+  shop the caller owns — a fact only the monolith can confirm, since this service has no shop table. A seller
+  who has answered once holds both. Were a shop to change hands, the former owner would keep the participant row
+  and keep reading the thread while the shop key already pointed elsewhere. Nothing transfers a shop today, so
+  this is latent rather than live, and it cannot be closed by deleting the row: `message.sender_participant_id`
+  references it, and the delete cascades to every message that participant ever sent.
