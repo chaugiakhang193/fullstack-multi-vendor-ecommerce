@@ -141,6 +141,21 @@ jobs:
             search-service/go.sum
             chat-service/go.sum
 
+      # sqlc sinh internal/store/**/*.go tu query.sql. Cay thu muc tren git PHAI tai tao duoc
+      # bang `sqlc generate`, va truoc buoc nay chi co tri nho con nguoi canh dieu do: commit 482
+      # xoa mot cau SQL nhung quen chay lai generate, nen 22 dong chet cho mot cau khong con ton
+      # tai nam trong repo ba ngay, toi 485 moi lo ra. Cung ho voi buoc gen-api o tren.
+      - name: Setup sqlc
+        uses: sqlc-dev/setup-sqlc@v5
+        with:
+          sqlc-version: '1.31.1'
+
+      - name: Check sqlc Drift
+        run: |
+          (cd search-service && sqlc generate)
+          (cd chat-service && sqlc generate)
+          git diff --exit-code
+
       - name: Vet Search Service
         run: go vet ./...
         working-directory: search-service
