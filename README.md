@@ -37,6 +37,9 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
 - **Grounded shopping chatbot** — a second **Go** service streams answers over **SSE**, calling the search
   service as a **tool** so replies cite real catalogue products, behind a three-tier quota that caps
   provider spend. A category shortcut answers a whole class of questions on the client, costing nothing.
+- **Realtime buyer ↔ shop chat** — the same Go service also runs a raw **WebSocket** channel: one goroutine
+  writes per connection, a room-based Hub fans a message out to every open tab, and a dropped connection
+  resumes by re-reading history rather than trusting the socket to have buffered anything.
 - **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **14 domain event types**,
   **4 services / 4 databases**.
 - **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
@@ -60,11 +63,11 @@ the matching order live (right, same order id), with no page refresh:
 ## 🧩 Features
 
 **Customer** — browse & search products, ask a shopping assistant that cites real catalogue items,
-multi-shop cart, checkout with shipping & coupons, order tracking, returns, product reviews, realtime
-notifications, Google login.
+message a shop directly and get a realtime reply, multi-shop cart, checkout with shipping & coupons,
+order tracking, returns, product reviews, realtime notifications, Google login.
 
-**Seller** — shop setup, product & variant management, order fulfilment, payouts, a stats dashboard,
-and realtime new-order alerts.
+**Seller** — shop setup, product & variant management, a realtime inbox to answer buyer messages,
+order fulfilment, payouts, a stats dashboard, and realtime new-order alerts.
 
 **Admin** — user management, shop approval, product moderation (take-down / restore), payout approval.
 
@@ -100,6 +103,7 @@ flowchart LR
 
     subgraph CSvc["Chat Service · Go"]
         CC["SSE bot<br/>POST /chat/bot"]
+        CW["WS hub<br/>GET /ws"]
         DB4[("DB#4 Neon<br/>conversations")]
     end
 
@@ -114,7 +118,9 @@ flowchart LR
     SC --- DB3
     API -.->|"ranked ids"| SC
     CLIENT -.->|"SSE stream"| CC
+    CLIENT <-.->|"WebSocket"| CW
     CC --- DB4
+    CW --- DB4
     CC -.->|"tool: search"| SC
     CC -.-> GEM
 ```
@@ -128,7 +134,7 @@ it is left out above to keep the shape readable and drawn in full in the
 | Monolith | NestJS | DB#1 (Supabase) | HTTP | catalogue, orders, payouts, the read projection |
 | Notification | NestJS | DB#2 (Supabase) | `order.*` `review.*` `payout.*` `return.*` | notifications (source of truth) |
 | Search | **Go** | DB#3 (Neon) | `product.*` | the full-text index |
-| Chat | **Go** | DB#4 (Neon) | HTTP (SSE) | bot conversations, quota counters |
+| Chat | **Go** | DB#4 (Neon) | HTTP (SSE) + WebSocket | bot conversations, quota counters, buyer↔shop threads |
 
 ### The notification path
 
@@ -457,6 +463,78 @@ the client sets no deadline, but it is the honest number.
 **Quota state is per-instance.** Burst buckets, the in-flight latch and the reply cache live in RAM,
 which is what makes them exact on one instance — and the first assumption to break on two, where the
 real ceiling becomes the configured one times the instance count.
+
+---
+
+## 🗨️ Direct Chat: buyer ↔ shop
+
+> 📖 **Deep dive:** [`docs/chat-architecture.md`](docs/chat-architecture.md) — the WebSocket
+> concurrency model, the shape of all five frame types, and the client-side state machine.
+
+A shopping bot answers one question and is done. A conversation between a shopper and a shop is not
+that shape — either side can write at any moment, on a connection that has to survive a closed tab, a
+locked phone, or the same free-tier host cold-starting mid-conversation. Same `chat-service`, same
+Postgres database, a different transport and a different set of failure modes: a raw **WebSocket**
+channel sits next to the SSE one above, one connection per open tab.
+
+### One writer per connection, routed through a Hub, never directly
+
+Every accepted socket runs three goroutines around a single invariant — **exactly one goroutine ever
+writes to a given connection** — because the underlying library allows only one writer at a time,
+and fan-out means an arbitrary sender's goroutine has to deliver into an arbitrary receiver's socket.
+A buffered `outbox` channel per connection turns that invariant from a rule everyone has to remember
+into one a slow client cannot violate: if the queue fills (16 frames — sized for a channel that gets
+a few messages a minute, not a stream), the connection is **closed**, not silently dropped-and-kept —
+two tabs quietly holding two different histories is worse than a reconnect.
+
+Delivery is address-based, never a direct reference between connections. A `Hub` keeps two kinds of
+room, `user:<id>` and `shop:<id>`, and a sent message fans out to both — skipping the sender's own
+connection, which gets a separate echo carrying the `clientMsgId` it sent up. That single
+round-tripped field is the entire optimistic-UI mechanism: the tab that sent a message matches the
+echo to the bubble it already drew; every other tab in the room renders the frame from scratch.
+
+### 4401 means "go refresh your token"; every other code means "just retry"
+
+A closed WebSocket is ambiguous by default — a dropped network and a rejected token both just look
+like "the connection ended." The server closes with a specific code, **4401**, only for identity
+failures, and the client backs off differently for each:
+
+| Close reason | Client response |
+|---|---|
+| `4401` — token missing, malformed, or rejected | refresh the access token, then reconnect **once** |
+| anything else | exponential backoff — 1s → 2s → 4s → 8s → 16s, **capped at 30s**, matched to how long the free-tier host takes to wake from sleep |
+
+Getting that distinction to the browser at all took a deliberate workaround: the WebSocket library
+closes **silently** — no close frame at all — the instant a `context` deadline expires, so the
+5-second auth handshake times out on a hand-rolled timer instead, keeping the connection alive just
+long enough to actually send the 4401 the client is waiting to read.
+
+### Mechanisms (mapped to code)
+
+| Mechanism | Where |
+|---|---|
+| **One writer per connection** | a buffered `outbox` channel + a dedicated write goroutine — every other goroutine calls `Send()`, which never blocks its caller |
+| **Room-based fan-out, no direct references** | `Hub.Broadcast(user:<id> \| shop:<id>)` — a connection never holds a pointer to another connection |
+| **Shop identity resolved once per connection, not per message** | asked of the monolith exactly once at auth and cached — DB#4 has no `shop` table, and asking on every fan-out would put a network hop between two people mid-conversation |
+| **Optimistic UI via one round-tripped field** | the client mints `clientMsgId` on send; it comes back on either the sender's own echo or a rejection, never both, never neither |
+| **One error, two causes, on purpose** | "conversation not found" covers both "doesn't exist" and "exists but isn't yours" — splitting them into 404/403 would let a caller map real conversation ids by the shape of the rejection |
+| **Reconnect resumes by re-reading history, not by trusting the socket** | a WebSocket has no buffer of its own, so a reconnect calls the same HTTP read path a fresh page load would — nothing sent while disconnected is lost |
+
+### Known limitations
+
+**A shop's identity is cached at connect time, not re-checked per message.** If a shop ever changed
+hands, the previous owner would keep answering as that shop until their next reconnect. Nothing
+transfers a shop today, so this is latent rather than live.
+
+**The buyer's inbox resolves shop names one request at a time.** `chat-service` has no shop table, so
+showing a name means asking the monolith — and there is no batch-by-id endpoint yet, so an inbox with
+N distinct shops costs N requests. Bounded in practice (an inbox page tops out at 30 rows), and the
+first thing to fix once a batch endpoint exists.
+
+**A seller sees an anonymized buyer, not a name.** The monolith has no public-profile-by-id endpoint,
+so a seller's inbox row reads `Khách hàng · #a91c` — four characters of the buyer's id — rather than
+a real name. Deliberate: adding that lookup this close to a freeze would open a new read surface onto
+user data for a feature (a friendlier inbox row) that does not need one.
 
 ---
 
