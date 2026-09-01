@@ -46,6 +46,7 @@ export const SELLER_PERMISSIONS: Record<
       '/seller/reviews',
       '/seller/payouts',
       '/seller/returns',
+      '/seller/messages',
       // Tuyệt đối không có /seller/pending hay /seller/rejected ở đây!
     ],
   },

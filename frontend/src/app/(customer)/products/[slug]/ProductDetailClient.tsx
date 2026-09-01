@@ -34,6 +34,7 @@ import { buildCategoryPath } from '@/lib/categories';
 
 // Components
 import VariantSelector from '@/components/products/VariantSelector';
+import ChatWithShopButton from '@/components/chat/direct/chat-with-shop-button';
 import dynamic from 'next/dynamic';
 const RecentlyViewedCarousel = dynamic(
   () => import('@/components/products/recently-viewed-carousel'),
@@ -564,6 +565,10 @@ export default function ProductDetailClient({
                   <span className="truncate">Cửa hàng</span>
                 </div>
               )}
+              <ChatWithShopButton
+                shopId={product.shop?.id}
+                ownShop={isOwnProduct}
+              />
             </div>
 
             {/* Title */}

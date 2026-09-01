@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 
 // Services & Components
 import { useShopDetail, useShopCatalog } from '@/hooks/useShop';
+import ChatWithShopButton from '@/components/chat/direct/chat-with-shop-button';
 import ProductCard from '@/components/products/product-card';
 import SortDropdown, { SortOption } from '@/components/products/sort-dropdown';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -263,6 +264,7 @@ export default function ShopDetailClient({ params, searchParams }: PageProps) {
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                       Đối tác chính hãng
                     </span>
+                    <ChatWithShopButton shopId={shopId} />
                   </div>
                   {shop?.description && (
                     <p className="text-base text-muted-foreground line-clamp-2 max-w-2xl leading-relaxed">

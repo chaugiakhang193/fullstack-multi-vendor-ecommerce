@@ -19,6 +19,7 @@ import {
   Star,
   Wallet,
   RotateCcw,
+  MessageSquare,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ProfileDropdown } from '@/components/shared/profile-dropdown';
@@ -228,6 +229,11 @@ export default function SellerLayout({
       label: 'Đơn hàng',
       href: '/seller/orders',
       icon: <ShoppingCart className="h-5 w-5" />,
+    },
+    {
+      label: 'Tin nhắn',
+      href: '/seller/messages',
+      icon: <MessageSquare className="h-5 w-5" />,
     },
     {
       label: 'Trả hàng',
