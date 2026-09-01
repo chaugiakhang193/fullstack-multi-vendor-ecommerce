@@ -334,6 +334,27 @@ rather than just that a request happened:
 | `chat_bot_tokens_total` | `kind` (prompt/output) | What does the daily question budget actually cost? |
 | `chat_bot_enabled` | — (gauge) | Is the kill switch on right now? |
 
+The realtime side is measured by a pair, not by a single number:
+
+| Metric | Labels | What it answers |
+|---|---|---|
+| `chat_ws_connections` | — (gauge) | How many websocket connections are open right now? |
+| `chat_ws_closed_total` | `code` | Why did connections go away — a rejected token (4401), a client too slow to read (1008), a failed write (1011)? |
+
+Neither half is useful alone. The gauge dropping from forty to five is a fact without a cause; the
+counter says which of the four ways a connection can die accounted for it. And the counter is
+deliberately a counter rather than a span: the question asked about a websocket is a **rate over
+time** — "is 4401 climbing?" — which is the shape of a metric, not of a trace. A trace earns its
+keep when there is a path to follow through several components, and a connection's lifetime has
+only two events worth recording, its start and its end. Prometheus also keeps fifteen days of it,
+while the Jaeger here is all-in-one and holds traces in RAM.
+
+`chat_ws_closed_total` is incremented **inside** `Conn.Close`'s `sync.Once`, not at the call sites.
+A connection has three goroutines — read, write, and ping — and any of them can be the one to
+notice it died; counting where `Close` is called would book some connections twice. The `Once` that
+already exists to stop `close(done)` from panicking on a double close turns out to be exactly the
+right place to count.
+
 `chat_bot_enabled` is a `GaugeFunc`, not a `Gauge` with `Set` calls — it reads the kill-switch state
 live at scrape time rather than waiting for an event to push a new value. The alternative would sit
 at 0 until the next request came in and updated it, which is exactly the wrong failure mode: the
