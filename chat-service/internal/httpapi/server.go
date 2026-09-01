@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // NewServer dung *http.Server voi route da gan san.
@@ -32,39 +33,48 @@ func NewServer(
 
 	// CORS boc moi route duoi /chat: chung deu duoc goi tu trinh duyet. /health va /metrics thi
 	// khong bao gio, va boc chung lai chi lam cron keep-warm co them mot cua de vuong.
+	//
+	// otelhttp boc NGOAI corsAllowlist: boc ben trong thi mot request bi CORS tu choi khong sinh
+	// span nao, dung ca dang can nhin thay nhat khi FRONTEND_URL dat lech domain that. Nhanh
+	// OPTIONS thi khong boc - preflight khong phai viec nghiep vu, boc no la nhan doi so span de
+	// doi lay mot span luc nao cung 204.
 	botRoute := corsAllowlist(frontendURL, botHandler(botDeps))
-	mux.Handle("POST /chat/bot", botRoute)
+	mux.Handle("POST /chat/bot", otelhttp.NewHandler(botRoute, "chat-bot-http"))
 	// Preflight dang ky rieng vi ServeMux phan tuyen theo ca method: route "POST /chat/bot"
 	// khong nhan OPTIONS, va trinh duyet se nhan 405 truoc khi kip gui request that.
 	mux.Handle("OPTIONS /chat/bot", botRoute)
 
 	// Config di truoc moi thu: FE goi no luc mount de biet co nen ve bong bong hay khong.
 	configRoute := corsAllowlist(frontendURL, configHandler(botDeps.Switch, logger))
-	mux.Handle("GET /chat/config", configRoute)
+	mux.Handle("GET /chat/config", otelhttp.NewHandler(configRoute, "chat-config-http"))
 	mux.Handle("OPTIONS /chat/config", configRoute)
 
 	// History KHONG doc co Enabled: kill switch chan duong tieu tien (goi Gemini), khong phai
 	// duong doc. Bot nghi ma mo widget van thay hoi thoai hom qua moi la dung.
 	historyRoute := corsAllowlist(frontendURL, historyHandler(botDeps))
-	mux.Handle("GET /chat/history", historyRoute)
+	mux.Handle("GET /chat/history", otelhttp.NewHandler(historyRoute, "chat-history-http"))
 	mux.Handle("OPTIONS /chat/history", historyRoute)
 
 	// Chat 1-1. Cung duoc CORS boc nhu moi route /chat khac: chung deu goi tu trinh duyet.
 	conversationsRoute := corsAllowlist(frontendURL, conversationsHandler(chatDeps))
-	mux.Handle("GET /chat/conversations", conversationsRoute)
+	mux.Handle("GET /chat/conversations", otelhttp.NewHandler(conversationsRoute, "chat-conversations-http"))
 	mux.Handle("OPTIONS /chat/conversations", conversationsRoute)
 
 	messagesRoute := corsAllowlist(frontendURL, messagesHandler(chatDeps))
-	mux.Handle("GET /chat/messages", messagesRoute)
+	mux.Handle("GET /chat/messages", otelhttp.NewHandler(messagesRoute, "chat-messages-http"))
 	mux.Handle("OPTIONS /chat/messages", messagesRoute)
 
 	readRoute := corsAllowlist(frontendURL, readHandler(chatDeps))
-	mux.Handle("POST /chat/read", readRoute)
+	mux.Handle("POST /chat/read", otelhttp.NewHandler(readRoute, "chat-read-http"))
 	mux.Handle("OPTIONS /chat/read", readRoute)
 
 	// /ws KHONG boc corsAllowlist: bat tay WebSocket khong phai request CORS - trinh duyet khong
 	// gui preflight cho no va khong doc Access-Control-* trong phan hoi. Cua chan goc that su nam
 	// trong websocket.AcceptOptions.OriginPatterns, ngay tai cho nang cap ket noi.
+	//
+	// /ws cung KHONG boc otelhttp: span server se song bang dung tuoi tho ket noi, tuc hang gio.
+	// Mot span ba tieng nam canh span 200ms lam hong ca waterfall lan histogram duration. Duong
+	// WS duoc do bang span rieng cho tung tin nhan, trong ws.handleSend.
 	//
 	// nil duoc: test cua package nay dung server khong co duong realtime.
 	if wsHandler != nil {
