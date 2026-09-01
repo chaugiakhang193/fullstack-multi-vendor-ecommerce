@@ -1,13 +1,17 @@
-# Chat service: the shopping bot
+# Chat service: the shopping bot, and the direct line to a shop
 
 The chat service answers product questions by streaming a Gemini reply over SSE, with one tool the model
 may call to search the catalogue. Everything above the provider — retry, circuit breaker, quota, cache,
-persistence — is written without knowing which model is behind it.
+persistence — is written without knowing which model is behind it. The same service also carries a second,
+unrelated feature: a realtime 1-1 channel between a shopper and a shop, over WebSocket instead of SSE,
+sharing nothing with the bot below the `message` table both write to.
 
-This note has two halves. The first follows a question through the service: the gates it passes before a
-token is ever spent, how identity and quota are decided, and how the answer comes back. The second is the
-provider boundary itself — what the Gemini 3 line requires of a caller, and why the code carries a field it
-never reads.
+This note has three parts. The first follows a bot question through the service: the gates it passes
+before a token is ever spent, how identity and quota are decided, and how the answer comes back. The
+second is the WebSocket layer underneath the shopper-to-shop channel — the concurrency model per
+connection, how a message reaches a tab that never asked for it, and why a dropped connection and an
+unauthorized one are handled differently. The third is the provider boundary itself — what the Gemini 3
+line requires of a caller, and why the code carries a field it never reads.
 
 ## A question's path through the service
 
@@ -306,6 +310,300 @@ There is a second reason to keep the key local: `user_id` is issued by the monol
 service's identifier part of this one's primary key would tie the storage layout to their identity scheme.
 The surrogate is a layer of insulation, and it is also why a participant id — not a user id — is what
 travels out to the browser on every message frame.
+
+## A second channel: one goroutine writes, per connection
+
+The bot answers over SSE because a question is one request and one reply — the client asks, the
+server streams back, done. A conversation between a shopper and a shop is not that shape: either
+side can write at any moment, and a message has to reach a tab that never asked for anything. That
+needs a connection the server can push through, which is what `internal/ws` is for — a stateful,
+bidirectional socket per open tab, entirely separate from the SSE stream above and built around one
+rule: **exactly one goroutine ever writes to a given connection.**
+
+```mermaid
+sequenceDiagram
+  participant A as Buyer's tab
+  participant W as chat-service /ws
+  participant H as Hub
+  participant B as Seller's tab
+
+  A->>W: connect, then {type:"auth", token}
+  W-->>A: {type:"ready", userId, shopId}
+  A->>W: {type:"send", conversationId, text, clientMsgId}
+  W->>W: AppendMessage (Postgres)
+  W->>H: Broadcast(user:<buyerId>, skip=A)
+  W->>H: Broadcast(shop:<shopId>, skip=A)
+  H-->>B: {type:"message", ...}
+  W-->>A: {type:"message", ..., clientMsgId}
+```
+
+`coder/websocket` permits only one writer at a time per connection, and fanout means an arbitrary
+sender's goroutine has to deliver into an arbitrary receiver's socket — a mutex everyone has to
+remember to take would make the one-writer rule a matter of discipline. Channeling every write
+through a single goroutine per connection makes it a matter of the type system instead. Three
+goroutines per accepted socket carry that out:
+
+| Goroutine | Reads | Writes | Exits when |
+|---|---|---|---|
+| the request goroutine, running `readLoop` | frames off the socket | nothing | the socket errors, closes, or a frame exceeds `readLimit` (8KB) |
+| `writeLoop` | `Conn.outbox` — a buffered channel, 16 frames deep | the socket — the **only** writer | `ctx` is cancelled or `Conn.done` closes |
+| `pingLoop` | a 30s ticker | a WebSocket control frame (`Ping`) | same |
+
+`Conn.Send` is the only way any frame reaches the wire — called from the read loop, from the Hub,
+from anywhere — and it never blocks its caller: it pushes onto `outbox` and returns immediately. A
+`select` with a `default` branch is what makes that a guarantee rather than a hope: if the queue is
+already full, the frame is not queued and blocked on, it is dropped and the connection is torn down
+via `Close`. Sixteen is a small number on purpose — a direct conversation gets a few messages a
+minute, so a queue that deep filling up is not "busy", it is "the write side is dead and does not
+know it yet". Silently dropping the frame instead of closing would leave two tabs holding two
+different histories with nothing telling either one.
+
+Pings ride a *control* frame, which `coder/websocket` keeps on a separate lane from data frames — so
+`pingLoop` writing on its own ticker never collides with `writeLoop`'s hold on the data-frame lane,
+and the one-writer rule survives having two goroutines that write something.
+
+## The five frames, shape by shape
+
+Everything that crosses the socket is one of five frame types — two the client sends, three the
+server does — and every type carries a different subset of the same two structs:
+
+```go
+type clientFrame struct {
+    Type string `json:"type"`
+
+    Token string `json:"token,omitempty"` // auth only
+
+    ConversationID string `json:"conversationId,omitempty"` // send only
+    ShopID         string `json:"shopId,omitempty"`         // send only
+    Text           string `json:"text,omitempty"`           // send only
+    ClientMsgID    string `json:"clientMsgId,omitempty"`    // send only
+}
+
+type serverFrame struct {
+    Type string `json:"type"`
+
+    UserID string `json:"userId,omitempty"` // ready only
+    ShopID string `json:"shopId,omitempty"` // ready only
+
+    ConversationID string `json:"conversationId,omitempty"` // message only
+    ID             string `json:"id,omitempty"`             // message only
+    SenderID       string `json:"senderId,omitempty"`       // message only
+    SenderRole     string `json:"senderRole,omitempty"`     // message only
+    Text           string `json:"text,omitempty"`           // message only
+    CreatedAt      string `json:"createdAt,omitempty"`      // message only
+    ClientMsgID    string `json:"clientMsgId,omitempty"`    // message (sender's own echo) or error
+
+    Reason string `json:"reason,omitempty"` // error only
+}
+```
+
+One struct per direction instead of one per type, because a direct-chat frame only ever has a
+handful of fields — decoding it twice to get two typed structs would mean holding onto the raw JSON
+between the two reads. On the wire, the five look like this:
+
+```json
+// client → server — the first frame, and the only thing accepted before it
+{"type": "auth", "token": "<JWT access token>"}
+
+// client → server — opening a NEW conversation: shopId set, conversationId absent
+{"type": "send", "shopId": "<shop uuid>", "text": "còn hàng không?", "clientMsgId": "<uuid, client-generated>"}
+
+// client → server — replying in an EXISTING conversation: conversationId set, shopId absent
+{"type": "send", "conversationId": "<conversation uuid>", "text": "còn hàng bạn nhé", "clientMsgId": "<uuid>"}
+
+// server → client — sent once, right after auth verifies
+{"type": "ready", "userId": "<uuid>", "shopId": "<shop uuid, or absent if this user owns no shop>"}
+
+// server → client — fanned out to every connection in both rooms; only the SENDER's own copy carries clientMsgId
+{"type": "message", "conversationId": "<uuid>", "id": "<uuid v7>", "senderId": "<participant id>", "senderRole": "user", "text": "còn hàng không?", "createdAt": "2026-09-01T13:25:00Z", "clientMsgId": "<uuid, sender's copy only>"}
+
+// server → client — any gate in handleSend rejected the frame, or the type wasn't recognized
+{"type": "error", "reason": "conversation_not_found", "clientMsgId": "<uuid, echoed back if this answered a send>"}
+```
+
+`clientMsgId` is the one field that travels in a loop: the client mints it on `send`, and it comes
+back on exactly one of two frames — the sender's own `message` echo, or an `error` — never both,
+never neither. That round trip is the entire mechanism the FE store uses to find the optimistic
+bubble it drew before the server answered (see the state table below).
+
+## No connection ever writes to another — only through the Hub
+
+There is no code path where the sender's connection reaches into the receiver's. Delivery goes
+through exactly one indirection, and it is address-based, not identity-based:
+
+- `readLoop` on the sender's `Conn` decodes the `send` frame and calls `handleSend`.
+- `handleSend` writes the message to Postgres, then calls `Hub.Broadcast` twice — once for
+  `user:<buyerId>`, once for `shop:<shopId>`.
+- `Broadcast` looks up every `Conn` registered under that key and calls `.Send()` on each, which —
+  by the rule above — only ever queues onto *that* connection's own `outbox`.
+
+Read (the sender's `readLoop`), route (`Hub`), write (the receiver's `writeLoop`) are three different
+pieces of code, and a `Conn` never holds a pointer to another `Conn`. The Hub is the only thing that
+ever has more than one connection in hand at once, and it releases its `sync.RWMutex` before calling
+any `Send()` — so a receiver whose queue is filling up can never block the Hub from routing to
+everyone else in the room while it happens.
+
+The room keys are deliberately not user ids:
+
+```go
+func UserKey(userID string) string { return "user:" + userID }
+func ShopKey(shopID string) string { return "shop:" + shopID }
+```
+
+A `user:<id>` room holds every tab one buyer has open, so their own sent message and any reply both
+land in the same place. A `shop:<id>` room is what a seller's tabs join instead of `user:<sellerId>`
+— and that is the load-bearing choice, not a naming preference. The moment a buyer opens a
+conversation, chat-service knows the shop id but has no way to know who *owns* it: this database has
+no `shop` table, and asking the monolith on every single fanout would put a network hop between two
+people in the middle of a conversation. `authenticate()` asks that question exactly once, right after
+the token verifies, and caches the answer in `Conn.ShopID` for the life of the connection — a
+network error there does not fail the connection, it only means this tab won't receive messages
+addressed to its shop until the next reconnect, because the alternative (dropping identity resolution
+into every fanout) would let one monolith hiccup take down direct chat for everyone.
+
+## Two close codes, and a client that tells them apart
+
+Every close carries one of two meanings:
+
+- **4401 — identity did not check out.** No `auth` frame within `authDeadline` (5s), an unreadable
+  first frame, a first frame that isn't `type:"auth"`, or a token that fails `Verifier.Verify`. All
+  four live inside `authenticate()`, and all four happen before a `ready` frame is ever sent.
+- **Everything else** — the tab closing, a dead network, the server restarting, the outbox filling —
+  is an ordinary, expected end to a WebSocket connection.
+
+4401 sits in the range reserved for application use, not `1008` (policy violation), because the
+client's `lib/chat/socket.ts` needs to tell "your token is stale, go refresh it" apart from every
+other reason a socket might die. `ws.onclose` reads the code and picks one of two responses:
+
+| Close code | FE response |
+|---|---|
+| `4401` | `handleUnauthorized()` — call `silentRefresh()`, then reconnect **once**. A second 4401 after a fresh token means the problem isn't the token, so it gives up and reports `unauthorized` rather than loop. |
+| anything else | `scheduleReconnect()` — back off and retry with the *same* token: 1s → 2s → 4s → 8s → 16s, capped at 30s, plus a little jitter so several tabs from one person don't all retry in the same instant. |
+
+That split only works because of a detail on the Go side that has nothing to do with WebSocket
+semantics on its face. `authenticate()` reads the first frame with a hand-rolled `time.After(5s)`
+race against the read, instead of passing a `context.WithTimeout` straight into `wsjson.Read`. The
+reason: `coder/websocket` closes the socket **silently** — no close frame at all — the instant its
+context expires. Wire the deadline straight into the read and the 4401 branch could never reach the
+browser; the client would only see the connection die, indistinguishable from a dropped network, and
+would answer a fixable "your token expired" with an unfixable retry loop instead of a refresh. The
+hand-rolled timer exists purely so the connection is still alive when `Close(4401, ...)` runs, long
+enough to actually send the close frame the FE is waiting to read.
+
+The 30-second reconnect ceiling is not an arbitrary "exponential backoff, capped" number either — it
+is sized to chat-service's own cold start on Render's free tier, which takes 30–50 seconds to wake
+from sleep. Retrying every second through that window would not wake the service any faster; it
+would just hammer a process that is still booting.
+
+And the `attempt` counter behind that backoff resets to zero only on receiving a `ready` frame — never
+on `ws.onopen`. A TCP handshake succeeding says nothing about whether the token that follows will be
+accepted: resetting on `onopen` would turn a string of 4401s from a stale token into a reconnect
+attempt every second instead of a proper backoff.
+
+## The client's state: five statuses, one store
+
+`frontend/src/lib/chat/socket.ts` owns the connection and reports it as one of five values — the
+`DirectSocketStatus` enum — which is all the UI needs to decide what to show:
+
+| Status | Meaning | Set by |
+|---|---|---|
+| `idle` | no connection has been attempted yet | the store's initial value, before `connect()` is ever called |
+| `connecting` | first attempt in flight, including the case where `accessToken` isn't in memory yet and a silent refresh has to finish first | `connectDirectChat` |
+| `ready` | authenticated and the `ready` frame arrived | `ws.onmessage`, on frame type `ready` |
+| `reconnecting` | the socket dropped for any reason other than 4401, backoff timer running | `scheduleReconnect` |
+| `unauthorized` | refreshed the token once, got rejected again — stopped retrying for good | `handleUnauthorized`, after the one allowed refresh fails |
+
+`idle` and `connecting` look similar but answer different questions: `idle` is "nobody has asked to
+connect yet" (the store just mounted), `connecting` is "asked, and still waiting". `DIRECT_STATUS_MESSAGES`
+only has strings for three of the five — `connecting`, `reconnecting`, `unauthorized` — so both
+`idle` and `ready` render no banner at all: a component that mounts before `connect()` runs shows
+nothing rather than a flash of status text, and a working connection is the normal state, not
+something worth a line on screen.
+
+That status is one field of a larger Zustand store, `useDirectChatStore`, which both `/chat` and
+`/seller/messages` mount — same component, same store, different `viewer`:
+
+| Field | Type | Holds |
+|---|---|---|
+| `status` | `DirectSocketStatus` | the five values above |
+| `viewer` | `'buyer' \| 'seller'` | which page mounted the store — decides which bubble renders on the right and which inbox query (`?as=seller` or not) runs |
+| `conversations` | `DirectConversation[]` | the inbox list: id, shop id, buyer id, preview, unread count |
+| `loadingConversations` | `boolean` | inbox fetch in flight |
+| `target` | `DirectTarget \| null` | which thread is open in the right-hand pane — see below |
+| `messages` | `Record<conversationId, DirectMessage[]>` | history per conversation, oldest first |
+| `draftMessages` | `DirectMessage[]` | messages typed before the conversation has a real id — see `target.kind === 'draft'` |
+| `loadingMessages` | `boolean` | history fetch in flight for the currently open target |
+| `errorMessage` | `string \| null` | the last `error` frame's Vietnamese translation, dismissed by the user tapping it away |
+| `shopNames` | `Record<shopId, string>` | shop names resolved against the monolith, one request per unknown shop — chat-service has no shop table to answer this itself |
+
+`target` is the one field worth a diagram of its own, because its two shapes are not symmetric:
+
+```ts
+type DirectTarget =
+  | { kind: 'conversation'; conversationId: string; shopId: string }
+  | { kind: 'draft'; shopId: string };
+```
+
+A `draft` exists because the backend deliberately does not create a conversation on the read path —
+`EnsureDirectConversation` only ever runs from `handleSend`. Between the moment a shopper taps "Chat
+với shop" and the moment their first message is actually acknowledged, there is no `conversationId`
+anywhere yet, so the pending messages live in `draftMessages` instead of keyed into `messages`. The
+first `message` frame that echoes back a `clientMsgId` still sitting in `draftMessages` is what
+promotes the target from `draft` to `conversation` — see `applyFrame` in the store, and note it also
+triggers a full `loadConversations()` rather than patching the array in place, because this
+conversation did not exist in that array a moment ago for `.map()` to find.
+
+## The write path: burst, resolve, append, fan out
+
+`handleSend` runs the same shape of gate ladder as the bot's, cheapest check first:
+
+```
+trim + length check → burst → resolveTarget (authorization) → AppendMessage (Postgres) → fanout
+```
+
+Burst here is 20 messages, refilling one a second — wide open next to the bot's 10-per-6s, because
+this gate is standing between a person and their own keyboard, not between a caller and a metered
+provider call. `resolveTarget` carries the two ways a `send` frame can name its destination, and they
+are not symmetric on purpose:
+
+- **`conversationId` empty, `shopId` set** — opening a new conversation. Only a buyer can take this
+  path: the schema requires a direct conversation's `owner_user_id` to be the buyer, an anti-spam
+  rule against a shop originating conversations at will. A seller pointed at their own `shopId` is
+  rejected with `own_shop` before the database is ever touched — letting it through would create a
+  conversation owned by the shop's own account, indistinguishable afterward from an ordinary buyer
+  thread nobody can ever answer as the shop.
+- **`conversationId` set** — an existing conversation, either side. `ResolveDirectParticipant` is
+  where authorization actually happens, and it returns the *same* `conversation_not_found` whether
+  the id doesn't exist or exists but this caller has no seat in it — one error for two different
+  causes, on purpose. `GET /chat/messages` makes the identical choice for the same reason: splitting
+  "not found" from "not yours" into a 404 and a 403 would let someone map real conversation ids by
+  the shape of the rejection alone.
+
+Every server-side error reason has a fixed FE translation, so a rejection reaches the composer as a
+sentence, not a code:
+
+| Reason | Vietnamese shown to the user | Cause |
+|---|---|---|
+| `bad_text` | Tin nhắn trống hoặc quá dài. | empty after trim, or over 4000 runes |
+| `too_fast` | Bạn gửi hơi nhanh, chờ một chút nhé. | burst bucket empty |
+| `conversation_not_found` | Không mở được hội thoại này. | id doesn't exist, or caller has no seat in it |
+| `own_shop` | Đây là shop của bạn, không thể tự nhắn cho mình. | seller opening a conversation with their own shop |
+| `missing_target` | Chưa biết gửi tin này cho shop nào. | neither `conversationId` nor `shopId` set |
+| `store_unavailable` | Máy chủ chat đang bận, thử lại sau nhé. | store not wired (should not happen outside tests) |
+| `send_failed` | Gửi không thành công. Bạn thử lại nhé. | an unexpected DB error on write |
+| `unsupported_type` | Phiên bản trang đang cũ, tải lại giúp mình nhé. | a client frame type the server doesn't recognize |
+
+A successful write is stamped with a UUIDv7 id, not v4: `ListMessagesBefore`'s keyset pagination
+cursors on this column, and a v4 id inserted mid-history would land in the wrong page whenever
+someone scrolled back through it.
+
+`fanout` then sends from that one stored row to three destinations: the buyer's room, the shop's
+room, and back to the sender itself — skipped by `Hub.Broadcast`'s `skip` parameter on the first two
+calls, sent separately as the third with one field the other two never carry. The sender's own copy
+gets `clientMsgId` echoed back; nobody else's does. That single field is the whole mechanism behind
+optimistic UI: the tab that sent the message matches the echo to the pending bubble it already drew,
+by `clientMsgId`, while every other tab in the room renders the same `message` frame from scratch.
+One server-side struct, one client-side render path, no branch anywhere for "is this frame mine".
 
 ## Not every question reaches the service
 
