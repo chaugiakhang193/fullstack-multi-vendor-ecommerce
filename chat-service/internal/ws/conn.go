@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/telemetry"
 	"github.com/coder/websocket"
 )
 
@@ -110,6 +112,12 @@ func (c *Conn) writeLoop(ctx context.Context) {
 // Close dong ket noi dung mot lan, kem ma dong va ly do.
 func (c *Conn) Close(code websocket.StatusCode, reason string) {
 	c.closeOnce.Do(func() {
+		// Dem o day chu khong o tung cho goi Close: ba goroutine cua mot ket noi deu co the la
+		// dua phat hien chet truoc, va closeOnce dam bao khoi nay chay dung mot lan cho moi ket
+		// noi. Dem o cho goi thi mot ket noi bi ca readLoop lan pingLoop cung phat hien se vao so
+		// hai lan.
+		telemetry.GetMetrics().WSClosedTotal.WithLabelValues(strconv.Itoa(int(code))).Inc()
+
 		close(c.done)
 		// Bo qua loi: den day thi ket noi hoac da dong roi, hoac dang dong - ca hai deu khong
 		// con gi de lam tiep.

@@ -26,6 +26,11 @@ type Metrics struct {
 	// BotTokensTotal dem token da tieu, tach prompt/output. Han muc dem theo cau hoi con Gemini
 	// tinh theo token, nen phai do ca hai moi biet 300 cau/ngay thuc su ton bao nhieu.
 	BotTokensTotal *prometheus.CounterVec
+
+	// WSClosedTotal dem ket noi WebSocket da dong, tach theo ma dong. Day la ve con lai cua
+	// gauge chat_ws_connections: gauge noi bao nhieu ket noi dang mo, con counter nay noi vi sao
+	// chung bien mat - 4401 la token hong, 1008 la client doc qua cham, 1011 la ghi that bai.
+	WSClosedTotal *prometheus.CounterVec
 }
 
 var (
@@ -81,6 +86,13 @@ func InitMetrics() *Metrics {
 					Help: "Tong token da tieu voi Gemini, tach prompt va output",
 				},
 				[]string{"kind"},
+			),
+			WSClosedTotal: promauto.NewCounterVec(
+				prometheus.CounterOpts{
+					Name: "chat_ws_closed_total",
+					Help: "So ket noi WebSocket da dong, tach theo ma dong",
+				},
+				[]string{"code"},
 			),
 		}
 	})
