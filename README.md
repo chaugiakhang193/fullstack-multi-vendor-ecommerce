@@ -726,9 +726,9 @@ Traces and metrics come up as a **separate** compose file, so the app stack stay
 docker compose -f docker-compose.observability.yml up -d
 ```
 
-Then set `OTEL_ENABLED=true` in `backend/.env`, `notification-service/.env` **and**
-`search-service/.env`, then restart them — instrumentation is opt-in, so nothing is exported until
-you ask for it.
+Then set `OTEL_ENABLED=true` in `backend/.env`, `notification-service/.env`, `search-service/.env`
+**and** `chat-service/.env`, then restart them — instrumentation is opt-in, so nothing is exported
+until you ask for it.
 
 | Component | URL / port |
 |-----------|-----------|
@@ -738,6 +738,7 @@ you ask for it.
 | Backend metrics endpoint | http://localhost:8080/api/v1/metrics |
 | Notification metrics endpoint | http://localhost:3001/metrics |
 | Search metrics endpoint | http://localhost:8090/metrics |
+| Chat metrics endpoint | http://localhost:8091/metrics |
 
 > Grafana is on **3002**, not its usual 3000/3001 — those are taken by the Next.js frontend and the
 > notification service respectively.
