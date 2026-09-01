@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -68,8 +70,13 @@ func NewSearchTool(baseURL, frontendURL string) *SearchTool {
 	return &SearchTool{
 		baseURL:     strings.TrimRight(baseURL, "/"),
 		frontendURL: strings.TrimRight(frontendURL, "/"),
-		http:        &http.Client{Timeout: toolTimeout},
-		warmer:      NewWarmer(baseURL),
+		// Transport co instrument: no gan traceparent vao header cua lan goi sang search-service,
+		// nho vay mot cau hoi bot va cai /search/detailed no keo theo nam chung MOT trace.
+		http: &http.Client{
+			Timeout:   toolTimeout,
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		},
+		warmer: NewWarmer(baseURL),
 	}
 }
 

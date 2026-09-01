@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -48,7 +50,12 @@ type cacheEntry struct {
 func New(baseURL string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    &http.Client{Timeout: lookupTimeout},
+		// Transport co instrument de lan hoi shop noi duoc vao trace cua monolith: monolith da co
+		// auto-instrumentation san, no chi can nhan duoc traceparent tu day.
+		http: &http.Client{
+			Timeout:   lookupTimeout,
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		},
 		entries: make(map[string]cacheEntry),
 	}
 }

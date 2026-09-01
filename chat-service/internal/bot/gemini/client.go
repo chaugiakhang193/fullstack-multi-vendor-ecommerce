@@ -7,9 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/genai"
 
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/bot"
@@ -69,6 +71,15 @@ func New(cfg Config) (*Client, error) {
 	sdk, err := genai.NewClient(context.Background(), &genai.ClientConfig{
 		APIKey:  cfg.APIKey,
 		Backend: genai.BackendGeminiAPI,
+		// HTTPClient tu dua vao chi de gan transport co instrument: khong co no thi lan goi model
+		// - thu dat nhat trong ca request - la mot khoang trong trong waterfall.
+		//
+		// KHONG dat Timeout o day. Timeout cua http.Client tinh ca thoi gian doc body, ma body o
+		// day la mot stream chay dan; dat han la tu cat ngang cau tra loi dai. Han van nam o ctx
+		// (callTimeout, firstChunkTimeout, va bot.TotalBudget o tang tren).
+		HTTPClient: &http.Client{
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		},
 		HTTPOptions: genai.HTTPOptions{
 			BaseURL: cfg.BaseURL,
 			// TAT retry cua SDK. Mac dinh cua no la 5 lan thu VA CO CA 429 trong danh
