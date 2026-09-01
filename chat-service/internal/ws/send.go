@@ -9,6 +9,9 @@ import (
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/quota"
 	"github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/chat-service/internal/store"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
@@ -26,6 +29,10 @@ var errOwnShop = errors.New("ws: khong the nhan tin voi shop cua chinh minh")
 
 // errMissingTarget: frame send khong noi duoc no thuoc hoi thoai nao.
 var errMissingTarget = errors.New("ws: thieu ca conversationId lan shopId")
+
+// tracer cua package. Lay mot lan chu khong goi otel.Tracer() trong tung lan gui: ham do khoa
+// registry toan cuc, va duong nay chay tren moi tin nhan cua moi ket noi.
+var tracer = otel.Tracer("chat-service/internal/ws")
 
 // handleSend xu ly mot frame send: kiem, ghi, roi phat cho ca hai dau.
 //
@@ -58,26 +65,46 @@ func handleSend(ctx context.Context, deps Deps, conn *Conn, frame clientFrame) {
 	writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), writeDBTimeout)
 	defer cancel()
 
+	// Span mo tren writeCtx chu khong tren ctx, vi cung mot ly do: no phai song het ba lenh DB ke
+	// ca khi nguoi gui dong tab giua chung.
+	//
+	// Day la span GOC, khong co cha - va do la dung. /ws khong duoc otelhttp boc vi span server se
+	// song hang gio, con trinh duyet thi khong gui traceparent. Cai doi lay la moi tin nhan thanh
+	// mot trace doc duoc, thay vi vai span pgx mo coi khong biet thuoc viec gi.
+	writeCtx, span := tracer.Start(writeCtx, "ws.send")
+	defer span.End()
+
 	target, err := resolveTarget(writeCtx, deps, conn, frame)
 	if err != nil {
+		// Bon nhanh duoi day deu ket thuc bang mot frame error gui ve client, nen deu duoc danh dau
+		// Error tren span: nhin vao Jaeger phai thay duoc tin nhan nao khong den noi.
+		span.RecordError(err)
 		if errors.Is(err, store.ErrConversationNotFound) {
 			// Cung mot loi cho "khong co" va "khong duoc phep", giong tang HTTP: tach ra thi gui
 			// thu 1000 id la do duoc id nao co that.
+			span.SetStatus(codes.Error, "conversation_not_found")
 			conn.sendError("conversation_not_found", frame.ClientMsgID)
 			return
 		}
 		if errors.Is(err, errOwnShop) {
+			span.SetStatus(codes.Error, "own_shop")
 			conn.sendError("own_shop", frame.ClientMsgID)
 			return
 		}
 		if errors.Is(err, errMissingTarget) {
+			span.SetStatus(codes.Error, "missing_target")
 			conn.sendError("missing_target", frame.ClientMsgID)
 			return
 		}
+		span.SetStatus(codes.Error, "authorize_failed")
 		deps.Logger.Error("phan quyen gui tin loi", "err", err, "userId", conn.UserID)
 		conn.sendError("send_failed", frame.ClientMsgID)
 		return
 	}
+
+	// Dat attribute SAU khi phan quyen xong: truoc do conversationId con la thu client tu khai, va
+	// mot id chua duoc kiem thi khong dang ghi vao he quan sat.
+	span.SetAttributes(attribute.String("chat.conversation_id", target.ConversationID))
 
 	message, err := deps.Store.AppendMessage(writeCtx, store.AppendMessageParams{
 		// UUIDv7 chu khong phai v4: con tro phan trang keyset cua ListMessagesBefore sap theo
@@ -88,6 +115,8 @@ func handleSend(ctx context.Context, deps Deps, conn *Conn, frame clientFrame) {
 		Body:                text,
 	})
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "append_failed")
 		deps.Logger.Error("ghi tin nhan loi", "err", err, "conversationId", target.ConversationID)
 		conn.sendError("send_failed", frame.ClientMsgID)
 		return
