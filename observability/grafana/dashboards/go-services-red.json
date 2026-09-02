@@ -1,0 +1,150 @@
+{
+  "uid": "go-services-red",
+  "title": "Go services — RED (chat + search)",
+  "tags": ["observability", "red", "go"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Chat — Rate: request/s theo endpoint",
+      "description": "R trong RED. Lấy _count của histogram chứ không lấy chat_requests_total: counter mang nhãn status/outcome, KHÔNG mang endpoint, nên `by (endpoint)` trên counter sẽ cho một đường trống mà không báo lỗi gì. Nhãn endpoint là pattern ServeMux (GET /chat/history) nên không nổ cardinality.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(chat_request_duration_seconds_count[1m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Chat — Errors: lỗi/s theo lớp",
+      "description": "E trong RED. Tách client_error (4xx) khỏi error (5xx) vì hai thứ đòi hai hành động khác nhau: 4xx tăng là người gọi sai hoặc token hỏng, 5xx tăng là service hỏng. KHÔNG tách được theo endpoint — counter không mang nhãn đó; muốn biết endpoint nào lỗi thì phải đọc log.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(chat_requests_total{outcome!=\"served\"}[1m])) by (outcome)",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Chat — Duration: p95 theo endpoint",
+      "description": "D trong RED. POST /chat/bot luôn nằm ở đuôi cao và đó không phải lỗi: nó là SSE nên duration đo trọn thời gian stream, không phải thời gian đến byte đầu tiên.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(chat_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Search — Rate: request/s theo endpoint",
+      "description": "Cùng hình dạng nhãn với chat: counter mang status/outcome, histogram mang endpoint. Hai service Go dùng chung khuôn nên panel copy sang chỉ đổi tiền tố tên metric.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(search_request_duration_seconds_count[1m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Search — Errors: lỗi/s theo lớp",
+      "description": "Nhãn outcome của search sinh từ kết quả nghiệp vụ chứ không từ lớp status như chat, nên ở đây còn thấy client_canceled (monolith bỏ cuộc vì quá 300ms) và bad_request. client_canceled KHÔNG phải service hỏng.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 20 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(search_requests_total{outcome!~\"served|empty\"}[1m])) by (outcome)",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Search — Duration: p95 theo endpoint",
+      "description": "Hai endpoint có hình dạng khác hẳn nhau: /search phục vụ storefront, /search/detailed phục vụ tool của chatbot và trả tối đa 5 sản phẩm.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(search_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}"
+        }
+      ]
+    }
+  ]
+}
