@@ -559,14 +559,23 @@ trace id** — from the HTTP handler, through the outbox row and RabbitMQ, to th
 | **Trace context across the async gap** | `outbox_event.trace_parent` — the W3C `traceparent` is captured by an `@BeforeInsert` hook and restored by the relay before publishing (see ADR-7) |
 | **Context over the broker** | injected into RabbitMQ message headers; the consumer extracts it and opens a `SpanKind.CONSUMER` span, so both services land in the same trace |
 | **Across a language boundary** | `search-service/internal/telemetry` — the Go consumer extracts the same W3C header (case-insensitively, since `amqp.Table` is a plain map) and `otelpgx` continues the trace into its queries |
-| **RED metrics** | `metrics.interceptor.ts` → `/api/v1/metrics` — request rate, error rate, duration histogram, plus an **outbox-lag gauge** (age of the oldest unpublished event) |
+| **RED metrics** | All four services expose the same pair — `metrics.interceptor.ts` → `/api/v1/metrics` on the monolith, one middleware per service in Go, so a route is instrumented the moment it is registered. The monolith adds an **outbox-lag gauge** (age of the oldest unpublished event) |
 | **Consumer metrics** | `notification_events_processed_total` · `search_events_processed_total` — events counted by `event_type` and `result`, so "running" and "succeeding" are different questions |
-| **Dashboard as code** | `observability/grafana/**` provisioned at container start — the dashboard lives in git and survives `docker compose down -v` |
+| **Dashboard as code** | `observability/grafana/**` provisioned at container start — both dashboards live in git and survive `docker compose down -v`; the provider watches the folder, so another one is added by dropping in a JSON file |
 | **Load baseline** | [`observability/k6/baseline-search.js`](observability/k6/baseline-search.js) — three sequential stages at 10 / 50 / 100 VUs, measured before the search work began |
 
-**RED dashboard** — request rate, error rate and p95 latency per route, plus outbox lag:
+**RED dashboard, monolith** — request rate, error rate and p95 latency per route, plus outbox lag:
 
 ![Grafana RED dashboard](docs/screenshots/grafana-red.png)
+
+**RED dashboard, the two Go services** — the same three panels for the chat and the search service:
+
+![Grafana RED dashboard for the Go services](docs/screenshots/grafana-go-services-red.png)
+
+Rate on the second one is read from the duration histogram's `_count` rather than from the request
+counter, because the two metrics carry disjoint labels: the counter is keyed by `status` and
+`outcome`, the histogram by `endpoint`. Grouping the counter by `endpoint` matches nothing and
+returns an empty panel with no error to explain it.
 
 > **Why the observability stack is local-only.** Jaeger, Prometheus and Grafana run from
 > `docker-compose.observability.yml` on a developer machine, not in production. The hosting budget for
@@ -734,7 +743,7 @@ until you ask for it.
 |-----------|-----------|
 | Jaeger UI (traces) | http://localhost:16686 |
 | Prometheus | http://localhost:9090 |
-| Grafana (RED dashboard, auto-provisioned) | http://localhost:3002 |
+| Grafana (RED dashboards, auto-provisioned) | http://localhost:3002 |
 | Backend metrics endpoint | http://localhost:8080/api/v1/metrics |
 | Notification metrics endpoint | http://localhost:3001/metrics |
 | Search metrics endpoint | http://localhost:8090/metrics |
