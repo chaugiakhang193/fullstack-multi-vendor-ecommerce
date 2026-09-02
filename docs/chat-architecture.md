@@ -66,9 +66,17 @@ the questions are all different, which is exactly when a cache has stopped payin
 declines to add an eviction policy it would not benefit from. And the breaker counts *consecutive* failures:
 one success in between resets the count to zero, so a provider that is merely flaky never trips it.
 
-Every counter and bucket in the table lives in **RAM on one instance**. That is what makes the burst ceiling
-and the in-flight latch exact — and it is also the assumption that breaks first if the service is ever
-scaled to two instances, where the real ceiling becomes the configured one multiplied by the instance count.
+Most of the state in the table lives in **RAM on one instance**: the burst bucket, the reply cache, the
+in-flight latch, and the breaker's fail count. That is what makes the burst ceiling and the in-flight latch
+exact today — and it is also the assumption that breaks first if the service is ever scaled to two
+instances, where each of those ceilings becomes the configured one multiplied by the instance count.
+
+The quota counters are the exception, and deliberately so. They are a single atomic upsert against Neon
+(`INSERT … ON CONFLICT DO UPDATE SET message_count = message_count + 1 RETURNING`), which increments and
+returns in one round trip rather than reading then writing. Guest, hourly, daily and global ceilings
+therefore stay exact no matter how many instances run. Scaling would not raise them — but it can reach
+them sooner when requests are distributed across instances, because a reply cache held per instance turns
+a question one instance could have answered from memory into a model call and a quota charge on another.
 
 ## Quota is three ceilings and a speed limit
 
