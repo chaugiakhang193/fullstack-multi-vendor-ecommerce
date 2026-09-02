@@ -477,6 +477,13 @@ locked phone, or the same free-tier host cold-starting mid-conversation. Same `c
 Postgres database, a different transport and a different set of failure modes: a raw **WebSocket**
 channel sits next to the SSE one above, one connection per open tab.
 
+Two windows, one shop: the buyer sends, the seller's inbox updates its badge and preview with no
+reload, and the reply travels back the same way. Which side a bubble lands on is decided by
+`senderRole` rather than by comparing ids — which is why the same message sits on the right for the
+person who wrote it and on the left for the person reading it.
+
+![Direct chat demo: a buyer message reaches the seller inbox live, and the reply comes back](docs/screenshots/chat-realtime.gif)
+
 ### One writer per connection, routed through a Hub, never directly
 
 Every accepted socket runs three goroutines around a single invariant — **exactly one goroutine ever
