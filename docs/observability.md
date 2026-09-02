@@ -324,6 +324,26 @@ exposes the same RED pair as the monolith:
 | `chat_requests_total` | `status`, `outcome` |
 | `chat_request_duration_seconds` | `endpoint` |
 
+Both are written by a single `measured` middleware in
+[`internal/httpapi/server.go`](../chat-service/internal/httpapi/server.go), not by each handler, so
+a route is instrumented the moment it is registered rather than when someone remembers to add the
+call. The `endpoint` label comes from the same `spanNameFromPattern` helper that names the span, so
+a slow bucket in Grafana carries a string that pastes straight into a Jaeger search.
+
+The middleware captures the response through `httpsnoop.CaptureMetrics` rather than a hand-written
+`ResponseWriter`. A writer wrapped by embedding exposes only the `http.ResponseWriter` methods and
+silently drops `Flusher` and `Hijacker` — the two interfaces the `/chat/bot` SSE stream and the
+websocket handshake depend on.
+
+One label reads differently here than in the search service. Search derives `outcome` from the
+business result, so it can say `empty` or `client_canceled`; the chat middleware only ever sees a
+status code, so its `outcome` is the status class — `served`, `client_error`, `error`. The detailed
+reason for a chat 4xx lives in the `reason` field of the response body, not in a label.
+
+> `/health`, `/metrics` and the `OPTIONS` preflights sit **outside** the middleware, on the same
+> boundary the spans use. Keep-warm pings, Prometheus scrapes and preflight 204s would otherwise
+> make up most of the count, and an error rate measured against that mixture answers nothing.
+
 Layered on top are counters that explain *why* the bot flow specifically failed or cost money,
 rather than just that a request happened:
 
