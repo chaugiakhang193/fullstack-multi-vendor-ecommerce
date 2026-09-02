@@ -49,6 +49,7 @@ database fails at startup rather than while serving.
 | `GEMINI_MODEL` | leave unset | Defaults to `gemini-3.5-flash-lite`. Set it to move models without a redeploy |
 | `CHAT_BOT_ENABLED` | `true` | Kill switch. `false` answers 503 with a reason instead of calling the provider |
 | `SEARCH_SERVICE_URL` | the search service's Render URL | Empty means the bot runs without registering its search tool: it can still answer, it just cannot look anything up |
+| `MONOLITH_URL` | the monolith's origin, no path and no trailing slash | Required for 1-to-1 chat. Empty breaks it silently — see below. The client appends `/api/v1/seller/shops` itself, so an origin that already carries `/api/v1` produces a 404 that looks identical to the empty case |
 | `FRONTEND_URL` | the storefront origin | Both the CORS allowlist and the host for product links. A trailing slash is trimmed |
 | `BOT_GUEST_DAILY_LIMIT` | leave unset | Defaults to 5 questions per day, counted per IP |
 | `BOT_USER_DAILY_LIMIT` | leave unset | Defaults to 30 per account |
@@ -62,6 +63,22 @@ database fails at startup rather than while serving.
 
 A malformed limit is a startup failure, not a warning: a deploy that mistypes a number would otherwise
 run with the default while the person who set it believes the tighter value is in force.
+
+**Not every key in this table fails the same way, and the quiet ones are the dangerous half.**
+`DATABASE_URL` and `JWT_ACCESS_SECRET` fail loudly: the service refuses to start, or every request is
+rejected. `MONOLITH_URL` and `SEARCH_SERVICE_URL` do neither. The service starts, the health check
+passes, every route answers, and one feature is simply gone.
+
+`MONOLITH_URL` was in fact left unset in production for the entire life of 1-to-1 chat, and nothing
+anywhere said so — no log line, no metric, no error frame to the client. The lookup short-circuits on
+an empty base URL and returns "this user owns no shop", which is a legitimate answer for most users.
+A seller then joins only their `user:` room and never the `shop:` room a buyer's message is addressed
+to, so messages reached the database and appeared on the next reload while never arriving live.
+
+**Checking it in ten seconds, without deploying anything:** open the seller inbox with devtools on the
+`/ws` connection and read the first frame the server sends. `ready` carries `shopId` when the lookup
+succeeded and omits the field entirely when it did not — the frame is 112 bytes in the healthy case
+and 64 in the broken one, so even the length column gives it away.
 
 ## Free tier behaviour
 
