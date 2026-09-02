@@ -258,11 +258,31 @@ panels would look perfectly healthy (the HTTP writes still succeed).
 
 ![Grafana RED dashboard](screenshots/grafana-red.png)
 
-**Dashboard as code.** The datasource and the RED dashboard are provisioned from
-[`observability/grafana/**`](../observability/grafana) at container start, so the dashboard lives in
-git and survives even `docker compose down -v`. Nothing is clicked together by hand in the Grafana
+**Dashboard as code.** The datasource and both RED dashboards are provisioned from
+[`observability/grafana/**`](../observability/grafana) at container start, so they live in
+git and survive even `docker compose down -v`. Nothing is clicked together by hand in the Grafana
 UI — a hand-built dashboard would evaporate the first time the volume is wiped and would be
-invisible to anyone reading the repo.
+invisible to anyone reading the repo. The provider watches the whole folder, so another dashboard
+is added by dropping a JSON file into it rather than by editing any configuration.
+
+**A second dashboard, for the two Go services.**
+[`go-services-red.json`](../observability/grafana/dashboards/go-services-red.json) carries the same
+three RED panels for the chat and the search service. It is a separate file rather than three more
+panels on the one above, because that dashboard is titled for the monolith and folding two more
+services into it would leave the title lying.
+
+![Grafana RED dashboard for the Go services](screenshots/grafana-go-services-red.png)
+
+Rate on that dashboard comes from the histogram's `_count`, not from the request counter, and the
+reason is worth naming because it is a silent trap. The two metrics carry **disjoint label sets**:
+`chat_requests_total` is labelled `status` and `outcome`, while `chat_request_duration_seconds` is
+labelled `endpoint`. Grouping the counter by `endpoint` therefore matches nothing and returns an
+empty result — no error, no warning, just a panel that reads exactly like an endpoint nobody is
+calling. The search service has the same shape.
+
+The same split has a consequence worth stating plainly: on neither Go service can the error rate be
+broken down per endpoint. The error panels are service-wide, and finding out *which* endpoint is
+failing means reading the logs.
 
 ### The consumers — counting outcomes, not requests
 
