@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	// lookupTimeout: monolith tren Render acc#1 duoc giu am 24/7 nen khong co cold start ~50s
-	// nhu search-service. 5s du cho mot lan goi binh thuong ke ca khi cham.
+	// lookupTimeout: monolith tren Render acc#1 duoc giu am nen lan goi nay khong phai cho mot
+	// lan danh thuc, khac han duong sang search-service. 5s du cho mot lan goi binh thuong ke
+	// ca khi cham.
 	lookupTimeout = 5 * time.Second
 
 	// cacheTTL: quan he seller-shop gan nhu khong bao gio doi. 10 phut du de mot phien lam viec
