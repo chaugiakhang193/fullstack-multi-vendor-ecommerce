@@ -714,6 +714,26 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
   only the real provider refuses. Signatures also survive only within a turn pair, since history is stored as
   plain text and rebuilt from the database.
 
+### ADR-10 — Messages point at a seat in a conversation, not at a person
+
+- **Decision** — `message.sender_participant_id` references a `participant` row — one person's seat in one
+  conversation — under a surrogate `id`, instead of carrying `user_id` on the message.
+- **Rejected** — the natural key `(conversation_id, user_id)`, which in a system with a single kind of
+  identity is the better choice: `message` already carries `conversation_id`, so a composite foreign key
+  would let the **database** enforce that a sender belongs to the conversation they are writing into.
+- **Why** — one `message` table carries the bot thread and the shopper-to-shop threads, and **two of its four
+  kinds of sender have no `user_id` at all**: a visitor who never signed in has only a guest key, and the bot
+  has neither. A natural key would force a nullable column, a `CHECK` explaining which identity is in play,
+  and that branch repeated in every query that reads a thread. The seat is also the right grain for what
+  hangs off it — `role` differs per conversation (the same account is a `user` in the threads it opened and a
+  `seller` in the ones its shop receives) and `last_read_at` is per conversation by definition; neither
+  belongs on an account. And `user_id` is issued by the monolith, so making another service's identifier part
+  of this one's primary key would tie the storage layout to their identity scheme.
+- **Trade-off** — the invariant the composite key would have enforced is now held by **code**:
+  `ResolveDirectParticipant` hands both ids to `AppendMessage` from one authorised lookup, and nothing in the
+  schema stops a future caller from skipping that. The insulation pays off at the edge, though — a
+  participant id, never a user id, is what travels out to the browser on every message frame.
+
 ---
 
 ## 🛠️ Tech stack
