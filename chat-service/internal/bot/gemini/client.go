@@ -30,10 +30,15 @@ const (
 	// bot.Retrier. Duong chay that lay han tu ctx cua Retrier (bot.TotalBudget).
 	callTimeout = 25 * time.Second
 
-	// firstChunkTimeout: khong nhan duoc manh dau tien trong 10s thi coi nhu provider im
+	// firstChunkTimeout: khong nhan duoc manh dau tien trong 8s thi coi nhu provider im
 	// lang. Cat som o day de con ngan sach cho mot lan thu lai, thay vi ngoi het 25s roi
 	// bao loi khi khong con gio de lam gi khac.
-	firstChunkTimeout = 10 * time.Second
+	//
+	// 8s la khoang trong giua hai cum do duoc: lan nhanh duoi 7s, lan cham tren 14s, gan
+	// nhu khong co gi o giua. bot.decideBudget do theo chinh con so nay de con cho cho lan
+	// thu lai, nen doi mot ben phai doi ben kia - hang do khong xuat nen o day khong tham
+	// chieu duoc, chi ghi lai rang buoc.
+	firstChunkTimeout = 8 * time.Second
 )
 
 // Config la tham so dung Client.

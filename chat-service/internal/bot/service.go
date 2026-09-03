@@ -10,12 +10,22 @@ const (
 	// answerBudget la tran cho ca mot cau tra loi, ke ca vong hoi tool lan lan goi tool.
 	// Rong hon TotalBudget cua mot lan goi provider vi mot cau tra loi co the gom hai lan
 	// goi model cong mot lan goi search-service.
-	answerBudget = 40 * time.Second
+	//
+	// Phan con lai sau vong 1 va tool phai du cho vong 2 chay tron mot chu ky cat-va-thu-lai
+	// nhu vong 1, chu khong phai chi la phan thua. Dat sat hon thi vong 2 kip cat roi chet
+	// truoc khi lan thu lai kip chay - dung kieu hong ma decideBudget ben duoi mo ta.
+	answerBudget = 48 * time.Second
 
 	// decideBudget la tran cho vong 1. Vong nay con kiem nhiem viec tra loi cac cau khong
 	// lien quan san pham (chao hoi, huong dan), nen tran phai du cho mot cau tra loi hoan
 	// chinh chu khong chi du cho mot quyet dinh goi tool.
-	decideBudget = 12 * time.Second
+	//
+	// Tran phai chua tron HAI lan goi provider: firstChunkTimeout ben adapter cat lan dau,
+	// Retrier ngu mot nhip, roi lan thu hai can nguyen mot cua so nua. Ha xuong duoi tong
+	// do thi lan thu hai bi cat khi vua chay duoc vai tram mili giay - mat cho thu lai ma
+	// van tra tien cho no. Do tre cua Gemini gan nhu toan bo la cho xep hang truoc token
+	// dau chu khong phai sinh chu, nen thu lai la cach duy nhat nuot duoc cai duoi dai.
+	decideBudget = 18 * time.Second
 
 	// Chi gui 6 luot gan nhat len model. Moi subject chi co mot conversation voi bot va no
 	// song mai, nen phai cat o tang doc; khong cat thi prompt dai them mai.

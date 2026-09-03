@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 )
 
 // scriptedClient la Client gia ghi lai request nhan duoc va tra ket qua da lap san. Khac
@@ -286,5 +287,20 @@ func TestAskCatLichSuConSauLuot(t *testing.T) {
 	}
 	if len(history) != 10 {
 		t.Errorf("mang lich su cua ben goi bi sua: len = %d", len(history))
+	}
+}
+
+// Ba tran nay an nhau: vong 1 va lan goi tool tieu truoc, vong 2 song bang phan con lai.
+// Nang decideBudget ma quen answerBudget thi vong 2 bi bop, va no hien ra thanh cau tra loi
+// dut giua chung - trieu chung kho lan nguoc ve mot con so dat sai.
+func TestNganSachConDuChoVong2(t *testing.T) {
+	// Mot chu ky cat-va-thu-lai tron ven: cat o firstChunkTimeout, ngu het jitter, roi lan
+	// thu hai van con nguyen mot cua so nua.
+	const toiThieuChoVong2 = 17500 * time.Millisecond
+
+	conLai := answerBudget - decideBudget - toolTimeout
+	if conLai < toiThieuChoVong2 {
+		t.Errorf("vong 1 %s + tool %s an het answerBudget %s, chi con %s cho vong 2, can it nhat %s",
+			decideBudget, toolTimeout, answerBudget, conLai, toiThieuChoVong2)
 	}
 }
