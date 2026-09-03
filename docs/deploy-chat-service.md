@@ -82,9 +82,28 @@ and 64 in the broken one, so even the length column gives it away.
 
 ## Free tier behaviour
 
-The service sleeps after 15 minutes without traffic and pulls its image again on wake, so the first
-request after an idle period pays a cold start. The bot's first tool call also wakes the search service
-if that one has been idle, which stacks two cold starts on one question.
+A free instance sleeps after 15 minutes without traffic and pulls its image again on wake, so the first
+request after an idle stretch pays a cold start. The two Go services answer that differently, and the
+difference is deliberate.
+
+**chat-service is kept warm by a cron outside this repository** — a scheduled `GET /health` on
+cron-job.org, firing inside every idle window. It is the entry point: its cold start is not a slow answer,
+it is a widget that appears dead while the browser waits with nothing to show. That job is therefore load
+bearing, and it is invisible from the code, so it belongs on the release checklist rather than in anyone's
+memory.
+
+**search-service is deliberately left out of that cron.** The free tier bills instance-hours across every
+service on the account, and holding a second one awake around the clock would consume most of a month's
+allowance. The cost of that choice lands on one question: the first product question after an idle stretch
+waits for the search service to come up. Measured on 04/09/2026, that wake took 13.7s and 12.6s against
+0.3s once warm, and `toolTimeout` (20s) is sized to cover it — see the budget ladder in
+`docs/chat-architecture.md`.
+
+**When the cron is off, both cold starts stack on one question**, and the symptom is misleading in a
+specific way: checking `curl /health` by hand reports `200`, because that very request is what wakes the
+service. Uptime is the honest signal instead — `process_start_time_seconds` in `/metrics`, read after
+leaving the service alone for twenty minutes. A process older than the idle window means something is
+keeping it alive; one that has just booted means your own request did the waking.
 
 Running on a single instance is what makes the burst limiter correct as written: it holds its buckets in
 memory, so the ceiling is per instance. On more than one instance the real ceiling becomes the capacity
