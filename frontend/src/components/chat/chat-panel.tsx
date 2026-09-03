@@ -35,7 +35,7 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   isLoadingHistory: boolean;
-  toolLabel: string;
+  statusLabel: string;
   remaining: number | null;
   notice: string;
   wasRefused: boolean;
@@ -47,7 +47,7 @@ export function ChatPanel({
   messages,
   isStreaming,
   isLoadingHistory,
-  toolLabel,
+  statusLabel,
   remaining,
   notice,
   wasRefused,
@@ -81,7 +81,7 @@ export function ChatPanel({
     const list = listRef.current;
     if (!list || !stickToBottomRef.current) return;
     list.scrollTop = list.scrollHeight;
-  }, [messages, toolLabel, notice, wasRefused]);
+  }, [messages, statusLabel, notice, wasRefused]);
 
   // Ô nhập cao dần theo số dòng, tới trần max-h-24 thì cuộn bên trong.
   //
@@ -216,10 +216,10 @@ export function ChatPanel({
           )
         )}
 
-        {toolLabel ? (
+        {statusLabel ? (
           <p className="text-muted-foreground flex items-center gap-2 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
-            {toolLabel}
+            {statusLabel}
           </p>
         ) : null}
 

@@ -9,6 +9,7 @@ import {
   QUOTA_MESSAGES,
   REQUEST_ERROR_MESSAGES,
   STREAM_ERROR_MESSAGES,
+  THINKING_LABEL,
   TOOL_LABELS,
   TRUNCATED_NOTICE,
 } from '@/constants/chat';
@@ -96,7 +97,7 @@ export default function ChatWidget() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [toolLabel, setToolLabel] = useState('');
+  const [statusLabel, setStatusLabel] = useState('');
   const [remaining, setRemaining] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
 
@@ -192,7 +193,7 @@ export default function ChatWidget() {
       if (!trimmed || isStreaming) return;
 
       setNotice('');
-      setToolLabel('');
+      setStatusLabel('');
       setWasRefused(false);
 
       const now = Date.now();
@@ -229,6 +230,10 @@ export default function ChatWidget() {
       }
 
       setIsStreaming(true);
+      // Bật nhãn ngay từ đây chứ không đợi event `tool`: vòng hỏi đầu tiên có thể chạy nhiều
+      // giây, và trong quãng đó bong bóng của bot còn rỗng nên không có gì báo là nó đang chạy.
+      // Nhánh phím tắt danh mục ở trên đã return trước dòng này nên không dính nhãn.
+      setStatusLabel(THINKING_LABEL);
 
       const botId = crypto.randomUUID();
       setMessages((prev) => [
@@ -265,10 +270,10 @@ export default function ChatWidget() {
                 }
                 break;
               case 'tool':
-                setToolLabel(TOOL_LABELS[event.name] ?? FALLBACK_TOOL_LABEL);
+                setStatusLabel(TOOL_LABELS[event.name] ?? FALLBACK_TOOL_LABEL);
                 break;
               case 'text':
-                setToolLabel('');
+                setStatusLabel('');
                 setMessages((prev) => appendText(prev, botId, event.v));
                 break;
               case 'done':
@@ -308,7 +313,7 @@ export default function ChatWidget() {
       } finally {
         abortRef.current = null;
         setIsStreaming(false);
-        setToolLabel('');
+        setStatusLabel('');
         if (failed) setMessages((prev) => dropEmptyBot(prev, botId));
       }
     },
@@ -328,7 +333,7 @@ export default function ChatWidget() {
           messages={messages}
           isStreaming={isStreaming}
           isLoadingHistory={isLoadingHistory}
-          toolLabel={toolLabel}
+          statusLabel={statusLabel}
           remaining={remaining}
           notice={notice}
           wasRefused={wasRefused}

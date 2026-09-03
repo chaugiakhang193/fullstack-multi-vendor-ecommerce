@@ -73,6 +73,11 @@ export const TOOL_LABELS: Record<string, string> = {
 
 export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
 
+// Nhãn cho quãng trước khi bot quyết định gọi tool hay trả lời thẳng. Quãng đó có thể kéo dài
+// nhiều giây, và không có nhãn nào thì người dùng chỉ nhìn một bong bóng rỗng — TOOL_LABELS mãi
+// tới khi event `tool` về mới vào cuộc.
+export const THINKING_LABEL = 'Đang suy nghĩ…';
+
 // Khoá sessionStorage giữ kết quả /chat/config. sessionStorage chứ không localStorage: kill
 // switch là thứ được bật lên giữa sự cố, và một câu trả lời cũ sống qua nhiều ngày nghĩa là
 // widget vẫn ẩn sau khi bot đã bật lại.
