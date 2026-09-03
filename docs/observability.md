@@ -227,6 +227,31 @@ writes nothing, and `trace_parent` is stored as **NULL**. The relay handles NULL
 a fresh, standalone trace instead of attaching to a parent. Nothing breaks — this is exactly the
 "observability must never fail business logic" contract, visible from the outside.
 
+### The hop that needs none of this — chat-service into the search service
+
+One flow traces the ordinary way, and it is worth stating precisely, because it shows exactly what the two
+gaps above are compensating for.
+
+A bot question never leaves its call stack. `otelhttp.NewHandler` opens a server span on the instrumented
+routes (`internal/httpapi/server.go`), and the outbound clients carry that context back out on their own
+transports:
+
+| Client | Declared in | On which path | Span it adds |
+|---|---|---|---|
+| Gemini | `internal/bot/gemini/client.go` | the bot question | the model call — twice when the tool is used, and the most expensive stretch of the request |
+| search tool | `internal/bot/tool_search.go` | the bot question | `GET /search/detailed`, whose `traceparent` continues into the search service's own server span |
+| shop lookup | `internal/shopclient/client.go` | WebSocket auth, not the bot | the call into the monolith resolving which shop a seller owns |
+
+Nothing is persisted and nothing is re-injected by hand, because nothing here crosses time or processes
+asynchronously. The request is still on the stack when each call goes out, so auto-instrumentation has a live
+`context.active()` to read — the assumption stated at the top of this section, holding for once. One bot
+question therefore lands as a single trace across two services, and the waterfall reads directly as *where
+the seconds went*: queueing ahead of the first Gemini token, or a search service climbing out of sleep.
+
+Both Go services leave `/health` and `/metrics` outside `otelhttp` on purpose, so probes and scrapes do not
+bury real questions under a mound of spans. Same instinct as switching off the Express router spans above,
+aimed at a different source of noise.
+
 ---
 
 ## 3. Metrics: RED where there are requests, outcome counters where there are events
