@@ -289,6 +289,115 @@ composed. The storefront route resolves on the id after `-i.`, so a link works e
 its diacritics; letting the model write the URL would invite a plausible-looking link to a product that
 does not exist.
 
+## Every clock in one question
+
+A bot question passes through a dozen-odd deadlines, and most stay invisible until one is set wrong. They
+fall into three groups.
+
+**The budget ladder**, nested, each inside the last:
+
+| Clock | Value | Declared in | Bounds |
+|---|---|---|---|
+| `answerBudget` | 56s | `internal/bot/service.go` | the whole of `Ask`: both model turns plus the tool call |
+| `decideBudget` | 18s | `internal/bot/service.go` | turn one alone |
+| `TotalBudget` | 25s | `internal/bot/retry.go` | one `Generate`, counting both attempts |
+| `firstChunkTimeout` | 8s | `internal/bot/gemini/client.go` | silence before the first chunk of a single attempt |
+| retry backoff | 1.0–1.5s | `internal/bot/retry.go` | the gap between the two attempts |
+| `toolTimeout` | 20s | `internal/bot/tool_search.go` | the HTTP call to the search service |
+
+Nested, the worst case looks like this. Every number below is a ceiling, not a typical duration — the
+ordinary path finishes in about eight seconds:
+
+```
+answerBudget 56s
+│
+├─ decideBudget 18s ─── turn one ──────────────┐
+│    attempt 1          8s   cut by firstChunkTimeout, not by an answer arriving
+│    backoff       1.0–1.5s  jittered, so several callers do not retry in unison
+│    attempt 2          8s   a whole second window — that is the entire point
+│
+├─ toolTimeout 20s ──── the search call ───────┐
+│    GET /search/detailed    13.7s waking, 0.3s warm
+│
+└─ what turn two inherits: 56 − 18 − 20 = 18s ─┘
+     attempt 1, backoff, attempt 2, same shape as turn one, needs ≥ 17.5s
+```
+
+Two of those relationships are arithmetic rather than taste, and `TestNganSachConDuChoVong2` goes red if
+either breaks:
+
+```
+decideBudget                              >= firstChunkTimeout + backoff + firstChunkTimeout   (18 >= 8 + 1.5 + 8)
+answerBudget - decideBudget - toolTimeout >= 17.5s                                             (56 - 18 - 20 = 18)
+```
+
+The first says turn one must hold **two** complete provider attempts. Gemini's latency is almost entirely
+queueing ahead of the first token rather than generation — measured on 04/09/2026 at a p50 of 4.2s against a
+p90 of 25s, with time-to-first-chunk equal to total time — so cutting early and retrying is the only thing
+that swallows the tail, and streaming turn one would not help. The second line says the same for turn two,
+out of whatever is left.
+
+### The ceilings move together, or not at all
+
+Rearranging the second inequality shows what any one of them costs the others. Holding `decideBudget` at 18s:
+
+```
+answerBudget − 18 − toolTimeout ≥ 17.5   ⟹   toolTimeout ≤ answerBudget − 35.5
+```
+
+That is the whole history of `toolTimeout` in one line. While `answerBudget` was 48s the tool could have at
+most **12.5s**, which is exactly why it sat at 12 — the largest value that still fit, not a judgement about
+how long a search takes. Raising it to 20s was therefore never a local change; it forced `answerBudget` to
+56s, because the alternatives were to shrink `decideBudget` below what a retry needs, or to lower the guard
+and delete the very protection it exists to hold.
+
+The guard states the failure in the same terms, so a wrong constant explains itself:
+
+```
+vong 1 18s + tool 20s an het answerBudget 48s, chi con 10s cho vong 2, can it nhat 17.5s
+```
+
+Three of these constants live in three different packages and one of them is unexported across a package
+boundary, so nothing but that test ties them together. A change to any single value that looks harmless in
+isolation is the failure mode this section exists to prevent.
+
+`callTimeout` (25s) sits beside `firstChunkTimeout` but never fires in production: it applies only when a
+caller reaches the provider client with no deadline set, which the retrier never does.
+
+`toolTimeout` is sized off a measurement too. A search service woken from sleep answered in 13.7s on
+04/09/2026, against 0.3s once warm, so 20s covers a wake with margin. The ceiling is only ever spent while
+the service is coming up — a service that is genuinely down fails at connect, in milliseconds.
+
+**Clocks that protect the process rather than the answer:**
+
+| Clock | Value | Declared in | Purpose |
+|---|---|---|---|
+| `keepaliveEvery` | 20s | `internal/httpapi/sse.go` | an SSE comment, so Cloudflare does not cut a silent stream |
+| `ReadHeaderTimeout` | 5s | `internal/httpapi/server.go` | a client that opens a connection then dribbles headers |
+| `breakerOpenFor` | 60s | `internal/bot/breaker.go` | how long the breaker stays open |
+| `providerTripFor` | 60s | `internal/httpapi/bot_handler.go` | how long the kill switch stays flagged after a provider failure — must equal the row above |
+| `warmThrottle` | 10 min | `internal/bot/warmup.go` | at most one background wake of the search service per window |
+| `warmTimeout` | 90s | `internal/bot/warmup.go` | how long that wake may hold its connection |
+| `authDeadline` | 5s | `internal/ws` | a socket that connects but never sends its `auth` frame |
+| `lookupTimeout` | 5s | `internal/shopclient` | asking the monolith which shop a seller owns |
+
+**And two on the client**, which measure something different and must not be compared against the server's:
+
+| Clock | Value | Declared in | Bounds |
+|---|---|---|---|
+| `BOT_CONNECT_TIMEOUT_MS` | 75s | `frontend/src/constants/chat.ts` | the wait for response **headers** on `POST /chat/bot` |
+| `defaultTimeout` | 15s | `frontend/src/lib/http.ts` | any call to the monolith, headers and body together |
+
+The client ceiling exceeds the server's entire `answerBudget` on purpose, because it covers a stretch the
+server cannot: chat-service sleeps after fifteen idle minutes, and nothing is written until Render has it
+back. The ceiling is released the moment the headers land, and the server's own budgets take over from
+there. One ceiling wrapped around the whole stream would instead cut a legitimate answer that merely followed
+a cold start, since the wake and the answer are consecutive waits rather than overlapping ones.
+
+That same handover is what the widget shows. Until the first `meta` event arrives the composer reads *"đang
+kết nối tới trợ lý"*, and `meta` — written before the handler reads history or calls the model — flips it to
+*"đang suy nghĩ"*. The seconds spent waking a service are therefore never reported as the bot thinking.
+
 ## Conversation is stored once, and read without cost
 
 The database is the single copy of a conversation. `EnsureBotConversation` (`internal/store`) attaches
