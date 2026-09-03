@@ -13,8 +13,8 @@ const (
 	// lai 5' du phong.
 	warmThrottle = 10 * time.Minute
 
-	// Cold-start Render mat khoang 50s, doi khi hon 60s. Cat ket noi som khien Render huy
-	// spin-up giua chung nen cu poke phai giu du lau.
+	// Do 04/09/2026: mot lan danh thuc het khoang 14s. Giu tran o 90s vi cat ket noi som khien
+	// Render huy spin-up giua chung, ma cu poke nay chay nen nen cho lau khong lam ai phai doi.
 	warmTimeout = 90 * time.Second
 )
 

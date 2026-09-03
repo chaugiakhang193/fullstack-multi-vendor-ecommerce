@@ -14,7 +14,7 @@ const (
 	// Phan con lai sau vong 1 va tool phai du cho vong 2 chay tron mot chu ky cat-va-thu-lai
 	// nhu vong 1, chu khong phai chi la phan thua. Dat sat hon thi vong 2 kip cat roi chet
 	// truoc khi lan thu lai kip chay - dung kieu hong ma decideBudget ben duoi mo ta.
-	answerBudget = 48 * time.Second
+	answerBudget = 56 * time.Second
 
 	// decideBudget la tran cho vong 1. Vong nay con kiem nhiem viec tra loi cac cau khong
 	// lien quan san pham (chao hoi, huong dan), nen tran phai du cho mot cau tra loi hoan

@@ -17,10 +17,16 @@ const (
 	// goi lai, nen giu o mot cho duy nhat.
 	ToolSearchProducts = "search_products"
 
-	// search-service ngu sau 15' idle va cold-start Render mat khoang 50s, nen muc nay
-	// khong du de doi mot lan danh thuc. No du cho mot service dang thuc tra loi ke ca khi
-	// cham. Lan dinh dung luc service ngu thi truot, va Warmer lo phan danh thuc.
-	toolTimeout = 12 * time.Second
+	// search-service ngu sau 15' idle nen tran nay phai phu duoc mot lan danh thuc. Do ngay
+	// 04/09/2026: danh thuc het 13,7s, truy van khi da thuc 0,3s - 20s con thua bien.
+	//
+	// Muc 12s truoc day duoc dat THAP hon 50s mot cach co chu y, tuc co tinh bo cuoc. Con so
+	// 50s do muon tu ghi chep deploy cua monolith NestJS; mot binary Go day nhanh hon han,
+	// nen tran cu bo cuoc truoc mot lan danh thuc ma le ra no cho duoc.
+	//
+	// Han nay chi tieu that khi service dang day: service chet han thi Do() loi ngay o buoc
+	// ket noi chu khong ngoi het 20s.
+	toolTimeout = 20 * time.Second
 
 	// Cap 5 dat o ca hai phia. Day la ben doc du lieu nen van kiem lai thay vi tin ben kia.
 	maxToolItems = 5
