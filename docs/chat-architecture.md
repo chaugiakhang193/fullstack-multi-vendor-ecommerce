@@ -227,9 +227,27 @@ an `error` event, because the status line is already sent.
 
 ## The model loop, and the ring around it
 
-`Service.Ask` (`internal/bot`) turns one question into at most two model calls. History is trimmed to the
-last `maxHistoryTurns` (6) before the question is appended, so an old conversation cannot grow the prompt
-without bound.
+`Service.Ask` (`internal/bot`) turns one question into at most two model calls. History reaches it already
+filtered to complete question-answer pairs, and is then trimmed to the last `maxHistoryTurns` (6) before the
+question is appended, so an old conversation cannot grow the prompt without bound.
+
+### Why the history arrives in pairs
+
+`historyFor` (`internal/httpapi`) drops any stored turn that has no reply beside it, and that filter exists
+because the write path is deliberately asymmetric. `streamAnswer` stores the question *before* it calls the
+model, so `GET /chat/history` reports what the person actually asked even when no answer ever arrives. Every
+turn that dies mid-flight — a reload, a dropped connection, a provider timeout — therefore leaves a user
+message with no bot message after it.
+
+Those orphans accumulate, and `toContents` gives every turn a `Content` of its own, so without the filter the
+next question's prompt opens with a run of consecutive `user` parts that nobody has answered. The model is
+free to answer any one of them, and it does: a question about laptops came back as an answer about phones
+from two turns earlier, carrying the search failure that the older question had hit.
+
+The filter is on the read path only. The stored thread keeps its unanswered questions, because that is what
+happened; it is the prompt that must not see them. A model turn whose question fell outside the
+`historyLimit` window is dropped for the same reason — an answer with no visible question is a fragment, not
+context.
 
 Turn one is non-streaming and carries the tool declaration, but its sink is wrapped in `toolCallOnly` — only
 a `tool` event reaches the client, and any prose the model writes on this turn is suppressed. The turn
