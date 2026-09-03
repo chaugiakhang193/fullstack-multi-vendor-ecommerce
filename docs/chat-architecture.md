@@ -225,6 +225,55 @@ single code path to read. Errors split at the stream boundary: a rejection *befo
 normal HTTP status with a JSON body the client can read; a failure *after* the stream is open can only be
 an `error` event, because the status line is already sent.
 
+## What makes two questions the same
+
+The reply cache is the only gate that can answer outright, so what counts as "the same question" is a
+behavioural decision rather than a detail.
+
+The key is a SHA-256 of the question after `normalizeQuestion` lowercases it, collapses every run of
+whitespace into one space, and trims the ends. Three things follow:
+
+- **Diacritics are kept.** Two Vietnamese sentences differing only in their marks are two different
+  questions, and folding them together would answer one of them wrongly. It is the one normalisation the
+  function deliberately declines to do.
+- **The key is a hash, not the text.** A map keyed by raw questions puts whatever people typed into heap
+  dumps and debug output. Hashing also bounds the key when somebody pastes a thousand characters.
+- **The cache is shared by everyone.** A catalogue question carries no personal data and its answer does not
+  depend on who asked, so one popular question costs one model call however many people ask it inside the
+  TTL.
+
+That last property is exactly why not every answer may be stored. `cacheable` refuses three kinds:
+
+| Refused | Why |
+|---|---|
+| an answer produced with a non-empty history | the key hashes the question and nothing else, so a contextual answer would be replayed to someone holding different context — *"còn màu xanh thì sao"* asked after browsing phones, served to a reader who was looking at shoes |
+| an empty answer | storing one incident replicates it for every asker for the whole TTL |
+| a truncated answer | a sentence cut mid-word is not something to hand to a second person |
+
+Only opening questions are stored, then — which is also the kind most often repeated, and therefore the part
+of the traffic a cache was ever going to pay for.
+
+The pair filter on the read path feeds back into this. A first question whose turn died leaves an orphan in
+the thread; once that orphan is filtered out of the history, a retry of the same question is an opening
+question once more, and regains the eligibility it would otherwise have lost.
+
+`DefaultReplyCacheTTL` is ten minutes: long enough to absorb a round of refreshes on one question, short
+enough that a price or a stock figure quoted inside a stored answer has not drifted far.
+
+### The four caches, side by side
+
+| Cache | Lives in | TTL | Holds |
+|---|---|---|---|
+| `bot.ReplyCache` | chat-service RAM | 10 min, 500 entries | answers to opening questions, shared across callers |
+| `shopclient` | chat-service RAM | 10 min | which shop a seller owns, since this database has no shop table |
+| `/chat/config` | browser `sessionStorage` | 5 min | whether the bot is enabled |
+| shortcut blocks | browser `localStorage` | 24 h, 10 entries | category chip results, which never reach the database |
+
+The middle two each earn a sentence. The shop lookup is cached because the seller-shop relation almost never
+changes, while the alternative is a network hop into the monolith on every fanout. The kill switch is held in
+`sessionStorage` rather than `localStorage` on purpose: it is flipped during an incident, and a stale
+"disabled" surviving for days would keep the widget hidden long after the bot came back.
+
 ## The model loop, and the ring around it
 
 `Service.Ask` (`internal/bot`) turns one question into at most two model calls. History reaches it already
