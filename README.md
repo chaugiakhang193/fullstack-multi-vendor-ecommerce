@@ -694,6 +694,26 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
   already set by the global ceiling, and a non-positive duration is **ignored** rather than read as "off
   forever", because acting on missing data is the worst option on the table.
 
+### ADR-9 — The model SDK confined to one adapter package
+
+- **Decision** — let `internal/bot` own the vocabulary (`Client`, `Turn`, `ToolCall`, `ToolResult`) and
+  confine the SDK to a single adapter, `internal/bot/gemini`, which converts types both ways and maps
+  provider errors onto the service's own. Retry, circuit breaker, quota and the prompt builder never learn
+  which model sits behind them.
+- **Rejected** — handing the SDK back the `Content` objects it produced, which is what Google's
+  function-calling guide assumes and what makes thought signatures handled for you.
+- **Why** — three properties follow that are otherwise hard to get. Caller identity cannot leak into a prompt,
+  because the layer that builds prompts has never seen a `Subject`. Changing how callers are metered stops
+  at `internal/quota`. And the model layer stays honestly testable: every test points at an
+  `httptest.Server`, with the real provider reached only by `live_test.go` behind a build tag.
+- **Trade-off** — the conversation is rebuilt from our own types every turn, so whatever the SDK attached to
+  its own objects is gone by the next request. For Gemini 3 that includes the `thoughtSignature` on a
+  `functionCall`, which the API demands back verbatim or answers `400 INVALID_ARGUMENT`, so it is carried by
+  hand as an opaque `ToolCall.Signature []byte` the bot layer never inspects. **Two tests exist solely to hold
+  that round trip**, because an `httptest.Server` accepts the request whether the signature is there or not —
+  only the real provider refuses. Signatures also survive only within a turn pair, since history is stored as
+  plain text and rebuilt from the database.
+
 ---
 
 ## 🛠️ Tech stack
