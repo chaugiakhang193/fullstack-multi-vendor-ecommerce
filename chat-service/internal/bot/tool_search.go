@@ -24,6 +24,11 @@ const (
 
 	// Cap 5 dat o ca hai phia. Day la ben doc du lieu nen van kiem lai thay vi tin ben kia.
 	maxToolItems = 5
+
+	// errSearchWakingUp di vao payload tra cho model, nen no la cau ma nguoi mua hang se doc
+	// duoi dang model ke lai. Kem han "khoang mot phut" de nguoi dung biet hoi lai luc nao,
+	// thay vi bo di vi tuong tinh nang hong.
+	errSearchWakingUp = "he thong tim kiem dang khoi dong, thu lai sau khoang mot phut"
 )
 
 // SearchToolSpec mo ta tool cho model.
@@ -101,15 +106,21 @@ func (t *SearchTool) Execute(ctx context.Context, args map[string]any) map[strin
 	resp, err := t.http.Do(req)
 	if err != nil {
 		// Thuong la search-service dang ngu. Danh thuc de cau hoi sau di duoc.
+		//
+		// Noi "dang khoi dong" chu khong noi "loi": toolTimeout khong phu noi cold start cua
+		// Render nen nhanh nay chay ca khi search-service hoan toan khoe, va model se ke lai
+		// nguyen van thanh mot su co khong co that.
 		t.warmer.Warm()
-		return toolError("he thong tim kiem tam thoi khong phan hoi")
+		return toolError(errSearchWakingUp)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// 5xx thuong den tu edge-proxy khi service ngu hoac dang deploy.
+		// 5xx thuong den tu edge-proxy khi service ngu hoac dang deploy - cung mot su that voi
+		// nhanh tren, nen cung mot cau. 4xx thi khac han: do la loi that va khong tu khoi.
 		if resp.StatusCode >= 500 {
 			t.warmer.Warm()
+			return toolError(errSearchWakingUp)
 		}
 		return toolError("he thong tim kiem tra ve loi")
 	}
