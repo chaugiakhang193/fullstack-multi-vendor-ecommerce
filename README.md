@@ -674,6 +674,26 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
   break business logic: the `@BeforeInsert` hook **swallows every error** and leaves `trace_parent` null
   rather than failing an order. Tracing is opt-in via `OTEL_ENABLED`, so this is a no-op when disabled.
 
+### ADR-8 — A kill switch the service can throw at itself
+
+- **Decision** — gate the bot branch behind `CHAT_BOT_ENABLED`, read through a `Switch` on **every request**
+  rather than copied into a boolean at boot, and let the service **trip that switch itself**, for a bounded
+  window, when the global daily quota is exhausted or the provider fails.
+- **Rejected** — (a) a redeploy as the only way to turn the bot off; (b) the flag as a database column read
+  per request; (c) leaving the bot on and letting every caller rediscover the wall on their own.
+- **Why** — the bot is the one feature spending a **metered third-party quota**, so "off" has to be reachable
+  faster than a deploy *and* reachable by the code that noticed. `Enabled()` runs on every `/chat/config` and
+  `/chat/bot`, which is why the flag lives in RAM and not in a row: a widget that mounts on every storefront
+  page must not bill a query just to decide whether to draw a button. The automatic flag sits **beside** the
+  manual one instead of replacing it, because not every reason to silence a bot is a quota — "it is answering
+  nonsense" is one no counter will ever detect.
+- **Trade-off** — the flag is per-instance memory, so beyond one instance an auto-trip silences only the
+  instance that hit the wall; and the manual half is fixed at boot, since a process cannot rewrite its own
+  environment and changing it on Render *is* a redeploy. Two rules keep the automatic half honest: a trip only
+  ever **extends** its window, so a 60-second provider hiccup cannot cut short a "sleep until midnight"
+  already set by the global ceiling, and a non-positive duration is **ignored** rather than read as "off
+  forever", because acting on missing data is the worst option on the table.
+
 ---
 
 ## 🛠️ Tech stack
