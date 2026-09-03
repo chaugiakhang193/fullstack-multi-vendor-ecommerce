@@ -59,8 +59,15 @@ export const STREAM_ERROR_MESSAGES: Record<string, string> = {
 // nguyên chuỗi mã tiếng Anh ra cho người mua hàng đọc.
 export const FALLBACK_ERROR_MESSAGE = 'Có lỗi khi hỏi trợ lý. Bạn thử lại nhé.';
 
+// Câu này gánh cả hai nguyên nhân vì đứng ở FE không phân biệt được: mạng hỏng, và chat-service
+// đang khởi động sau khi ngủ. Nói riêng "kiểm tra mạng" là đổ lỗi nhầm cho người đang có mạng tốt.
 export const NETWORK_ERROR_MESSAGE =
-  'Không kết nối được tới trợ lý. Kiểm tra mạng rồi thử lại nhé.';
+  'Chưa kết nối được tới trợ lý — có thể trợ lý đang khởi động. Thử lại sau vài giây nhé.';
+
+// chat-service ngủ sau 15 phút nhàn rỗi và Render dựng lại mất 30–60 giây, nên trần phải rộng
+// hơn hẳn con số đó. Quá mốc này thì chờ thêm cũng không khác gì một request đã chết — mà không
+// có trần nào thì trình duyệt treo tới tận vài phút. Trần này áp vào đâu thì xem askBot.
+export const BOT_CONNECT_TIMEOUT_MS = 75_000;
 
 export const TRUNCATED_NOTICE =
   'Câu trả lời hơi dài nên bị cắt bớt. Bạn hỏi lại cụ thể hơn nhé.';
@@ -77,6 +84,11 @@ export const FALLBACK_TOOL_LABEL = 'Đang tra cứu…';
 // nhiều giây, và không có nhãn nào thì người dùng chỉ nhìn một bong bóng rỗng — TOOL_LABELS mãi
 // tới khi event `tool` về mới vào cuộc.
 export const THINKING_LABEL = 'Đang suy nghĩ…';
+
+// Nhãn cho quãng còn sớm hơn nữa: chưa nhận được event `meta` nghĩa là chat-service còn chưa
+// mở stream, và nó có thể đang dậy sau giấc ngủ 15 phút. Gọi quãng đó là "đang suy nghĩ" là nói
+// sai — chưa liên lạc được với ai thì chưa có gì để nghĩ.
+export const CONNECTING_LABEL = 'Đang kết nối tới trợ lý…';
 
 // Khoá sessionStorage giữ kết quả /chat/config. sessionStorage chứ không localStorage: kill
 // switch là thứ được bật lên giữa sự cố, và một câu trả lời cũ sống qua nhiều ngày nghĩa là

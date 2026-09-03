@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  CONNECTING_LABEL,
   FALLBACK_ERROR_MESSAGE,
   FALLBACK_SEARCH_REASONS,
   FALLBACK_TOOL_LABEL,
@@ -230,10 +231,10 @@ export default function ChatWidget() {
       }
 
       setIsStreaming(true);
-      // Bật nhãn ngay từ đây chứ không đợi event `tool`: vòng hỏi đầu tiên có thể chạy nhiều
-      // giây, và trong quãng đó bong bóng của bot còn rỗng nên không có gì báo là nó đang chạy.
-      // Nhánh phím tắt danh mục ở trên đã return trước dòng này nên không dính nhãn.
-      setStatusLabel(THINKING_LABEL);
+      // Đặt nhãn trước cả khi request rời máy: mọi nhãn khác đều chờ một event từ server, mà
+      // chính quãng chờ event đầu tiên mới là quãng dài nhất. Nhánh phím tắt danh mục ở trên đã
+      // return trước dòng này nên không dính nhãn.
+      setStatusLabel(CONNECTING_LABEL);
 
       const botId = crypto.randomUUID();
       setMessages((prev) => [
@@ -264,6 +265,10 @@ export default function ChatWidget() {
           (event) => {
             switch (event.type) {
               case 'meta':
+                // `meta` là byte đầu tiên chat-service ghi ra, trước cả khi nó đọc lịch sử hay
+                // gọi model. Nhận được nó nghĩa là đã kết nối xong, nên đây là mốc chính xác để
+                // đổi nhãn — mọi giây trước đó là chờ service dậy, không phải chờ bot nghĩ.
+                setStatusLabel(THINKING_LABEL);
                 // Nhánh cache hit không gửi remaining — giữ nguyên số cũ thay vì xoá về null.
                 if (typeof event.remaining === 'number') {
                   setRemaining(event.remaining);

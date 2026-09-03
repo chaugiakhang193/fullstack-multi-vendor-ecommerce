@@ -1,5 +1,10 @@
-import { CHAT_EVENTS } from '@/constants/chat';
-import { chatFetch, ChatRequestError, readErrorBody } from '@/lib/chat/request';
+import { BOT_CONNECT_TIMEOUT_MS, CHAT_EVENTS } from '@/constants/chat';
+import {
+  chatFetch,
+  ChatNetworkError,
+  ChatRequestError,
+  readErrorBody,
+} from '@/lib/chat/request';
 
 export type ChatStreamEvent =
   | { type: 'meta'; remaining?: number; cached?: boolean }
@@ -101,11 +106,33 @@ export async function askBot(
   onEvent: (event: ChatStreamEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
-  const res = await chatFetch('/chat/bot', {
-    method: 'POST',
-    body: JSON.stringify({ question }),
-    signal,
-  });
+  // Trần chỉ bọc quãng chờ header, và được gỡ ngay khi header về. Bọc cả stream thì một câu trả
+  // lời đến sau cold start bị cắt oan: cold start và thời gian bot trả lời là hai quãng nối tiếp
+  // nhau, cộng lại vượt bất kỳ con số nào đủ nhỏ để có ích. Khi stream đã chảy thì các trần phía
+  // chat-service đã chặn rồi, FE không cần chặn thêm.
+  const connectTimeout = new AbortController();
+  const timeoutId = setTimeout(
+    () => connectTimeout.abort(),
+    BOT_CONNECT_TIMEOUT_MS,
+  );
+
+  let res: Response;
+  try {
+    res = await chatFetch('/chat/bot', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+      signal: AbortSignal.any([signal, connectTimeout.signal]),
+    });
+  } catch (error) {
+    // Chỉ đổi lỗi khi chính trần này bắn. Widget bị gỡ giữa chừng cũng abort, nhưng đó không phải
+    // lỗi và tầng trên nhận ra nó bằng cách đọc signal của chính nó.
+    if (connectTimeout.signal.aborted && !signal.aborted) {
+      throw new ChatNetworkError('chat-service không mở stream trong thời hạn');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) throw await readErrorBody(res);
   if (!res.body)
