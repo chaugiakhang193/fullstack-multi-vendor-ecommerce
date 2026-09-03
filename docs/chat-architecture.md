@@ -413,9 +413,16 @@ isolation is the failure mode this section exists to prevent.
 `callTimeout` (25s) sits beside `firstChunkTimeout` but never fires in production: it applies only when a
 caller reaches the provider client with no deadline set, which the retrier never does.
 
-`toolTimeout` is sized off a measurement too. A search service woken from sleep answered in 13.7s on
-04/09/2026, against 0.3s once warm, so 20s covers a wake with margin. The ceiling is only ever spent while
-the service is coming up — a service that is genuinely down fails at connect, in milliseconds.
+`toolTimeout` is sized off a measurement too. A search service woken from sleep answered in 13.7s and 12.6s
+on 04/09/2026, against 0.3s once warm, so 20s covers a wake with margin. The ceiling is only ever spent while
+the service is coming up — one that is genuinely down fails at connect, in milliseconds.
+
+That the search service sleeps at all is a decision, not an oversight. A cron keeps chat-service warm,
+because it is the entry point and its cold start is what a visitor would read as a dead widget. The search
+service is deliberately left out of that cron: the free tier bills instance-hours across every service on the
+account, and holding a second one awake around the clock would eat most of a month's allowance. The price of
+that choice is one ~13s wake on the first product question after an idle spell, and covering it is what
+`toolTimeout` is for.
 
 **Clocks that protect the process rather than the answer:**
 
