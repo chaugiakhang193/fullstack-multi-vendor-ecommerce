@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -270,6 +271,51 @@ func TestCacheableChiChoCauMoDau(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := cacheable(tc.result, tc.history); got != tc.want {
 				t.Errorf("cacheable = %v, mong doi %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestAnsweredTurnsBoCauHoiChuaCoTraLoi(t *testing.T) {
+	hoi := func(text string) bot.Turn { return bot.Turn{Role: bot.RoleUser, Text: text} }
+	dap := func(text string) bot.Turn { return bot.Turn{Role: bot.RoleModel, Text: text} }
+
+	cases := []struct {
+		name  string
+		turns []bot.Turn
+		want  []bot.Turn
+	}{
+		{name: "rong", turns: nil, want: []bot.Turn{}},
+		{
+			name:  "cap tron ven giu nguyen",
+			turns: []bot.Turn{hoi("dien thoai"), dap("co 5 may"), hoi("laptop"), dap("co 3 may")},
+			want:  []bot.Turn{hoi("dien thoai"), dap("co 5 may"), hoi("laptop"), dap("co 3 may")},
+		},
+		{
+			// Hinh dang da gay ra su co: ba luot hoi lien tiep, khong luot nao duoc tra loi.
+			name:  "ba cau hoi mo coi lien tiep",
+			turns: []bot.Turn{hoi("dien thoai"), hoi("dien thoai"), hoi("tai nghe")},
+			want:  []bot.Turn{},
+		},
+		{
+			name:  "cau hoi mo coi o cuoi",
+			turns: []bot.Turn{hoi("dien thoai"), dap("co 5 may"), hoi("tai nghe")},
+			want:  []bot.Turn{hoi("dien thoai"), dap("co 5 may")},
+		},
+		{
+			// Cua so historyLimit cat vao giua mot cap: luot dau tien la cau tra loi cua mot
+			// cau hoi da nam ngoai cua so.
+			name:  "luot model mo dau bi bo",
+			turns: []bot.Turn{dap("co 5 may"), hoi("laptop"), dap("co 3 may")},
+			want:  []bot.Turn{hoi("laptop"), dap("co 3 may")},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := answeredTurns(tc.turns)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("answeredTurns = %v, mong doi %v", got, tc.want)
 			}
 		})
 	}

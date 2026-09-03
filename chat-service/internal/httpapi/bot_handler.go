@@ -457,7 +457,31 @@ func historyFor(ctx context.Context, deps BotDeps, conversation store.BotConvers
 		}
 		turns = append(turns, bot.Turn{Role: role, Text: message.Body})
 	}
-	return turns
+	return answeredTurns(turns)
+}
+
+// answeredTurns chi giu lai cac cap hoi-dap tron ven.
+//
+// Cau hoi duoc ghi xuong DB truoc khi goi model, nen mot luot hong giua chung de lai mot tin cua
+// user khong co tin nao cua bot theo sau. Nhung tin mo coi do don lai thanh nhieu cau hoi lien
+// tiep trong prompt, va model tra loi cau cu thay vi cau vua hoi.
+//
+// Loc o duong doc chu khong sua duong ghi: GET /chat/history van phai ke dung nhung gi da xay ra.
+//
+// Mot luot cua model bi cat khoi cap - cua so historyLimit cat vao giua - cung roi theo.
+func answeredTurns(turns []bot.Turn) []bot.Turn {
+	answered := make([]bot.Turn, 0, len(turns))
+	for i := 0; i < len(turns); i++ {
+		if turns[i].Role != bot.RoleUser {
+			continue
+		}
+		if i+1 >= len(turns) || turns[i+1].Role != bot.RoleModel {
+			continue
+		}
+		answered = append(answered, turns[i], turns[i+1])
+		i++
+	}
+	return answered
 }
 
 // appendMessage ghi mot tin nhan, nuot loi sau khi log: mat mot dong lich su khong dang lam hong
