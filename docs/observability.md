@@ -74,7 +74,7 @@ nothing to show — a distinction that matters for the retention limit below.
 | `monolith-backend` (NestJS) | ✅ | ✅ RED + outbox-lag gauge |
 | `notification-service` (NestJS) | ✅ | ✅ consumer metrics |
 | `search-service` (Go) | ✅ | ✅ RED **and** consumer metrics |
-| `chat-service` (Go) | ✅ | ✅ RED + bot-specific counters |
+| `chat-service` (Go) | ✅ | ✅ RED + bot- and WebSocket-specific metrics |
 
 All four services are traced and all four are scraped. The asymmetry is not *whether* a service is
 measured any more — it is **what is worth measuring**, and that follows from what the service is.
@@ -84,16 +84,16 @@ notification service is a pure **consumer**: it has no meaningful request traffi
 metrics there would be close to noise. What deserves measuring instead is events processed by
 outcome, DLQ depth, and per-event processing time.
 
-The search service is the one that is **both** — it serves `GET /search` over HTTP *and*
-consumes `product.*` events to maintain its index — so it is the only service publishing both metric
-families side by side. That is why it gets its own subsection below rather than a row in the
-monolith's table.
+The search service is the one that is **both** — it serves `GET /search` and `GET /search/detailed`
+over HTTP *and* consumes `product.*` events to maintain its index — so it is the only service
+publishing both metric families side by side. That is why it gets its own subsection below rather
+than a row in the monolith's table.
 
-The chat service is HTTP-only like the monolith — it has no RabbitMQ consumer, since chat 1-to-1 and
-the chatbot are both served directly over HTTP/WS — so plain RED covers its request traffic. What it
-adds on top is a set of counters specific to *why* a request failed or cost something: quota
-rejections by tier, Gemini reply-cache hit/miss, and tokens spent split prompt vs. output. A 429 on
-`/chat/bot` is not the same failure as a 5xx, and RED alone cannot tell them apart.
+The chat service has no RabbitMQ consumer: chat 1-to-1 and the chatbot are served directly over
+HTTP/WS. RED covers its instrumented HTTP routes; separate gauges and counters cover WebSocket
+connections and close codes. The bot adds counters specific to *why* a request failed or cost
+something: quota rejections by tier, Gemini reply-cache hit/miss, and tokens spent split prompt vs.
+output. A 429 on `/chat/bot` is not the same failure as a 5xx, and RED alone cannot tell them apart.
 
 ---
 
@@ -322,6 +322,7 @@ consumers use the same shape deliberately, so a single PromQL pattern reads eith
 | notification | `notification_dlq_messages` · `notification_outbox_oldest_unpublished_age_seconds` | — (gauges) |
 | search | `search_events_processed_total` | `event_type`, `result` |
 | search | `search_index_products_total` | — (gauge) |
+| search | `search_tombstone_rows_total` · `search_processed_events_rows_total` · `search_db_size_bytes` | — (retention gauges) |
 
 The `result` label is where the design lives, because it is what turns "the consumer is running" into
 "the consumer is *succeeding*". For the search service the possible values are `success`,
@@ -341,7 +342,7 @@ new Prometheus time series per event and grow scrape memory without bound.
 ### The search service — both metric shapes at once
 
 The search service is the only one serving HTTP *and* consuming events, so it publishes the consumer
-metrics above **and** a RED pair for `GET /search`:
+metrics above **and** a RED pair for both `GET /search` and the bot-facing `GET /search/detailed`:
 
 | Metric | Labels |
 |---|---|
@@ -356,13 +357,14 @@ the monolith's `AbortController` fires on its search timeout, the in-flight quer
 would inflate the error rate with something no operator can act on.
 
 > The `/metrics` and `/health` endpoints are deliberately **not** wrapped in `otelhttp`; only
-> `/search` is. Prometheus scrapes every 5 seconds, and health probes run continuously, so
-> instrumenting them would bury the real traffic under a steady stream of self-observation spans.
+> `/search` and `/search/detailed` are. Prometheus scrapes every 5 seconds, and health probes run
+> continuously, so instrumenting them would bury the real traffic under a steady stream of
+> self-observation spans.
 
-### The chat service — RED plus a kill-switch gauge
+### The chat service — RED plus bot and WebSocket metrics
 
 The chat service ([`internal/telemetry/metrics.go`](../chat-service/internal/telemetry/metrics.go))
-exposes the same RED pair as the monolith:
+exposes a request counter plus a duration histogram, the same pair used by the search service:
 
 | Metric | Labels |
 |---|---|
@@ -459,13 +461,12 @@ Baseline numbers have to live in documentation and screenshots (see the README's
 [Search Engine section](../README.md#-search-engine)), not in the TSDB. Raising retention was
 rejected on purpose: waiting weeks costs disk and is still fragile — a single `down -v` erases it.
 
-**No sampling, no OTel Collector — yet.** Tracing runs at **100%** (every request is traced) and
-each service exports **straight to Jaeger** over OTLP, with no collector in between. Both are the
-right call at this scale: at local/dev traffic, 100% sampling is what makes a specific order's
-trace guaranteed to be there when you go looking, and a collector only earns its keep once you need
-to fan out to multiple backends, buffer/batch centrally, or re-tag spans in flight. Head-based
-sampling and a collector are the first two things to add if this ever runs at production traffic —
-noted here so the omission reads as a decision, not a gap.
+**Full sampling by default, no OTel Collector — yet.** All services default to recording **100%** of
+traces and export straight to Jaeger over OTLP, with no collector in between. The search service can
+lower its head-sampling ratio through `OTEL_TRACES_SAMPLER_ARG`; the other three currently keep the
+default. At local/dev traffic, full sampling makes a specific order's trace available when needed,
+while a collector only earns its keep once traces must fan out, buffer centrally, or be re-tagged in
+flight.
 
 ---
 
@@ -486,15 +487,15 @@ nothing for tracing it isn't using.
 |---|---|
 | Jaeger UI (traces) | http://localhost:16686 |
 | Prometheus | http://localhost:9090 |
-| Grafana (RED dashboard, auto-provisioned) | http://localhost:3002 |
+| Grafana (two RED dashboards, auto-provisioned) | http://localhost:3002 |
 | Monolith metrics endpoint | http://localhost:8080/api/v1/metrics |
 | Notification service metrics endpoint | http://localhost:3001/metrics |
 | Search service metrics endpoint | http://localhost:8090/metrics |
 | Chat service metrics endpoint | http://localhost:8091/metrics |
 
-> The Go service reads `PORT` first and falls back to `SEARCH_HTTP_PORT`, defaulting to **8090** —
-> `PORT` is the variable Render injects and port-scans, so listening anywhere else fails the health
-> check on deploy.
+> Both Go services read Render's injected `PORT` first. Search then falls back to
+> `SEARCH_HTTP_PORT` and **8090**; chat falls back to `CHAT_HTTP_PORT` and **8091**. Listening on a
+> different port from Render's `PORT` fails the platform health check.
 
 > Grafana is on **3002**, not its usual 3000 — those are taken by the Next.js frontend (3000) and
 > the notification service (3001). Prometheus is 9090, Jaeger 16686.

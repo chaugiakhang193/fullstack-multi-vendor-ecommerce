@@ -36,11 +36,11 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
   boundary into Go** — plus Prometheus/Grafana **RED dashboards** and a k6 load baseline.
 - **Grounded shopping chatbot** — a second **Go** service streams answers over **SSE**, calling the search
   service as a **tool** so replies cite real catalogue products, behind a three-tier quota that caps
-  provider spend. A category shortcut answers a whole class of questions on the client, costing nothing.
+  provider spend. A category shortcut answers a whole class of questions without spending model quota.
 - **Realtime buyer ↔ shop chat** — the same Go service also runs a raw **WebSocket** channel: one goroutine
   writes per connection, a room-based Hub fans a message out to every open tab, and a dropped connection
   resumes by re-reading history rather than trusting the socket to have buffered anything.
-- **Scale & scope** — **15 feature modules**, **113 REST endpoints**, **14 domain event types**,
+- **Scale & scope** — **17 feature modules**, **113 REST endpoints**, **14 domain event types**,
   **4 services / 4 databases**.
 - **Production-grade** — CI/CD (GitHub Actions → GHCR → Render), Docker multi-stage, structured
   logging (pino), Sentry, CodeQL, Dependabot.
@@ -77,8 +77,8 @@ order fulfilment, payouts, a stats dashboard, and realtime new-order alerts.
 
 Three capabilities have been carved out of the monolith, each owning its own database. None of them
 reads the monolith's tables. Two are fed asynchronously by the **same** RabbitMQ topic exchange; the
-third — the chatbot — is not an event consumer at all, but a synchronous service the browser streams
-from. Solid arrows below are asynchronous events; dashed arrows are synchronous calls.
+third — the chat service — is not an event consumer at all. The browser uses SSE for the bot and a raw
+WebSocket for direct chat. Solid arrows below are asynchronous events; dashed arrows are synchronous calls.
 
 ```mermaid
 flowchart LR
@@ -97,7 +97,7 @@ flowchart LR
     end
 
     subgraph SSvc["Search Service · Go"]
-        SC["Consumer<br/>+ GET /search"]
+        SC["Consumer<br/>+ GET /search<br/>+ GET /search/detailed"]
         DB3[("DB#3 Neon<br/>product_index")]
     end
 
@@ -112,8 +112,8 @@ flowchart LR
     CLIENT --> API
     API --- DB1
     API -->|publish| MQ
-    MQ -->|"order.* review.*<br/>payout.* return.*"| NSC
-    MQ -->|"product.*"| SC
+    MQ -->|"order.* review.* payout.*<br/>return.* shop.* product.moderated"| NSC
+    MQ -->|"product.created<br/>updated · deleted"| SC
     NSC --- DB2
     SC --- DB3
     API -.->|"ranked ids"| SC
@@ -122,6 +122,7 @@ flowchart LR
     CC --- DB4
     CW --- DB4
     CC -.->|"tool: search"| SC
+    CW -.->|"resolve seller shop"| API
     CC -.-> GEM
 ```
 
@@ -132,8 +133,8 @@ it is left out above to keep the shape readable and drawn in full in the
 | Service | Language | Database | Fed by | Owns |
 |---|---|---|---|---|
 | Monolith | NestJS | DB#1 (Supabase) | HTTP | catalogue, orders, payouts, the read projection |
-| Notification | NestJS | DB#2 (Supabase) | `order.*` `review.*` `payout.*` `return.*` | notifications (source of truth) |
-| Search | **Go** | DB#3 (Neon) | `product.*` | the full-text index |
+| Notification | NestJS | DB#2 (Supabase) | `order.*` `review.*` `payout.*` `return.*` `shop.*` `product.moderated` | notifications (source of truth) |
+| Search | **Go** | DB#3 (Neon) | `product.created` `product.updated` `product.deleted` | the full-text index |
 | Chat | **Go** | DB#4 (Neon) | HTTP (SSE) + WebSocket | bot conversations, quota counters, buyer↔shop threads |
 
 ### The notification path
@@ -340,20 +341,19 @@ The O(rows) prediction is visible directly: the old path's p95 at 100 VU climbs 
 
 ### Why ranked ids, not a denormalised index
 
-Two shapes were on the table. **Pattern A** inlines `shop_name`, `avg_rating`, and stock into the
-index so a search is a single read; **Pattern B** keeps the index to text-match + rank + filter and
-returns **ranked ids** the monolith hydrates from DB#1. This service takes **B**: the index is fed
-only by `product.*` events, so denormalising review- or order-owned fields would either go stale —
-nothing emits `product.*` when a rating or stock level changes — or force the search service to
-consume streams it has no business owning. B also keeps the indexed path and the `ILIKE` fallback on
-the **same** response shape, and leaves **B → A** a forward migration (add a column, listen to more
-events) rather than a rewrite.
+Two shapes were on the table for the storefront path. **Pattern A** inlines `shop_name`, `avg_rating`,
+and stock so a search is a single read; **Pattern B** returns **ranked ids** that the monolith hydrates
+from DB#1. The main `/search` endpoint takes **B**: the index is fed only by `product.*` events, so
+denormalising review- or order-owned fields would either go stale — nothing emits `product.*` when a
+rating or stock level changes — or force the search service to consume streams it has no business
+owning. A separate `/search/detailed` contract for the chatbot reads the `name`, `slug`, and `price`
+already carried by product events; it does not turn the storefront path into a denormalised read model.
 
 ### Mechanisms (mapped to code)
 
 | Mechanism | Where |
 |---|---|
-| **Two-stage retrieval (Pattern B)** | the service returns **ranked ids only**; the monolith hydrates and paginates from DB#1, so the index never duplicates product data and can never serve a stale price |
+| **Two-stage retrieval (Pattern B)** | the main `/search` contract returns ranked ids; the monolith hydrates and paginates from DB#1. The bot-only `/search/detailed` contract separately returns up to five indexed `name` / `slug` / `price` records |
 | **Full-text + fuzzy fallback** | `tsvector` GIN for whole-lexeme matches; when full-text returns 0, a `pg_trgm` word-similarity pass (`<%`, threshold `0.3` set per-transaction) catches typos and prefixes like `die` or `dienn` |
 | **Index as a CQRS read model** | the index is built only from `product.created` / `updated` / `deleted` events off `ecommerce.events` — no shared tables, no cross-service reads |
 | **Out-of-order safety** | brokers do not guarantee order, so an upsert applies only `WHERE updated_at < EXCLUDED.updated_at`, and a delete writes a **tombstone** row that blocks a stale update from resurrecting a deleted product |
@@ -368,9 +368,10 @@ events) rather than a rewrite.
 an id. They come from the same clock in practice, but it is two contracts where there should be one —
 to be unified in the `product.deleted` payload rather than papered over in the consumer.
 
-**Tombstones are never collected.** A tombstone row is kept per deleted product so a late update
-cannot revive it. Garbage-collecting them is only safe once the queues have a message TTL — without
-one, the oldest deliverable event has no upper bound, so no retention window can be proven safe.
+**Retention has to outlive every deliverable event.** The main queue and DLQ each have a 30-day TTL,
+so an hourly capped sweep can collect tombstones and processed-event rows only after the resulting
+61-day retention window. `SEARCH_RETENTION_GC_ENABLED` gates deletion, while the row-count and database-
+size gauges remain active even when deletion is disabled.
 
 ---
 
@@ -386,8 +387,8 @@ problems, not prompt problems.
 ### Answers are grounded in the catalogue, not in the model
 
 The bot is given exactly one tool: the **search service** from the section above. When a question needs
-product facts, the model calls it, and the reply is written from what came back — real names, real
-prices, real availability.
+product facts, the model calls it, and the reply is written from what came back — real names and real
+prices from the indexed catalogue.
 
 Product links are then built **from our own stored slug and id**, never from a URL the model composed:
 
@@ -419,28 +420,28 @@ day**, so a user who hits the hourly wall has not also lost one of their daily t
 **fail-closed** — a database error refuses the request, because a service that cannot count cannot know
 how much quota is already gone.
 
-### The cheapest answer costs nothing at all
+### The cheapest answer costs no model quota
 
-A whole class of questions never reaches the service. When a shopper's message names a catalogue
+A whole class of questions never reaches `chat-service`. When a shopper's message names a catalogue
 category — including the accent-free and colloquial spellings people actually type — the **frontend**
-matches it against a synonym dictionary and renders products straight from data it already holds:
+matches it locally, then renders products fetched through the monolith's public catalogue API:
 
 | Path | Cost | Latency |
 |---|---|---|
-| Category shortcut | **zero** — no server call, no quota | instant |
-| Cached reply | one DB write | ~100 ms |
+| Category shortcut | **zero model cost** — no chat-service call or bot quota; catalogue data may require one monolith request | immediate match, then catalogue latency |
+| Cached reply | DB persistence only; no model call or quota | ~100 ms |
 | Full bot answer | 1 quota turn + 1–2 model calls (+ a search) | ~7–9 s |
-| Out of quota | falls back to search results in-panel | ~100 ms |
+| Out of quota | offers the same category shortcuts in-panel | local once categories are loaded |
 
-Running out of quota **degrades rather than breaks**: the panel answers with real search results for the
-question just asked, so the shopper keeps shopping instead of hitting a dead end.
+Running out of quota **degrades rather than breaks**: the panel offers category shortcuts that still
+lead to real catalogue results, so the shopper can keep browsing instead of hitting a dead end.
 
 ### Mechanisms (mapped to code)
 
 | Mechanism | Where |
 |---|---|
 | **SSE, not WebSocket** | a question is request-and-response, so a socket lifecycle buys nothing; `meta` → `tool` → `text` → `done` over plain HTTP |
-| **Two-turn tool loop** | turn one decides *whether* to search (prose suppressed); turn two streams the answer with the tool result attached — one tool call per question, so one question cannot burn several searches |
+| **Two-turn tool loop** | turn one decides *whether* to search; its prose is held back while that decision is made, then used directly when no tool is requested. A tool call adds a second, streamed turn with the result attached — one question cannot burn several searches |
 | **Provider-agnostic core** | quota, cache, retry, breaker and persistence never learn which model is behind them; one package converts types and maps provider errors |
 | **Breaker outside retrier** | `Breaker(Retrier(Gemini))` — both attempts of one request count as a single failure, and an open breaker skips the retry wait too |
 | **Identity, split two ways** | *who to bill* and *whose conversation* are separate: guests are metered by IP (clearing storage buys no new turns) while their history is keyed by an `X-Guest-Key` UUID; signed-in users are metered and stored by account, via an HS256 token verified with the monolith's secret |
@@ -455,14 +456,16 @@ categories, but measured against the production catalogue, `Xiaomi Poco`, `Áo K
 seed data is thin. Filtering chips by product count needs a count the categories endpoint does not
 currently return.
 
-**A cold start costs ~12.5 s.** On the free tier the service sleeps after 15 minutes; a measured wake
-was **12.5 s**, of which TCP connect was 0.107 s — essentially all of it is the platform restarting the
-container. A first question after an idle period therefore lands around 20 s. Nothing times out, because
-the client sets no deadline, but it is the honest number.
+**Cold starts are held off by a cron, not by the free tier.** An idle free instance sleeps after 15
+minutes, and a wake measured before the cron existed cost **12.5 s**, of which TCP connect was 0.107 s —
+essentially all of it the platform restarting the container. A scheduled `GET /health` now keeps
+chat-service awake, so that number is what returns the moment the cron stops rather than a cost paid
+today. The wake a live question still pays is the **search service's**, left asleep on purpose to save
+instance-hours; `toolTimeout` (20 s) is sized for it, and the client allows 75 s for response headers.
 
-**Quota state is per-instance.** Burst buckets, the in-flight latch and the reply cache live in RAM,
-which is what makes them exact on one instance — and the first assumption to break on two, where the
-real ceiling becomes the configured one times the instance count.
+**Some protective state is per-instance.** Burst buckets, the in-flight latch, reply cache and breaker
+live in RAM. Scaling out can multiply the effective burst/in-flight ceilings and reduce cache hits, but
+the guest, hourly, daily and global quota counters stay shared and atomic in Neon DB#4.
 
 ---
 
@@ -509,7 +512,7 @@ failures, and the client backs off differently for each:
 | Close reason | Client response |
 |---|---|
 | `4401` — token missing, malformed, or rejected | refresh the access token, then reconnect **once** |
-| anything else | exponential backoff — 1s → 2s → 4s → 8s → 16s, **capped at 30s**, matched to how long the free-tier host takes to wake from sleep |
+| anything else | exponential backoff — 1s → 2s → 4s → 8s → 16s, **capped at 30s**, leaving margin over the measured ~12.5s free-tier wake |
 
 Getting that distinction to the browser at all took a deliberate workaround: the WebSocket library
 closes **silently** — no close frame at all — the instant a `context` deadline expires, so the
@@ -566,7 +569,7 @@ trace id** — from the HTTP handler, through the outbox row and RabbitMQ, to th
 | **Trace context across the async gap** | `outbox_event.trace_parent` — the W3C `traceparent` is captured by an `@BeforeInsert` hook and restored by the relay before publishing (see ADR-7) |
 | **Context over the broker** | injected into RabbitMQ message headers; the consumer extracts it and opens a `SpanKind.CONSUMER` span, so both services land in the same trace |
 | **Across a language boundary** | `search-service/internal/telemetry` — the Go consumer extracts the same W3C header (case-insensitively, since `amqp.Table` is a plain map) and `otelpgx` continues the trace into its queries |
-| **RED metrics** | All four services expose the same pair — `metrics.interceptor.ts` → `/api/v1/metrics` on the monolith, one middleware per service in Go, so a route is instrumented the moment it is registered. The monolith adds an **outbox-lag gauge** (age of the oldest unpublished event) |
+| **RED metrics** | The monolith derives RED from `metrics.interceptor.ts` → `/api/v1/metrics`; each Go service exposes a request counter plus duration histogram from its HTTP boundary. The notification worker instead exposes consumer metrics, and the monolith adds an **outbox-lag gauge** (age of the oldest unpublished event) |
 | **Consumer metrics** | `notification_events_processed_total` · `search_events_processed_total` — events counted by `event_type` and `result`, so "running" and "succeeding" are different questions |
 | **Dashboard as code** | `observability/grafana/**` provisioned at container start — both dashboards live in git and survive `docker compose down -v`; the provider watches the folder, so another one is added by dropping in a JSON file |
 | **Load baseline** | [`observability/k6/baseline-search.js`](observability/k6/baseline-search.js) — three sequential stages at 10 / 50 / 100 VUs, measured before the search work began |
@@ -743,7 +746,7 @@ trade-off accepted. (The full rationale for each lives in the commit history; th
 | **Backend (monolith)** | NestJS 11 · TypeORM · PostgreSQL · Socket.IO · Passport (JWT access/refresh + Google OAuth2) |
 | **Notification Service** | NestJS 11 · RabbitMQ (amqplib) · Redis · PostgreSQL (database-per-service) |
 | **Search Service** | **Go 1.26** · pgx · sqlc · RabbitMQ (amqp091-go) · PostgreSQL full-text (`tsvector` + GIN + `unaccent` + `pg_trgm`) |
-| **Chat Service** | **Go 1.26** · pgx · sqlc · SSE streaming · Gemini (function calling) · circuit breaker + retry + reply cache |
+| **Chat Service** | **Go 1.26** · pgx · sqlc · SSE streaming · raw WebSocket · Gemini (function calling) · circuit breaker + retry + reply cache |
 | **Frontend** | Next.js · React · TanStack Query · Zustand · Tailwind / shadcn-style UI |
 | **Messaging & realtime** | RabbitMQ (topic exchange, DLX/retry/DLQ) · Redis (socket.io adapter/emitter) |
 | **Observability** | OpenTelemetry (traces, W3C context propagation) · Jaeger · Prometheus (`prom-client` + `client_golang`) · Grafana (dashboard as code) · k6 (load baseline) |
@@ -790,7 +793,8 @@ Run the frontend separately: `cd frontend && npm run dev` (set
 > **Both Go services are in the compose file** — all ten containers come up together. Two notes on
 > degraded modes, both deliberate: the monolith only calls search when `SEARCH_SERVICE_ENABLED=true`
 > and otherwise falls back to the in-monolith `ILIKE` query; and the chat service starts fine without
-> `GEMINI_API_KEY`, simply leaving the bot branch unregistered. Neither missing piece breaks the stack.
+> `GEMINI_API_KEY`, leaving `/chat/bot` registered but disabled with a `503`. Neither missing piece
+> breaks the stack.
 > See [`docs/deploy-search-service.md`](docs/deploy-search-service.md) and
 > [`docs/deploy-chat-service.md`](docs/deploy-chat-service.md).
 

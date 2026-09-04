@@ -52,7 +52,7 @@ request cost before it was turned away":
 | Auth | `resolveSubject` | stateless — HS256 verify / guest UUID | one signature check | — (identifies, does not spare) | `401 unauthorized` |
 | Burst | `quota.Burst.Allow` | token bucket in RAM, per subject (cap 10, +1 / 6s; swept every 256 calls) | in-memory, no I/O | a runaway loop before it reaches the DB | `429 burst` |
 | Reply cache | `bot.ReplyCache.Get` | TTL map in RAM (500 entries, 10 min) | map lookup | the model call **and** the quota charge, for a repeated question | hit streams the cached reply |
-| In-flight latch | `Limiter.enter` | set in RAM, per subject-day | in-memory | concurrent tabs each spending a turn | `429 in_flight` |
+| In-flight latch | `Limiter.enter` | set in RAM, per subject | in-memory | concurrent tabs each spending a turn | `429 in_flight` |
 | Quota counters | `Limiter.charge` | Neon `bot_usage_daily` | 1–3 DB increments | the provider's daily quota (guest 5 · user 30/hr-cap 10 · global 300) | `429 guest_daily / user_hourly / user_daily / global_daily` |
 | Retrier | `bot.Retrier` | stateless | — (one retry on upstream/timeout) | — (spends a call to save an answer) | passes the error through |
 | Breaker | `bot.Breaker` | state + fail count in RAM (5 consecutive failures → open 60s) | in-memory | repeated calls to a provider that is down | `503 bot_unavailable` |
@@ -105,7 +105,7 @@ sort:
 - **Hour before day, for signed-in users.** Reversed, a user who hits the hourly wall would still have spent
   one of their daily allowance on the request that got refused.
 
-Two guards sit around the counters. An **in-flight** latch (`Limiter.enter`, keyed per subject-day) admits
+Two guards sit around the counters. An **in-flight** latch (`Limiter.enter`, keyed per subject) admits
 one request at a time, so opening twenty tabs blocks nineteen at the latch and none of them spends a turn.
 And the counters are **fail-closed**: a database error refuses the request rather than waving it through,
 because a service that cannot count cannot know how much of the provider quota is already gone — and if the
@@ -267,7 +267,7 @@ enough that a price or a stock figure quoted inside a stored answer has not drif
 | `bot.ReplyCache` | chat-service RAM | 10 min, 500 entries | answers to opening questions, shared across callers |
 | `shopclient` | chat-service RAM | 10 min | which shop a seller owns, since this database has no shop table |
 | `/chat/config` | browser `sessionStorage` | 5 min | whether the bot is enabled |
-| shortcut blocks | browser `localStorage` | 24 h, 10 entries | category chip results, which never reach the database |
+| shortcut blocks | browser `localStorage` | 24 h, 10 entries | the question plus category id/name; products come from the catalogue API when rendered |
 
 The middle two each earn a sentence. The shop lookup is cached because the seller-shop relation almost never
 changes, while the alternative is a network hop into the monolith on every fanout. The kill switch is held in
@@ -411,7 +411,7 @@ answerBudget - decideBudget - toolTimeout >= 17.5s                              
 ```
 
 The first says turn one must hold **two** complete provider attempts. Gemini's latency is almost entirely
-queueing ahead of the first token rather than generation — measured on 04/09/2026 at a p50 of 4.2s against a
+queueing ahead of the first token rather than generation — measured on 03/09/2026 at a p50 of 4.2s against a
 p90 of 25s, with time-to-first-chunk equal to total time — so cutting early and retrying is the only thing
 that swallows the tail, and streaming turn one would not help. The second line says the same for turn two,
 out of whatever is left.
@@ -671,9 +671,9 @@ func UserKey(userID string) string { return "user:" + userID }
 func ShopKey(shopID string) string { return "shop:" + shopID }
 ```
 
-A `user:<id>` room holds every tab one buyer has open, so their own sent message and any reply both
-land in the same place. A `shop:<id>` room is what a seller's tabs join instead of `user:<sellerId>`
-— and that is the load-bearing choice, not a naming preference. The moment a buyer opens a
+A `user:<id>` room holds every tab an account has open, so its own sent message and any reply both
+land in the same place. A seller's tabs additionally join `shop:<id>` alongside `user:<sellerId>`
+— and that second room is the load-bearing choice, not a naming preference. The moment a buyer opens a
 conversation, chat-service knows the shop id but has no way to know who *owns* it: this database has
 no `shop` table, and asking the monolith on every single fanout would put a network hop between two
 people in the middle of a conversation. `authenticate()` asks that question exactly once, right after
@@ -711,10 +711,9 @@ would answer a fixable "your token expired" with an unfixable retry loop instead
 hand-rolled timer exists purely so the connection is still alive when `Close(4401, ...)` runs, long
 enough to actually send the close frame the FE is waiting to read.
 
-The 30-second reconnect ceiling is not an arbitrary "exponential backoff, capped" number either — it
-is sized to chat-service's own cold start on Render's free tier, which takes 30–50 seconds to wake
-from sleep. Retrying every second through that window would not wake the service any faster; it
-would just hammer a process that is still booting.
+The 30-second reconnect ceiling is not an arbitrary "exponential backoff, capped" number either. A
+measured chat-service wake on Render's free tier took about 12.5 seconds; the cap leaves margin for that
+wake without retrying every second against a process that is still booting.
 
 And the `attempt` counter behind that backoff resets to zero only on receiving a `ready` frame — never
 on `ws.onopen`. A TCP handshake succeeding says nothing about whether the token that follows will be
@@ -829,9 +828,10 @@ One server-side struct, one client-side render path, no branch anywhere for "is 
 ## Not every question reaches the service
 
 A class of questions never arrives here at all. When a shopper's message matches a catalogue category, the
-frontend answers it directly from data it already holds and never calls `/chat/bot` — no model, no quota,
-no server round trip. This is why the question count a user generates runs ahead of the calls this service
-sees, and why the quota numbers are smaller than the traffic suggests. The mechanism — the synonym
+frontend resolves the category locally and never calls `/chat/bot` — no model and no bot quota. Rendering
+the product block may still call the monolith's public catalogue endpoint; the shortcut avoids this service,
+not every server round trip. This is why the question count a user generates runs ahead of the calls this
+service sees, and why the quota numbers are smaller than the traffic suggests. The mechanism — the synonym
 dictionary and category matching — is a frontend concern, described in the project README.
 
 ## The boundary
@@ -860,7 +860,7 @@ with. There is no retreat to an older model on a fresh key, which matters when r
 Gemini 3: the common workaround for its stricter tool protocol is "use 2.5 instead", and that door is shut.
 
 Two constants hold the default, `gemini.DefaultModel` and `config.defaultGeminiModel`, and `GEMINI_MODEL`
-overrides both so a model can be swapped without a deploy.
+overrides it at process startup so a model can be swapped without changing code.
 
 ## Thinking is a level, not a budget
 
@@ -931,7 +931,7 @@ behind the `gemini_live` build tag, which is the only check that the configured 
   is unaffected because it keeps its turns in memory, but this is the first thing to check if a future model
   starts requiring signatures more broadly.
 - **A missing API key disables the bot, it does not stop the service.** `GEMINI_API_KEY` empty means the bot
-  branch is never registered, so a deploy that forgets the key still serves everything else.
+  client is not built and `/chat/bot` returns `503 bot_disabled`, while every non-bot route still serves.
 - **Free-tier traffic may be used to improve Google's products.** The service sends the question, the system
   prompt, and the tool results — public catalogue data and whatever the user typed. No order or account data
   crosses that boundary.

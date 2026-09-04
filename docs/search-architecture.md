@@ -25,11 +25,14 @@ flowchart TB
   subgraph SRCH["search-service · Go · DB #3"]
     CONS -->|idempotent upsert| IDX[("product_index<br/>tsvector + GIN")]
     API["GET /search"] --> IDX
+    DETAIL["GET /search/detailed"] --> IDX
   end
 
   SC -->|"q + filters"| API
   API -->|"[{ productId, rank }]"| HYD
   SC -.->|timeout / error / down| FB["ILIKE fallback on DB #1"] --> RESP
+  CHAT["chat-service"] -->|"q + optional price range"| DETAIL
+  DETAIL -->|"up to 5 display-ready items"| CHAT
 ```
 
 ## Write path — the index is a CQRS read model
@@ -39,20 +42,21 @@ to `product.*` and maintains `product_index` as a second read model (the first i
 service's own store). Key properties, all inherited from patterns already used elsewhere in the system:
 
 - **Database-per-service.** The index lives in its own Postgres (DB #3), not in the monolith's database.
-- **Transactional outbox.** The event is written in the same transaction as the product, so the index
-  can never diverge from a committed write.
+- **Transactional outbox.** The event is written in the same transaction as the product, so a committed
+  write cannot lose its corresponding event before publication. Delivery still has to complete for the
+  index to converge.
 - **Idempotent consumer.** A `processed_events` table with a unique `event_id` makes at-least-once
   delivery safe to replay — the same dedupe approach the notification service uses.
-- **`tsvector` + GIN + `unaccent`.** A trigger builds the search vector as
-  `setweight(unaccent(name),'A') || setweight(unaccent(description),'B')` with the `simple` config (no
-  stemmer, which suits Vietnamese), so a name match outranks a description match and accent-free queries
-  match accented text.
+- **`tsvector` + GIN + `unaccent`.** A trigger builds the search vector as weighted
+  `to_tsvector('simple', unaccent(...))` values for name (`A`) and description (`B`). The `simple`
+  config has no stemmer, which suits Vietnamese, so a name match outranks a description match and
+  accent-free queries match accented text.
 
 Each guarantee and the thing that actually enforces it:
 
 | Guarantee | Enforced by | Fails how, without it |
 |---|---|---|
-| Index cannot diverge from a committed write | outbox row written in the product's transaction | a write commits, the event is lost, the index silently lags forever |
+| A committed write cannot lose its event before publication | outbox row written in the product's transaction | a write commits without an event, so the index has no path to converge |
 | Redelivery is harmless | `processed_events`, unique on `event_id`, written in the same transaction as the index row | at-least-once delivery double-applies |
 | A stale update cannot overwrite a newer one | `WHERE updated_at < EXCLUDED.updated_at` on upsert | retry queues reorder events and an old name wins |
 | A stale update cannot resurrect a deleted product | `deleted_products_tombstone` | the row is gone, so there is no timestamp left to compare against |
@@ -89,9 +93,9 @@ is at or before the deletion, and an update only wins if it is newer. The awkwar
 Once the row is gone there is nothing left to compare against, so a `deleted_products_tombstone` row
 stands in for it — the memory of a row that no longer exists.
 
-**That correctness mechanism is also a leak.** A tombstone is only dropped if the product comes back, and
-`processed_events` gains a row for every event forever. Both tables grow and never shrink, on a 0.5 GB
-managed Postgres shared with the index itself.
+**Before retention was added, that correctness mechanism was also a leak.** A tombstone was dropped only
+if the product came back, and `processed_events` gained a row for every event. Both tables grew without a
+bound on a 0.5 GB managed Postgres shared with the index itself.
 
 They cannot simply be trimmed. A tombstone deleted too early stops guarding, and the stale update it
 would have rejected resurrects a deleted product in search results. Safe retention has to outlast the

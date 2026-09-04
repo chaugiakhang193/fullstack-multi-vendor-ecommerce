@@ -1,8 +1,8 @@
 # Deploying the chat service
 
-The chat service is a Go HTTP server that streams bot replies over SSE. It is packaged as a container
-image, published to GHCR by CI, and deployed on Render as a free web service — the same pipeline the
-search service uses.
+The chat service is a Go HTTP server that streams bot replies over SSE and carries buyer-to-shop chat
+over WebSocket. It is packaged as a container image, published to GHCR by CI, and deployed on Render as
+a free web service — the same pipeline the search service uses.
 
 ## Where it runs, and why not through the Blueprint
 
@@ -45,12 +45,12 @@ database fails at startup rather than while serving.
 |---|---|---|
 | `DATABASE_URL` | Neon DB#4 connection string | Required. Must carry `sslmode=require` |
 | `JWT_ACCESS_SECRET` | identical to the monolith's | Required. A mismatch rejects every access token while the tokens themselves are perfectly valid — compare hashes, not eyes |
-| `GEMINI_API_KEY` | Google AI Studio key | Empty disables the bot branch; the service still starts and serves everything else |
-| `GEMINI_MODEL` | leave unset | Defaults to `gemini-3.5-flash-lite`. Set it to move models without a redeploy |
+| `GEMINI_API_KEY` | Google AI Studio key | Empty leaves `/chat/bot` registered but disabled with `503 bot_disabled`; the service still starts and serves everything else |
+| `GEMINI_MODEL` | leave unset | Defaults to `gemini-3.5-flash-lite`. Override it to move models without changing code; the service reads it at startup |
 | `CHAT_BOT_ENABLED` | `true` | Kill switch. `false` answers 503 with a reason instead of calling the provider |
 | `SEARCH_SERVICE_URL` | the search service's Render URL | Empty means the bot runs without registering its search tool: it can still answer, it just cannot look anything up |
-| `MONOLITH_URL` | the monolith's origin, no path and no trailing slash | Required for 1-to-1 chat. Empty breaks it silently — see below. The client appends `/api/v1/seller/shops` itself, so an origin that already carries `/api/v1` produces a 404 that looks identical to the empty case |
-| `FRONTEND_URL` | the storefront origin | Both the CORS allowlist and the host for product links. A trailing slash is trimmed |
+| `MONOLITH_URL` | the monolith's origin, no path and no trailing slash | Required for seller-side realtime. Empty leaves buyer chat and persistence working but prevents seller sockets from joining their `shop:` room — see below. The client appends `/api/v1/seller/shops` itself, so an origin that already carries `/api/v1` produces a 404 that looks identical to the empty case |
+| `FRONTEND_URL` | the storefront origin | CORS allowlist for `/chat/*`, WebSocket origin allowlist for `/ws`, and host for product links. A trailing slash is trimmed |
 | `BOT_GUEST_DAILY_LIMIT` | leave unset | Defaults to 5 questions per day, counted per IP |
 | `BOT_USER_DAILY_LIMIT` | leave unset | Defaults to 30 per account |
 | `BOT_USER_HOURLY_LIMIT` | leave unset | Defaults to 10 per account |
@@ -58,8 +58,15 @@ database fails at startup rather than while serving.
 | `BOT_BURST_CAPACITY` | leave unset | Defaults to 10 questions back to back |
 | `BOT_BURST_REFILL_SECONDS` | leave unset | Defaults to one refilled question every 6 seconds |
 | `LOG_LEVEL` | `info` | |
+| `OTEL_ENABLED` | `false` unless exporting traces | Opt-in switch for OpenTelemetry tracing |
+| `OTEL_SERVICE_NAME` | leave unset | Defaults to `chat-service` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP/HTTP traces endpoint | Defaults to `http://localhost:4318/v1/traces` |
 
-`PORT` is injected by Render and takes precedence over `CHAT_HTTP_PORT`; neither needs setting by hand.
+`PORT` is injected by Render and takes precedence over `CHAT_HTTP_PORT`; local runs fall back to
+`CHAT_HTTP_PORT`, then to `8091`. Neither port variable needs setting by hand on Render.
+
+The frontend deployment separately needs `NEXT_PUBLIC_CHAT_SERVICE_URL` set to this service's origin.
+Next.js reads that public value into the client bundle, so changing it requires rebuilding the frontend.
 
 A malformed limit is a startup failure, not a warning: a deploy that mistypes a number would otherwise
 run with the default while the person who set it believes the tighter value is in force.
@@ -69,8 +76,8 @@ run with the default while the person who set it believes the tighter value is i
 rejected. `MONOLITH_URL` and `SEARCH_SERVICE_URL` do neither. The service starts, the health check
 passes, every route answers, and one feature is simply gone.
 
-`MONOLITH_URL` was in fact left unset in production for the entire life of 1-to-1 chat, and nothing
-anywhere said so — no log line, no metric, no error frame to the client. The lookup short-circuits on
+`MONOLITH_URL` was left unset in production until the freeze validation, and nothing in the runtime
+surface said so — no log line, no metric, no error frame to the client. The lookup short-circuits on
 an empty base URL and returns "this user owns no shop", which is a legitimate answer for most users.
 A seller then joins only their `user:` room and never the `shop:` room a buyer's message is addressed
 to, so messages reached the database and appeared on the next reload while never arriving live.
