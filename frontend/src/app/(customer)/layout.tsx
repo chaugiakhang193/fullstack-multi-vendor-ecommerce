@@ -96,10 +96,17 @@ export default function CustomerLayout({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  // Trim TRƯỚC khi debounce để "laptop" và "laptop " dùng chung một queryKey. Gõ dấu cách
+  // để chuẩn bị từ tiếp theo vốn tạo key mới, React Query miss cache và bắn thêm một lượt
+  // gọi sang search-service cho đúng truy vấn vừa hỏi xong.
+  //
+  // 400ms nhỉnh hơn khoảng nghỉ giữa hai phím của người gõ trung bình (~200-300ms) nên chỉ
+  // bắn khi thật sự ngừng tay. Không nới thêm: còn phải cộng thời gian đi search-service,
+  // nới nữa thì gợi ý trễ tới mức người dùng tưởng hỏng.
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 400);
 
   // Gọi gợi ý tìm kiếm qua React Query khi gõ từ 2 ký tự trở lên
-  const isSuggestionsEnabled = debouncedSearchQuery.trim().length >= 2;
+  const isSuggestionsEnabled = debouncedSearchQuery.length >= 2;
 
   const suggestionsQuery = useQuery({
     queryKey: [QUERY_KEYS.PRODUCT_SUGGESTIONS, debouncedSearchQuery],
