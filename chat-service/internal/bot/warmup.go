@@ -107,13 +107,13 @@ func (w *Warmer) Warm(trigger ToolOutcome) {
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.baseURL+"/health", nil)
 		if err != nil {
-			w.log(warmReqError, trigger, 0, start)
+			w.log(warmReqError, trigger, 0, start, EdgeHeaders{})
 			return
 		}
 		resp, err := w.http.Do(req)
 		if err != nil {
 			// err khong duoc log: cung ly do voi SearchTool, *url.Error mang theo URL.
-			w.log(warmTransport, trigger, 0, start)
+			w.log(warmTransport, trigger, 0, start, EdgeHeaders{})
 			return
 		}
 		defer resp.Body.Close()
@@ -124,21 +124,23 @@ func (w *Warmer) Warm(trigger ToolOutcome) {
 			w.mu.Lock()
 			w.lastPoke = time.Now()
 			w.mu.Unlock()
-			w.log(warmSuccess, trigger, resp.StatusCode, start)
+			w.log(warmSuccess, trigger, resp.StatusCode, start, readEdgeHeaders(resp.Header))
 			return
 		}
-		w.log(warmNon2xx, trigger, resp.StatusCode, start)
+		w.log(warmNon2xx, trigger, resp.StatusCode, start, readEdgeHeaders(resp.Header))
 	}()
 }
 
 // log ghi mot dong cho mot cu poke da ket thuc. Gom lai mot cho de sau nay them truong
 // khong phai sua bon lenh goi.
-func (w *Warmer) log(outcome warmOutcome, trigger ToolOutcome, statusCode int, start time.Time) {
+func (w *Warmer) log(outcome warmOutcome, trigger ToolOutcome, statusCode int, start time.Time, edge EdgeHeaders) {
 	w.logger.Info("danh thuc search",
-		"outcome", string(outcome),
-		"trigger", string(trigger),
-		"statusCode", statusCode,
-		"latencyMs", time.Since(start).Milliseconds(),
+		append([]any{
+			"outcome", string(outcome),
+			"trigger", string(trigger),
+			"statusCode", statusCode,
+			"latencyMs", time.Since(start).Milliseconds(),
+		}, edge.logAttrs()...)...,
 	)
 }
 

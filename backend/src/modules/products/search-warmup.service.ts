@@ -2,6 +2,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// Helpers
+import { formatEdgeHeaders } from '@/common/helpers/edge-headers.helper';
+
 /**
  * Đánh thức search-service (Go) — Render acc#2 free-tier scale-to-zero sau 15' idle. `SearchClient`
  * timeout chỉ 300ms nên cú search ĐẦU sau khi ngủ chắc chắn miss → fallback ILIKE. Gọi `warm()`:
@@ -113,7 +116,7 @@ export class SearchWarmupService {
       }
 
       this.logger.warn(
-        `[SearchWarmup] Poke lần ${attempt}/${maxAttempts} nhận HTTP ${res.status} sau ${elapsedMs}ms`,
+        `[SearchWarmup] Poke lần ${attempt}/${maxAttempts} nhận HTTP ${res.status} sau ${elapsedMs}ms${formatEdgeHeaders(res.headers)}`,
       );
       return false;
     } catch (err) {

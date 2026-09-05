@@ -2,6 +2,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// Helpers
+import { formatEdgeHeaders } from '@/common/helpers/edge-headers.helper';
+
 /**
  * Đánh thức Notification Service (NS) — Render free-tier scale-to-zero sau 15' idle,
  * cold-start ~32s. Gọi `warm()` ở các chặng phễu mua hàng (add-to-cart → xem giỏ →
@@ -126,7 +129,7 @@ export class NsWarmupService {
       }
 
       this.logger.warn(
-        `[NsWarmup] Poke NS lần ${attempt}/${maxAttempts} nhận HTTP ${res.status} sau ${elapsedMs}ms`,
+        `[NsWarmup] Poke NS lần ${attempt}/${maxAttempts} nhận HTTP ${res.status} sau ${elapsedMs}ms${formatEdgeHeaders(res.headers)}`,
       );
       return false;
     } catch (err) {

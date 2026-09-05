@@ -1,6 +1,12 @@
+// NestJS
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
+// Services
 import { MetricsService } from '@/modules/metrics/metrics.service';
+
+// Helpers
+import { formatEdgeHeaders } from '@/common/helpers/edge-headers.helper';
 
 // Kết quả thô từ search-service: id + điểm relevance, đã xếp hạng sẵn (Pattern B).
 export interface SearchCandidate {
@@ -79,7 +85,7 @@ export class SearchClient {
         const reason = res.status >= 500 ? 'http_5xx' : 'http_4xx';
         this.recordFallback(reason);
         this.logger.warn(
-          `[SearchClient] search-service trả HTTP ${res.status} → fallback ILIKE`,
+          `[SearchClient] search-service trả HTTP ${res.status} → fallback ILIKE${formatEdgeHeaders(res.headers)}`,
         );
         return null;
       }

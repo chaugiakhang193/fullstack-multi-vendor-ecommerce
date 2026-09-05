@@ -128,11 +128,13 @@ func (s *Service) runTool(ctx context.Context, call ToolCall) map[string]any {
 	// hasError van giu: mot cua so dieu tra bat qua nhieu ngay se doc duoc ca log cu (chi co
 	// hasError) lan log moi (co them outcome) ma khong phai doi truy van giua chung.
 	s.logger.Info("chay tool",
-		"tool", call.Name,
-		"latencyMs", time.Since(start).Milliseconds(),
-		"hasError", payload["error"] != nil,
-		"outcome", string(diagnostic.Outcome),
-		"statusCode", diagnostic.StatusCode,
+		append([]any{
+			"tool", call.Name,
+			"latencyMs", time.Since(start).Milliseconds(),
+			"hasError", payload["error"] != nil,
+			"outcome", string(diagnostic.Outcome),
+			"statusCode", diagnostic.StatusCode,
+		}, diagnostic.Edge.logAttrs()...)...,
 	)
 	return payload
 }

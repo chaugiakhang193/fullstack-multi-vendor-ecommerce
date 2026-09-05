@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,4 +63,29 @@ func TestWarmChiPokeMotLanTrongCuaSoThrottle(t *testing.T) {
 func TestWarmKhongLamGiKhiThieuURL(t *testing.T) {
 	warmer := NewWarmer("", testLogger())
 	warmer.Warm(OutcomeHTTP5xx) // khong duoc panic va khong duoc goi di dau ca
+}
+
+func TestWarmerLogHeaderEdge(t *testing.T) {
+	logger, buf := newBufferLogger(slog.LevelInfo)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "30")
+		w.Header().Set("Cf-Ray", "ray-123")
+		w.Header().Set("X-Render-Routing", "route-abc")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	warmer := NewWarmer(server.URL, logger)
+	warmer.Warm(OutcomeHTTP4xx)
+
+	record := choDongLog(t, buf, "danh thuc search")
+	if record["retryAfter"] != "30" {
+		t.Errorf("retryAfter = %v, muon 30", record["retryAfter"])
+	}
+	if record["cfRay"] != "ray-123" {
+		t.Errorf("cfRay = %v, muon ray-123", record["cfRay"])
+	}
+	if record["renderRouting"] != "route-abc" {
+		t.Errorf("renderRouting = %v, muon route-abc", record["renderRouting"])
+	}
 }

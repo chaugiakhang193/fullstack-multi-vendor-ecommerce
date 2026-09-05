@@ -289,22 +289,36 @@ func TestExecutePhanLoaiTheoStatus(t *testing.T) {
 		ten      string
 		status   int
 		body     string
+		headers  map[string]string
 		muonOut  ToolOutcome
 		muonWarm bool
+		muonEdge EdgeHeaders
 	}{
-		{"200 doc duoc", 200, `{"items":[],"total":0}`, OutcomeSuccess, false},
-		{"200 body la html", 200, `<html>loading</html>`, OutcomeDecodeError, false},
-		{"404", 404, `{}`, OutcomeHTTP4xx, false},
-		{"429", 429, `{}`, OutcomeHTTP4xx, false},
-		{"500", 500, `{}`, OutcomeHTTP5xx, true},
-		{"503", 503, `{}`, OutcomeHTTP5xx, true},
-		{"204 khac 200", 204, ``, OutcomeHTTPOther, false},
-		{"302 khong co Location", 302, ``, OutcomeHTTPOther, false},
+		{"200 doc duoc", 200, `{"items":[],"total":0}`, nil, OutcomeSuccess, false, EdgeHeaders{}},
+		{"200 body la html", 200, `<html>loading</html>`, nil, OutcomeDecodeError, false, EdgeHeaders{}},
+		{"404", 404, `{}`, nil, OutcomeHTTP4xx, false, EdgeHeaders{}},
+		{
+			"429", 429, `{}`,
+			map[string]string{
+				"Retry-After":      "60",
+				"Cf-Ray":           "8bd123",
+				"X-Render-Routing": "srv-abc",
+			},
+			OutcomeHTTP4xx, false,
+			EdgeHeaders{RetryAfter: "60", CloudflareRay: "8bd123", RenderRouting: "srv-abc"},
+		},
+		{"500", 500, `{}`, nil, OutcomeHTTP5xx, true, EdgeHeaders{}},
+		{"503", 503, `{}`, nil, OutcomeHTTP5xx, true, EdgeHeaders{}},
+		{"204 khac 200", 204, ``, nil, OutcomeHTTPOther, false, EdgeHeaders{}},
+		{"302 khong co Location", 302, ``, nil, OutcomeHTTPOther, false, EdgeHeaders{}},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.ten, func(t *testing.T) {
 			tool := newToolServer(t, func(w http.ResponseWriter, r *http.Request) {
+				for k, v := range tc.headers {
+					w.Header().Set(k, v)
+				}
 				w.WriteHeader(tc.status)
 				_, _ = io.WriteString(w, tc.body)
 			})
@@ -316,6 +330,9 @@ func TestExecutePhanLoaiTheoStatus(t *testing.T) {
 			}
 			if diagnostic.StatusCode != tc.status {
 				t.Errorf("statusCode = %d, muon %d", diagnostic.StatusCode, tc.status)
+			}
+			if diagnostic.Edge != tc.muonEdge {
+				t.Errorf("edge = %+v, muon %+v", diagnostic.Edge, tc.muonEdge)
 			}
 			if got := tc.muonOut.shouldWarm(); got != tc.muonWarm {
 				t.Errorf("shouldWarm() = %v, muon %v", got, tc.muonWarm)
@@ -595,6 +612,8 @@ func TestRunToolLogDuTruongVaKhongLoQuery(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		w.Header().Set("Retry-After", "60")
+		w.Header().Set("Cf-Ray", "8bd123")
 		w.WriteHeader(http.StatusServiceUnavailable)
 	})
 	tool.warmer.logger = logger
@@ -612,9 +631,11 @@ func TestRunToolLogDuTruongVaKhongLoQuery(t *testing.T) {
 	}
 
 	muon := map[string]any{
-		"tool":     ToolSearchProducts,
-		"hasError": true,
-		"outcome":  string(OutcomeHTTP5xx),
+		"tool":       ToolSearchProducts,
+		"hasError":   true,
+		"outcome":    string(OutcomeHTTP5xx),
+		"retryAfter": "60",
+		"cfRay":      "8bd123",
 	}
 	for khoa, giaTri := range muon {
 		if record[khoa] != giaTri {
@@ -639,6 +660,48 @@ func TestRunToolLogDuTruongVaKhongLoQuery(t *testing.T) {
 	}
 	if strings.Contains(log, "q=") {
 		t.Errorf("log lo query string. Log:\n%s", log)
+	}
+}
+
+func TestEdgeHeadersBoQuaHeaderVangMat(t *testing.T) {
+	cases := []struct {
+		ten  string
+		edge EdgeHeaders
+		muon []any
+	}{
+		{
+			"tat ca rong",
+			EdgeHeaders{},
+			[]any{},
+		},
+		{
+			"chi co cf-ray",
+			EdgeHeaders{CloudflareRay: "8bd123"},
+			[]any{"cfRay", "8bd123"},
+		},
+		{
+			"du ba header dung thu tu",
+			EdgeHeaders{
+				RetryAfter:    "60",
+				CloudflareRay: "8bd123",
+				RenderRouting: "srv-abc",
+			},
+			[]any{"retryAfter", "60", "cfRay", "8bd123", "renderRouting", "srv-abc"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.ten, func(t *testing.T) {
+			got := tc.edge.logAttrs()
+			if len(got) != len(tc.muon) {
+				t.Fatalf("len(logAttrs) = %d, muon %d: %v", len(got), len(tc.muon), got)
+			}
+			for i := range got {
+				if got[i] != tc.muon[i] {
+					t.Errorf("logAttrs[%d] = %v, muon %v", i, got[i], tc.muon[i])
+				}
+			}
+		})
 	}
 }
 

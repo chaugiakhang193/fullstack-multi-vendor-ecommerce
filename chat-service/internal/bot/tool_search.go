@@ -81,6 +81,49 @@ const (
 	OutcomeDecodeError         ToolOutcome = "decode_error"
 )
 
+// EdgeHeaders la ba header do edge (Cloudflare / Render) gan vao phan hoi.
+//
+// Chung tra loi hai cau hoi ma mot dong log 429 tran khong tra loi duoc: AI chan request
+// service-to-service (co cf-ray la Cloudflare, chi co x-render-routing la edge Render), va
+// chan BAO LAU (retry-after). Deu la metadata cua edge, khong mang PII va khong mang tu
+// khoa nguoi dung go.
+type EdgeHeaders struct {
+	RetryAfter    string
+	CloudflareRay string
+	RenderRouting string
+}
+
+// readEdgeHeaders doc ba header do tu mot phan hoi.
+//
+// Sao ra struct chu khong chuyen *http.Response len tang tren: Execute co
+// defer resp.Body.Close(), nen luc runTool doc toi thi resp da dong. Ba chuoi nay song
+// doc lap voi connection.
+func readEdgeHeaders(header http.Header) EdgeHeaders {
+	return EdgeHeaders{
+		RetryAfter:    header.Get("Retry-After"),
+		CloudflareRay: header.Get("Cf-Ray"),
+		RenderRouting: header.Get("X-Render-Routing"),
+	}
+}
+
+// logAttrs tra ve cac cap khoa-gia tri cho slog, BO QUA header vang mat.
+//
+// Bo qua chu khong in rong: khong header nao trong ba cai nay bat buoc co, va khi khong co
+// cai nao thi dong log ra y het truoc commit nay - test cu va cau grep cu deu con dung.
+func (e EdgeHeaders) logAttrs() []any {
+	attrs := make([]any, 0, 6)
+	if e.RetryAfter != "" {
+		attrs = append(attrs, "retryAfter", e.RetryAfter)
+	}
+	if e.CloudflareRay != "" {
+		attrs = append(attrs, "cfRay", e.CloudflareRay)
+	}
+	if e.RenderRouting != "" {
+		attrs = append(attrs, "renderRouting", e.RenderRouting)
+	}
+	return attrs
+}
+
 // ToolDiagnostic la thong tin chan doan cua mot lan goi tool.
 //
 // No di ra bang duong tra ve chu KHONG nam trong payload gui cho model: payload do vao
@@ -90,6 +133,8 @@ type ToolDiagnostic struct {
 	Outcome ToolOutcome
 	// StatusCode bang 0 khi khong co response nao ve.
 	StatusCode int
+	// Edge rong khi khong co response nao ve, hoac khi phan hoi khong di qua edge nao.
+	Edge EdgeHeaders
 }
 
 // shouldWarm noi ket cuc nay co dang danh thuc search-service khong.
@@ -307,7 +352,11 @@ func (t *SearchTool) Execute(ctx context.Context, args map[string]any) (map[stri
 		if outcome == OutcomeHTTP5xx {
 			message = errSearchWakingUp
 		}
-		return toolError(message), ToolDiagnostic{Outcome: outcome, StatusCode: resp.StatusCode}
+		return toolError(message), ToolDiagnostic{
+			Outcome:    outcome,
+			StatusCode: resp.StatusCode,
+			Edge:       readEdgeHeaders(resp.Header),
+		}
 	}
 
 	var body struct {
