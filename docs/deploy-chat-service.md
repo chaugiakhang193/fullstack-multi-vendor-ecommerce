@@ -1,6 +1,6 @@
 # Deploying the chat service
 
-_Last updated: 11:13 ICT · 05/09/2026_
+_Last updated: 22:24 ICT · 05/09/2026_
 
 The chat service is a Go HTTP server that streams bot replies over SSE and carries buyer-to-shop chat
 over WebSocket. It is packaged as a container image, published to GHCR by CI, and deployed on Render as
@@ -97,17 +97,28 @@ request after an idle stretch pays a cold start. The two Go services answer that
 difference is deliberate.
 
 **chat-service is kept warm by a cron outside this repository** — a scheduled `GET /health` on
-cron-job.org, firing inside every idle window. It is the entry point: its cold start is not a slow answer,
-it is a widget that appears dead while the browser waits with nothing to show. That job is therefore load
-bearing, and it is invisible from the code, so it belongs on the release checklist rather than in anyone's
-memory.
+cron-job.org every ten minutes, comfortably inside the fifteen-minute idle window. It is the entry point:
+its cold start is not a slow answer, it is a widget that appears dead while the browser waits with nothing
+to show. That job is therefore load bearing, and it is invisible from the code, so it belongs on the
+release checklist rather than in anyone's memory.
+
+**That schedule is paused between 02:00 and 08:00 local time**, deliberately, to save instance hours
+overnight. The service sleeps during that window by design. The saving is only free if it can be woken
+again in the morning, and that assumption is the open one — see
+[wake-and-keepalive.md](wake-and-keepalive.md).
 
 **search-service is deliberately left out of that cron.** Holding a second instance awake around the
-clock would consume the shared workspace allowance. Storefront traffic can wake it in the background,
-and chat does the same after selected timeout, transport or `5xx` tool outcomes. A manual `/health` wake
-measured 13.7s and 12.6s on 04/09/2026, but the failed tool calls under investigation returned in
-29–70ms rather than reaching `toolTimeout` (20s). See the current failure classification and budget
-ladder in [chat-architecture.md](chat-architecture.md#every-clock-in-one-question).
+clock would consume the shared workspace allowance. It is woken on demand instead, by a background
+`/health` poke that waits up to 120 s — started by storefront browsing, or by chat after selected
+timeout, transport or `5xx` tool outcomes. A manual `/health` wake measured 13.7 s and 12.6 s on
+04/09/2026, and 12.6 s again on 05/09/2026, while the failed tool calls under investigation returned in
+29–70 ms rather than reaching `toolTimeout` (20 s) — a refused request never waits.
+
+Attempts to wake a hibernating instance have repeatedly been refused by Render, which is why the
+short-budget callers on the request path are now kept off the service entirely while it is down. The
+mechanism is in [wake-and-keepalive.md](wake-and-keepalive.md); the chatbot's own failure
+classification and budget ladder are in
+[chat-architecture.md](chat-architecture.md#every-clock-in-one-question).
 
 **When the chat cron is off, both services can be asleep when the same question arrives.** Checking
 `curl /health` by hand still reports `200`, because that request wakes the service it is measuring.

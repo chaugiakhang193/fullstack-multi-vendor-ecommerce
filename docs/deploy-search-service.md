@@ -1,6 +1,6 @@
 # Deploying the search service
 
-_Last updated: 11:13 ICT · 05/09/2026_
+_Last updated: 22:24 ICT · 05/09/2026_
 
 The search service is both a RabbitMQ consumer and a Go HTTP server. It builds a service-owned search
 read model in Neon DB#3, serves ranked product ids to the monolith at `GET /search`, and serves a
@@ -21,7 +21,8 @@ Search therefore has its own process, rollout and restart boundary, but it **sha
 workspace free-instance allowance with chat**. Render currently grants 750 free instance hours per
 workspace;
 keeping both services awake continuously would consume two running instances. Search intentionally
-has no external keep-warm cron. See [Render's free-instance limits](https://render.com/docs/free).
+has no external keep-warm cron — see [wake-and-keepalive.md](wake-and-keepalive.md) for how it is
+woken instead, and [Render's free-instance limits](https://render.com/docs/free).
 
 The repository's `render.yaml` Blueprint is intentionally not used for workspace #2. That file
 describes the monolith and notification service in workspace #1. Applying the whole Blueprint in
@@ -182,16 +183,18 @@ That guarantee is intentionally bounded, not absolute. Main-queue messages expir
 that exhaust three retries remain there for operator inspection; restarting the service does not
 repair them.
 
-Search has no scheduled cron, but application traffic can wake it:
+Search has no scheduled cron. It is woken by a background `GET /health` poke that waits up to 120 s —
+started by storefront browsing, by a failed search, or by the chatbot after selected tool outcomes.
 
-- when `SEARCH_SERVICE_ENABLED=true`, storefront browsing starts a throttled background `/health`
-  poke; a failed 700 ms search triggers another fire-and-forget poke and immediately returns to the
-  `ILIKE` fallback;
-- the chatbot calls `/search/detailed` directly and starts its own background poke after timeout,
-  transport or `5xx` outcomes.
+The search call on the customer's request path cannot do that waking: it gives up after 700 ms, far
+short of the ~12.6 s a cold start takes. `SearchClient` therefore carries a circuit breaker that keeps
+the request path off the service once it is known to be unreachable, leaving the patient poke as the
+only caller. Attempts to wake a hibernating instance are rate limited by Render, which is what makes
+the distinction load bearing rather than cosmetic.
 
-The two callers intentionally have different wait budgets; a failed business request need not last as
-long as a manual `/health` wake. The measured timing and failure classification live in
+The full mechanism — both clocks, the breaker's state machine, measured wake times per service, and
+what is still unresolved — is in [wake-and-keepalive.md](wake-and-keepalive.md). Failure
+classification for the chatbot's own path is in
 [chat-architecture.md](chat-architecture.md#every-clock-in-one-question).
 
 ## Rollback and troubleshooting

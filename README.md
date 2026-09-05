@@ -9,7 +9,7 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
 **[API Docs (Swagger)](https://fullstack-multi-vendor-ecommerce.onrender.com/api/docs)** ·
 **[Source](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce)**
 
-_Last updated: 11:13 ICT · 05/09/2026_
+_Last updated: 22:24 ICT · 05/09/2026_
 
 > ⏳ The API runs on a free-tier host — the **first request may take ~50s** to cold-start, then it's fast.
 
@@ -599,6 +599,36 @@ returns an empty panel with no error to explain it.
 > this project is the free tier, which is spent on the things a visitor actually touches (API, databases,
 > broker). Tracing is also **opt-in** behind `OTEL_ENABLED`, so the production write path pays nothing
 > for instrumentation it isn't exporting.
+
+---
+
+## 🛌 Four free services, two of them asleep
+
+A free Render instance sleeps after 15 minutes without traffic and takes tens of seconds to come back —
+observed here between 12.5 s and 43.8 s. Two services are pinned awake by a scheduled health ping: the
+**monolith** at `/api/v1/health`, because it is the origin for every page, and **chat-service** at
+`/health`, because the browser talks to it directly and a sleeping widget looks broken. (The paths
+differ because the monolith carries a global `api/v1` prefix — a probe aimed at bare `/health` gets a
+`404`, which reads as an answer while proving nothing.) The other two are left to be woken on demand,
+on purpose: Render grants **750 free instance hours per workspace per month**, and holding one instance
+awake continuously spends about 730 of them. Search and chat share a workspace, so the budget stretches
+to one always-on service, not two.
+
+**Search is the one left to wake on demand**, which is affordable because it degrades to an `ILIKE`
+query rather than an error. The catch is that the call on the customer's request path gives up after
+**700 ms** — it can never wake anything, yet it is the first to arrive. Render rate limits attempts to
+wake a hibernating instance (`x-render-routing: hibernate-rate-limited`, with no `Retry-After`), so an
+eager request path works against the very thing trying to bring the service up.
+
+The fix is a circuit breaker on `SearchClient`: once search is known to be unreachable, customer traffic
+stops touching it entirely and falls straight through to the fallback, leaving the background `/health`
+poke — which waits up to 120 s — as the only thing knocking. It starts in the blocking state, so a fresh
+deploy never opens with a doomed 700 ms call, and it distrusts its own evidence after 14 minutes,
+because a quiet stretch is itself reason to suspect the instance has gone to sleep.
+
+> 📖 **Deep dive:** [`docs/wake-and-keepalive.md`](docs/wake-and-keepalive.md) — the two clocks, the
+> measured wake times per service, the breaker's state machine, what the metrics can and cannot tell
+> you on their own, and the parts that are still open.
 
 ---
 

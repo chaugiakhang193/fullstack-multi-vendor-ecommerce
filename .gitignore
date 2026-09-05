@@ -19,6 +19,7 @@ node_modules/
 !/docs/notification-architecture.md
 !/docs/deploy-chat-service.md
 !/docs/deploy-notification-service.md
+!/docs/wake-and-keepalive.md
 !/notification-service/README.md
 
 # Local env (docker-compose DB overrides) — chứa secret, không commit
