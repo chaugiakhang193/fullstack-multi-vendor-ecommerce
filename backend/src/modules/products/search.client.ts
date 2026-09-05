@@ -44,6 +44,30 @@ export class SearchClient {
   // service ngủ sẽ vượt ngưỡng và fallback về ILIKE đúng như thiết kế.
   private static readonly TIMEOUT_MS = 700;
 
+  // Sau chừng này mà không có lời gọi nào thành công thì coi bằng chứng "service đang thức" là hết
+  // hạn, dù circuit vẫn đang đóng.
+  //
+  // Render cho instance ngủ sau 15' không có traffic vào, nên một khoảng lặng đủ dài là đủ để
+  // service ngủ mà không ai hay. Lấy "lần gần nhất từng thành công" làm bằng chứng vô thời hạn sẽ
+  // dẫn tới đúng kịch bản đã sinh ra sự cố: cụm search đầu tiên sau giờ vắng khách cùng thấy circuit
+  // đóng và cùng bắn ra mạng. 14' để hết hạn TRƯỚC lúc Render thật sự cho ngủ.
+  //
+  // Đây là đánh đổi có giá, không phải an toàn miễn phí: một request tới ở phút 14 vốn vẫn gặp
+  // service đang thức, và chính nó sẽ reset đồng hồ idle — nhưng ta chủ động fallback. Với traffic
+  // thưa, lượt search đầu của mỗi khoảng ~14' sẽ luôn chạy ILIKE. Đổi một truy vấn đầu lấy việc
+  // không bao giờ bắn abort vào một instance có thể đang ngủ.
+  private static readonly STALE_AFTER_MS = 14 * 60 * 1000;
+
+  // Quy ước circuit breaker chuẩn: 'closed' là khoẻ và cho đi qua, 'open' là đang chặn.
+  //
+  // Khởi tạo 'open' chứ không phải 'closed': lúc tiến trình vừa dựng thì ta chưa có bằng chứng nào
+  // về search-service, mà đoán sai theo hướng lạc quan nghĩa là tái tạo đúng cú abort 700ms vào một
+  // instance có thể đang ngủ. Lượt search đầu sau khi boot rơi ILIKE và nhường warmup đánh thức.
+  private circuit: 'closed' | 'open' = 'open';
+
+  // Epoch ms của lần CHẠM ĐƯỢC gần nhất: /search thành công, hoặc warmup poke được 2xx.
+  private lastReachableAt = 0;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
@@ -71,6 +95,14 @@ export class SearchClient {
       return null;
     }
 
+    // Quyết định TRƯỚC mọi await, và admit() đồng bộ trọn vẹn. Nếu có await xen giữa lúc đọc trạng
+    // thái và lúc ghi nó, hai request đồng thời sẽ cùng đọc trạng thái cũ rồi cùng đi ra mạng —
+    // đúng cái cụm wake attempt mà commit này dựng lên để tránh.
+    if (!this.admit()) {
+      this.recordFallback('circuit_open');
+      return null;
+    }
+
     const url = this.buildUrl(baseUrl, params);
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -84,6 +116,15 @@ export class SearchClient {
       if (!res.ok) {
         const reason = res.status >= 500 ? 'http_5xx' : 'http_4xx';
         this.recordFallback(reason);
+        // Chỉ 5xx và 429 là tín hiệu KHẢ DỤNG. 400/401/403/404 nghĩa là service đã trả lời được,
+        // cùng loại với bad_shape: lỗi hợp đồng hoặc cấu hình, mở circuit chỉ giấu nó đi.
+        if (res.status >= 500 || res.status === 429) {
+          this.trip();
+        } else {
+          // Một cú 404 vẫn chứng minh service sống. Không làm mới bằng chứng ở đây thì mốc stale
+          // sẽ mở circuit oan, dù chưa có gì hỏng về khả dụng.
+          this.markReachable();
+        }
         this.logger.warn(
           `[SearchClient] search-service trả HTTP ${res.status} → fallback ILIKE${formatEdgeHeaders(res.headers)}`,
         );
@@ -93,6 +134,8 @@ export class SearchClient {
       // items thiếu/không phải mảng = shape sai → coi như lỗi, fallback.
       if (!Array.isArray(body.items)) {
         this.recordFallback('bad_shape');
+        // 200 với body sai hình dạng vẫn là bằng chứng service sống — cùng lý do với nhánh 4xx.
+        this.markReachable();
         this.logger.warn(
           '[SearchClient] response thiếu items → fallback ILIKE',
         );
@@ -102,12 +145,14 @@ export class SearchClient {
       this.metricsService.searchRequests.inc({
         outcome: body.items.length > 0 ? 'served' : 'empty',
       });
+      this.markReachable();
       return body.items;
     } catch (err) {
       // AbortError = quá TIMEOUT_MS (thường cold-start); còn lại là lỗi mạng.
       const reason =
         (err as Error).name === 'AbortError' ? 'timeout' : 'network';
       this.recordFallback(reason);
+      this.trip();
       this.logger.warn(
         `[SearchClient] gọi search-service lỗi (${reason}): ${(err as Error).message} → fallback ILIKE`,
       );
@@ -121,6 +166,35 @@ export class SearchClient {
   private recordFallback(reason: string): void {
     this.metricsService.searchRequests.inc({ outcome: 'fallback' });
     this.metricsService.searchFallback.inc({ reason });
+  }
+
+  // Cho phép lời gọi này ra mạng hay không. ĐỒNG BỘ trọn vẹn, không await, để hai request cùng lúc
+  // không thể cùng đọc trạng thái cũ.
+  private admit(): boolean {
+    if (this.circuit === 'open') {
+      return false;
+    }
+    // Circuit đóng, nhưng bằng chứng đã cũ hơn STALE_AFTER_MS thì nó không còn là bằng chứng:
+    // service có thể đã ngủ trong quãng vắng khách. Mở circuit và để warmup đi xác minh, thay vì
+    // để cả cụm search đầu giờ cùng lao vào một instance có thể đang ngủ.
+    if (Date.now() - this.lastReachableAt >= SearchClient.STALE_AFTER_MS) {
+      this.circuit = 'open';
+      return false;
+    }
+    return true;
+  }
+
+  // Mở circuit sau một tín hiệu KHẢ DỤNG. bad_shape và 4xx-không-phải-429 không gọi hàm này:
+  // service đã trả lời được, ngừng gọi không sửa được gì mà còn giấu mất một lỗi thật.
+  private trip(): void {
+    this.circuit = 'open';
+  }
+
+  // Đóng circuit lại. Gọi từ hai chỗ: một lời gọi /search thành công, và SearchWarmup khi poke
+  // /health được 2xx — đó là bằng chứng service đã dậy, không cần bắt khách đợi thêm.
+  markReachable(): void {
+    this.circuit = 'closed';
+    this.lastReachableAt = Date.now();
   }
 
   // Dựng query string. page=1 + limit=CANDIDATE_LIMIT vì monolith phân trang lại ở stage 2.

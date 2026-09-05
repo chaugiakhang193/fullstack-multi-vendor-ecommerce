@@ -2,14 +2,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// Services
+import { SearchClient } from '@/modules/products/search.client';
+
 // Helpers
 import { formatEdgeHeaders } from '@/common/helpers/edge-headers.helper';
 
 /**
  * Đánh thức search-service (Go) — Render acc#2 free-tier scale-to-zero sau 15' idle. `SearchClient`
- * timeout chỉ 300ms nên cú search ĐẦU sau khi ngủ chắc chắn miss → fallback ILIKE. Gọi `warm()`:
+ * timeout ở 700ms nên cú search ĐẦU sau khi ngủ chắc chắn miss → fallback ILIKE. Gọi `warm()`:
  *   - proactive: khi khách DUYỆT sản phẩm (findAll/shop-catalog không có `q`) → đánh thức trước lúc gõ.
  *   - reactive: khi `fetchCandidates` trả null (lỗi/ngủ) → cú search sau đã ấm.
+ *
+ * Đây là thành phần DUY NHẤT còn được chạm vào search-service khi nó đang lạnh: `SearchClient` tự
+ * đóng cổng sau một lần hỏng, vì cú abort 700ms của nó quá ngắn để đánh thức được nhưng vẫn bị tính
+ * là một lần thử. Poke ở đây chờ tới COLD_START_TIMEOUT_MS nên mới có cơ hội thật.
  *
  * Fire-and-forget hoàn toàn: search chỉ là tối ưu, hỏng thì ILIKE đỡ. Mọi lỗi nuốt, không chạm request.
  * Tách RIÊNG khỏi NsWarmupService (dù trùng pattern) vì 2 service ngủ độc lập và NsWarmup đang chạy
@@ -35,7 +42,10 @@ export class SearchWarmupService {
   // Giãn tăng dần giữa các lần thử lại (tổng 4 phát: 1 chính + 3 retry).
   private static readonly RETRY_DELAYS_MS = [15_000, 30_000, 45_000];
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly searchClient: SearchClient,
+  ) {}
 
   /**
    * Poke search-service `/health` fire-and-forget. An toàn gọi bao nhiêu lần cũng được:
@@ -108,6 +118,8 @@ export class SearchWarmupService {
       if (res.ok) {
         // Chỉ ghi mốc khi THÀNH CÔNG THẬT → poke fail không khoá 10' kế tiếp.
         this.lastPokedAt = Date.now();
+        // Service dậy thật rồi → mở lại cổng của SearchClient ngay, đừng để nó đợi hết cửa sổ lạnh.
+        this.searchClient.markReachable();
         // elapsedMs phân biệt "vốn thức" (~200ms) vs "cold-start thật" (~30-50s).
         this.logger.log(
           `[SearchWarmup] Poke search-service OK sau ${elapsedMs}ms (lần ${attempt}/${maxAttempts})`,

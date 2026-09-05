@@ -41,12 +41,17 @@ export class MetricsService implements OnModuleInit {
   });
 
   // Chỉ đếm các lượt PHẢI rơi về ILIKE, kèm lý do để chẩn đoán: timeout (cold-start/chậm),
-  // http_5xx (edge-proxy khi service ngủ/deploy), http_4xx (sai request), bad_shape (JSON
-  // thiếu items), network (connection refused / đứt mạng). Tách khỏi outcome=fallback để
-  // soi được vì sao rơi mà không phải bung nhãn chéo.
+  // http_5xx (edge-proxy khi service ngủ/deploy), http_4xx (sai request hoặc bị chặn),
+  // bad_shape (JSON thiếu items), network (connection refused / đứt mạng), circuit_open (chủ động
+  // không gọi vì circuit đang mở). Tách khỏi outcome=fallback để soi được vì sao rơi mà không phải
+  // bung nhãn chéo.
+  //
+  // circuit_open cao mà http_4xx thấp KHÔNG tự nó là tin tốt: nó chỉ nói circuit đang chặn, mà
+  // chặn thì có thể vì đang cứu (không spam wake attempt) hoặc vì đang kẹt (search nằm ILIKE mãi).
+  // Phải đọc kèm outcome=served ngay sau đó: có served là đang cứu, không có là đang kẹt.
   readonly searchFallback = new Counter({
     name: 'search_fallback_total',
-    help: 'Số lượt search rơi về ILIKE theo lý do (timeout|http_5xx|http_4xx|bad_shape|network)',
+    help: 'Số lượt search rơi về ILIKE theo lý do (timeout|http_5xx|http_4xx|bad_shape|network|circuit_open)',
     labelNames: ['reason'],
   });
 
