@@ -1,6 +1,6 @@
 # Waking and keeping alive
 
-_Last updated: 22:24 ICT · 05/09/2026_
+_Last updated: 23:01 ICT · 05/09/2026_
 
 Four services run on Render's free instance type. A free instance sleeps after 15 minutes without
 inbound traffic and takes tens of seconds to come back — observed here between 12.5 s and 43.8 s, and
@@ -219,7 +219,8 @@ No dashboard access is needed. Fire a burst of `?q=` requests at `/api/v1/produc
 | `search_requests_total{outcome="served"}` | the search service answered |
 | `search_requests_total{outcome="fallback"}` | the request was served from `ILIKE` instead |
 | `search_fallback_total{reason="circuit_open"}` | the circuit was open, so no call was made |
-| `search_fallback_total{reason="http_4xx"}` | a call went out and came back 4xx — **any** 4xx |
+| `search_fallback_total{reason="http_429"}` | a call went out and the wake was refused |
+| `search_fallback_total{reason="http_4xx"}` | a call went out and the service answered with `400`, `401`, `403` or `404` |
 
 A healthy pattern after a quiet stretch is a small number of `circuit_open` entries followed by
 `served` climbing again — the breaker held the request path back while the background poke did its
@@ -227,16 +228,16 @@ work. `circuit_open` rising with no `served` behind it means the poke is not get
 is the signal to look at.
 
 Observed on 05/09/2026, against a sleeping instance: ten searches in a row recorded `circuit_open`
-with `http_4xx` and `timeout` both at zero — the request path made no network calls at all. Once the
-instance was awake, the next search recorded one more `circuit_open`, its background poke was admitted,
-and the five searches after it were `served`. The recovery path closes in a single request, provided a
-wake gets through.
+with every other reason at zero — the request path made no network calls at all. Once the instance was
+awake, the next search recorded one more `circuit_open`, its background poke was admitted, and the five
+searches after it were `served`. The recovery path closes in a single request, provided a wake gets
+through.
 
-**These series cannot, on their own, prove a wake was refused.** `http_4xx` lumps `400`, `401`, `403`
-and `404` together with `429`, so a configuration mistake and a refused wake are indistinguishable
-here. Confirming `hibernate-rate-limited` means reading the log line, which carries the edge headers
-alongside the status. Splitting `429` into its own reason would close that gap and has not been done
-yet.
+`http_429` and `http_4xx` are deliberately separate labels. A refused wake and a misconfigured route
+both end in a fallback, but they point in opposite directions — one is the platform declining, the
+other is our own contract or configuration being wrong — and reading them from a single counter would
+mean opening the logs to tell which had happened. The log line still carries the edge headers, and it
+remains the only place the `hibernate-rate-limited` label itself can be confirmed.
 
 To tell whether a service is actually being kept awake, `curl /health` is not the test — that request
 wakes the service it is measuring. Read `process_start_time_seconds` from `/metrics` after leaving the

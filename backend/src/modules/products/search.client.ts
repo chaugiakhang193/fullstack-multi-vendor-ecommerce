@@ -114,7 +114,15 @@ export class SearchClient {
       const res = await fetch(url, { signal: controller.signal });
       // 5xx từ edge-proxy khi service ngủ/deploy vẫn resolve fetch → coi là lỗi, fallback.
       if (!res.ok) {
-        const reason = res.status >= 500 ? 'http_5xx' : 'http_4xx';
+        // 429 có nhãn riêng chứ không gộp vào http_4xx. Nhánh trip ngay dưới đã biết 429 là đặc
+        // biệt; nếu nhãn không biết thì thông tin đó bị vứt đi, và một cú 404 sai cấu hình trông
+        // giống hệt một lần bị từ chối đánh thức — hai chuyện dẫn tới hai hướng điều tra ngược nhau.
+        let reason = 'http_4xx';
+        if (res.status >= 500) {
+          reason = 'http_5xx';
+        } else if (res.status === 429) {
+          reason = 'http_429';
+        }
         this.recordFallback(reason);
         // Chỉ 5xx và 429 là tín hiệu KHẢ DỤNG. 400/401/403/404 nghĩa là service đã trả lời được,
         // cùng loại với bad_shape: lỗi hợp đồng hoặc cấu hình, mở circuit chỉ giấu nó đi.

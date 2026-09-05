@@ -46,12 +46,16 @@ export class MetricsService implements OnModuleInit {
   // không gọi vì circuit đang mở). Tách khỏi outcome=fallback để soi được vì sao rơi mà không phải
   // bung nhãn chéo.
   //
-  // circuit_open cao mà http_4xx thấp KHÔNG tự nó là tin tốt: nó chỉ nói circuit đang chặn, mà
+  // http_429 đứng riêng khỏi http_4xx vì hai nhóm này dẫn tới hai hướng điều tra ngược nhau: 429 là
+  // bị từ chối đánh thức, còn 400/401/403/404 là service ĐÃ trả lời và lỗi nằm ở hợp đồng hoặc cấu
+  // hình. Gộp lại thì phải mở log ra mới phân biệt được.
+  //
+  // circuit_open cao mà http_429 thấp KHÔNG tự nó là tin tốt: nó chỉ nói circuit đang chặn, mà
   // chặn thì có thể vì đang cứu (không spam wake attempt) hoặc vì đang kẹt (search nằm ILIKE mãi).
   // Phải đọc kèm outcome=served ngay sau đó: có served là đang cứu, không có là đang kẹt.
   readonly searchFallback = new Counter({
     name: 'search_fallback_total',
-    help: 'Số lượt search rơi về ILIKE theo lý do (timeout|http_5xx|http_4xx|bad_shape|network|circuit_open)',
+    help: 'Số lượt search rơi về ILIKE theo lý do (timeout|http_5xx|http_429|http_4xx|bad_shape|network|circuit_open)',
     labelNames: ['reason'],
   });
 

@@ -74,7 +74,9 @@ describe('SearchClient — circuit breaker', () => {
     await client.fetchCandidates(params);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(metrics.reasons).toEqual(['http_4xx', 'circuit_open']);
+    // http_429 chứ không phải http_4xx: nhãn phải phân biệt được "bị từ chối đánh thức" với một cú
+    // 404 sai cấu hình, vì hai thứ đó dẫn tới hai hướng điều tra khác nhau.
+    expect(metrics.reasons).toEqual(['http_429', 'circuit_open']);
   });
 
   it('timeout cũng mở circuit', async () => {

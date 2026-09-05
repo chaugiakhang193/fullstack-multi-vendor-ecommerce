@@ -1,6 +1,6 @@
 # Deploying the search service
 
-_Last updated: 22:24 ICT · 05/09/2026_
+_Last updated: 23:01 ICT · 05/09/2026_
 
 The search service is both a RabbitMQ consumer and a Go HTTP server. It builds a service-owned search
 read model in Neon DB#3, serves ranked product ids to the monolith at `GET /search`, and serves a
@@ -19,10 +19,9 @@ The production services are split across the default workspaces of two Render ac
 
 Search therefore has its own process, rollout and restart boundary, but it **shares account #2's
 workspace free-instance allowance with chat**. Render currently grants 750 free instance hours per
-workspace;
-keeping both services awake continuously would consume two running instances. Search intentionally
-has no external keep-warm cron — see [wake-and-keepalive.md](wake-and-keepalive.md) for how it is
-woken instead, and [Render's free-instance limits](https://render.com/docs/free).
+workspace; keeping both services awake continuously would consume two running instances. Search
+intentionally has no external keep-warm cron — see [wake-and-keepalive.md](wake-and-keepalive.md)
+for how it is woken instead, and [Render's free-instance limits](https://render.com/docs/free).
 
 The repository's `render.yaml` Blueprint is intentionally not used for workspace #2. That file
 describes the monolith and notification service in workspace #1. Applying the whole Blueprint in
