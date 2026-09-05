@@ -16,8 +16,8 @@ func TestWarmPokeHealthMotLan(t *testing.T) {
 	}))
 	defer server.Close()
 
-	warmer := NewWarmer(server.URL)
-	warmer.Warm()
+	warmer := NewWarmer(server.URL, testLogger())
+	warmer.Warm(OutcomeHTTP5xx)
 
 	select {
 	case path := <-hits:
@@ -39,8 +39,8 @@ func TestWarmChiPokeMotLanTrongCuaSoThrottle(t *testing.T) {
 	}))
 	defer server.Close()
 
-	warmer := NewWarmer(server.URL)
-	warmer.Warm()
+	warmer := NewWarmer(server.URL, testLogger())
+	warmer.Warm(OutcomeHTTP5xx)
 
 	select {
 	case <-hits:
@@ -49,7 +49,7 @@ func TestWarmChiPokeMotLanTrongCuaSoThrottle(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		warmer.Warm()
+		warmer.Warm(OutcomeHTTP5xx)
 	}
 
 	select {
@@ -60,6 +60,6 @@ func TestWarmChiPokeMotLanTrongCuaSoThrottle(t *testing.T) {
 }
 
 func TestWarmKhongLamGiKhiThieuURL(t *testing.T) {
-	warmer := NewWarmer("")
-	warmer.Warm() // khong duoc panic va khong duoc goi di dau ca
+	warmer := NewWarmer("", testLogger())
+	warmer.Warm(OutcomeHTTP5xx) // khong duoc panic va khong duoc goi di dau ca
 }

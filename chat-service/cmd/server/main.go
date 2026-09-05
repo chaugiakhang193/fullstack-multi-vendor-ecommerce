@@ -234,7 +234,7 @@ func buildBotService(cfg config.Config, logger *slog.Logger) *bot.Service {
 		// la trang thai de quen tren prod nen phai keu len.
 		logger.Warn("thieu SEARCH_SERVICE_URL, bot tra loi ma khong tra cuu duoc san pham")
 	} else {
-		searchTool = bot.NewSearchTool(cfg.SearchServiceURL, cfg.FrontendURL)
+		searchTool = bot.NewSearchTool(cfg.SearchServiceURL, cfg.FrontendURL, logger)
 	}
 
 	return bot.NewService(botClient, searchTool, logger)

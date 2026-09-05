@@ -117,14 +117,22 @@ func (s *Service) runTool(ctx context.Context, call ToolCall) map[string]any {
 	}
 
 	start := time.Now()
-	payload := s.tool.Execute(ctx, call.Args)
+	payload, diagnostic := s.tool.Execute(ctx, call.Args)
 
-	// Khong log call.Args: no chua nguyen van cau nguoi dung go. Do tre va co loi hay khong
-	// la du de biet tool chay the nao.
+	// Khong log call.Args: no chua nguyen van cau nguoi dung go.
+	//
+	// hasError mot minh khong phan biet duoc cac kieu hong: 5xx tu edge, 200 voi body khong
+	// doc duoc, va mot cu tu choi o tang ket noi deu chi ra "hasError:true" giong het nhau.
+	// outcome va statusCode la cho ghi lai su khac biet do.
+	//
+	// hasError van giu: mot cua so dieu tra bat qua nhieu ngay se doc duoc ca log cu (chi co
+	// hasError) lan log moi (co them outcome) ma khong phai doi truy van giua chung.
 	s.logger.Info("chay tool",
 		"tool", call.Name,
 		"latencyMs", time.Since(start).Milliseconds(),
 		"hasError", payload["error"] != nil,
+		"outcome", string(diagnostic.Outcome),
+		"statusCode", diagnostic.StatusCode,
 	)
 	return payload
 }

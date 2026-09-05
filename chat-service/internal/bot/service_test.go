@@ -75,7 +75,7 @@ func newTestTool(t *testing.T) *SearchTool {
 		_, _ = io.WriteString(w, `{"items":[{"productId":"p1","name":"Dien thoai A","slug":"dien-thoai-a","price":4990000}],"total":1}`)
 	}))
 	t.Cleanup(server.Close)
-	return NewSearchTool(server.URL, testFrontendURL)
+	return NewSearchTool(server.URL, testFrontendURL, testLogger())
 }
 
 // Duong chinh: model xin tool o vong 1, Service chay tool roi hoi lai o vong 2.

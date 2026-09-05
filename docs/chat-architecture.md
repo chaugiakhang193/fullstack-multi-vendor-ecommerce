@@ -396,7 +396,7 @@ answerBudget 56s
 │    attempt 2          8s   a whole second window — that is the entire point
 │
 ├─ toolTimeout 20s ──── the search call ───────┐
-│    GET /search/detailed    13.7s waking, 0.3s warm
+│    GET /search/detailed    a ceiling, not a typical duration — see below
 │
 └─ what turn two inherits: 56 − 18 − 20 = 18s ─┘
      attempt 1, backoff, attempt 2, same shape as turn one, needs ≥ 17.5s
@@ -443,16 +443,85 @@ isolation is the failure mode this section exists to prevent.
 `callTimeout` (25s) sits beside `firstChunkTimeout` but never fires in production: it applies only when a
 caller reaches the provider client with no deadline set, which the retrier never does.
 
-`toolTimeout` is sized off a measurement too. A search service woken from sleep answered in 13.7s and 12.6s
-on 04/09/2026, against 0.3s once warm, so 20s covers a wake with margin. The ceiling is only ever spent while
-the service is coming up — one that is genuinely down fails at connect, in milliseconds.
+`toolTimeout` was originally sized off a `curl /health` measurement — 13.7s and 12.6s waking, 0.3s warm, on
+04/09/2026 — on the theory that a slow search call meant the service was mid-wake and 20s bought enough
+margin to ride it out. Render logs from that same night disproved the theory: the failing calls returned in
+**29–70ms**, three orders of magnitude below the ceiling. `curl /health` measures how long a *health probe*
+waits for a cold container; it says nothing about how long `/search/detailed` is held open, because the two
+requests were never in the same wait. `toolTimeout` has not fired once in production. What actually happens
+is `SearchTool` getting an immediate 5xx, an immediate connection refusal, or a 200 whose body never arrives
+— all of them fast, none of them a wait for anything to boot.
 
 That the search service sleeps at all is a decision, not an oversight. A cron keeps chat-service warm,
 because it is the entry point and its cold start is what a visitor would read as a dead widget. The search
 service is deliberately left out of that cron: the free tier bills instance-hours across every service on the
-account, and holding a second one awake around the clock would eat most of a month's allowance. The price of
-that choice is one ~13s wake on the first product question after an idle spell, and covering it is what
-`toolTimeout` is for.
+account, and holding a second one awake around the clock would eat most of a month's allowance. The user-
+visible cost of that choice — a shopper reading "the system is having trouble" moments after the widget
+should still be finding its feet — is not the 20-second ceiling covering a wake in progress. It is one of the
+outcomes below arriving before any wake has had a chance to happen, and `SearchTool` telling the model to
+report it as a system fault when it is not one.
+
+### `ToolOutcome`: naming what actually happened, not what was assumed
+
+`Execute` returns two things: the payload handed to the model, and a `ToolDiagnostic` that never reaches the
+model. The diagnostic exists because `hasError: true` in a log line does not distinguish an edge proxy
+returning 5xx from a 200 whose body is HTML instead of JSON from a connection refused outright — and on
+04/09/2026, without that distinction, three competing theories for the same failure took an entire
+investigation to narrow down, and still could not be settled from static reading alone.
+
+`ToolOutcome` is a closed set of fifteen values — one success, fourteen ways `Execute` can fail — split across
+four phases of one call:
+
+| Phase | Values | When |
+|---|---|---|
+| Input, before any network call | `invalid_input`, `request_error` | empty query after trimming; a malformed request URL |
+| `success` | `success` | the one value that is not a failure |
+| Connect (`http.Client.Do` returns an error) | `canceled`, `context_deadline`, `client_timeout`, `transport_timeout`, `transport_error` | no response was ever received |
+| HTTP status ≠ 200 | `http_4xx`, `http_5xx`, `http_other` | a response arrived, header included |
+| Reading the body, after a 200 header | `body_canceled`, `body_context_deadline`, `body_timeout`, `decode_error` | the header was fine; something failed while reading or parsing what followed |
+
+The connect phase and the body-read phase look like they should share one set of names, and deliberately do
+not. `http.Client.Timeout` does not stop at `Do()` returning — its clock keeps running and can cut in while
+`json.Decoder.Decode` is still reading `Response.Body`. A server that sends a 200 header and then never
+finishes the body would, under a single shared `client_timeout`, be indistinguishable from one that never
+connected at all. Four body-phase values exist so that a stalled response is named for what it is, with its
+own `StatusCode: 200` on the diagnostic, rather than being absorbed into `decode_error` as if the JSON had
+simply been malformed.
+
+`shouldWarm()` is the one place this taxonomy changes behaviour rather than just naming it. Five of the
+fifteen values wake the search service with a background `GET /health`:
+
+| Wakes the service | Does not |
+|---|---|
+| `context_deadline`, `client_timeout`, `transport_timeout`, `transport_error`, `http_5xx` | everything else, including `success` and all four body-phase values |
+
+The asymmetry is deliberate on both ends. `canceled` does not wake anything: a shopper who closed the tab is
+not evidence the upstream is unhealthy, and paying to spin up an instance-hour for someone who already left
+works against the very reason the search service is allowed to sleep. The four body-phase values do not wake
+anything either — not because there is proof they never would benefit from it, but because that is what the
+decode-error path did before this distinction existed, and this change is scoped to naming failures
+precisely, not to revisiting which of them should trigger a wake. `warmIf` is only ever called from the
+connect-error and status branches; the body-read branch never reaches it, so the question does not arise
+there at all.
+
+The wake call carries two fields that answer two different questions, and they are easy to swap by accident
+because both are string-typed outcomes. `trigger` is the `ToolOutcome` that caused `Warm` to be called at
+all — which of the fifteen values `Execute` just saw. `outcome` is a separate, unexported `warmOutcome` — one
+of seven values describing what happened to *this particular* `/health` poke: `success`, `http_non_2xx`,
+`transport_error`, `request_error`, or one of `suppressed_in_flight` / `suppressed_throttled` /
+`suppressed_empty_url` when the poke never went out at all. A log line reads as cause and effect together —
+`trigger=http_5xx outcome=success` says the search call saw a 5xx, so a wake was attempted, and it worked.
+
+Not every occurrence of `outcome` carries the same fields, because not every branch reaches the network.
+`Warm` checks three gates before a request is ever built — an empty `baseURL`, a poke already in flight, a
+poke too recent — and each of those three logs directly with only `outcome` and `trigger`, since nothing was
+sent and there is nothing to time. Only the four outcomes that follow an actual `/health` attempt
+(`request_error`, `transport_error`, `success`, `http_non_2xx`) go through the shared `log` helper, which adds
+`statusCode` (`0` when no response arrived) and `latencyMs`. A log line missing those two fields is not a bug
+— it means the poke was suppressed before it left the process.
+
+Before this change the warmer logged nothing at all: a nearly three-minute gap between a failing call and the
+first one that worked, in the 04/09/2026 incident, had no record of whether a wake had even been attempted.
 
 **Clocks that protect the process rather than the answer:**
 
