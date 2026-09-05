@@ -28,7 +28,11 @@ jobs:
           --health-retries 5
 
     steps:
+      # fetch-depth 0: guard stamp tài liệu so diff với commit trước đó, clone nông thì
+      # base sha không có trong checkout và guard sẽ tự bỏ qua.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,6 +43,14 @@ jobs:
             backend/package-lock.json
             frontend/package-lock.json
             notification-service/package-lock.json
+
+      # Luật tolerant: file docs đổi nội dung thì dòng `_Last updated:` của chính nó phải đổi
+      # theo. Pre-commit hook đóng dấu tự động; bước này bắt máy chưa cài hook.
+      - name: Check Docs Timestamp
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/check-docs-stamp.mjs
 
       - name: Install Backend Dependencies
         run: npm ci

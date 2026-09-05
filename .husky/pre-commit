@@ -1,1 +1,4 @@
 npx lint-staged
+
+# Doc thay doi thi dong dau lai gio cap nhat, roi git add lai giup.
+node scripts/stamp-docs.mjs

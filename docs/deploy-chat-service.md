@@ -1,5 +1,7 @@
 # Deploying the chat service
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 The chat service is a Go HTTP server that streams bot replies over SSE and carries buyer-to-shop chat
 over WebSocket. It is packaged as a container image, published to GHCR by CI, and deployed on Render as
 a free web service — the same pipeline the search service uses.

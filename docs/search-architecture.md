@@ -1,5 +1,7 @@
 # Search service: event-driven index and two-stage retrieval
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 Product search was a `LIKE '%term%'` query inside the NestJS monolith. It scanned the whole `product`
 table, was blind to Vietnamese accents (`dien thoai` never matched `Điện thoại`), and had no relevance
 ranking. It moved to a dedicated Go service that owns a Postgres full-text index, wired into the monolith

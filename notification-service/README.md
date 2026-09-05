@@ -1,5 +1,7 @@
 # Notification Service
 
+_Last updated: 00:02 ICT · 02/08/2026_
+
 A standalone **NestJS microservice** that owns the notifications domain, carved out of the
 e-commerce monolith using the **strangler-fig** pattern. It consumes domain events from
 RabbitMQ, persists notifications in its **own database**, and pushes them to clients in

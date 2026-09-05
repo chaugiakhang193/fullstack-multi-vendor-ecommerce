@@ -4,7 +4,9 @@
   "private": true,
   "description": "Repo-root dev tooling only (husky + lint-staged). App code lives in backend/, frontend/ and notification-service/.",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "stamp:docs": "node scripts/stamp-docs.mjs",
+    "check:docs-stamp": "node scripts/check-docs-stamp.mjs"
   },
   "lint-staged": {
     "{frontend,backend,notification-service}/**/*.{ts,tsx,css}": "prettier --write"

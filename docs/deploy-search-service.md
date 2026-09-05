@@ -1,5 +1,7 @@
 # Deploying the search service
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 The search service is both a RabbitMQ consumer and a Go HTTP server. It builds a service-owned search
 read model in Neon DB#3, serves ranked product ids to the monolith at `GET /search`, and serves a
 small display-safe result to the chatbot at `GET /search/detailed`.

@@ -1,5 +1,7 @@
 # Notification service: a strangler-fig carve-out, and the loop that keeps two databases in step
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 The notification service is the first piece of this project that stopped being a module and became a
 process. It consumes domain events from the monolith, owns the notifications table outright, pushes
 realtime updates to sockets it does not hold, and publishes its own events back so the monolith can

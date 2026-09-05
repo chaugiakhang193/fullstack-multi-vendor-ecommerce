@@ -1,5 +1,7 @@
 # Observability
 
+_Last updated: 15:33 ICT · 04/09/2026_
+
 > This is the deep dive behind the **🔭 Observability** section of the
 > [README](../README.md#-observability) and [ADR-7](../README.md#adr-7--trace-context-persisted-in-the-outbox-row-not-just-in-memory).
 > The README says *what* exists; this document explains *how* it is wired and — just as

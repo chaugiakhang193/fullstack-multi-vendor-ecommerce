@@ -1,5 +1,7 @@
 # Deploying the notification service
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 The notification service is a NestJS RabbitMQ consumer packaged as a Render web service. It writes
 the authoritative notification rows to its own Supabase DB#2, emits realtime Socket.IO events through
 the Redis adapter, and publishes `notification.created` back to the monolith so DB#1 can maintain the

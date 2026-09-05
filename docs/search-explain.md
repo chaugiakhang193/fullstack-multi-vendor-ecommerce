@@ -1,5 +1,7 @@
 # Search: from an `ILIKE` scan to a GIN-backed full-text index
 
+_Last updated: 13:01 ICT · 07/08/2026_
+
 The product search moved from a `LIKE '%term%'` scan on the monolith to a dedicated Go service that
 keeps a Postgres full-text index (`tsvector` + GIN, with `unaccent` for accent-insensitive Vietnamese
 search). This note shows the query plans behind that change.

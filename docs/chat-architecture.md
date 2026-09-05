@@ -1,5 +1,7 @@
 # Chat service: the shopping bot, and the direct line to a shop
 
+_Last updated: 09:57 ICT · 05/09/2026_
+
 The chat service answers product questions by streaming a Gemini reply over SSE, with one tool the model
 may call to search the catalogue. Everything above the provider — retry, circuit breaker, quota, cache,
 persistence — is written without knowing which model is behind it. The same service also carries a second,

@@ -9,6 +9,8 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
 **[API Docs (Swagger)](https://fullstack-multi-vendor-ecommerce.onrender.com/api/docs)** ·
 **[Source](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce)**
 
+_Last updated: 11:13 ICT · 05/09/2026_
+
 > ⏳ The API runs on a free-tier host — the **first request may take ~50s** to cold-start, then it's fast.
 
 <!-- SCREENSHOT: storefront homepage — save as docs/screenshots/home.png -->
