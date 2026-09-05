@@ -220,9 +220,11 @@ the p95 at 100 VU is **186 ms vs 6.07 s** — the old scan is O(rows), the index
   checkable: an accent-free `dien thoai` returns accented products, and `laptp` still returns laptops —
   neither is something the old query could do.
 - **Top-K window.** Deep pagination past the candidate window is out of scope by design.
-- **Reindex.** A backfill command to rebuild the index from the monolith's catalog (for a long outage or
-  a schema change) is planned. Its absence is why a dropped event is permanent rather than merely late,
-  and why the queue TTL is generous.
+- **Reindex backfill.** The admin-only `POST /api/v1/admin/products/reindex` endpoint re-emits every
+  non-deleted product as a `product.updated` snapshot through the transactional outbox. Its `202`
+  response reports how many events were queued; the refresh remains asynchronous, so operators must
+  also drain the retry queue and inspect the DLQ before treating the index as ready. This refresh does
+  not truncate DB#3 or remove an orphan left by a previously missed delete.
 - **Replaying from the DLQ has a shelf life.** Retention is sized for the 60-day window a message can
   survive in the queues, so a message replayed by hand after that window may find its tombstone already
   collected. The sweep is deliberately the conservative side of that trade: it keeps rows longer than

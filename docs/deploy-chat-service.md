@@ -6,9 +6,10 @@ a free web service — the same pipeline the search service uses.
 
 ## Where it runs, and why not through the Blueprint
 
-The service is deployed on a **separate Render account** from the monolith and the notification service,
-for the reason spelled out in [deploy-search-service.md](deploy-search-service.md): free-tier instance
-hours are metered per account, so a new account starts from its own allowance.
+The service runs in account #2's Render workspace alongside search, separate from the monolith and
+notification service in account #1's workspace. Render meters its 750 free instance hours per workspace,
+so chat and search share that allowance; [deploy-search-service.md](deploy-search-service.md) records
+why only chat gets the external keep-warm cron.
 
 The repository's `render.yaml` Blueprint is **not** used here, and adding a chat block to it would be a
 mistake rather than an omission. A Blueprint instance is created from the whole file: applying it on the
@@ -99,18 +100,18 @@ it is a widget that appears dead while the browser waits with nothing to show. T
 bearing, and it is invisible from the code, so it belongs on the release checklist rather than in anyone's
 memory.
 
-**search-service is deliberately left out of that cron.** The free tier bills instance-hours across every
-service on the account, and holding a second one awake around the clock would consume most of a month's
-allowance. The cost of that choice lands on one question: the first product question after an idle stretch
-waits for the search service to come up. Measured on 04/09/2026, that wake took 13.7s and 12.6s against
-0.3s once warm, and `toolTimeout` (20s) is sized to cover it — see the budget ladder in
-`docs/chat-architecture.md`.
+**search-service is deliberately left out of that cron.** Holding a second instance awake around the
+clock would consume the shared workspace allowance. Storefront traffic can wake it in the background,
+and chat does the same after selected timeout, transport or `5xx` tool outcomes. A manual `/health` wake
+measured 13.7s and 12.6s on 04/09/2026, but the failed tool calls under investigation returned in
+29–70ms rather than reaching `toolTimeout` (20s). See the current failure classification and budget
+ladder in [chat-architecture.md](chat-architecture.md#every-clock-in-one-question).
 
-**When the cron is off, both cold starts stack on one question**, and the symptom is misleading in a
-specific way: checking `curl /health` by hand reports `200`, because that very request is what wakes the
-service. Uptime is the honest signal instead — `process_start_time_seconds` in `/metrics`, read after
-leaving the service alone for twenty minutes. A process older than the idle window means something is
-keeping it alive; one that has just booted means your own request did the waking.
+**When the chat cron is off, both services can be asleep when the same question arrives.** Checking
+`curl /health` by hand still reports `200`, because that request wakes the service it is measuring.
+Uptime is the honest signal instead — `process_start_time_seconds` in `/metrics`, read after leaving the
+service alone for twenty minutes. A process older than the idle window means something is keeping it
+alive; one that has just booted means your own request did the waking.
 
 Running on a single instance is what makes the burst limiter correct as written: it holds its buckets in
 memory, so the ceiling is per instance. On more than one instance the real ceiling becomes the capacity
