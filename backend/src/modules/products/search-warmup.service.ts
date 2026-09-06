@@ -29,11 +29,25 @@ export class SearchWarmupService {
   // Chống 2 chuỗi poke chạy đè nhau: giữ true suốt CẢ chuỗi retry.
   private isPoking = false;
 
-  // Epoch ms của lần poke THÀNH CÔNG (HTTP 2xx) gần nhất; 0 = chưa poke lần nào.
-  private lastPokedAt = 0;
+  // Epoch ms sớm nhất được phép mở chuỗi poke kế tiếp; 0 = chưa poke lần nào.
+  private nextAllowedAt = 0;
+
+  // Số chuỗi hỏng TRỌN liên tiếp. Về 0 ngay khi có một cú 2xx.
+  private consecutiveFailedChains = 0;
 
   // Throttle global: service ngủ sau 15' idle → poke tối đa 1 lần/10' là đủ giữ ấm, chừa buffer 5'.
   private static readonly THROTTLE_MS = 10 * 60 * 1000;
+
+  // Cửa chờ sau một chuỗi hỏng trọn, nhân đôi sau mỗi chuỗi hỏng liên tiếp.
+  //
+  // Chuỗi chỉ dài 90 giây, nên nếu hỏng mà không khoá gì thì mỗi lượt khách duyệt sản phẩm lại mở
+  // một chuỗi mới ngay khi chuỗi trước bỏ cuộc — lưu lượng bình thường đủ để nhịp thử không bao
+  // giờ ngơi. Render giới hạn số lần đánh thức một instance đang ngủ, nên thử dày không làm nó dậy
+  // sớm hơn, chỉ tiêu thêm phần hạn mức đó.
+  private static readonly FAILED_COOLDOWN_MS = 10 * 60 * 1000;
+
+  // Trần cửa chờ: hỏng kéo dài thì vẫn còn một lần thử mỗi giờ, đủ để tự hồi mà không cần ai can thiệp.
+  private static readonly FAILED_COOLDOWN_MAX_MS = 60 * 60 * 1000;
 
   // Cold-start Render có thể tới ~50s và đôi khi vượt 60s — giữ kết nối đủ lâu để Render dựng xong,
   // abort sớm khiến Render huỷ spin-up giữa chừng. 120s đủ phủ cold-start chậm.
@@ -59,11 +73,9 @@ export class SearchWarmupService {
       return;
     }
 
-    // Vừa đánh thức gần đây → chắc chắn còn ấm (10' < 15' ngủ) → khỏi poke lại.
-    if (Date.now() - this.lastPokedAt < SearchWarmupService.THROTTLE_MS) {
-      this.logger.debug(
-        '[SearchWarmup] Bỏ qua poke (còn trong cửa sổ throttle)',
-      );
+    // Vừa đánh thức gần đây (còn ấm), hoặc vừa hỏng trọn một chuỗi (đang nghỉ) → khỏi poke lại.
+    if (Date.now() < this.nextAllowedAt) {
+      this.logger.debug('[SearchWarmup] Bỏ qua poke (còn trong cửa chờ)');
       return;
     }
 
@@ -91,9 +103,16 @@ export class SearchWarmupService {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
-    // Không set lastPokedAt → KHÔNG khoá throttle: lần warm() kế tiếp còn cơ hội cứu.
+    this.consecutiveFailedChains += 1;
+    const cooldownMs = Math.min(
+      SearchWarmupService.FAILED_COOLDOWN_MS *
+        2 ** (this.consecutiveFailedChains - 1),
+      SearchWarmupService.FAILED_COOLDOWN_MAX_MS,
+    );
+    this.nextAllowedAt = Date.now() + cooldownMs;
+
     this.logger.error(
-      `[SearchWarmup] Cả ${maxAttempts} lần poke đều thất bại — search-service có thể vẫn ngủ; search sẽ fallback ILIKE tới khi service dậy.`,
+      `[SearchWarmup] Cả ${maxAttempts} lần poke đều thất bại (chuỗi hỏng thứ ${this.consecutiveFailedChains}) — nghỉ ${cooldownMs / 60_000}' rồi mới thử lại; search fallback ILIKE tới khi service dậy.`,
     );
   }
 
@@ -116,9 +135,10 @@ export class SearchWarmupService {
       const elapsedMs = Date.now() - startedAt;
 
       if (res.ok) {
-        // Chỉ ghi mốc khi THÀNH CÔNG THẬT → poke fail không khoá 10' kế tiếp.
-        this.lastPokedAt = Date.now();
-        // Service dậy thật rồi → mở lại cổng của SearchClient ngay, đừng để nó đợi hết cửa sổ lạnh.
+        // Service dậy thật → cửa chờ quay về nhịp giữ ấm, xoá lịch sử hỏng, và mở lại cổng của
+        // SearchClient ngay thay vì để nó đợi hết cửa sổ lạnh.
+        this.consecutiveFailedChains = 0;
+        this.nextAllowedAt = Date.now() + SearchWarmupService.THROTTLE_MS;
         this.searchClient.markReachable();
         // elapsedMs phân biệt "vốn thức" (~200ms) vs "cold-start thật" (~30-50s).
         this.logger.log(

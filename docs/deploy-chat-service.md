@@ -1,6 +1,6 @@
 # Deploying the chat service
 
-_Last updated: 22:24 ICT · 05/09/2026_
+_Last updated: 15:22 ICT · 06/09/2026_
 
 The chat service is a Go HTTP server that streams bot replies over SSE and carries buyer-to-shop chat
 over WebSocket. It is packaged as a container image, published to GHCR by CI, and deployed on Render as
@@ -102,10 +102,11 @@ its cold start is not a slow answer, it is a widget that appears dead while the 
 to show. That job is therefore load bearing, and it is invisible from the code, so it belongs on the
 release checklist rather than in anyone's memory.
 
-**That schedule is paused between 02:00 and 08:00 local time**, deliberately, to save instance hours
-overnight. The service sleeps during that window by design. The saving is only free if it can be woken
-again in the morning, and that assumption is the open one — see
-[wake-and-keepalive.md](wake-and-keepalive.md).
+**That schedule is paused overnight**, deliberately, to save instance hours. The service sleeps during
+that window by design: the last ping lands at 02:50 and the instance shuts down at 03:05, fifteen
+minutes later. What the pause costs is now measured rather than assumed — the schedule cannot restart
+what it let sleep, so the first visitor of the morning pays the cold start and the schedule only
+resumes keeping the service warm afterwards. See [wake-and-keepalive.md](wake-and-keepalive.md).
 
 **search-service is deliberately left out of that cron.** Holding a second instance awake around the
 clock would consume the shared workspace allowance. It is woken on demand instead, by a background

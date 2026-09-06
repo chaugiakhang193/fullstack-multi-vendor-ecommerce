@@ -46,4 +46,50 @@ describe('SearchWarmupService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('https://search.test/health');
   });
+
+  // Chuỗi hỏng trọn phải khoá cửa lại: không khoá thì mỗi lượt duyệt sản phẩm tiếp theo lại mở một
+  // chuỗi mới ngay khi chuỗi trước bỏ cuộc.
+  it('chuỗi poke hỏng trọn thì warm() ngay sau đó không mở chuỗi mới', async () => {
+    jest.useFakeTimers();
+    const { svc } = makeService();
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      headers: new Headers(),
+    });
+    global.fetch = fetchMock;
+
+    svc.warm();
+    // 15s + 30s + 45s giãn giữa các lần thử, thêm biên cho nhịp microtask.
+    await jest.advanceTimersByTimeAsync(95_000);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    svc.warm();
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    jest.useRealTimers();
+  });
+
+  it('hết cửa chờ thì warm() được mở chuỗi mới', async () => {
+    jest.useFakeTimers();
+    const { svc } = makeService();
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      headers: new Headers(),
+    });
+    global.fetch = fetchMock;
+
+    svc.warm();
+    await jest.advanceTimersByTimeAsync(95_000);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
+    svc.warm();
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    jest.useRealTimers();
+  });
 });

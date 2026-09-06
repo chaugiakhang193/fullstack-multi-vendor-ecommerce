@@ -1,0 +1,50 @@
+name: Wake probe
+
+# Đánh thức hai service ngủ trên Render free vào đầu giờ sáng, và ghi lại đủ dữ liệu để biết cú
+# đánh thức có được nhận hay không.
+#
+# Render trả header `x-render-routing: hibernate-rate-limited` cho những cú bị từ chối, và một cú
+# được nhận có thể vẫn hết giờ ở phía client — nên **status code không phải bằng chứng**. Bằng
+# chứng là dòng khởi động trong log của service, đối chiếu theo mốc giờ mà job này in ra.
+#
+# Chạy đúng một lần mỗi ngày cho mỗi service. Bắn dày hơn là tự chuốc lấy cái hạn mức nói trên.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Một endpoint /health cụ thể (bỏ trống để bắn cả hai)
+        required: false
+  schedule:
+    # GitHub Actions đọc cron theo UTC: 01:05 UTC = 08:05 giờ VN. Lệch khỏi phút tròn có chủ ý,
+    # vì lịch đặt đúng đầu giờ xếp hàng chung với cả thế giới và trễ nặng nhất.
+    - cron: '5 1 * * *'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Đánh thức và in header edge
+        # URL đi qua env chứ không nội suy thẳng vào shell: giá trị này do người bấm nhập, nối
+        # thẳng vào lệnh là mở đường chèn shell trên một repo công khai.
+        env:
+          TARGET_URL: ${{ inputs.url }}
+        # Không dùng -f: `503` và `429` chính là kết quả cần đọc, để curl thoát lỗi thì bước này đỏ
+        # mà không in được gì.
+        #
+        # --max-time 120 khớp COLD_START_TIMEOUT_MS của SearchWarmupService. Cold start đo được
+        # 12,6–13,8s, nên timeout ngắn sẽ tạo ra thất bại giả và không phân biệt được với bị từ chối.
+        run: |
+          urls="$TARGET_URL"
+          if [ -z "$urls" ]; then
+            urls="https://fullstack-multi-vendor-ecommerce-chat.onrender.com/health https://fullstack-multi-vendor-ecommerce-search.onrender.com/health"
+          fi
+          for url in $urls; do
+            echo "::group::$url"
+            echo "Bắn lúc $(TZ=Asia/Ho_Chi_Minh date '+%H:%M:%S') giờ VN"
+            curl -sS -o /dev/null -D - \
+              --max-time 120 \
+              -w '\nstatus=%{http_code} total=%{time_total}s\n' \
+              "$url"
+            echo "Xong lúc $(TZ=Asia/Ho_Chi_Minh date '+%H:%M:%S') giờ VN"
+            echo "::endgroup::"
+          done

@@ -1,6 +1,6 @@
 # Waking and keeping alive
 
-_Last updated: 23:01 ICT · 05/09/2026_
+_Last updated: 15:22 ICT · 06/09/2026_
 
 Four services run on Render's free instance type. A free instance sleeps after 15 minutes without
 inbound traffic and takes tens of seconds to come back — observed here between 12.5 s and 43.8 s, and
@@ -38,10 +38,16 @@ a release checklist rather than in someone's memory.
 What the schedule buys is narrower than it looks. It keeps an already-awake instance from going idle;
 it is **not** a guaranteed way to bring back one that has already slept. Section 3 covers why.
 
-The chat schedule is also **paused between 02:00 and 08:00 local time**, on purpose, to save instance
-hours during the quiet part of the night. That saving is only free if the service can be woken again
-in the morning, which is the assumption section 3 examines. A ten-minute interval comfortably keeps an
-awake instance from going idle, but it does nothing for one that has already slept.
+The chat schedule is also **paused overnight**, on purpose, to save instance hours during the quiet
+part of the night. The shape of that gap is legible in the logs: the last ping of the night lands at
+02:50 and the instance shuts down at 03:05 — fifteen minutes later, to the second, on three
+consecutive nights. That is also the cleanest confirmation available that a scheduled ping does reset
+the idle clock.
+
+The saving is not free, and section 3 measures the price: the schedule cannot restart what it let
+sleep. A ten-minute interval comfortably keeps an awake instance from going idle; against one that has
+already slept it does nothing at all. The pause is therefore one-way, and stays that way until
+something outside the schedule wakes the service.
 
 There is no cheap middle setting. Pinging every 30 or 45 minutes still lets the instance sleep between
 pings, so every ping becomes a cold wake rather than a keep-alive — the worst of both arrangements.
@@ -124,21 +130,46 @@ against one service says nothing about another:
 | The same laptop, `User-Agent: node` | search-service | woke it, 12.69 s |
 | The Render-hosted monolith | search-service | `429 hibernate-rate-limited`, 4 of 4 |
 | The Render-hosted monolith | notification-service | `429 hibernate-rate-limited`, 8 across 2 chains |
+| A visitor's browser, ordinary page load | chat-service | woke it — instance booted 10:05:30 |
+| A browser `fetch` from the storefront | search-service | woke it, 12.80 s |
 | A scheduling service outside Render | chat-service | `503`, returned in 784 ms |
-| A visitor's browser | chat-service | **not yet tested** |
+| The same service, a new job, fired once | search-service | `503` in 459 ms, no instance created |
+| That job again, with a browser `User-Agent` | search-service | `503`, no instance created |
 
-Spoofing the client's `User-Agent` changed nothing, which rules that out as the variable. What the
-table supports is narrower than it first appears:
+`User-Agent` is ruled out from both ends now: spoofing it on the laptop changed nothing, and setting a
+browser `User-Agent` on the scheduling service changed nothing either. So are the target, the path, the
+job's age and its rate — the last two refusals came from a job created minutes earlier, fired once, at
+a service nothing else had touched for four minutes.
 
-> Requests originating outside Render have woken the service, while requests originating from the
-> Render-hosted monolith have repeatedly been answered with `hibernate-rate-limited`. A
-> source-sensitive admission policy is a **leading hypothesis, not an isolated result.**
+An inside-versus-outside split does not survive the table either, since the scheduling service sits
+outside Render and is refused anyway. What is left is a pattern rather than a mechanism:
 
-Two things stop it being a conclusion. The scheduling service also sits outside Render and is refused
-anyway, which an inside-versus-outside split does not explain. And the successful and refused attempts
-happened on different sleep cycles, so limiter state, a pending wake, and platform conditions were
-never held constant. Isolating it needs one request per sleep cycle, from one origin at a time, with
-nothing else touching the service in between.
+> Every origin that calls continuously — the monolith several times a minute while search is down, the
+> scheduling service every ten minutes for weeks — is refused. Every origin that calls occasionally has
+> been admitted. That the limiter is keyed to the caller rather than the target is a **leading reading,
+> not an isolated result.**
+
+It stays a reading because the admitted and refused attempts happened on different sleep cycles, so
+limiter state, a pending wake and platform conditions were never held constant. Isolating it would need
+one request per sleep cycle, from one origin at a time, with nothing else touching the service in
+between — and since the architecture already absorbs the failure, that isolation is not worth the
+instance hours it would cost.
+
+### A refused wake and an unanswered one look identical from the client
+
+The client cannot tell those two apart, and the difference is the whole diagnosis. Measured on
+06/09/2026: a `curl` given a 120 s budget was held for the full 120 seconds and received zero bytes —
+while the instance it was aimed at started 62 seconds into that window and was serving two seconds
+later. The request that caused the wake was never answered by it.
+
+So a timeout is not evidence that a wake was refused, and a fast `503` is not evidence of a slow one.
+The only thing that settles it is the woken service's own log:
+
+- a start line inside the window → the wake was admitted, whatever the caller saw;
+- no start line → the wake was refused at the edge, whatever the caller saw.
+
+The rows in the table above are classified by that test wherever the service log covered the window;
+the earlier entries predate the rule and rest on their status codes alone.
 
 ### Automated wake-up is best effort
 
@@ -246,26 +277,38 @@ up; one that has just booted means your own request did the waking.
 
 ## 6. Known limitations
 
-**The trigger for the refusal window is not isolated.** The leading hypothesis is that a wake attempt
-abandoned after 700 ms is what arms it, but the evidence is circumstantial: the first attempt timed out
-and the refusals began within a second. Separating cause from coincidence needs a controlled test —
-one long request left open, a second sent one second later, each branch on its own idle cycle, since
-the measuring request can itself change the state being measured.
+**The trigger for the refusal window is not isolated.** An earlier reading — that a wake attempt
+abandoned after 700 ms is what arms it — no longer covers the evidence: a single one-shot request, from
+a job created minutes earlier, was refused at a service nothing had touched for four minutes, with
+nothing to abandon beforehand. What survives is the caller-frequency reading in section 3, and that is
+not isolated either.
 
 **One observation still does not fit.** On 05/09/2026 a hand-run `curl` returned `200` at 05:33 and the
 monolith was refused a minute later, which a hibernation-only explanation does not account for. It is
 recorded as a counter-example rather than explained away; resolving it needs origin access logs
 correlated by `CF-Ray`.
 
-**The background poke has no backoff.** Its retry chain is a fixed four attempts across 90 seconds, and
-a chain that fails does not lock the throttle, so ordinary traffic can start a fresh chain immediately
-after the previous one gives up. Under steady traffic against a sleeping instance that works out to an
-upper bound of roughly 160 wake attempts an hour — a figure that only holds when each attempt is
-refused almost immediately. If the attempts instead hang for their full 120 s budget, the real rate is
-far lower. The circuit breaker in section 4 removes the customer-path attempts but does not touch this
-number; an exponential backoff with jitter between failed chains is the planned follow-up.
+**A failed wake is retried on a widening interval, and that is the ceiling of what this side can do.**
+The chain itself is unchanged — four attempts across 90 seconds — but a chain that fails end to end now
+closes the throttle behind it: ten minutes after the first failure, doubling while failures continue,
+capped at an hour. Before that, a failed chain locked nothing, deliberately, so that the next request
+still had a chance to rescue the service. Measurement removed the premise: while the edge is refusing,
+every attempt is refused, and ordinary storefront traffic could start a fresh chain the moment the
+previous one gave up — an upper bound near 160 wake attempts an hour against a service refusing all of
+them. Since the leading reading in section 3 is that the limiter is keyed to how often a caller knocks,
+that rate was plausibly feeding the refusals it was trying to escape. What the backoff cannot do is
+make the edge admit anything; it only stops the system from working against itself.
 
-**Nothing here guarantees an automated wake succeeds** — see *Automated wake-up is best effort* in
-section 3. The breaker stops the system from working against itself; it cannot make the edge admit a
-request. Whether a scheduled or programmatic `GET /health` is admitted as readily as a hand-run one
-remains the open case, and the cron incident on 04/09/2026 is the evidence sitting on it.
+**A scheduled `GET /health` is not admitted as readily as a hand-run one.** That was the open case;
+it is now measured. On 06/09/2026 the chat schedule was refused on every ten-minute run from the end of
+its overnight pause until a visitor's browser woke the service at 10:05 — and the same schedule was
+served `200` at 10:10 and 10:20, once it had an awake instance to ping. The schedule keeps; it does not
+start.
+
+**Automated cold wake is therefore not a property this system claims.** Pursuing it further — a
+different scheduling origin, a CI cron, a paid instance — was considered and deliberately dropped. The
+failure does not reach a customer: search falls back to `ILIKE`, notification work waits in a durable
+queue, and the chat widget renders whatever `/chat/config` fails open to. Paying for availability that
+the architecture already degrades around would buy back a fallback path, not a fault. What remains is
+operational hygiene rather than recovery — the backoff above, so that a refused wake is not retried
+into the ground.
