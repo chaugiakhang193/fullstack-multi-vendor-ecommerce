@@ -30,12 +30,12 @@ jobs:
     steps:
       # fetch-depth 0: guard stamp tài liệu so diff với commit trước đó, clone nông thì
       # base sha không có trong checkout và guard sẽ tự bỏ qua.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'
@@ -146,7 +146,7 @@ jobs:
         working-directory: notification-service
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: search-service/go.mod
           cache-dependency-path: |
@@ -233,7 +233,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Driver docker-container (thay driver `docker` mặc định) để hỗ trợ
       # export cache type=gha ở bước build-push bên dưới.
@@ -241,7 +241,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -249,7 +249,7 @@ jobs:
 
       - name: Extract image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}-backend
           tags: |
@@ -283,7 +283,7 @@ jobs:
 
       - name: Extract notification service image metadata
         id: meta-notification
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}-notification
           tags: |
@@ -312,7 +312,7 @@ jobs:
 
       - name: Extract search service image metadata
         id: meta-search
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}-search
           tags: |
@@ -344,7 +344,7 @@ jobs:
 
       - name: Extract chat service image metadata
         id: meta-chat
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}-chat
           tags: |
