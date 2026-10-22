@@ -9,7 +9,7 @@ WebSocket) and a **Go search service** that keeps a full-text index off the same
 **[API Docs (Swagger)](https://fullstack-multi-vendor-ecommerce.onrender.com/api/docs)** ·
 **[Source](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce)**
 
-_Last updated: 22:24 ICT · 05/09/2026_
+_Last updated: 22:59 ICT · 22/10/2026_
 
 > ⏳ The API runs on a free-tier host — the **first request may take ~50s** to cold-start, then it's fast.
 
@@ -881,3 +881,8 @@ microservice **without downtime**, driven by the `NOTIFICATION_MODE` feature fla
 > distributed paths present) is tagged at
 > [`notif-strangler-dualmode`](https://github.com/chaugiakhang193/fullstack-multi-vendor-ecommerce/tree/notif-strangler-dualmode) —
 > check out that tag to see the code just before cut-off.
+
+## 📄 License
+
+Portfolio project. The source is public to read and review. It is **not** licensed for reuse, resale or
+submission as coursework. See [LICENSE](LICENSE).
